@@ -5,14 +5,13 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ExternalLink, Trash2, MoreVertical, Globe, StickyNote, FileImage, ListChecks, Mic, Layers, Landmark, PlayCircle } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Layers, Landmark, PlayCircle } from 'lucide-react';
 import type { ContentItem, ContentItemType } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface ContentCardProps {
   item: ContentItem;
-  onEdit: (item: ContentItem) => void;
   onDelete: (itemId: string) => void;
 }
 
@@ -43,7 +42,7 @@ const getTypeSpecifics = (type: ContentItemType | undefined) => {
   }
 };
 
-const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => {
+const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
   const hasImage = item.imageUrl && (item.type === 'link' || item.type === 'image');
   const specifics = getTypeSpecifics(item.type);
   const IconComponent = specifics.icon;
@@ -143,7 +142,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
 
             {item.tags && item.tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5 pt-1">
-                {item.tags.slice(0, 2).map((tag) => ( // Show only first 2 tags
+                {item.tags.slice(0, 2).map((tag) => ( 
                   <Badge key={tag.id} variant="secondary" className="font-normal bg-opacity-70 dark:bg-opacity-50 text-xs py-0.5 px-1.5">
                     {tag.name}
                   </Badge>
@@ -160,25 +159,42 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         </div>
         <div className="flex items-center gap-2">
           {item.type === 'link' && item.url && (
-            <Button variant="outline" size="icon" asChild onClick={handleActionClick} className={cn("h-8 w-8", specifics.bgClass !== 'bg-card' && 'bg-background/30 hover:bg-background/50 border-foreground/20')}>
-              <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Open link in new tab">
-                <ExternalLink className="h-3.5 w-3.5" />
-              </a>
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="icon" asChild onClick={handleActionClick} className={cn("h-8 w-8", specifics.bgClass !== 'bg-card' && 'bg-background/30 hover:bg-background/50 border-foreground/20 text-foreground/70')}>
+                    <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Open link in new tab">
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Open link</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={handleActionClick} className={cn("h-8 w-8", specifics.bgClass !== 'bg-card' && 'hover:bg-black/10 dark:hover:bg-white/10')}>
-                <MoreVertical className="h-3.5 w-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" onClick={handleActionClick}>
-              <DropdownMenuItem onClick={() => onDelete(item.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={(e) => {
+                    handleActionClick(e);
+                    onDelete(item.id);
+                  }} 
+                  aria-label="Forget item"
+                  className={cn("h-8 w-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10", specifics.bgClass !== 'bg-card' && 'hover:bg-black/10 dark:hover:bg-white/10')}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Forget</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </CardFooter>
     </Card>
