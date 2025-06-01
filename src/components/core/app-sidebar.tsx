@@ -2,15 +2,15 @@
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
-import { Home, Tag, Settings, LogOut, Users, ChevronDown, Plus, Globe, ClipboardList, Bookmark, Newspaper, Film, Baseline, Github, MessageSquare, MessagesSquare, BookOpen, LucideIcon } from 'lucide-react';
+import { Home, Tag, Settings, LogOut, Users, ChevronDown, Plus, Globe, ClipboardList, Bookmark, Newspaper, Film, Baseline, Github, MessageSquare, MessagesSquare, BookOpen, LucideIcon, StickyNote } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import KlippedLogo from './klipped-logo';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import type { Zone, Tag as TagType } from '@/types'; 
+import type { Zone, Tag as TagType } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ThemeToggle } from './theme-toggle'; 
+import { ThemeToggle } from './theme-toggle';
 import { Separator } from '@/components/ui/separator';
 import { getZones, getUniqueDomains, getUniqueContentTypes } from '@/services/contentService';
 import { useToast } from '@/hooks/use-toast';
@@ -27,7 +27,7 @@ const mockTags: TagType[] = [
 const predefinedContentTypes: Record<string, { icon: LucideIcon, name: string }> = {
   Post: { icon: Newspaper, name: 'Post' },
   Reel: { icon: Film, name: 'Reel' },
-  Text: { icon: Baseline, name: 'Text' },
+  Note: { icon: StickyNote, name: 'Note' }, // Changed from Text to Note
   Repositories: { icon: Github, name: 'Repositories' },
   Tweet: { icon: MessageSquare, name: 'Tweet' }, // Using MessageSquare as Twitter icon isn't in Lucide
   Thread: { icon: MessagesSquare, name: 'Thread' },
@@ -68,7 +68,7 @@ const AppSidebar: React.FC = () => {
   }, [fetchData]);
 
   const formatDomainName = (domain: string): string => {
-    const nameWithoutTld = domain.replace(/\.(com|net|org|io|dev|co|ai|app|me|xyz|info|biz|blog|tech)$/i, '');
+    const nameWithoutTld = domain.replace(/\.(com|net|org|io|dev|co|ai|app|me|xyz|info|biz|blog|tech|co\.uk|org\.uk|ac\.uk|gov\.uk)$/i, '');
     return nameWithoutTld.charAt(0).toUpperCase() + nameWithoutTld.slice(1);
   };
 
@@ -107,7 +107,7 @@ const AppSidebar: React.FC = () => {
               <AccordionItem value="zones" className="border-b-0">
                 <AccordionTrigger className="px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg hover:no-underline">
                   <div className="flex items-center gap-3">
-                    <Bookmark className="h-4 w-4" /> {/* Changed icon */}
+                    <Bookmark className="h-4 w-4" />
                     Zones
                   </div>
                 </AccordionTrigger>
@@ -118,7 +118,7 @@ const AppSidebar: React.FC = () => {
                       href={`/zones/${zone.id}`}
                       className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary/80 aria-[current=page]:text-sidebar-primary-foreground"
                     >
-                      {zone.icon ? <zone.icon className="h-4 w-4" /> : <Bookmark className="h-4 w-4 opacity-50" />} {/* Changed default icon */}
+                      {zone.icon ? <zone.icon className="h-4 w-4" /> : <Bookmark className="h-4 w-4 opacity-50" />}
                       {zone.name}
                     </Link>
                   ))}
@@ -161,7 +161,7 @@ const AppSidebar: React.FC = () => {
                 <AccordionContent className="pl-4 mt-1 space-y-1">
                   {domains.map((domain) => (
                     <div key={domain} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80">
-                       <Globe className="h-4 w-4 opacity-70" /> {/* Placeholder for favicon */}
+                       <Globe className="h-4 w-4 opacity-70" /> 
                        {formatDomainName(domain)}
                     </div>
                   ))}

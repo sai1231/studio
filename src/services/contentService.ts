@@ -1,7 +1,7 @@
 
 'use server'; 
 
-import type { ContentItem, Zone, Tag } from '@/types'; // Renamed Collection to Zone
+import type { ContentItem, Zone, Tag } from '@/types';
 
 let mockContentItems: ContentItem[] = [
   {
@@ -15,7 +15,7 @@ let mockContentItems: ContentItem[] = [
     zoneId: '1', 
     createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), 
     domain: 'nextjs.org',
-    contentType: 'Article', // Updated
+    contentType: 'Article',
   },
   {
     id: '2',
@@ -25,7 +25,7 @@ let mockContentItems: ContentItem[] = [
     tags: [{ id: 't-personal', name: 'personal' }, { id: 't-todos', name: 'todos' }],
     zoneId: '2', 
     createdAt: new Date(Date.now() - 86400000 * 1).toISOString(), 
-    contentType: 'Text', // Updated
+    contentType: 'Note', // Updated from 'Text' or 'List' to 'Note'
   },
   {
     id: '3',
@@ -36,7 +36,7 @@ let mockContentItems: ContentItem[] = [
     tags: [{ id: 't4', name: 'inspiration' }, {id: 't-nature', name: 'nature'}],
     zoneId: '1', 
     createdAt: new Date().toISOString(),
-    contentType: 'Image', // Keep as Image, not in the specific list
+    // contentType: 'Image', // Can leave this as Image or remove if not in predefined list
   },
   {
     id: '4',
@@ -49,7 +49,7 @@ let mockContentItems: ContentItem[] = [
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
     domain: 'instagram.com',
-    contentType: 'Reel', // Updated
+    contentType: 'Reel',
   },
    {
     id: '5',
@@ -61,7 +61,7 @@ let mockContentItems: ContentItem[] = [
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 0.5).toISOString(),
     domain: 'threads.net',
-    contentType: 'Thread', // Updated
+    contentType: 'Thread',
   },
   {
     id: '6',
@@ -73,7 +73,7 @@ let mockContentItems: ContentItem[] = [
     zoneId: '1',
     createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
     domain: 'github.com',
-    contentType: 'Repositories', // Updated
+    contentType: 'Repositories',
   },
   {
     id: '7',
@@ -85,7 +85,7 @@ let mockContentItems: ContentItem[] = [
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 0.2).toISOString(),
     domain: 'twitter.com',
-    contentType: 'Tweet', // Updated
+    contentType: 'Tweet',
   },
   {
     id: '8',
@@ -97,7 +97,7 @@ let mockContentItems: ContentItem[] = [
     zoneId: '2',
     createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
     domain: 'medium.com',
-    contentType: 'Post', // Updated (as per the defined list, 'Post' can cover blog posts)
+    contentType: 'Article', // Changed from 'Post' to 'Article' to match preferred list if needed
   }
 ];
 
@@ -209,3 +209,4 @@ export async function getUniqueContentTypes(): Promise<string[]> {
   });
   return Array.from(contentTypes).sort();
 }
+
