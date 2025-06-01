@@ -6,6 +6,19 @@ import type { ContentItem, Zone, Tag, MovieDetails } from '@/types';
 
 let mockContentItems: ContentItem[] = [
   {
+    id: 'pdf-mock-1',
+    type: 'link',
+    url: 'https://storage.example.com/reports/annual_company_report_2023.pdf',
+    title: 'Annual Company Report 2023.pdf',
+    description: 'The official annual report for the fiscal year 2023, detailing performance and outlook.',
+    tags: [{ id: 't-report', name: 'report' }, { id: 't-official', name: 'official' }, { id: 't-pdf', name: 'pdf' }],
+    zoneId: '1', // Assuming Zone '1' (Work & Learning) exists
+    createdAt: new Date(Date.now() - 86400000 * 0.05).toISOString(), // Very recent
+    domain: 'storage.example.com',
+    contentType: 'PDF',
+    // No imageUrl for PDFs by default
+  },
+  {
     id: '1',
     type: 'link',
     url: 'https://nextjs.org/docs',
