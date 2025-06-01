@@ -87,7 +87,7 @@ const AppSidebar: React.FC = () => {
         <div className="px-4 py-3 border-b border-sidebar-border">
           <div className="flex items-center space-x-3">
             <Avatar className="h-10 w-10">
-              <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" />
+              <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" data-ai-hint="user avatar" />
               <AvatarFallback>U</AvatarFallback>
             </Avatar>
             <div>
@@ -146,7 +146,7 @@ const AppSidebar: React.FC = () => {
                 <AccordionContent className="pl-4 mt-1 space-y-1">
                   {actualTags.length > 0 ? actualTags.map((tag) => (
                     <Link
-                      key={tag.name} // Changed from tag.id to tag.name for unique key
+                      key={tag.name} 
                       href={`/tags/${encodeURIComponent(tag.name)}`}
                       className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary/80 aria-[current=page]:text-sidebar-primary-foreground"
                     >
@@ -170,10 +170,14 @@ const AppSidebar: React.FC = () => {
                 </AccordionTrigger>
                 <AccordionContent className="pl-4 mt-1 space-y-1">
                   {domains.map((domain) => (
-                    <div key={domain} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80">
+                    <Link
+                      key={domain}
+                      href={`/domains/${encodeURIComponent(domain)}`}
+                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary/80 aria-[current=page]:text-sidebar-primary-foreground"
+                    >
                        <Globe className="h-4 w-4 opacity-70" />
                        {formatDomainName(domain)}
-                    </div>
+                    </Link>
                   ))}
                   {domains.length === 0 && <p className="px-3 py-2 text-xs text-sidebar-foreground/60">No domains found.</p>}
                 </AccordionContent>
