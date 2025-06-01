@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil } from 'lucide-react';
+import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil, ChevronDown } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -76,7 +76,6 @@ export default function ContentDetailPage() {
   const id = params.id as string;
 
   const [item, setItem] = useState<ContentItem | null>(null);
-  // const [zone, setZone] = useState<Zone | null>(null); // zone is derived from item.zoneId and allZones
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [embedUrl, setEmbedUrl] = useState<string | null>(null);
@@ -112,7 +111,6 @@ export default function ContentDetailPage() {
             if (fetchedItem.type === 'link' && fetchedItem.url) {
               setEmbedUrl(getEmbedUrl(fetchedItem.url));
             }
-            // No need to setZone separately if it's derived
           } else {
             setError('Content item not found.');
           }
@@ -163,7 +161,6 @@ export default function ContentDetailPage() {
       const updatedItem = await updateContentItem(item.id, updatePayload);
       if (updatedItem) {
         setItem(updatedItem); 
-        // zone state will update implicitly due to editableZoneId change if fieldName is zoneId
       } else {
         throw new Error(`Failed to update ${fieldName}.`);
       }
@@ -237,7 +234,6 @@ export default function ContentDetailPage() {
         await handleFieldUpdate('zoneId', newZone.id);
       }
       setEditableZoneId(newZone.id);
-      // setZone(newZone); // zone state removed, derived from editableZoneId
       toast({ title: "Zone Created", description: `Zone "${newZone.name}" created and assigned.` });
     } catch (e) {
       console.error('Error creating zone:', e);
@@ -478,18 +474,18 @@ export default function ContentDetailPage() {
                      <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
                         <PopoverTrigger asChild>
                             <Button
-                                variant="ghost"
+                                variant="outline"
                                 role="combobox"
                                 aria-expanded={isComboboxOpen}
                                 className={cn(
-                                    "flex items-center justify-start text-left space-x-1.5 p-1 h-auto rounded-md hover:bg-muted focus-visible:ring-2 focus-visible:ring-accent w-auto text-sm",
-                                    (isSavingField || isUpdatingTags) ? "opacity-50" : ""
+                                    "w-auto justify-between text-sm min-w-[180px]",
+                                    (isSavingField || isUpdatingTags) ? "opacity-50" : "",
+                                    !editableZoneId && "text-muted-foreground"
                                 )}
                                 disabled={isSavingField || isUpdatingTags}
                             >
-                                <Bookmark className="h-4 w-4 text-muted-foreground" />
-                                <span>{currentZoneNameForDisplay}</span>
-                                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                                {currentZoneNameForDisplay}
+                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-gray-50 dark:bg-gray-700">
@@ -665,6 +661,7 @@ export default function ContentDetailPage() {
     
 
   
+
 
 
 
