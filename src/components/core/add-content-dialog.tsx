@@ -21,23 +21,28 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { X, Lightbulb, Loader2, Sparkles, Link as LinkIcon, ImageIcon, ListTodo, Mic, StickyNote } from 'lucide-react';
-import type { Collection, LinkItem, Tag } from '@/types';
+import type { Collection, ContentItem, ContentItemType, Tag } from '@/types'; // Updated imports
 import { suggestTags, type SuggestTagsInput } from '@/ai/flows/suggest-tags';
 import { analyzeLinkSentiment, type AnalyzeLinkSentimentInput } from '@/ai/flows/analyze-sentiment';
 import { useToast } from '@/hooks/use-toast';
 
-const formSchema = z.object({
-  url: z.string().optional(), // Optional now, only required if contentType is 'link'
+// Base schema for common fields
+const baseFormSchema = z.object({
   title: z.string().min(1, { message: 'Title is required.' }),
   description: z.string().optional(),
   collectionId: z.string().optional(),
+  // tags are handled separately by component state, not react-hook-form
 });
 
-// Add this validation refinement if URL is provided for link type
-const refinedFormSchema = formSchema.refine(data => {
-    // This refinement should be conditional on contentType, handled in onSubmit
-    return true; 
-}, {});
+// Schema for 'link' type, requiring URL
+const linkFormSchema = baseFormSchema.extend({
+  url: z.string().url({ message: 'Please enter a valid URL.' }),
+});
+
+// Schema for other types (note, image, todo, voice) where URL is not applicable
+const nonLinkFormSchema = baseFormSchema.extend({
+  url: z.string().optional(), // URL is optional and should not be present
+});
 
 
 export interface AddContentDialogOpenChange {
@@ -45,13 +50,11 @@ export interface AddContentDialogOpenChange {
   onOpenChange?: (open: boolean) => void;
 }
 
-type ContentType = 'link' | 'note' | 'image' | 'todo' | 'voice';
-
-// Prop for onContentAdd might need to be more generic later
 interface AddContentDialogProps extends AddContentDialogOpenChange {
   collections: Collection[];
-  onContentAdd: (newContent: Omit<LinkItem, 'id' | 'createdAt' | 'imageUrl'>) => void; 
-  children?: React.ReactNode; 
+  onContentAdd: (newContent: Omit<ContentItem, 'id' | 'createdAt'>) => void;
+  // existingContent?: ContentItem | null; // For editing, to be implemented later
+  children?: React.ReactNode;
 }
 
 const PLACEHOLDER_NONE_COLLECTION_VALUE = "__none_collection__";
@@ -62,11 +65,12 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [selectedContentType, setSelectedContentType] = useState<ContentType>('link');
+  const [selectedContentType, setSelectedContentType] = useState<ContentItemType>('link');
   const { toast } = useToast();
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema), // Use base schema first
+  // We will manage form schema dynamically based on selectedContentType
+  const form = useForm<z.infer<typeof baseFormSchema> & { url?: string }>({
+    resolver: zodResolver(selectedContentType === 'link' ? linkFormSchema : nonLinkFormSchema),
     defaultValues: {
       url: '',
       title: '',
@@ -75,6 +79,13 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     },
   });
 
+  // Re-validate when content type changes
+  useEffect(() => {
+    form.trigger();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedContentType, form.trigger]);
+
+
   const watchedUrl = form.watch('url');
   const watchedTitle = form.watch('title');
   const watchedDescription = form.watch('description');
@@ -82,11 +93,16 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
 
   useEffect(() => {
     if (open) {
-      form.reset();
+      form.reset({
+        url: '', // Reset all fields
+        title: '',
+        description: '',
+        collectionId: '',
+      });
       setCurrentTags([]);
       setSuggestedTags([]);
       setTagInput('');
-      // setSelectedContentType('link'); // Reset to default content type or keep last selected
+      // setSelectedContentType('link'); // Or keep the last selected one if preferred
     }
   }, [open, form]);
 
@@ -118,10 +134,14 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     }
     setSuggestedTags(suggestedTags.filter(st => st.toLowerCase() !== tagName.toLowerCase()));
   };
-  
+
   const handleSuggestTags = async () => {
     if (selectedContentType !== 'link' || !watchedUrl || !watchedTitle) {
       toast({ title: "URL and Title needed for link", description: "Please enter a URL and Title to suggest tags for a link.", variant: "destructive" });
+      return;
+    }
+     if (!z.string().url().safeParse(watchedUrl).success) {
+      form.setError('url', { type: 'manual', message: 'Please enter a valid URL to suggest tags.' });
       return;
     }
     setIsSuggesting(true);
@@ -141,7 +161,14 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     setIsSuggesting(false);
   };
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof baseFormSchema> & { url?: string }) {
+    const commonData = {
+      title: values.title,
+      description: values.description,
+      collectionId: values.collectionId === PLACEHOLDER_NONE_COLLECTION_VALUE ? undefined : values.collectionId,
+      tags: currentTags,
+    };
+
     if (selectedContentType === 'link') {
       if (!values.url || !z.string().url().safeParse(values.url).success) {
         form.setError('url', { type: 'manual', message: 'Please enter a valid URL for a link.' });
@@ -159,21 +186,22 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
           toast({ title: "Sentiment Analysis Failed", description: "Could not analyze link sentiment.", variant: "destructive" });
       }
       setIsAnalyzing(false);
-      onContentAdd({ ...values, url: values.url, tags: currentTags, sentiment: sentimentData });
+      onContentAdd({ ...commonData, type: 'link', url: values.url, sentiment: sentimentData });
     } else if (selectedContentType === 'note') {
-        onContentAdd({ ...values, url: undefined, tags: currentTags }); // No URL for a note
+        onContentAdd({ ...commonData, type: 'note', url: undefined });
     } else {
+      // For other types, currently show a toast.
       toast({
         title: `${selectedContentType.charAt(0).toUpperCase() + selectedContentType.slice(1)} Content Type`,
         description: `Adding ${selectedContentType}s is not yet implemented.`,
         variant: "default",
       });
-      // For now, we can still "save" it with the common fields
-      onContentAdd({ ...values, url: undefined, tags: currentTags }); 
+      // Still "save" with common fields and type
+      onContentAdd({ ...commonData, type: selectedContentType, url: undefined });
     }
     if (onOpenChange) onOpenChange(false);
   }
-  
+
   const contentTypeIconProps = "h-5 w-5";
 
   return (
@@ -199,7 +227,16 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                     key={item.type}
                     variant={selectedContentType === item.type ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setSelectedContentType(item.type as ContentType)}
+                    onClick={() => {
+                      setSelectedContentType(item.type as ContentItemType);
+                      // Reset URL validation error if switching away from 'link' or to 'link' with no URL
+                      if (item.type !== 'link' && form.formState.errors.url) {
+                        form.clearErrors('url');
+                      }
+                      if (item.type === 'link' && !form.getValues('url')) {
+                         form.clearErrors('url'); // Clear if switching to link and url is empty
+                      }
+                    }}
                     className="flex-1 sm:flex-none"
                 >
                     {item.icon}
@@ -207,7 +244,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                 </Button>
             ))}
         </div>
-        
+
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex-grow overflow-y-auto pr-2 space-y-4 py-4">
           {selectedContentType === 'link' && (
             <div className="space-y-2">
@@ -227,13 +264,14 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
             <Label htmlFor="description" className="font-medium">
               {selectedContentType === 'note' ? 'Note Content' : 'Description (Optional)'}
             </Label>
-            <Textarea 
-              id="description" 
-              {...form.register('description')} 
-              placeholder={selectedContentType === 'note' ? "Write your note here..." : "A brief description..."} 
+            <Textarea
+              id="description"
+              {...form.register('description')}
+              placeholder={selectedContentType === 'note' ? "Write your note here..." : "A brief description..."}
               className="focus-visible:ring-accent"
               rows={selectedContentType === 'note' ? 5 : 3}
             />
+             {form.formState.errors.description && <p className="text-sm text-destructive">{form.formState.errors.description.message}</p>}
           </div>
 
           <div className="space-y-2">
@@ -259,7 +297,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <Label htmlFor="tags" className="font-medium">Tags</Label>

@@ -4,16 +4,17 @@
 import type React from 'react';
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import LinkCard from '@/components/core/link-card';
-import type { LinkItem, Collection } from '@/types';
+import ContentCard from '@/components/core/link-card'; // Assuming link-card is now ContentCard
+import type { ContentItem, Collection } from '@/types'; // Updated to ContentItem
 import { Button } from '@/components/ui/button';
 import { LayoutGrid, LayoutList, ListFilter, FolderOpen, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-// Mock Data - Sourced and expanded from dashboard/page.tsx for broader coverage
-const allMockLinks: LinkItem[] = [
+// Mock Data - Ensure this data matches the ContentItem structure
+const allMockContent: ContentItem[] = [
   {
     id: '1',
+    type: 'link',
     url: 'https://nextjs.org',
     title: 'Next.js by Vercel',
     description: 'The React Framework for the Web.',
@@ -25,6 +26,7 @@ const allMockLinks: LinkItem[] = [
   },
   {
     id: '2',
+    type: 'link',
     url: 'https://tailwindcss.com',
     title: 'Tailwind CSS',
     description: 'Rapidly build modern websites.',
@@ -36,16 +38,19 @@ const allMockLinks: LinkItem[] = [
   },
   {
     id: '3',
+    type: 'link',
     url: 'https://www.figma.com',
     title: 'Figma',
     description: 'Collaborative interface design tool.',
     imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't3', name: 'design' }, { id: 't4', name: 'inspiration' }],
+    collectionId: '1', // Work Projects
     createdAt: new Date(Date.now() - 172800000).toISOString(),
     sentiment: { label: 'positive', score: 0.92 }
   },
    {
     id: '4',
+    type: 'link',
     url: 'https://openai.com/blog/chatgpt',
     title: 'ChatGPT Blog',
     description: 'Optimizing Language Models for Dialogue.',
@@ -56,7 +61,17 @@ const allMockLinks: LinkItem[] = [
     sentiment: { label: 'negative', score: -0.40 }
   },
   {
+    id: 'note-coll-1',
+    type: 'note',
+    title: 'Meeting Notes - Project K',
+    description: 'Discussed timeline for Q3.\nKey takeaway: Focus on core features first.',
+    tags: [{id: 't-meeting', name: 'meeting'}, {id: 't-projectk', name: 'project k'}],
+    collectionId: '1', // Work Projects
+    createdAt: new Date(Date.now() - 2*86400000).toISOString(),
+  },
+  {
     id: '5',
+    type: 'link',
     url: 'https://www.epicurious.com/recipes/food/views/our-favorite-macaroni-and-cheese-233022',
     title: 'Macaroni and Cheese Recipe',
     description: 'Classic mac and cheese recipe from Epicurious.',
@@ -66,80 +81,46 @@ const allMockLinks: LinkItem[] = [
     createdAt: new Date(Date.now() - 3*86400000).toISOString(),
     sentiment: { label: 'positive', score: 0.95 }
   },
-  {
-    id: '6',
-    url: 'https://www.bbcgoodfood.com/recipes/collection/easy-dinner-recipes',
-    title: 'Easy Dinner Recipes',
-    description: 'Quick and easy dinner ideas from BBC Good Food.',
-    imageUrl: 'https://placehold.co/600x400.png',
-    tags: [{ id: 't6', name: 'cooking' }, { id: 't8', name: 'weeknight meals' }],
-    collectionId: '3', // Recipes
-    createdAt: new Date(Date.now() - 4*86400000).toISOString(),
-    sentiment: { label: 'positive', score: 0.88 }
-  },
-  {
-    id: '7',
-    url: 'https://www.nomadicmatt.com/travel-blogs/top-10-travel-destinations/',
-    title: 'Top 10 Travel Destinations',
-    description: 'Travel inspiration from Nomadic Matt.',
-    imageUrl: 'https://placehold.co/600x400.png',
-    tags: [{ id: 't9', name: 'travel' }, { id: 't4', name: 'inspiration' }],
-    collectionId: '4', // Travel Ideas
-    createdAt: new Date(Date.now() - 5*86400000).toISOString(),
-    sentiment: { label: 'positive', score: 0.90 }
-  },
-  {
-    id: '8',
-    url: 'https://www.lonelyplanet.com/articles',
-    title: 'Lonely Planet Articles',
-    description: 'Travel guides, tips, and articles.',
-    imageUrl: 'https://placehold.co/600x400.png',
-    tags: [{ id: 't9', name: 'travel' }, { id: 't10', name: 'guides' }],
-    collectionId: '4', // Travel Ideas
-    createdAt: new Date(Date.now() - 6*86400000).toISOString(),
-    sentiment: { label: 'neutral', score: 0.20 }
-  }
 ];
 
 const allMockCollections: Collection[] = [
   { id: '1', name: 'Work Projects' },
   { id: '2', name: 'Reading List' },
   { id: '3', name: 'Recipes' },
-  { id: '4', name: 'Travel Ideas' },
+  { id: '4', name: 'Travel Ideas' }, // This collection might be empty if no items have collectionId: '4'
 ];
 
 export default function CollectionPage({ params }: { params: { id: string } }) {
   const collectionId = params.id;
   const router = useRouter();
-  const [links, setLinks] = useState<LinkItem[]>([]);
+  const [items, setItems] = useState<ContentItem[]>([]); // Changed to ContentItem
   const [currentCollection, setCurrentCollection] = useState<Collection | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  
+
   useEffect(() => {
     setIsLoading(true);
-    // Simulate fetching data
     const foundCollection = allMockCollections.find(c => c.id === collectionId);
     if (foundCollection) {
       setCurrentCollection(foundCollection);
-      const collectionLinks = allMockLinks.filter(link => link.collectionId === collectionId);
-      setLinks(collectionLinks);
+      const collectionItems = allMockContent.filter(item => item.collectionId === collectionId);
+      setItems(collectionItems);
     } else {
       setCurrentCollection(null);
-      setLinks([]);
+      setItems([]);
     }
-    // Simulate delay for loading state
     setTimeout(() => setIsLoading(false), 500);
   }, [collectionId]);
 
-  const handleEditLink = (linkToEdit: LinkItem) => {
-    toast({ title: "Edit Action", description: `Editing "${linkToEdit.title}" (Not fully implemented on this page).`});
+  const handleEditItem = (itemToEdit: ContentItem) => {
+    // This would likely open the AddContentDialog in an edit mode
+    toast({ title: "Edit Action", description: `Editing "${itemToEdit.title}" (Not fully implemented on this page).`});
   };
 
-  const handleDeleteLink = (linkIdToDelete: string) => {
-    setLinks(prevLinks => prevLinks.filter(link => link.id !== linkIdToDelete));
-    toast({ title: "Link Deleted", description: "The link has been removed from this collection view.", variant: "destructive" });
+  const handleDeleteItem = (itemIdToDelete: string) => {
+    setItems(prevItems => prevItems.filter(item => item.id !== itemIdToDelete));
+    toast({ title: "Item Deleted", description: "The item has been removed from this collection view.", variant: "destructive" });
   };
 
   if (isLoading) {
@@ -184,24 +165,24 @@ export default function CollectionPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      {links.length === 0 ? (
+      {items.length === 0 ? (
         <div className="text-center py-12">
            <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h2 className="text-xl font-medium text-muted-foreground">
-            No links in "{currentCollection.name}" yet.
+            No items in "{currentCollection.name}" yet.
           </h2>
           <p className="text-muted-foreground mt-2">
-            Add links to this collection via the "Add Link" button or by editing existing links.
+            Add items to this collection via the "Add Content" button.
           </p>
         </div>
       ) : (
         <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'grid-cols-1'}`}>
-          {links.map(link => (
-            <LinkCard 
-              key={link.id} 
-              link={link}
-              onEdit={handleEditLink}
-              onDelete={handleDeleteLink}
+          {items.map(item => (
+            <ContentCard // Using ContentCard
+              key={item.id}
+              item={item}
+              onEdit={handleEditItem}
+              onDelete={handleDeleteItem}
             />
           ))}
         </div>

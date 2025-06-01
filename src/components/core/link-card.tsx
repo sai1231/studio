@@ -5,33 +5,46 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ExternalLink, Edit3, Trash2, MoreVertical, Globe, Smile, Meh, Frown } from 'lucide-react';
-import type { LinkItem } from '@/types';
+import { ExternalLink, Edit3, Trash2, MoreVertical, Globe, Smile, Meh, Frown, StickyNote, FileImage, ListChecks, Mic } from 'lucide-react';
+import type { ContentItem } from '@/types';
 
-interface LinkCardProps {
-  link: LinkItem;
-  onEdit: (link: LinkItem) => void;
-  onDelete: (linkId: string) => void;
+interface ContentCardProps {
+  item: ContentItem;
+  onEdit: (item: ContentItem) => void;
+  onDelete: (itemId: string) => void;
 }
 
-const getHintFromLink = (link: LinkItem): string => {
-  let hint = "website content"; // Default hint
-  if (link.tags && link.tags.length > 0) {
-    // Use first word of up to two tags
-    hint = link.tags.slice(0, 2).map(tag => tag.name.split(' ')[0]).join(' ');
-  } else if (link.title) {
-    // Use first two words of title if no tags
-    hint = link.title.split(' ').slice(0, 2).join(' ');
+const getHintFromItem = (item: ContentItem): string => {
+  let hint = "content item";
+  if (item.tags && item.tags.length > 0) {
+    hint = item.tags.slice(0, 2).map(tag => tag.name.split(' ')[0]).join(' ');
+  } else if (item.title) {
+    hint = item.title.split(' ').slice(0, 2).join(' ');
   }
-  // Ensure hint is not empty and respects potential length limits (though explicit limit not enforced here, just structure)
-  return hint.toLowerCase() || "web content"; 
+  return hint.toLowerCase() || "web content";
 };
 
+const getTypeIcon = (type: ContentItem['type']) => {
+  switch (type) {
+    case 'link':
+      return <Globe className="h-3 w-3 mr-1.5 shrink-0" />;
+    case 'note':
+      return <StickyNote className="h-3 w-3 mr-1.5 shrink-0" />;
+    case 'image':
+      return <FileImage className="h-3 w-3 mr-1.5 shrink-0" />;
+    case 'todo':
+      return <ListChecks className="h-3 w-3 mr-1.5 shrink-0" />;
+    case 'voice':
+      return <Mic className="h-3 w-3 mr-1.5 shrink-0" />;
+    default:
+      return <Globe className="h-3 w-3 mr-1.5 shrink-0" />;
+  }
+}
 
-const LinkCard: React.FC<LinkCardProps> = ({ link, onEdit, onDelete }) => {
+const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => {
   const renderSentimentIcon = () => {
-    if (!link.sentiment) return null;
-    switch (link.sentiment.label) {
+    if (item.type !== 'link' || !item.sentiment) return null;
+    switch (item.sentiment.label) {
       case 'positive':
         return <Smile className="h-4 w-4 text-green-500" />;
       case 'negative':
@@ -43,50 +56,64 @@ const LinkCard: React.FC<LinkCardProps> = ({ link, onEdit, onDelete }) => {
     }
   };
 
+  const isLink = item.type === 'link' && item.url;
+
   return (
     <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full">
-      {link.imageUrl && (
+      {item.imageUrl && (item.type === 'link' || item.type === 'image') && (
         <div className="relative w-full h-48">
-          <Image 
-            src={link.imageUrl || "https://placehold.co/600x400.png"} 
-            alt={link.title} 
-            layout="fill" 
-            objectFit="cover" 
-            data-ai-hint={getHintFromLink(link)}
+          <Image
+            src={item.imageUrl || "https://placehold.co/600x400.png"}
+            alt={item.title}
+            layout="fill"
+            objectFit="cover"
+            data-ai-hint={getHintFromItem(item)}
           />
         </div>
       )}
       <CardHeader>
-        <CardTitle className="text-lg font-headline leading-tight">{link.title}</CardTitle>
-        <CardDescription className="text-xs text-muted-foreground flex items-center pt-1">
-          <Globe className="h-3 w-3 mr-1.5 shrink-0" /> 
-          <a href={link.url} target="_blank" rel="noopener noreferrer" className="truncate hover:underline">{link.url}</a>
-        </CardDescription>
+        <CardTitle className="text-lg font-headline leading-tight">{item.title}</CardTitle>
+        {isLink && (
+          <CardDescription className="text-xs text-muted-foreground flex items-center pt-1">
+            {getTypeIcon(item.type)}
+            <a href={item.url} target="_blank" rel="noopener noreferrer" className="truncate hover:underline">{item.url}</a>
+          </CardDescription>
+        )}
+        {item.type !== 'link' && (
+           <CardDescription className="text-xs text-muted-foreground flex items-center pt-1">
+            {getTypeIcon(item.type)}
+            <span className="capitalize">{item.type}</span>
+          </CardDescription>
+        )}
       </CardHeader>
       <CardContent className="flex-grow">
-        {link.description && <p className="text-sm text-muted-foreground mb-3">{link.description}</p>}
-        <div className="flex flex-wrap gap-2">
-          {link.tags.slice(0, 5).map((tag) => (
-            <Badge key={tag.id} variant="secondary" className="font-normal">
-              {tag.name}
-            </Badge>
-          ))}
-          {link.tags.length > 5 && <Badge variant="outline">+{link.tags.length - 5} more</Badge>}
-        </div>
+        {item.description && <p className={`text-sm ${item.type === 'note' ? 'text-foreground whitespace-pre-wrap' : 'text-muted-foreground'} mb-3`}>{item.description}</p>}
+        {item.tags && item.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+            {item.tags.slice(0, 5).map((tag) => (
+                <Badge key={tag.id} variant="secondary" className="font-normal">
+                {tag.name}
+                </Badge>
+            ))}
+            {item.tags.length > 5 && <Badge variant="outline">+{item.tags.length - 5} more</Badge>}
+            </div>
+        )}
       </CardContent>
       <CardFooter className="flex justify-between items-center pt-4 border-t">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {renderSentimentIcon()}
-          {link.sentiment && (
-            <span className="capitalize">{link.sentiment.label} ({link.sentiment.score.toFixed(2)})</span>
+          {item.type === 'link' && renderSentimentIcon()}
+          {item.type === 'link' && item.sentiment && (
+            <span className="capitalize">{item.sentiment.label} ({item.sentiment.score.toFixed(2)})</span>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" asChild>
-            <a href={link.url} target="_blank" rel="noopener noreferrer" aria-label="Open link in new tab">
-              <ExternalLink className="h-4 w-4" />
-            </a>
-          </Button>
+          {isLink && (
+            <Button variant="outline" size="icon" asChild>
+              <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Open link in new tab">
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -94,11 +121,11 @@ const LinkCard: React.FC<LinkCardProps> = ({ link, onEdit, onDelete }) => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onEdit(link)}>
+              <DropdownMenuItem onClick={() => onEdit(item)}>
                 <Edit3 className="mr-2 h-4 w-4" />
                 Edit
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onDelete(link.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+              <DropdownMenuItem onClick={() => onDelete(item.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
               </DropdownMenuItem>
@@ -110,5 +137,4 @@ const LinkCard: React.FC<LinkCardProps> = ({ link, onEdit, onDelete }) => {
   );
 };
 
-export default LinkCard;
-
+export default ContentCard;
