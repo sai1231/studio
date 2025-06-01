@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, CalendarDays, Folder, Tag as TagIcon, Globe, StickyNote, FileImage, ExternalLink, ListChecks, Mic, Layers, Landmark, Plus, X, Loader2, Check, Edit3 } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Folder, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Landmark } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -272,20 +272,21 @@ export default function ContentDetailPage() {
   
   const isDescriptionReadOnly = item.type === 'link' || item.type === 'image' || item.type === 'voice';
   const showMindNote = item.type === 'link' || item.type === 'image' || item.type === 'voice';
-  const showTwoColumnLayout = item.imageUrl && (item.type === 'link' || item.type === 'image' || item.type === 'note');
+  const showTwoColumnLayout = !!item.imageUrl;
+
 
   return (
-    <div className="container mx-auto py-6 max-w-4xl"> {/* Increased max-w for two-column */}
+    <div className="container mx-auto py-6 max-w-4xl">
       <Button onClick={() => router.back()} variant="outline" className="mb-6">
         <ArrowLeft className="mr-2 h-4 w-4" /> Back
       </Button>
 
-      <Card className="shadow-xl overflow-hidden"> {/* Added overflow-hidden for rounded corners on children */}
+      <Card className="shadow-xl overflow-hidden">
         <div className={cn(
           showTwoColumnLayout ? "md:grid md:grid-cols-[minmax(0,_7fr)_minmax(0,_3fr)]" : ""
         )}>
           {/* Left Column: Image (conditional for two-column layout) */}
-          {showTwoColumnLayout && item.imageUrl && (
+          {showTwoColumnLayout && item.imageUrl && ( // item.imageUrl check is redundant if showTwoColumnLayout implies it
             <div className="relative w-full aspect-[3/4] md:aspect-auto md:h-full overflow-hidden">
               <Image
                 src={item.imageUrl}
@@ -300,19 +301,18 @@ export default function ContentDetailPage() {
 
           {/* Right Column (or full width content) */}
           <div className="flex flex-col">
-            {/* Fallback Full-Width Image (for items not in two-column but still have an image) */}
-            {!showTwoColumnLayout && item.imageUrl && (
+            {/* Fallback Full-Width Image (This should not render if showTwoColumnLayout is true when image exists) */}
+            {/* !showTwoColumnLayout && item.imageUrl && (
               <div className="relative w-full h-72 rounded-t-lg overflow-hidden">
                 <Image
                   src={item.imageUrl}
                   alt={editableTitle}
                   layout="fill"
                   objectFit="cover"
-                  data-ai-hint={editableTitle.substring(0,20)}
-                  className="rounded-t-lg" // Ensure image itself is rounded if container is not
+                  className="rounded-t-lg"
                 />
               </div>
-            )}
+            ) */}
             
             <CardHeader className={cn(
               "pb-4 relative",
@@ -345,7 +345,7 @@ export default function ContentDetailPage() {
 
             <CardContent className="space-y-6 pt-2 flex-grow">
               <div>
-                <h3 className="text-lg font-semibold mb-2 text-foreground flex items-center sr-only"> {/* sr-only for label */}
+                <h3 className="text-lg font-semibold mb-2 text-foreground flex items-center sr-only">
                     <Edit3 className="h-4 w-4 mr-2 text-muted-foreground"/> Description
                 </h3>
                 {isDescriptionReadOnly ? (
