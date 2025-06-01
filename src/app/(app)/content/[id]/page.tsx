@@ -22,22 +22,27 @@ import { cn } from '@/lib/utils';
 
 const NO_ZONE_VALUE = "__NO_ZONE__"; 
 
+const tagColorPalettes = [
+  'bg-blue-100 text-blue-800 dark:bg-blue-700 dark:text-blue-100',
+  'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100',
+  'bg-purple-100 text-purple-800 dark:bg-purple-700 dark:text-purple-100',
+  'bg-pink-100 text-pink-800 dark:bg-pink-700 dark:text-pink-100',
+  'bg-yellow-100 text-yellow-800 dark:bg-yellow-600 dark:text-yellow-100',
+  'bg-indigo-100 text-indigo-800 dark:bg-indigo-700 dark:text-indigo-100',
+  'bg-teal-100 text-teal-800 dark:bg-teal-700 dark:text-teal-100',
+  'bg-sky-100 text-sky-800 dark:bg-sky-700 dark:text-sky-100',
+  'bg-red-100 text-red-800 dark:bg-red-700 dark:text-red-100',
+  'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-100',
+];
+
 const getTagStyles = (tagName: string): string => {
-  const lowerTagName = tagName.toLowerCase();
-  // Primary Keywords
-  if (['nextjs', 'react', 'typescript', 'javascript', 'dev', 'frontend', 'backend', 'api', 'docs', 'framework', 'library', 'web'].some(kw => lowerTagName.includes(kw))) {
-    return 'bg-blue-200 text-blue-900 dark:bg-blue-700 dark:text-blue-100';
+  let hash = 0;
+  for (let i = 0; i < tagName.length; i++) {
+    hash = tagName.charCodeAt(i) + ((hash << 5) - hash);
+    hash = hash & hash; // Convert to 32bit integer
   }
-  // Social Keywords
-  if (['twitter', 'instagram', 'facebook', 'linkedin', 'social', 'threads', 'community', 'forum'].some(kw => lowerTagName.includes(kw))) {
-    return 'bg-sky-100 text-sky-700 dark:bg-sky-700 dark:text-sky-100';
-  }
-  // Warning Keywords (using 'code' as per user example)
-  if (lowerTagName.includes('code')) { 
-    return 'bg-red-200 text-red-700 dark:bg-red-700 dark:text-red-100';
-  }
-  // Neutral/Meta as default
-  return 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-100';
+  const index = Math.abs(hash) % tagColorPalettes.length;
+  return tagColorPalettes[index];
 };
 
 export default function ContentDetailPage() {
@@ -622,4 +627,5 @@ export default function ContentDetailPage() {
     
 
   
+
 
