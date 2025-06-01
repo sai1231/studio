@@ -85,4 +85,47 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Basic Tiptap editor styling */
+  .ProseMirror {
+    @apply min-h-[100px] p-2 focus:outline-none;
+  }
+  .ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    color: hsl(var(--muted-foreground));
+    pointer-events: none;
+    height: 0;
+  }
+  .ProseMirror h1 { @apply text-3xl font-bold my-4; }
+  .ProseMirror h2 { @apply text-2xl font-semibold my-3; }
+  .ProseMirror h3 { @apply text-xl font-semibold my-2; }
+  .ProseMirror ul { @apply list-disc list-inside my-2 pl-4; }
+  .ProseMirror ol { @apply list-decimal list-inside my-2 pl-4; }
+  .ProseMirror blockquote { @apply border-l-4 border-primary pl-4 italic my-2 text-muted-foreground; }
+  .ProseMirror hr { @apply border-border my-4; }
+  .ProseMirror a { @apply text-primary underline; }
 }
+
+/* Tailwind Typography Plugin Base styles if you were using it:
+   Ensure this is compatible with your Tiptap setup.
+   For direct Tiptap styling, the .ProseMirror scope is more direct.
+*/
+/*
+.prose {
+  color: hsl(var(--foreground));
+}
+.prose a {
+  color: hsl(var(--primary));
+}
+.prose strong {
+  color: hsl(var(--foreground));
+}
+.prose blockquote {
+  color: hsl(var(--muted-foreground));
+  border-left-color: hsl(var(--border));
+}
+.prose h1, .prose h2, .prose h3, .prose h4 {
+  color: hsl(var(--foreground));
+}
+*/

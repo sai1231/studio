@@ -17,22 +17,28 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+// Textarea is replaced by Tiptap
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { X, Lightbulb, Loader2, Sparkles } from 'lucide-react';
+import { X, Lightbulb, Loader2, Sparkles, Bold, Italic, Underline, Strikethrough, Heading1, Heading2, Heading3, List, ListOrdered, Palette, Quote, Minus } from 'lucide-react';
 import type { Collection, ContentItem, ContentItemType, Tag } from '@/types';
 import { suggestTags, type SuggestTagsInput } from '@/ai/flows/suggest-tags';
 import { analyzeLinkSentiment, type AnalyzeLinkSentimentInput } from '@/ai/flows/analyze-sentiment';
 import { useToast } from '@/hooks/use-toast';
 
+import { useEditor, EditorContent, type Editor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import TiptapUnderline from '@tiptap/extension-underline';
+import TextStyle from '@tiptap/extension-text-style';
+import { Color } from '@tiptap/extension-color';
+import Placeholder from '@tiptap/extension-placeholder';
+
 // Schema for the unified form
 const contentFormSchema = z.object({
   url: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   title: z.string().min(1, { message: 'Title is required.' }),
-  description: z.string().min(1, { message: 'Content is required.'}), // Now 'Content'
+  description: z.string().min(1, { message: 'Content is required.'}),
   collectionId: z.string().optional(),
-  // imageUrl is no longer handled by this dialog
 });
 
 export interface AddContentDialogOpenChange {
@@ -47,6 +53,45 @@ interface AddContentDialogProps extends AddContentDialogOpenChange {
 }
 
 const PLACEHOLDER_NONE_COLLECTION_VALUE = "__none_collection__";
+
+const EditorToolbar: React.FC<{ editor: Editor | null }> = ({ editor }) => {
+  if (!editor) {
+    return null;
+  }
+
+  const presetColors = ['#000000', '#e03131', '#2f9e44', '#1971c2', '#f08c00']; // Black, Red, Green, Blue, Orange
+
+  return (
+    <div className="flex flex-wrap gap-1 border border-input rounded-t-md p-1 bg-muted">
+      <Button type="button" variant={editor.isActive('bold') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleBold().run()} disabled={!editor.can().chain().focus().toggleBold().run()} title="Bold"> <Bold className="h-4 w-4" /> </Button>
+      <Button type="button" variant={editor.isActive('italic') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleItalic().run()} disabled={!editor.can().chain().focus().toggleItalic().run()} title="Italic"> <Italic className="h-4 w-4" /> </Button>
+      <Button type="button" variant={editor.isActive('underline') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleUnderline().run()} disabled={!editor.can().chain().focus().toggleUnderline().run()} title="Underline"> <Underline className="h-4 w-4" /> </Button>
+      <Button type="button" variant={editor.isActive('strike') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleStrike().run()} disabled={!editor.can().chain().focus().toggleStrike().run()} title="Strikethrough"> <Strikethrough className="h-4 w-4" /> </Button>
+      <Button type="button" variant={editor.isActive('heading', { level: 1 }) ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} title="Heading 1"> <Heading1 className="h-4 w-4" /> </Button>
+      <Button type="button" variant={editor.isActive('heading', { level: 2 }) ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} title="Heading 2"> <Heading2 className="h-4 w-4" /> </Button>
+      <Button type="button" variant={editor.isActive('heading', { level: 3 }) ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} title="Heading 3"> <Heading3 className="h-4 w-4" /> </Button>
+      <Button type="button" variant={editor.isActive('bulletList') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleBulletList().run()} title="Bullet List"> <List className="h-4 w-4" /> </Button>
+      <Button type="button" variant={editor.isActive('orderedList') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleOrderedList().run()} title="Ordered List"> <ListOrdered className="h-4 w-4" /> </Button>
+      <Button type="button" variant={editor.isActive('blockquote') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleBlockquote().run()} title="Blockquote"> <Quote className="h-4 w-4" /> </Button>
+      <Button type="button" variant={'ghost'} size="icon" onClick={() => editor.chain().focus().setHorizontalRule().run()} title="Horizontal Rule"> <Minus className="h-4 w-4" /> </Button>
+      <div className="flex items-center gap-1 ml-2" title="Text Color">
+        <Palette className="h-4 w-4 text-muted-foreground" />
+        {presetColors.map(color => (
+          <Button
+            key={color}
+            type="button"
+            onClick={() => editor.chain().focus().setColor(color).run()}
+            className={`h-5 w-5 p-0 rounded-sm ${editor.isActive('textStyle', { color }) ? 'ring-2 ring-offset-1 ring-ring' : ''}`}
+            style={{ backgroundColor: color }}
+            aria-label={`Set color to ${color}`}
+          />
+        ))}
+        <Button type="button" variant={'ghost'} size="sm" onClick={() => editor.chain().focus().unsetColor().run()} className="text-xs">Reset</Button>
+      </div>
+    </div>
+  );
+};
+
 
 const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange, collections, onContentAdd, children }) => {
   const [currentTags, setCurrentTags] = useState<Tag[]>([]);
@@ -66,26 +111,61 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       collectionId: '',
     },
   });
+  
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+        codeBlock: false, // Disable code block from starter kit
+      }),
+      TiptapUnderline,
+      TextStyle,
+      Color,
+      Placeholder.configure({
+        placeholder: 'Write your content or note here...',
+      }),
+    ],
+    content: form.getValues('description') || '',
+    onUpdate: ({ editor: currentEditor }) => {
+      const html = currentEditor.getHTML();
+      // Set value only if it's not the default empty paragraph or if it's truly empty
+      if (html === '<p></p>' && currentEditor.isEmpty) {
+        form.setValue('description', '', { shouldValidate: true, shouldDirty: true });
+      } else {
+        form.setValue('description', html, { shouldValidate: true, shouldDirty: true });
+      }
+    },
+  });
 
-  const watchedUrl = form.watch('url');
-  const watchedTitle = form.watch('title');
-  const watchedDescription = form.watch('description'); // This is the "Content"
-  const watchedCollectionId = form.watch('collectionId');
-
-  // Reset form when dialog opens/closes
   useEffect(() => {
     if (open) {
+      const initialDescription = '';
       form.reset({
         url: '',
         title: '',
-        description: '',
+        description: initialDescription,
         collectionId: '',
       });
       setCurrentTags([]);
       setSuggestedTags([]);
       setTagInput('');
+      editor?.commands.setContent(initialDescription);
     }
-  }, [open, form]);
+  }, [open, form, editor]);
+
+  useEffect(() => {
+    return () => {
+      editor?.destroy();
+    };
+  }, [editor]);
+
+
+  const watchedUrl = form.watch('url');
+  const watchedTitle = form.watch('title');
+  // const watchedDescription = form.watch('description'); // Not directly needed for AI, using form.getValues()
+  const watchedCollectionId = form.watch('collectionId');
+  
+  const isLinkContent = !!watchedUrl && z.string().url().safeParse(watchedUrl).success;
 
   const handleTagInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTagInput(e.target.value);
@@ -116,16 +196,15 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     setSuggestedTags(prev => prev.filter(st => st.toLowerCase() !== tagName.toLowerCase()));
   };
 
-  const canSuggestTags = !!watchedUrl && !!watchedTitle && z.string().url().safeParse(watchedUrl).success;
-
   const handleSuggestTags = async () => {
-    if (!canSuggestTags) {
+    if (!isLinkContent || !watchedTitle) {
       toast({ title: "URL and Title needed for link", description: "Please enter a valid URL and Title to suggest tags.", variant: "destructive" });
       return;
     }
     setIsSuggestingTags(true);
     try {
-      const aiInput: SuggestTagsInput = { url: watchedUrl as string, title: watchedTitle, content: watchedTitle + (watchedDescription || '') };
+      const contentForAISuggestion = editor?.getText() || form.getValues('description');
+      const aiInput: SuggestTagsInput = { url: watchedUrl as string, title: watchedTitle, content: contentForAISuggestion };
       const result = await suggestTags(aiInput);
       setSuggestedTags(result.tags.filter(st => !currentTags.some(ct => ct.name.toLowerCase() === st.toLowerCase())));
       if (result.tags.length > 0) {
@@ -141,14 +220,15 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   };
 
   async function onSubmit(values: z.infer<typeof contentFormSchema>) {
-    const isLink = !!values.url && z.string().url().safeParse(values.url).success;
-    const type: ContentItemType = isLink ? 'link' : 'note';
+    const finalIsLink = !!values.url && z.string().url().safeParse(values.url).success;
+    const type: ContentItemType = finalIsLink ? 'link' : 'note';
 
     let sentimentData;
-    if (isLink) {
+    if (finalIsLink) {
       setIsAnalyzingLink(true);
       try {
-          const sentimentInput: AnalyzeLinkSentimentInput = { url: values.url as string, content: values.title + (values.description || '') };
+          const contentForAISentiment = editor?.getText() || values.description;
+          const sentimentInput: AnalyzeLinkSentimentInput = { url: values.url as string, content: values.title + " " + contentForAISentiment };
           const sentimentResult = await analyzeLinkSentiment(sentimentInput);
           sentimentData = { label: sentimentResult.sentiment.toLowerCase() as 'positive' | 'negative' | 'neutral', score: sentimentResult.score };
           toast({ title: "Sentiment Analyzed", description: `Link sentiment: ${sentimentData.label}` });
@@ -159,25 +239,32 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       setIsAnalyzingLink(false);
     }
 
-    const contentData: Omit<ContentItem, 'id' | 'createdAt'> = {
+    const descriptionToSend = (editor?.isEmpty && editor?.getHTML() === '<p></p>') ? '' : values.description;
+
+    if (!descriptionToSend && type === 'note') {
+        form.setError('description', { type: 'manual', message: 'Content is required for a note.' });
+        return;
+    }
+
+
+    const contentData: Omit<ContentItem, 'id' | 'createdAt' | 'imageUrl'> = { // imageUrl removed as it's not handled by this dialog now
       type,
       title: values.title,
-      description: values.description, // This is the "Content" field
+      description: descriptionToSend,
       collectionId: values.collectionId === PLACEHOLDER_NONE_COLLECTION_VALUE ? undefined : values.collectionId,
       tags: currentTags,
-      url: isLink ? values.url : undefined,
-      sentiment: isLink ? sentimentData : undefined,
-      // imageUrl is not handled here anymore
+      url: finalIsLink ? values.url : undefined,
+      sentiment: finalIsLink ? sentimentData : undefined,
     };
-
-    onContentAdd(contentData);
+    
+    onContentAdd(contentData as Omit<ContentItem, 'id' | 'createdAt'>); // Cast as it might include imageUrl: undefined
     if (onOpenChange) onOpenChange(false);
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {children && <div onClick={(e) => e.stopPropagation()}>{children}</div>}
-      <DialogContent className="sm:max-w-[525px] max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-[625px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="font-headline">Add Content</DialogTitle>
           <DialogDescription>
@@ -202,13 +289,13 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
             <Label htmlFor="description" className="font-medium">
               Content
             </Label>
-            <Textarea
-              id="description"
-              {...form.register('description')}
-              placeholder="Write your content or note here..."
-              className="focus-visible:ring-accent"
-              rows={5}
-            />
+            {editor && <EditorToolbar editor={editor} />}
+            <div 
+              className={`rounded-md border border-input bg-transparent min-h-[150px] focus-within:ring-2 focus-within:ring-ring ${editor ? 'rounded-b-md rounded-t-none' : ''}`}
+              onClick={() => editor?.chain().focus().run()} // Focus editor on click of wrapper
+            >
+              <EditorContent editor={editor} className="p-2 prose dark:prose-invert max-w-none prose-sm sm:prose-base focus:outline-none" />
+            </div>
              {form.formState.errors.description && <p className="text-sm text-destructive">{form.formState.errors.description.message}</p>}
           </div>
 
@@ -239,8 +326,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <Label htmlFor="tags" className="font-medium">Tags (Optional)</Label>
-              {/* Tag suggestions only enabled if URL is present and valid */}
-              <Button type="button" variant="outline" size="sm" onClick={handleSuggestTags} disabled={isSuggestingTags || !canSuggestTags}>
+              <Button type="button" variant="outline" size="sm" onClick={handleSuggestTags} disabled={isSuggestingTags || !isLinkContent || !watchedTitle}>
                 {isSuggestingTags ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4 text-primary" />}
                 Suggest Tags
               </Button>
@@ -263,7 +349,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
               placeholder="Add tags (press Enter or ,)"
               className="focus-visible:ring-accent"
             />
-             {suggestedTags.length > 0 && canSuggestTags && (
+             {suggestedTags.length > 0 && isLinkContent && (
               <div className="mt-2 space-y-1">
                 <p className="text-xs text-muted-foreground flex items-center"><Lightbulb className="h-3 w-3 mr-1 text-yellow-400"/>Suggested tags:</p>
                 <div className="flex flex-wrap gap-1">
