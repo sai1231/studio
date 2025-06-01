@@ -142,8 +142,8 @@ export default function ContentDetailPage() {
     try {
         const updatedDetails: Partial<ContentItem> = {
             title: editableTitle,
-            description: (item.type === 'link' || item.type === 'image' || item.type === 'voice') ? item.description : editableDescription, // Keep original description if read-only
-            mindNote: (item.type === 'image' || item.type === 'link') ? editableMindNote : undefined,
+            description: (item.type === 'link' || item.type === 'image' || item.type === 'voice') ? item.description : editableDescription,
+            mindNote: (item.type === 'image' || item.type === 'link' || item.type === 'voice') ? editableMindNote : undefined,
             zoneId: editableZoneId, 
         };
         const updated = await updateContentItem(item.id, updatedDetails);
@@ -334,7 +334,7 @@ export default function ContentDetailPage() {
             />
           </div>
 
-          {(item.type === 'image' || item.type === 'link') && (
+          {(item.type === 'image' || item.type === 'link' || item.type === 'voice') && (
              <div>
                 <h3 className="text-lg font-semibold mb-2 text-foreground flex items-center">
                     <StickyNote className="h-4 w-4 mr-2 text-muted-foreground"/> Mind Note
