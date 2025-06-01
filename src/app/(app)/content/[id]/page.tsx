@@ -38,11 +38,11 @@ const tagColorPalettes = [
 const getTagStyles = (tagName: string): string => {
   let hash = 0;
   if (!tagName || tagName.length === 0) {
-    return tagColorPalettes[0]; // Default color for empty or undefined tag names
+    return tagColorPalettes[0]; 
   }
   for (let i = 0; i < tagName.length; i++) {
     hash = tagName.charCodeAt(i) + ((hash << 5) - hash);
-    hash = hash & hash; // Convert to 32bit integer
+    hash = hash & hash; 
   }
   const index = Math.abs(hash) % tagColorPalettes.length;
   return tagColorPalettes[index];
@@ -61,7 +61,6 @@ const getEmbedUrl = (url: string | undefined): string | null => {
         return `https://www.youtube.com/embed/${videoId}`;
       }
     }
-    // Add other platform checks here (e.g., Instagram, Twitter) later
   } catch (e) {
     console.warn("Could not parse URL for embed:", url, e);
     return null;
@@ -224,7 +223,7 @@ export default function ContentDetailPage() {
     setIsComboboxOpen(false);
     setComboboxSearchText('');
 
-    if (selectedZoneValue === undefined) { // "No Zone" selected
+    if (selectedZoneValue === undefined) { 
       if (item && item.zoneId !== undefined) {
         await handleFieldUpdate('zoneId', undefined);
       }
@@ -251,7 +250,7 @@ export default function ContentDetailPage() {
         await handleFieldUpdate('zoneId', newZone.id);
       }
       setEditableZoneId(newZone.id);
-      setZone(newZone); // Update current zone display
+      setZone(newZone); 
       toast({ title: "Zone Created", description: `Zone "${newZone.name}" created and assigned.` });
     } catch (e) {
       console.error('Error creating zone:', e);
@@ -364,7 +363,6 @@ export default function ContentDetailPage() {
   const isDescriptionReadOnly = item.type === 'link' || item.type === 'image' || item.type === 'voice';
   const showMindNote = item.type === 'link' || item.type === 'image' || item.type === 'voice';
   
-  // Determine if the media column (left side) should be shown
   const showMediaColumn = embedUrl || (item.imageUrl && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice'));
 
 
@@ -388,8 +386,8 @@ export default function ContentDetailPage() {
         )}>
           {showMediaColumn && (
             <div className={cn(
-                "relative w-full overflow-hidden bg-muted md:rounded-l-lg md:rounded-tr-none rounded-t-lg",
-                embedUrl ? "aspect-video" : "aspect-[3/4] md:aspect-auto md:h-full" // Maintain aspect ratio for images
+                "relative w-full overflow-hidden rounded-xl shadow-sm", 
+                embedUrl ? "aspect-video" : "aspect-[3/4] md:aspect-auto md:h-full" 
             )}>
               {embedUrl ? (
                 <iframe
@@ -414,7 +412,7 @@ export default function ContentDetailPage() {
           <div className="flex flex-col">
              <CardHeader className={cn(
                 "pb-4",
-                showMediaColumn ? "md:rounded-tl-none md:rounded-tr-lg" : "rounded-t-lg"
+                 showMediaColumn ? "" : "rounded-t-lg" // Only apply rounded-t-lg if no media column
             )}>
               {item.domain && (
                 <div className="flex items-center text-xs text-muted-foreground mb-1.5">
@@ -673,6 +671,7 @@ export default function ContentDetailPage() {
     
 
   
+
 
 
 
