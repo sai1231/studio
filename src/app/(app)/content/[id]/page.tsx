@@ -5,13 +5,15 @@ import type React from 'react';
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { getContentItemById, getZoneById } from '@/services/contentService'; 
-import type { ContentItem, Zone } from '@/types'; 
+import { getContentItemById, getZoneById, updateContentItem } from '@/services/contentService'; 
+import type { ContentItem, Zone, Tag } from '@/types'; 
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, CalendarDays, Folder, Tag as TagIcon, Globe, StickyNote, FileImage, ExternalLink, ListChecks, Mic, Layers, Landmark } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Folder, Tag as TagIcon, Globe, StickyNote, FileImage, ExternalLink, ListChecks, Mic, Layers, Landmark, PlusCircle, X, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 const getTypeIcon = (type: ContentItem['type'] | undefined) => {
   if (!type) return <StickyNote className="h-5 w-5 text-muted-foreground" />;
@@ -35,12 +37,17 @@ const getTypeIcon = (type: ContentItem['type'] | undefined) => {
 export default function ContentDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { toast } = useToast();
   const id = params.id as string;
 
   const [item, setItem] = useState<ContentItem | null>(null);
   const [zone, setZone] = useState<Zone | null>(null); 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [editableTags, setEditableTags] = useState<Tag[]>([]);
+  const [newTagInput, setNewTagInput] = useState('');
+  const [isUpdatingTags, setIsUpdatingTags] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -51,6 +58,7 @@ export default function ContentDetailPage() {
           const fetchedItem = await getContentItemById(id);
           if (fetchedItem) {
             setItem(fetchedItem);
+            setEditableTags(fetchedItem.tags || []);
             if (fetchedItem.zoneId) { 
               const fetchedZone = await getZoneById(fetchedItem.zoneId); 
               setZone(fetchedZone || null); 
@@ -68,6 +76,59 @@ export default function ContentDetailPage() {
       fetchData();
     }
   }, [id]);
+
+  const saveTags = async (tagsToSave: Tag[]) => {
+    if (!item) return;
+    setIsUpdatingTags(true);
+    try {
+      const updatedItem = await updateContentItem(item.id, { tags: tagsToSave });
+      if (updatedItem) {
+        setItem(updatedItem); // Update local item state
+        setEditableTags(updatedItem.tags || []); // Refresh editable tags from source
+        toast({ title: "Tags Updated", description: "Your tags have been saved." });
+      } else {
+        throw new Error("Failed to update item.");
+      }
+    } catch (e) {
+      console.error('Error updating tags:', e);
+      toast({ title: "Error", description: "Could not save tags. Please try again.", variant: "destructive" });
+      // Optionally revert editableTags to item.tags if save fails and you want to rollback UI
+      setEditableTags(item.tags || []);
+    } finally {
+      setIsUpdatingTags(false);
+    }
+  };
+
+  const handleRemoveTag = (tagIdToRemove: string) => {
+    const newTags = editableTags.filter(tag => tag.id !== tagIdToRemove);
+    setEditableTags(newTags); // Optimistically update UI
+    saveTags(newTags);
+  };
+
+  const handleAddNewTag = () => {
+    if (newTagInput.trim() === '') {
+      toast({ title: "Empty Tag", description: "Tag name cannot be empty.", variant: "destructive" });
+      return;
+    }
+    if (editableTags.find(tag => tag.name.toLowerCase() === newTagInput.trim().toLowerCase())) {
+      toast({ title: "Duplicate Tag", description: `Tag "${newTagInput.trim()}" already exists.`, variant: "destructive" });
+      setNewTagInput('');
+      return;
+    }
+    const newTag: Tag = { id: Date.now().toString(), name: newTagInput.trim() };
+    const newTags = [...editableTags, newTag];
+    setEditableTags(newTags); // Optimistically update UI
+    setNewTagInput('');
+    saveTags(newTags);
+  };
+  
+  const handleTagInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleAddNewTag();
+    }
+  };
+
 
   if (isLoading) {
     return (
@@ -183,24 +244,51 @@ export default function ContentDetailPage() {
             )}
           </div>
 
-          {item.tags && item.tags.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold mb-2 text-foreground flex items-center">
-                <TagIcon className="h-5 w-5 mr-2 text-primary" /> Tags
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {item.tags.map(tag => (
-                  <Badge key={tag.id} variant="secondary" className="font-normal text-sm px-3 py-1">
-                    {tag.name}
-                  </Badge>
-                ))}
-              </div>
+          <div>
+            <h3 className="text-lg font-semibold mb-3 text-foreground flex items-center">
+              <TagIcon className="h-5 w-5 mr-2 text-primary" /> Tags {isUpdatingTags && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+            </h3>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {editableTags.map(tag => (
+                <Badge key={tag.id} variant="secondary" className="font-normal text-sm px-3 py-1 group relative">
+                  {tag.name}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 ml-1.5 p-0.5 opacity-50 group-hover:opacity-100 hover:bg-destructive/20 hover:text-destructive absolute -right-1 -top-1 rounded-full bg-background/50"
+                    onClick={() => handleRemoveTag(tag.id)}
+                    disabled={isUpdatingTags}
+                    aria-label={`Remove tag ${tag.name}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              ))}
+              {editableTags.length === 0 && !isUpdatingTags && (
+                <p className="text-sm text-muted-foreground">No tags yet. Add one below.</p>
+              )}
             </div>
-          )}
+            <div className="flex items-center gap-2">
+              <Input 
+                value={newTagInput} 
+                onChange={(e) => setNewTagInput(e.target.value)}
+                placeholder="Add a new tag"
+                onKeyDown={handleTagInputKeyDown}
+                disabled={isUpdatingTags}
+                className="focus-visible:ring-accent"
+              />
+              <Button onClick={handleAddNewTag} disabled={isUpdatingTags || newTagInput.trim() === ''} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                <PlusCircle className="h-4 w-4 mr-2" /> Add Tag
+              </Button>
+            </div>
+          </div>
         </CardContent>
         <CardFooter>
+          {/* Footer can be used for actions like edit, delete item, etc. if needed */}
         </CardFooter>
       </Card>
     </div>
   );
 }
+
+    
