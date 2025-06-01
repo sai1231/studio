@@ -24,14 +24,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 }) => {
 
   return (
-    <header className="sticky top-0 z-30 flex h-20 items-center gap-2 sm:gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 md:px-6 shadow-sm">
+    <header className="sticky top-0 z-30 flex h-24 items-center gap-2 sm:gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 md:px-6 shadow-sm">
       
       <div className="flex-1 relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
         <Input
           type="search"
           placeholder="Search your Klipped content..."
-          className="w-full rounded-lg bg-muted pl-10 pr-4 py-3 text-base h-12 focus-visible:ring-accent"
+          className="w-full rounded-lg bg-muted pl-12 pr-4 py-4 text-lg h-14 focus-visible:ring-accent"
           onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
         />
       </div>
