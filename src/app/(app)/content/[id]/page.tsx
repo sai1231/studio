@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, CalendarDays, Folder, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3 } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Layers, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -108,16 +108,12 @@ export default function ContentDetailPage() {
     setIsSavingField(true);
 
     try {
-      // For description, if it's for link/image/voice, it's read-only from UI, so we shouldn't update.
-      // However, the UI already prevents editing. If it's a note/todo, it's editable.
       const currentDescriptionIsReadOnly = item.type === 'link' || item.type === 'image' || item.type === 'voice';
       let updatePayload: Partial<ContentItem> = { [fieldName]: value };
 
       if (fieldName === 'description' && currentDescriptionIsReadOnly) {
-        // This case should ideally not be reached if UI properly disables editing.
-        // But as a safeguard, prevent updating description for read-only types.
-        // Or, ensure `value` is the original if it somehow gets here.
-        // For now, we rely on the UI disabling input.
+        // Safeguard: prevent updating description for read-only types.
+        // Value here should ideally be the original if UI prevents changes.
       }
 
 
@@ -139,7 +135,6 @@ export default function ContentDetailPage() {
     } catch (e) {
       console.error(`Error updating ${fieldName}:`, e);
       toast({ title: "Error", description: `Could not update ${fieldName}.`, variant: "destructive" });
-      // Revert optimistic UI update if necessary, though current setup re-fetches/re-sets item
     } finally {
       setIsSavingField(false);
     }
@@ -178,7 +173,7 @@ export default function ContentDetailPage() {
 
   const handleZoneChange = (value: string) => {
     const newZoneId = value === NO_ZONE_VALUE ? undefined : value;
-    setEditableZoneId(newZoneId); 
+    // setEditableZoneId is called by useEffect when item changes
     if (item && newZoneId !== item.zoneId) {
       handleFieldUpdate('zoneId', newZoneId);
     }
@@ -191,7 +186,7 @@ export default function ContentDetailPage() {
       const updatedItemWithTags = await updateContentItem(item.id, { tags: tagsToSave });
       if (updatedItemWithTags) {
         setItem(prevItem => prevItem ? { ...prevItem, tags: updatedItemWithTags.tags || [] } : null);
-        setEditableTags(updatedItemWithTags.tags || []);
+        // setEditableTags is called by useEffect when item changes
       } else {
         throw new Error("Failed to update item tags.");
       }
@@ -206,7 +201,7 @@ export default function ContentDetailPage() {
 
   const handleRemoveTag = (tagIdToRemove: string) => {
     const newTags = editableTags.filter(tag => tag.id !== tagIdToRemove);
-    setEditableTags(newTags); 
+    // setEditableTags(newTags); // Optimistic update, will be confirmed by useEffect
     saveTags(newTags);
   };
 
@@ -223,7 +218,7 @@ export default function ContentDetailPage() {
     const newTag: Tag = { id: Date.now().toString(), name: newTagInput.trim() }; 
     const newTags = [...editableTags, newTag];
     
-    setEditableTags(newTags); 
+    // setEditableTags(newTags); // Optimistic update, will be confirmed by useEffect
     setNewTagInput('');
     setIsAddingTag(false); 
     saveTags(newTags);
@@ -314,32 +309,40 @@ export default function ContentDetailPage() {
 
           <div className="flex flex-col">
             <CardHeader className={cn(
-              "pb-4 relative",
+              "pb-4",
               showTwoColumnLayout ? "md:rounded-tl-none md:rounded-tr-lg" : (!item.imageUrl || showTwoColumnLayout) ? "rounded-t-lg" : ""
             )}>
-              <div className="absolute top-4 right-4 text-xs text-muted-foreground flex items-center bg-background/70 px-2 py-1 rounded-full backdrop-blur-sm z-10">
-                <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
-                <span>{format(new Date(item.createdAt), 'MMM d, yyyy')}</span>
-              </div>
-              <div className="flex items-center space-x-2 pr-20"> 
-                {isSavingField && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
-                <Input
-                    value={editableTitle}
-                    onChange={handleTitleChange}
-                    onBlur={handleTitleBlur}
-                    disabled={isSavingField || isUpdatingTags}
-                    className="text-3xl font-headline font-semibold border-0 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0 shadow-none p-0 h-auto flex-grow"
-                    placeholder="Enter title"
-                />
-              </div>
-              {item.type === 'link' && item.url && (
-                <CardDescription className="text-sm text-muted-foreground flex items-center mt-1">
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  <a href={item.url} target="_blank" rel="noopener noreferrer" className="hover:underline text-primary break-all">
-                    {item.url}
-                  </a>
-                </CardDescription>
+              {item.domain && (
+                <div className="flex items-center text-xs text-muted-foreground mb-1.5">
+                  <Globe className="h-3.5 w-3.5 mr-1.5" />
+                  <span>{item.domain}</span>
+                </div>
               )}
+              <div className="flex items-center justify-between space-x-2"> 
+                <div className="flex items-center space-x-2 flex-grow">
+                    {isSavingField && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
+                    <Input
+                        value={editableTitle}
+                        onChange={handleTitleChange}
+                        onBlur={handleTitleBlur}
+                        disabled={isSavingField || isUpdatingTags}
+                        className="text-3xl font-headline font-semibold border-0 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0 shadow-none p-0 h-auto flex-grow"
+                        placeholder="Enter title"
+                    />
+                </div>
+                {item.type === 'link' && item.url && (
+                    <TooltipProvider>
+                        <Tooltip>
+                        <TooltipTrigger asChild>
+                            <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1 text-primary hover:text-primary/80" title={`Open link: ${item.url}`}>
+                            <ExternalLink className="h-5 w-5" />
+                            </a>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Open link</p></TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                )}
+              </div>
             </CardHeader>
 
             <CardContent className="space-y-4 pt-2 flex-grow"> 
@@ -377,7 +380,7 @@ export default function ContentDetailPage() {
 
               <div className="text-sm items-center pt-1"> 
                 <div className="flex items-center space-x-2 text-muted-foreground">
-                    <Folder className="h-4 w-4" />
+                    <Layers className="h-4 w-4" />
                     <Select
                         value={editableZoneId || NO_ZONE_VALUE} 
                         onValueChange={handleZoneChange}
@@ -491,8 +494,11 @@ export default function ContentDetailPage() {
               )}
 
             </CardContent>
-            <CardFooter>
-              {/* Footer can be used for explicit save/cancel if auto-save is not desired later */}
+            <CardFooter className="flex justify-end pt-4">
+                <div className="text-xs text-muted-foreground flex items-center">
+                    <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
+                    <span>{format(new Date(item.createdAt), 'MMM d, yyyy')}</span>
+                </div>
             </CardFooter>
           </div> 
         </div> 
@@ -500,6 +506,8 @@ export default function ContentDetailPage() {
     </div>
   );
 }
+    
+
     
 
     
