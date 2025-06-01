@@ -38,25 +38,31 @@ export default function AppLayout({
     const reader = new FileReader();
     reader.onloadend = () => {
       const dataUrl = reader.result as string;
-      const newImageContent: Omit<ContentItem, 'id' | 'createdAt'> = {
+      const newImageContent: Omit<ContentItem, 'id' | 'createdAt' | 'audioUrl'> = {
         type: 'image',
         title: file.name.replace(/\.[^/.]+$/, "") || "Uploaded Image",
         imageUrl: dataUrl,
-        tags: [], // Tags could be added via AI later or a more complex UI
-        // description and collectionId are not set in this direct flow
+        tags: [], 
       };
       console.log('Direct image upload prepared:', newImageContent);
-      // For now, just toast. To add to dashboard list, a callback from DashboardPage would be needed here.
       toast({
         title: "Image Selected",
         description: `"${newImageContent.title}" prepared. Adding to list not yet implemented from header.`,
       });
-      // Potentially call a prop here like `onDirectImageAdd(newImageContent)` if DashboardPage supplied it.
     };
     reader.onerror = () => {
       toast({ title: "Error Reading File", variant: "destructive" });
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleRecordVoiceClick = () => {
+    // This will eventually open a voice recording dialog/modal
+    console.log('Record Voice button clicked');
+    toast({
+      title: "Voice Recording",
+      description: "Voice recording feature coming soon!",
+    });
   };
 
   return (
@@ -65,7 +71,8 @@ export default function AppLayout({
       <div className="flex flex-col flex-1 md:ml-64">
         <AppHeader
           onAddContentClick={() => setIsAddContentDialogOpen(true)}
-          onImageFileSelected={handleImageFileSelected} // Pass the new handler
+          onImageFileSelected={handleImageFileSelected}
+          onRecordVoiceClick={handleRecordVoiceClick} // Pass the new handler
         />
         <main className="flex-1 p-4 md:p-6 lg:p-8 bg-background overflow-auto">
           {children}

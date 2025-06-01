@@ -79,7 +79,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
             <a href={item.url} target="_blank" rel="noopener noreferrer" className="truncate hover:underline">{item.url}</a>
           </CardDescription>
         )}
-        {item.type !== 'link' && (
+        {(item.type !== 'link') && (
            <CardDescription className="text-xs text-muted-foreground flex items-center pt-1">
             {getTypeIcon(item.type)}
             <span className="capitalize">{item.type}</span>
@@ -87,7 +87,13 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         )}
       </CardHeader>
       <CardContent className="flex-grow">
-        {item.description && <p className={`text-sm ${item.type === 'note' ? 'text-foreground whitespace-pre-wrap' : 'text-muted-foreground'} mb-3`}>{item.description}</p>}
+        {item.description && <p className={`text-sm ${item.type === 'note' ? 'text-foreground whitespace-pre-wrap' : 'text-muted-foreground'} mb-3`} dangerouslySetInnerHTML={{ __html: item.description }} />}
+        {item.type === 'voice' && item.audioUrl && (
+          <div className="my-2">
+            {/* Basic placeholder for now, will be <audio controls src={item.audioUrl} /> */}
+            <p className="text-sm text-muted-foreground">Voice recording ready.</p>
+          </div>
+        )}
         {item.tags && item.tags.length > 0 && (
             <div className="flex flex-wrap gap-2">
             {item.tags.slice(0, 5).map((tag) => (

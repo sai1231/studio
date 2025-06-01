@@ -1,7 +1,7 @@
 
 'use client';
 import type React from 'react';
-import { Search, PlusCircle, Bell, UserCircle, Settings, LogOut, UploadCloud } from 'lucide-react';
+import { Search, PlusCircle, UploadCloud, Mic } from 'lucide-react'; // Added Mic
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,14 +14,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import KlippedLogo from './klipped-logo';
+import { UserCircle, Settings, LogOut } from 'lucide-react'; // Keep existing imports
 
 interface AppHeaderProps {
   onAddContentClick: () => void;
   onSearchChange?: (query: string) => void;
-  onImageFileSelected: (file: File) => void; // New prop for direct image upload
+  onImageFileSelected: (file: File) => void;
+  onRecordVoiceClick: () => void; // New prop for voice recording
 }
 
-const AppHeader: React.FC<AppHeaderProps> = ({ onAddContentClick, onSearchChange, onImageFileSelected }) => {
+const AppHeader: React.FC<AppHeaderProps> = ({ onAddContentClick, onSearchChange, onImageFileSelected, onRecordVoiceClick }) => {
   const handleImageUploadInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       onImageFileSelected(event.target.files[0]);
@@ -70,11 +72,21 @@ const AppHeader: React.FC<AppHeaderProps> = ({ onAddContentClick, onSearchChange
         onChange={handleImageUploadInputChange}
       />
 
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={onRecordVoiceClick}
+        aria-label="Record Voice"
+      >
+        <Mic className="h-4 w-4 mr-0 sm:mr-2" />
+        <span className="hidden sm:inline">Voice</span>
+      </Button>
+
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="rounded-full">
             <Avatar className="h-8 w-8">
-              <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" data-ai-hint="user avatar" />
+              <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" data-ai-hint="user avatar"/>
               <AvatarFallback>U</AvatarFallback>
             </Avatar>
           </Button>

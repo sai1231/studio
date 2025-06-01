@@ -1,3 +1,4 @@
+
 export interface Tag {
   id: string;
   name: string;
@@ -18,6 +19,7 @@ export interface ContentItem {
   description?: string; // For notes, this is the main content
   url?: string; // Only for 'link' type
   imageUrl?: string; // For 'link' preview or 'image' type
+  audioUrl?: string; // For 'voice' type
   tags: Tag[];
   collectionId?: string;
   createdAt: string; // ISO date string
