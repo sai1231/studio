@@ -208,7 +208,7 @@ let mockContentItems: ContentItem[] = [
     title: 'Important Tech Presentation (Music Video)',
     description: 'A must-watch presentation on new web technologies and classic tunes.',
     imageUrl: 'https://placehold.co/600x400.png',
-    tags: [{ id: 't-video', name: 'video' }, { id: 't-tech', name: 'technology presentation' }, {id: 't-music', name: 'music'}],
+    tags: [{ id: 't-video', name: 'video' }, { id: 't-tech-presentation', name: 'technology presentation' }, {id: 't-music', name: 'music'}], // Changed ID here
     zoneId: '1',
     createdAt: new Date(Date.now() - 86400000 * 0.7).toISOString(),
     domain: 'youtube.com',
@@ -554,3 +554,4 @@ export async function getUniqueTags(userId?: string): Promise<Tag[]> {
   });
   return Array.from(allTagsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
+

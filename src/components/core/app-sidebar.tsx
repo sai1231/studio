@@ -146,7 +146,7 @@ const AppSidebar: React.FC = () => {
                 <AccordionContent className="pl-4 mt-1 space-y-1">
                   {actualTags.length > 0 ? actualTags.map((tag) => (
                     <Link
-                      key={tag.id}
+                      key={tag.name} // Changed from tag.id to tag.name for unique key
                       href={`/tags/${encodeURIComponent(tag.name)}`}
                       className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary/80 aria-[current=page]:text-sidebar-primary-foreground"
                     >
