@@ -352,7 +352,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl w-[90vw] max-h-[90vh] flex flex-col">
+      <DialogContent className="w-[90vw] sm:max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl max-h-[90vh] flex flex-col">
         <DialogHeader className="pr-10 flex-shrink-0">
           <DialogTitle className="text-2xl font-headline truncate">
             {dialogTitleText}
@@ -451,7 +451,11 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                               <Edit3 className="h-4 w-4 mr-2 text-muted-foreground"/> Description
                           </h3>
                           {isDescriptionReadOnly ? (
-                              <div className={cn("prose dark:prose-invert prose-sm max-w-none py-2 px-1 min-h-[60px]", "text-sm text-gray-500 dark:text-gray-400")}>
+                              <div className={cn(
+                                  "prose dark:prose-invert prose-sm max-w-none py-2 px-1 min-h-[60px]",
+                                  "text-sm text-gray-500 dark:text-gray-400"
+                                )}
+                              >
                                   {editableDescription ? (
                                       <div dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
                                   ) : (
