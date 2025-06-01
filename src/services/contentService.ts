@@ -100,6 +100,17 @@ let mockContentItems: ContentItem[] = [
     createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
     domain: 'medium.com',
     contentType: 'Article', 
+  },
+  {
+    id: '9',
+    type: 'voice',
+    title: 'Quick Voice Memo',
+    description: 'Reminder for upcoming meeting and agenda points.', // Voice items can have descriptions
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', // Placeholder audio
+    tags: [{ id: 't-work', name: 'work' }, { id: 't-reminder', name: 'reminder' }],
+    zoneId: '1',
+    createdAt: new Date(Date.now() - 86400000 * 0.1).toISOString(),
+    contentType: 'Voice Note',
   }
 ];
 
@@ -157,6 +168,7 @@ export async function addContentItem(
     domain: extractedDomain,
     contentType: itemData.contentType,
     mindNote: itemData.mindNote,
+    audioUrl: itemData.audioUrl, // Ensure audioUrl is passed through
   };
   mockContentItems.unshift(newItem); 
   return newItem;
@@ -182,6 +194,10 @@ export async function updateContentItem(
     if (updates.hasOwnProperty('mindNote')) {
         newUpdates.mindNote = updates.mindNote;
     }
+     if (updates.hasOwnProperty('audioUrl')) {
+        newUpdates.audioUrl = updates.audioUrl;
+    }
+
 
     mockContentItems[itemIndex] = { ...currentItem, ...newUpdates };
     return mockContentItems[itemIndex];
@@ -193,6 +209,10 @@ export async function updateContentItem(
 export async function uploadFile(file: File, path: string): Promise<string> {
   console.log(`Mock uploading file ${file.name} to ${path}`);
   await new Promise(resolve => setTimeout(resolve, 200)); 
+  // For testing audio, if an audio file is "uploaded", return a generic audio URL
+  if (file.type.startsWith('audio/')) {
+    return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3';
+  }
   return 'https://placehold.co/600x400.png'; 
 }
 
