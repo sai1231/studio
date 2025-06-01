@@ -7,15 +7,15 @@ let mockContentItems: ContentItem[] = [
   {
     id: '1',
     type: 'link',
-    url: 'https://nextjs.org',
-    title: 'Next.js by Vercel',
-    description: 'The React Framework for the Web.',
+    url: 'https://nextjs.org/docs',
+    title: 'Next.js Docs',
+    description: 'The React Framework for the Web - Documentation.',
     imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't2', name: 'nextjs' }, { id: 't1', name: 'productivity' }],
     zoneId: '1', 
     createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), 
     domain: 'nextjs.org',
-    contentType: 'Documentation',
+    contentType: 'Article', // Updated
   },
   {
     id: '2',
@@ -25,7 +25,7 @@ let mockContentItems: ContentItem[] = [
     tags: [{ id: 't-personal', name: 'personal' }, { id: 't-todos', name: 'todos' }],
     zoneId: '2', 
     createdAt: new Date(Date.now() - 86400000 * 1).toISOString(), 
-    contentType: 'List',
+    contentType: 'Text', // Updated
   },
   {
     id: '3',
@@ -36,7 +36,7 @@ let mockContentItems: ContentItem[] = [
     tags: [{ id: 't4', name: 'inspiration' }, {id: 't-nature', name: 'nature'}],
     zoneId: '1', 
     createdAt: new Date().toISOString(),
-    contentType: 'Photograph',
+    contentType: 'Image', // Keep as Image, not in the specific list
   },
   {
     id: '4',
@@ -49,7 +49,7 @@ let mockContentItems: ContentItem[] = [
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
     domain: 'instagram.com',
-    contentType: 'Reel',
+    contentType: 'Reel', // Updated
   },
    {
     id: '5',
@@ -61,7 +61,43 @@ let mockContentItems: ContentItem[] = [
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 0.5).toISOString(),
     domain: 'threads.net',
-    contentType: 'Post',
+    contentType: 'Thread', // Updated
+  },
+  {
+    id: '6',
+    type: 'link',
+    url: 'https://github.com/facebook/react',
+    title: 'React GitHub Repository',
+    description: 'A declarative, efficient, and flexible JavaScript library for building user interfaces.',
+    tags: [{ id: 't-code', name: 'code' }, { id: 't-js', name: 'javascript' }],
+    zoneId: '1',
+    createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
+    domain: 'github.com',
+    contentType: 'Repositories', // Updated
+  },
+  {
+    id: '7',
+    type: 'link',
+    url: 'https://twitter.com/elonmusk/status/1234567890',
+    title: 'Elon Musk Tweet',
+    description: 'A tweet from Elon Musk.',
+    tags: [{ id: 't-social', name: 'social media' }],
+    zoneId: '3',
+    createdAt: new Date(Date.now() - 86400000 * 0.2).toISOString(),
+    domain: 'twitter.com',
+    contentType: 'Tweet', // Updated
+  },
+  {
+    id: '8',
+    type: 'link',
+    url: 'https://medium.com/some-article',
+    title: 'An interesting article on Medium',
+    description: 'Insights on a trending topic.',
+    tags: [{ id: 't-reading', name: 'reading' }],
+    zoneId: '2',
+    createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
+    domain: 'medium.com',
+    contentType: 'Post', // Updated (as per the defined list, 'Post' can cover blog posts)
   }
 ];
 
@@ -108,7 +144,6 @@ export async function addContentItem(
       const urlObject = new URL(itemData.url);
       extractedDomain = urlObject.hostname.replace(/^www\./, '');
     } catch (e) {
-      // Invalid URL, domain remains as passed or undefined
       console.warn("Could not extract domain from URL:", itemData.url);
     }
   }
@@ -117,7 +152,7 @@ export async function addContentItem(
     ...itemData,
     id: Date.now().toString(), 
     createdAt: new Date().toISOString(),
-    domain: extractedDomain, // Use explicitly passed domain or extracted one
+    domain: extractedDomain,
     contentType: itemData.contentType,
   };
   mockContentItems.unshift(newItem); 

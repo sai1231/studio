@@ -2,7 +2,7 @@
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
-import { Home, Tag, Folder, Settings, LogOut, Users, ChevronDown, Plus, Globe, ClipboardList } from 'lucide-react';
+import { Home, Tag, Settings, LogOut, Users, ChevronDown, Plus, Globe, ClipboardList, Bookmark, Newspaper, Film, Baseline, Github, MessageSquare, MessagesSquare, BookOpen, LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -12,7 +12,7 @@ import type { Zone, Tag as TagType } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from './theme-toggle'; 
 import { Separator } from '@/components/ui/separator';
-import { getZones, getUniqueDomains, getUniqueContentTypes } from '@/services/contentService'; // Added new service functions
+import { getZones, getUniqueDomains, getUniqueContentTypes } from '@/services/contentService';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -23,6 +23,17 @@ const mockTags: TagType[] = [
   { id: 't4', name: 'inspiration' },
   { id: 't5', name: 'ai' },
 ];
+
+const predefinedContentTypes: Record<string, { icon: LucideIcon, name: string }> = {
+  Post: { icon: Newspaper, name: 'Post' },
+  Reel: { icon: Film, name: 'Reel' },
+  Text: { icon: Baseline, name: 'Text' },
+  Repositories: { icon: Github, name: 'Repositories' },
+  Tweet: { icon: MessageSquare, name: 'Tweet' }, // Using MessageSquare as Twitter icon isn't in Lucide
+  Thread: { icon: MessagesSquare, name: 'Thread' },
+  Article: { icon: BookOpen, name: 'Article' },
+};
+
 
 const AppSidebar: React.FC = () => {
   const [zones, setZones] = useState<Zone[]>([]);
@@ -39,7 +50,13 @@ const AppSidebar: React.FC = () => {
       ]);
       setZones(fetchedZones);
       setDomains(fetchedDomains);
-      setContentTypes(fetchedContentTypes);
+      
+      // Filter fetchedContentTypes to only include those in predefinedContentTypes
+      const availablePredefinedTypes = fetchedContentTypes.filter(
+        type => predefinedContentTypes[type]
+      );
+      setContentTypes(availablePredefinedTypes);
+
     } catch (error) {
       console.error("Error fetching sidebar data:", error);
       toast({ title: "Error", description: "Could not load sidebar categories.", variant: "destructive" });
@@ -49,6 +66,11 @@ const AppSidebar: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const formatDomainName = (domain: string): string => {
+    const nameWithoutTld = domain.replace(/\.(com|net|org|io|dev|co|ai|app|me|xyz|info|biz|blog|tech)$/i, '');
+    return nameWithoutTld.charAt(0).toUpperCase() + nameWithoutTld.slice(1);
+  };
 
 
   return (
@@ -85,7 +107,7 @@ const AppSidebar: React.FC = () => {
               <AccordionItem value="zones" className="border-b-0">
                 <AccordionTrigger className="px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg hover:no-underline">
                   <div className="flex items-center gap-3">
-                    <Folder className="h-4 w-4" />
+                    <Bookmark className="h-4 w-4" /> {/* Changed icon */}
                     Zones
                   </div>
                 </AccordionTrigger>
@@ -96,7 +118,7 @@ const AppSidebar: React.FC = () => {
                       href={`/zones/${zone.id}`}
                       className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary/80 aria-[current=page]:text-sidebar-primary-foreground"
                     >
-                      {zone.icon ? <zone.icon className="h-4 w-4" /> : <Folder className="h-4 w-4 opacity-50" />}
+                      {zone.icon ? <zone.icon className="h-4 w-4" /> : <Bookmark className="h-4 w-4 opacity-50" />} {/* Changed default icon */}
                       {zone.name}
                     </Link>
                   ))}
@@ -114,10 +136,10 @@ const AppSidebar: React.FC = () => {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pl-4 mt-1 space-y-1">
-                  {mockTags.map((tag) => ( // Assuming mockTags are still fine for now
+                  {mockTags.map((tag) => (
                     <Link
                       key={tag.id}
-                      href={`/tags/${tag.id}`} // These routes would need to be created
+                      href={`/tags/${tag.id}`}
                       className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary/80 aria-[current=page]:text-sidebar-primary-foreground"
                     >
                        # {tag.name}
@@ -139,7 +161,8 @@ const AppSidebar: React.FC = () => {
                 <AccordionContent className="pl-4 mt-1 space-y-1">
                   {domains.map((domain) => (
                     <div key={domain} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80">
-                       {domain}
+                       <Globe className="h-4 w-4 opacity-70" /> {/* Placeholder for favicon */}
+                       {formatDomainName(domain)}
                     </div>
                   ))}
                   {domains.length === 0 && <p className="px-3 py-2 text-xs text-sidebar-foreground/60">No domains found.</p>}
@@ -154,12 +177,18 @@ const AppSidebar: React.FC = () => {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pl-4 mt-1 space-y-1">
-                  {contentTypes.map((contentType) => (
-                    <div key={contentType} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80">
-                      {contentType}
-                    </div>
-                  ))}
-                  {contentTypes.length === 0 && <p className="px-3 py-2 text-xs text-sidebar-foreground/60">No content types found.</p>}
+                  {contentTypes.map((contentTypeKey) => {
+                    const typeDetails = predefinedContentTypes[contentTypeKey];
+                    if (!typeDetails) return null;
+                    const IconComponent = typeDetails.icon;
+                    return (
+                      <div key={contentTypeKey} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80">
+                        <IconComponent className="h-4 w-4 opacity-70" />
+                        {typeDetails.name}
+                      </div>
+                    );
+                  })}
+                  {contentTypes.length === 0 && <p className="px-3 py-2 text-xs text-sidebar-foreground/60">No matching content types found.</p>}
                 </AccordionContent>
               </AccordionItem>
 
