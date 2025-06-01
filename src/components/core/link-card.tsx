@@ -15,16 +15,6 @@ interface ContentCardProps {
   onDelete: (itemId: string) => void;
 }
 
-const getHintFromItem = (item: ContentItem): string => {
-  let hint = "content item";
-  if (item.tags && item.tags.length > 0) {
-    hint = item.tags.slice(0, 2).map(tag => tag.name.split(' ')[0]).join(' ');
-  } else if (item.title) {
-    hint = item.title.split(' ').slice(0, 2).join(' ');
-  }
-  return hint.toLowerCase() || "web content";
-};
-
 const getTypeSpecifics = (type: ContentItemType | undefined) => {
   switch (type) {
     case 'link':
@@ -67,7 +57,6 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
   return (
     <Card className={cn(
       "overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group rounded-2xl break-inside-avoid mb-4"
-      // Removed: !hasImage && specifics.bgClass - All cards use default background now
     )}>
       <Link href={`/content/${item.id}`} passHref className="flex flex-col flex-grow group/link">
         <div className="flex flex-col flex-grow cursor-pointer">
@@ -76,9 +65,8 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
               <Image
                 src={item.imageUrl || "https://placehold.co/600x400.png"}
                 alt={item.title}
-                layout="fill"
+                fill
                 objectFit="cover"
-                data-ai-hint={getHintFromItem(item)}
                 className="rounded-t-2xl group-hover/link:scale-105 transition-transform duration-300"
               />
             </div>

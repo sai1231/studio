@@ -334,9 +334,8 @@ export default function ContentDetailPage() {
               <Image
                 src={item.imageUrl}
                 alt={editableTitle}
-                layout="fill"
+                fill
                 objectFit="cover"
-                data-ai-hint={editableTitle.substring(0,20)}
                 className="md:rounded-l-lg md:rounded-tr-none rounded-t-lg"
               />
             </div>
