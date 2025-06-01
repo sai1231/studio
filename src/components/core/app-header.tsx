@@ -1,7 +1,7 @@
 
 'use client';
 import type React from 'react';
-import { Search, PlusCircle } from 'lucide-react'; // Removed UploadCloud, Mic
+import { Search, PlusCircle, UploadCloud, Mic } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -18,38 +18,75 @@ import { UserCircle, Settings, LogOut } from 'lucide-react';
 
 interface AppHeaderProps {
   onAddContentClick: () => void;
+  onImageFileSelected: (file: File) => void;
+  onRecordVoiceClick: () => void;
   onSearchChange?: (query: string) => void;
-  // Removed onImageFileSelected and onRecordVoiceClick
 }
 
-const AppHeader: React.FC<AppHeaderProps> = ({ onAddContentClick, onSearchChange }) => {
+const AppHeader: React.FC<AppHeaderProps> = ({ 
+  onAddContentClick, 
+  onImageFileSelected,
+  onRecordVoiceClick,
+  onSearchChange 
+}) => {
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      onImageFileSelected(file);
+      event.target.value = ''; // Reset file input
+    }
+  };
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-2 sm:gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 md:px-6 shadow-sm">
       <KlippedLogo className="hidden md:flex" />
       
-      <div className="flex-1 relative"> {/* Changed: ml-auto md:grow-0 to flex-1 */}
+      <div className="flex-1 relative">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           type="search"
           placeholder="Search content..."
-          className="w-full rounded-lg bg-muted pl-8 focus-visible:ring-accent" // Removed md:w-[200px] lg:w-[320px] to allow full width
+          className="w-full rounded-lg bg-muted pl-8 focus-visible:ring-accent"
           onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
         />
       </div>
 
-      <Button 
-        size="sm" // Consider 'icon' size if that's preferred
-        variant="default" 
-        onClick={onAddContentClick}
-        className="bg-primary hover:bg-primary/90 text-primary-foreground"
-        aria-label="Add content" // Added aria-label for accessibility
-      >
-        <PlusCircle className="h-4 w-4" /> {/* Removed mr-0 sm:mr-2 and span */}
-      </Button>
+      <div className="flex items-center gap-1 sm:gap-2">
+        <Button 
+          size="icon"
+          variant="ghost"
+          onClick={onAddContentClick}
+          aria-label="Add content"
+        >
+          <PlusCircle className="h-5 w-5" />
+        </Button>
 
-      {/* Removed Image Upload Button */}
-      {/* Removed Voice Record Button */}
+        <Button 
+          size="icon" 
+          variant="ghost" 
+          onClick={() => document.getElementById('imageUploadInput')?.click()}
+          aria-label="Upload image"
+        >
+          <UploadCloud className="h-5 w-5" />
+        </Button>
+        <input 
+          type="file" 
+          id="imageUploadInput" 
+          accept="image/*" 
+          className="hidden" 
+          onChange={handleFileSelect} 
+        />
+
+        <Button 
+          size="icon" 
+          variant="ghost" 
+          onClick={onRecordVoiceClick}
+          aria-label="Record voice"
+        >
+          <Mic className="h-5 w-5" />
+        </Button>
+      </div>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
