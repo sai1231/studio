@@ -1,3 +1,4 @@
+
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
@@ -5,7 +6,7 @@ import ContentCard from '@/components/core/link-card';
 import ContentDetailDialog from '@/components/core/ContentDetailDialog'; // Import the new dialog
 import type { ContentItem, Zone as AppZone, Tag as AppTag } from '@/types';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, ListFilter, LayoutGrid, LayoutList, Loader2, FolderOpen } from 'lucide-react';
+import { PlusCircle, ListFilter, Loader2, FolderOpen } from 'lucide-react';
 import AddContentDialog from '@/components/core/add-content-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { getContentItems, addContentItem, deleteContentItem, getZones } from '@/services/contentService';
@@ -28,7 +29,7 @@ export default function DashboardPage() {
   const [selectedItemIdForDetail, setSelectedItemIdForDetail] = useState<string | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid'); // Default to grid
   const { toast } = useToast();
 
   const [clientLoadingMessage, setClientLoadingMessage] = useState<string | null>(null);
@@ -97,9 +98,6 @@ export default function DashboardPage() {
   };
 
   const handleItemUpdateInDialog = (updatedItem: ContentItem) => {
-    // Option 1: Refetch all data
-    // fetchData();
-    // Option 2: Update specific item in local state (more performant)
     setContentItems(prevItems => 
       prevItems.map(item => item.id === updatedItem.id ? updatedItem : item)
     );
@@ -113,7 +111,7 @@ export default function DashboardPage() {
     try {
       await deleteContentItem(itemId);
       toast({id: toastId, title: "Content Deleted", description: "The item has been removed.", variant: "default"});
-      fetchData(); // Refetch to ensure consistency, or could also just update local state
+      fetchData(); 
     } catch (e) {
       console.error("Error deleting content:", e);
       toast({id: toastId, title: "Error Deleting", description: "Could not delete item. Restoring.", variant: "destructive"});
@@ -148,9 +146,6 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <h1 className="text-3xl font-headline font-semibold text-foreground">My Thoughts</h1>
         <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => setViewMode('list')} className={viewMode === 'list' ? 'bg-accent text-accent-foreground' : ''} aria-label="List View">
-                <LayoutList className="h-4 w-4"/>
-            </Button>
             <Button variant="outline">
                 <ListFilter className="h-4 w-4 mr-2"/>
                 Filters
@@ -174,7 +169,7 @@ export default function DashboardPage() {
             <ContentCard
               key={item.id}
               item={item}
-              onEdit={handleOpenDetailDialog} // Changed to open the detail dialog
+              onEdit={handleOpenDetailDialog}
               onDelete={handleDeleteContent}
             />
           ))}
@@ -192,7 +187,7 @@ export default function DashboardPage() {
           open={isDetailDialogOpen}
           onOpenChange={(open) => {
             setIsDetailDialogOpen(open);
-            if (!open) setSelectedItemIdForDetail(null); // Reset selected ID when dialog closes
+            if (!open) setSelectedItemIdForDetail(null); 
           }}
           onItemUpdate={handleItemUpdateInDialog}
         />

@@ -1,13 +1,14 @@
+
 'use client';
 
 import type React from 'react';
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import ContentCard from '@/components/core/link-card';
-import ContentDetailDialog from '@/components/core/ContentDetailDialog'; // Import the new dialog
+import ContentDetailDialog from '@/components/core/ContentDetailDialog'; 
 import type { ContentItem, Zone } from '@/types';
 import { Button } from '@/components/ui/button';
-import { LayoutGrid, LayoutList, ListFilter, FolderOpen, Loader2 } from 'lucide-react';
+import { ListFilter, FolderOpen, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getContentItems, getZoneById, deleteContentItem } from '@/services/contentService';
 
@@ -23,7 +24,7 @@ export default function ZonePage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [items, setItems] = useState<ContentItem[]>([]);
   const [currentZone, setCurrentZone] = useState<Zone | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid'); // Default to grid
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -36,7 +37,6 @@ export default function ZonePage({ params }: { params: { id: string } }) {
     }
   }, [isLoading]);
 
-  // State for the ContentDetailDialog
   const [selectedItemIdForDetail, setSelectedItemIdForDetail] = useState<string | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
 
@@ -74,7 +74,6 @@ export default function ZonePage({ params }: { params: { id: string } }) {
   };
   
   const handleItemUpdateInDialog = (updatedItem: ContentItem) => {
-    // If the updated item's zoneId no longer matches current zone, remove it
     if (updatedItem.zoneId !== zoneId) {
       setItems(prevItems => prevItems.filter(item => item.id !== updatedItem.id));
     } else {
@@ -127,10 +126,6 @@ export default function ZonePage({ params }: { params: { id: string } }) {
           {currentZone.name}
         </h1>
         <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => setViewMode('list')} className={viewMode === 'list' ? 'bg-accent text-accent-foreground' : ''}>
-                <LayoutList className="h-4 w-4"/>
-                <span className="sr-only">List View</span>
-            </Button>
             <Button variant="outline">
                 <ListFilter className="h-4 w-4 mr-2"/>
                 Filters
@@ -154,7 +149,7 @@ export default function ZonePage({ params }: { params: { id: string } }) {
             <ContentCard
               key={item.id}
               item={item}
-              onEdit={handleOpenDetailDialog} // Changed to open the detail dialog
+              onEdit={handleOpenDetailDialog} 
               onDelete={handleDeleteItem}
             />
           ))}

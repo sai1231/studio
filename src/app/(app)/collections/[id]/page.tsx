@@ -5,10 +5,10 @@ import type React from 'react';
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import ContentCard from '@/components/core/link-card';
-import ContentDetailDialog from '@/components/core/ContentDetailDialog'; // Import the new dialog
+import ContentDetailDialog from '@/components/core/ContentDetailDialog'; 
 import type { ContentItem, Collection } from '@/types';
 import { Button } from '@/components/ui/button';
-import { LayoutGrid, LayoutList, ListFilter, FolderOpen, Loader2 } from 'lucide-react';
+import { ListFilter, FolderOpen, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const pageLoadingMessages = [
@@ -86,7 +86,6 @@ const allMockContent: ContentItem[] = [
   },
 ];
 
-// This Collection type might need to be aligned with Zone or phased out
 const allMockCollections: Collection[] = [
   { id: '1', name: 'Work Projects' },
   { id: '2', name: 'Reading List' },
@@ -94,7 +93,6 @@ const allMockCollections: Collection[] = [
   { id: '4', name: 'Travel Ideas' },
 ];
 
-// Helper to adapt collectionId to zoneId for ContentItem from this page's mock data
 const adaptMockItemForDialog = (item: ContentItem & { collectionId?: string }): ContentItem => {
   const { collectionId, ...rest } = item;
   return { ...rest, zoneId: item.zoneId || collectionId };
@@ -102,11 +100,11 @@ const adaptMockItemForDialog = (item: ContentItem & { collectionId?: string }): 
 
 
 export default function CollectionPage({ params }: { params: { id: string } }) {
-  const collectionId = params.id; // This page still uses collectionId in its route
+  const collectionId = params.id; 
   const router = useRouter();
   const [items, setItems] = useState<ContentItem[]>([]); 
   const [currentCollection, setCurrentCollection] = useState<Collection | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid'); // Default to grid
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -119,7 +117,6 @@ export default function CollectionPage({ params }: { params: { id: string } }) {
     }
   }, [isLoading]);
 
-  // State for the ContentDetailDialog
   const [selectedItemIdForDetail, setSelectedItemIdForDetail] = useState<string | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
 
@@ -128,14 +125,13 @@ export default function CollectionPage({ params }: { params: { id: string } }) {
     const foundCollection = allMockCollections.find(c => c.id === collectionId);
     if (foundCollection) {
       setCurrentCollection(foundCollection);
-      // Filter mockContent based on collectionId (this page's specific logic)
       const collectionItems = allMockContent.filter(item => (item as any).collectionId === collectionId || item.zoneId === collectionId);
-      setItems(collectionItems.map(adaptMockItemForDialog)); // Adapt items
+      setItems(collectionItems.map(adaptMockItemForDialog)); 
     } else {
       setCurrentCollection(null);
       setItems([]);
     }
-    setTimeout(() => setIsLoading(false), 500); // Simulate loading
+    setTimeout(() => setIsLoading(false), 500); 
   }, [collectionId]);
 
   const handleOpenDetailDialog = (item: ContentItem) => {
@@ -144,12 +140,9 @@ export default function CollectionPage({ params }: { params: { id: string } }) {
   };
 
   const handleItemUpdateInDialog = (updatedItem: ContentItem) => {
-    // Since this page uses its own mock data, we update it directly
     setItems(prevItems => 
       prevItems.map(item => item.id === updatedItem.id ? adaptMockItemForDialog(updatedItem) : item)
     );
-    // If the item's zone (or collection for this page) changes, it might need to be removed from view
-    // This logic might need to be more robust if zoneId is truly distinct from collectionId here.
     if ((updatedItem.zoneId || (updatedItem as any).collectionId) !== collectionId) {
         setItems(prevItems => prevItems.filter(item => item.id !== updatedItem.id));
     }
@@ -157,7 +150,6 @@ export default function CollectionPage({ params }: { params: { id: string } }) {
   };
 
   const handleDeleteItem = (itemIdToDelete: string) => {
-    // Delete from this page's local mock data
     setItems(prevItems => prevItems.filter(item => item.id !== itemIdToDelete));
     const itemTitle = allMockContent.find(i => i.id === itemIdToDelete)?.title || "Item";
     toast({ title: "Item Deleted", description: `"${itemTitle}" has been removed from this collection view (mock).`, variant: "destructive" });
@@ -192,10 +184,6 @@ export default function CollectionPage({ params }: { params: { id: string } }) {
           {currentCollection.name}
         </h1>
         <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => setViewMode('list')} className={viewMode === 'list' ? 'bg-accent text-accent-foreground' : ''}>
-                <LayoutList className="h-4 w-4"/>
-                <span className="sr-only">List View</span>
-            </Button>
             <Button variant="outline">
                 <ListFilter className="h-4 w-4 mr-2"/>
                 Filters
@@ -219,7 +207,7 @@ export default function CollectionPage({ params }: { params: { id: string } }) {
             <ContentCard
               key={item.id}
               item={item}
-              onEdit={handleOpenDetailDialog} // Use the new handler
+              onEdit={handleOpenDetailDialog} 
               onDelete={handleDeleteItem}
             />
           ))}
