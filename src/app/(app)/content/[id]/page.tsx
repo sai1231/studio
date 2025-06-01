@@ -45,17 +45,18 @@ export default function ContentDetailPage() {
   const id = params.id as string;
 
   const [item, setItem] = useState<ContentItem | null>(null);
-  const [zone, setZone] = useState<Zone | null>(null);
+  const [zone, setZone] = useState<Zone | null>(null); // Current zone object for display
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Editable fields states
   const [editableTitle, setEditableTitle] = useState('');
   const [editableDescription, setEditableDescription] = useState('');
   const [editableMindNote, setEditableMindNote] = useState('');
   const [editableZoneId, setEditableZoneId] = useState<string | undefined>(undefined);
+  
   const [allZones, setAllZones] = useState<Zone[]>([]);
-  const [isSavingItemDetails, setIsSavingItemDetails] = useState(false);
-  const [hasContentChanges, setHasContentChanges] = useState(false);
+  const [isSavingField, setIsSavingField] = useState(false); // Tracks if any field is currently being saved
 
   const [editableTags, setEditableTags] = useState<Tag[]>([]);
   const [newTagInput, setNewTagInput] = useState('');
@@ -63,6 +64,7 @@ export default function ContentDetailPage() {
   const [isAddingTag, setIsAddingTag] = useState(false);
   const newTagInputRef = useRef<HTMLInputElement>(null);
 
+  // Fetch initial item and all zones
   useEffect(() => {
     if (id) {
       const fetchData = async () => {
@@ -72,19 +74,12 @@ export default function ContentDetailPage() {
           const fetchedItem = await getContentItemById(id);
           if (fetchedItem) {
             setItem(fetchedItem);
-            setEditableTitle(fetchedItem.title);
-            setEditableDescription(fetchedItem.description || '');
-            setEditableMindNote(fetchedItem.mindNote || '');
-            setEditableZoneId(fetchedItem.zoneId);
-            setEditableTags(fetchedItem.tags || []);
-
             if (fetchedItem.zoneId) {
               const fetchedCurrentZone = await getZoneById(fetchedItem.zoneId);
               setZone(fetchedCurrentZone || null);
             } else {
               setZone(null);
             }
-            setHasContentChanges(false); 
           } else {
             setError('Content item not found.');
           }
@@ -97,7 +92,7 @@ export default function ContentDetailPage() {
       };
       fetchData();
 
-      const fetchAllZones = async () => {
+      const fetchAllZonesData = async () => {
         try {
             const fetchedZones = await getZones();
             setAllZones(fetchedZones);
@@ -106,9 +101,21 @@ export default function ContentDetailPage() {
             toast({ title: "Error", description: "Could not load zones.", variant: "destructive" });
         }
       };
-      fetchAllZones();
+      fetchAllZonesData();
     }
   }, [id, toast]);
+
+  // Sync editable states when item changes (e.g., after initial load or an update)
+  useEffect(() => {
+    if (item) {
+      setEditableTitle(item.title);
+      setEditableDescription(item.description || '');
+      setEditableMindNote(item.mindNote || '');
+      setEditableZoneId(item.zoneId);
+      setEditableTags(item.tags || []);
+    }
+  }, [item]);
+
 
   useEffect(() => {
     if (isAddingTag && newTagInputRef.current) {
@@ -116,77 +123,87 @@ export default function ContentDetailPage() {
     }
   }, [isAddingTag]);
 
+  const handleFieldUpdate = async (fieldName: keyof Pick<ContentItem, 'title' | 'description' | 'mindNote' | 'zoneId'>, value: any) => {
+    if (!item || isSavingField) return;
+    setIsSavingField(true);
+
+    // Store previous value in case of error for potential revert (optional for now)
+    // const previousValue = item[fieldName];
+
+    try {
+      const updatedItem = await updateContentItem(item.id, { [fieldName]: value });
+      if (updatedItem) {
+        setItem(updatedItem); // This will trigger the useEffect to update editable states
+
+        if (fieldName === 'zoneId') {
+          if (updatedItem.zoneId) {
+            const newCurrentZone = allZones.find(z => z.id === updatedItem.zoneId);
+            setZone(newCurrentZone || null);
+          } else {
+            setZone(null);
+          }
+        }
+        // Success toast removed as changes are immediate
+      } else {
+        throw new Error(`Failed to update ${fieldName}.`);
+      }
+    } catch (e) {
+      console.error(`Error updating ${fieldName}:`, e);
+      toast({ title: "Error", description: `Could not update ${fieldName}.`, variant: "destructive" });
+      // Optionally revert item state here if robust error handling is needed
+      // setItem(prevItem => prevItem ? {...prevItem, [fieldName]: previousValue } : null);
+    } finally {
+      setIsSavingField(false);
+    }
+  };
+  
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEditableTitle(e.target.value);
-    setHasContentChanges(true);
+  };
+  const handleTitleBlur = () => {
+    if (item && editableTitle !== item.title) {
+      handleFieldUpdate('title', editableTitle);
+    }
   };
 
   const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setEditableDescription(e.target.value);
-    setHasContentChanges(true);
+  };
+  const handleDescriptionBlur = () => {
+    if (item && editableDescription !== (item.description || '')) {
+       if (item.type === 'note' || item.type === 'todo') { // Only save if editable type
+         handleFieldUpdate('description', editableDescription);
+       }
+    }
   };
   
   const handleMindNoteChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setEditableMindNote(e.target.value);
-    setHasContentChanges(true);
   };
-
-  const handleZoneChange = (value: string) => {
-    setEditableZoneId(value === NO_ZONE_VALUE ? undefined : value);
-    setHasContentChanges(true);
-  };
-
-  const handleSaveItemChanges = async () => {
-    if (!item) return;
-    setIsSavingItemDetails(true);
-    try {
-        const updatedDetails: Partial<ContentItem> = {
-            title: editableTitle,
-            description: (item.type === 'link' || item.type === 'image' || item.type === 'voice') ? item.description : editableDescription,
-            mindNote: (item.type === 'image' || item.type === 'link' || item.type === 'voice') ? editableMindNote : undefined,
-            zoneId: editableZoneId, 
-        };
-        const updated = await updateContentItem(item.id, updatedDetails);
-        if (updated) {
-            setItem(updated); 
-            if (updated.zoneId) {
-                 const newCurrentZone = allZones.find(z => z.id === updated.zoneId);
-                 setZone(newCurrentZone || null);
-            } else {
-                 setZone(null);
-            }
-            toast({ title: "Success", description: "Item details updated." });
-            setHasContentChanges(false);
-        } else {
-            throw new Error("Failed to update item.");
-        }
-    } catch (e) {
-        console.error("Error updating item details:", e);
-        toast({ title: "Error", description: "Could not update item details.", variant: "destructive" });
-    } finally {
-        setIsSavingItemDetails(false);
+  const handleMindNoteBlur = () => {
+    if (item && editableMindNote !== (item.mindNote || '')) {
+      if (item.type === 'link' || item.type === 'image' || item.type === 'voice') { // Only save if editable type
+        handleFieldUpdate('mindNote', editableMindNote);
+      }
     }
   };
 
-  const handleCancelItemChanges = () => {
-    if (item) {
-        setEditableTitle(item.title);
-        setEditableDescription(item.description || '');
-        setEditableMindNote(item.mindNote || '');
-        setEditableZoneId(item.zoneId);
-        setHasContentChanges(false);
+  const handleZoneChange = (value: string) => {
+    const newZoneId = value === NO_ZONE_VALUE ? undefined : value;
+    setEditableZoneId(newZoneId); // Optimistically update local state for select visual
+    if (item && newZoneId !== item.zoneId) {
+      handleFieldUpdate('zoneId', newZoneId);
     }
   };
 
   const saveTags = async (tagsToSave: Tag[]) => {
-    if (!item) return;
+    if (!item || isSavingField) return; // also check isSavingField
     setIsUpdatingTags(true);
     try {
-      const updatedItem = await updateContentItem(item.id, { tags: tagsToSave });
-      if (updatedItem) {
-        setItem(prevItem => prevItem ? { ...prevItem, tags: updatedItem.tags || [] } : null);
-        setEditableTags(updatedItem.tags || []);
-        // Success toast removed as per user request
+      const updatedItemWithTags = await updateContentItem(item.id, { tags: tagsToSave });
+      if (updatedItemWithTags) {
+        setItem(prevItem => prevItem ? { ...prevItem, tags: updatedItemWithTags.tags || [] } : null);
+        setEditableTags(updatedItemWithTags.tags || []);
       } else {
         throw new Error("Failed to update item tags.");
       }
@@ -280,6 +297,7 @@ export default function ContentDetailPage() {
   }
   
   const isDescriptionReadOnly = item.type === 'link' || item.type === 'image' || item.type === 'voice';
+  const showMindNote = item.type === 'link' || item.type === 'image' || item.type === 'voice';
 
   return (
     <div className="container mx-auto py-6 max-w-3xl">
@@ -302,10 +320,12 @@ export default function ContentDetailPage() {
         <CardHeader>
           <div className="flex items-start space-x-3 mb-2">
             <span className="mt-2">{getTypeIcon(item.type)}</span>
+             {isSavingField && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2 mt-2" />}
             <Input
                 value={editableTitle}
                 onChange={handleTitleChange}
-                disabled={isSavingItemDetails}
+                onBlur={handleTitleBlur}
+                disabled={isSavingField || isUpdatingTags}
                 className="text-3xl font-headline font-semibold border-0 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0 shadow-none p-0 h-auto flex-grow"
                 placeholder="Enter title"
             />
@@ -327,14 +347,15 @@ export default function ContentDetailPage() {
             <Textarea
                 value={editableDescription}
                 onChange={handleDescriptionChange}
-                disabled={isSavingItemDetails || isDescriptionReadOnly}
+                onBlur={handleDescriptionBlur}
+                disabled={isSavingField || isUpdatingTags || isDescriptionReadOnly}
                 placeholder={isDescriptionReadOnly && !editableDescription ? "No description provided." : "Enter description..."}
                 className="w-full min-h-[120px] focus-visible:ring-accent"
                 readOnly={isDescriptionReadOnly}
             />
           </div>
 
-          {(item.type === 'image' || item.type === 'link' || item.type === 'voice') && (
+          {showMindNote && (
              <div>
                 <h3 className="text-lg font-semibold mb-2 text-foreground flex items-center">
                     <StickyNote className="h-4 w-4 mr-2 text-muted-foreground"/> Mind Note
@@ -342,7 +363,8 @@ export default function ContentDetailPage() {
                 <Textarea
                     value={editableMindNote}
                     onChange={handleMindNoteChange}
-                    disabled={isSavingItemDetails}
+                    onBlur={handleMindNoteBlur}
+                    disabled={isSavingField || isUpdatingTags}
                     placeholder="Add your personal thoughts or quick notes here..."
                     className="w-full min-h-[80px] focus-visible:ring-accent"
                 />
@@ -384,7 +406,7 @@ export default function ContentDetailPage() {
                 <Select
                     value={editableZoneId || NO_ZONE_VALUE} 
                     onValueChange={handleZoneChange}
-                    disabled={isSavingItemDetails || allZones.length === 0}
+                    disabled={isSavingField || isUpdatingTags || allZones.length === 0}
                 >
                     <SelectTrigger className="w-full md:w-[200px] h-9 text-sm focus-visible:ring-accent">
                         <SelectValue placeholder="Select zone" />
@@ -400,18 +422,6 @@ export default function ContentDetailPage() {
             </div>
           </div>
           
-          {hasContentChanges && (
-            <div className="mt-4 pt-4 border-t flex justify-end gap-2">
-                <Button variant="outline" onClick={handleCancelItemChanges} disabled={isSavingItemDetails}>
-                    Cancel
-                </Button>
-                <Button onClick={handleSaveItemChanges} disabled={isSavingItemDetails}>
-                    {isSavingItemDetails && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Save Changes
-                </Button>
-            </div>
-          )}
-
           <div>
             <h3 className="text-lg font-semibold mb-3 text-foreground flex items-center">
               <TagIcon className="h-5 w-5 mr-2 text-primary" /> Tags {isUpdatingTags && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
@@ -425,7 +435,7 @@ export default function ContentDetailPage() {
                     size="icon"
                     className="h-5 w-5 ml-1.5 p-0.5 opacity-50 group-hover:opacity-100 hover:bg-destructive/20 hover:text-destructive absolute -right-1 -top-1 rounded-full bg-background/50"
                     onClick={() => handleRemoveTag(tag.id)}
-                    disabled={isUpdatingTags || isSavingItemDetails}
+                    disabled={isUpdatingTags || isSavingField}
                     aria-label={`Remove tag ${tag.name}`}
                   >
                     <X className="h-3 w-3" />
@@ -440,7 +450,7 @@ export default function ContentDetailPage() {
                     onChange={(e) => setNewTagInput(e.target.value)}
                     placeholder="New tag"
                     onKeyDown={handleTagInputKeyDown}
-                    disabled={isUpdatingTags || isSavingItemDetails}
+                    disabled={isUpdatingTags || isSavingField}
                     className="h-8 text-sm w-32 focus-visible:ring-accent"
                     autoFocus
                   />
@@ -449,7 +459,7 @@ export default function ContentDetailPage() {
                     variant="ghost"
                     className="h-8 w-8"
                     onClick={handleAddNewTag}
-                    disabled={isUpdatingTags || isSavingItemDetails || newTagInput.trim() === ''}
+                    disabled={isUpdatingTags || isSavingField || newTagInput.trim() === ''}
                     aria-label="Confirm add tag"
                   >
                     <Check className="h-4 w-4 text-green-600" />
@@ -459,7 +469,7 @@ export default function ContentDetailPage() {
                     variant="ghost"
                     className="h-8 w-8"
                     onClick={handleCancelAddTag}
-                    disabled={isUpdatingTags || isSavingItemDetails}
+                    disabled={isUpdatingTags || isSavingField}
                     aria-label="Cancel add tag"
                   >
                     <X className="h-4 w-4 text-destructive" />
@@ -473,7 +483,7 @@ export default function ContentDetailPage() {
                                 size="icon"
                                 className="h-8 w-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
                                 onClick={() => setIsAddingTag(true)}
-                                disabled={isUpdatingTags || isSavingItemDetails}
+                                disabled={isUpdatingTags || isSavingField}
                                 aria-label="Add new tag"
                             >
                                 <Plus className="h-4 w-4" />
