@@ -26,12 +26,10 @@ const allMockContent: ContentItem[] = [
     url: 'https://nextjs.org',
     title: 'Next.js by Vercel',
     description: 'The React Framework for the Web.',
-    imageUrl: 'https://source.unsplash.com/600x400/?nextjs,framework',
+    imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't2', name: 'nextjs' }, { id: 't1', name: 'productivity' }],
-    // collectionId: '1', // This should be zoneId now, but CollectionPage still uses collectionId
-    zoneId: '1', // Assuming '1' maps to 'Work Projects'
+    zoneId: '1', 
     createdAt: new Date().toISOString(),
-    // sentiment: { label: 'positive', score: 0.85 } // Sentiment removed for now
   },
   {
     id: '2',
@@ -39,9 +37,9 @@ const allMockContent: ContentItem[] = [
     url: 'https://tailwindcss.com',
     title: 'Tailwind CSS',
     description: 'Rapidly build modern websites.',
-    imageUrl: 'https://source.unsplash.com/600x400/?tailwindcss,css',
+    imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't3', name: 'design' }, { id: 't1', name: 'productivity' }],
-    zoneId: '2', // Assuming '2' maps to 'Reading List'
+    zoneId: '2', 
     createdAt: new Date(Date.now() - 86400000).toISOString(),
   },
   {
@@ -50,7 +48,7 @@ const allMockContent: ContentItem[] = [
     url: 'https://www.figma.com',
     title: 'Figma',
     description: 'Collaborative interface design tool.',
-    imageUrl: 'https://source.unsplash.com/600x400/?figma,design,tool',
+    imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't3', name: 'design' }, { id: 't4', name: 'inspiration' }],
     zoneId: '1', 
     createdAt: new Date(Date.now() - 172800000).toISOString(),
@@ -61,7 +59,7 @@ const allMockContent: ContentItem[] = [
     url: 'https://openai.com/blog/chatgpt',
     title: 'ChatGPT Blog',
     description: 'Optimizing Language Models for Dialogue.',
-    imageUrl: 'https://source.unsplash.com/600x400/?openai,chatgpt,ai',
+    imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't5', name: 'ai' }, { id: 't1', name: 'productivity' }],
     zoneId: '1', 
     createdAt: new Date(Date.now() - 259200000).toISOString(),
@@ -81,9 +79,9 @@ const allMockContent: ContentItem[] = [
     url: 'https://www.epicurious.com/recipes/food/views/our-favorite-macaroni-and-cheese-233022',
     title: 'Macaroni and Cheese Recipe',
     description: 'Classic mac and cheese recipe from Epicurious.',
-    imageUrl: 'https://source.unsplash.com/600x400/?macaroni,cheese,recipe',
+    imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't6', name: 'cooking' }, { id: 't7', name: 'comfort food' }],
-    zoneId: '3', // Assuming '3' maps to 'Recipes'
+    zoneId: '3', 
     createdAt: new Date(Date.now() - 3*86400000).toISOString(),
   },
 ];
@@ -99,9 +97,6 @@ const allMockCollections: Collection[] = [
 // Helper to adapt collectionId to zoneId for ContentItem from this page's mock data
 const adaptMockItemForDialog = (item: ContentItem & { collectionId?: string }): ContentItem => {
   const { collectionId, ...rest } = item;
-  // If zoneId is not present, use collectionId as zoneId for compatibility with ContentDetailDialog
-  // This is a temporary measure for this page's specific mock data structure.
-  // Ideally, this page's mock data should also use zoneId.
   return { ...rest, zoneId: item.zoneId || collectionId };
 };
 
@@ -197,10 +192,6 @@ export default function CollectionPage({ params }: { params: { id: string } }) {
           {currentCollection.name}
         </h1>
         <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => setViewMode('grid')} className={viewMode === 'grid' ? 'bg-accent text-accent-foreground' : ''}>
-                <LayoutGrid className="h-4 w-4"/>
-                <span className="sr-only">Grid View</span>
-            </Button>
             <Button variant="outline" size="icon" onClick={() => setViewMode('list')} className={viewMode === 'list' ? 'bg-accent text-accent-foreground' : ''}>
                 <LayoutList className="h-4 w-4"/>
                 <span className="sr-only">List View</span>

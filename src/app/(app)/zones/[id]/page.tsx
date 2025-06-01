@@ -1,4 +1,3 @@
-
 'use client';
 
 import type React from 'react';
@@ -128,10 +127,6 @@ export default function ZonePage({ params }: { params: { id: string } }) {
           {currentZone.name}
         </h1>
         <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => setViewMode('grid')} className={viewMode === 'grid' ? 'bg-accent text-accent-foreground' : ''}>
-                <LayoutGrid className="h-4 w-4"/>
-                <span className="sr-only">Grid View</span>
-            </Button>
             <Button variant="outline" size="icon" onClick={() => setViewMode('list')} className={viewMode === 'list' ? 'bg-accent text-accent-foreground' : ''}>
                 <LayoutList className="h-4 w-4"/>
                 <span className="sr-only">List View</span>

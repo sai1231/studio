@@ -1,4 +1,3 @@
-
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
@@ -40,6 +39,7 @@ export default function DashboardPage() {
       setClientLoadingMessage(pageLoadingMessages[randomIndex]);
     }
   }, [isLoading]);
+
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -148,9 +148,6 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <h1 className="text-3xl font-headline font-semibold text-foreground">My Thoughts</h1>
         <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => setViewMode('grid')} className={viewMode === 'grid' ? 'bg-accent text-accent-foreground' : ''} aria-label="Grid View">
-                <LayoutGrid className="h-4 w-4"/>
-            </Button>
             <Button variant="outline" size="icon" onClick={() => setViewMode('list')} className={viewMode === 'list' ? 'bg-accent text-accent-foreground' : ''} aria-label="List View">
                 <LayoutList className="h-4 w-4"/>
             </Button>
