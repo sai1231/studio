@@ -22,6 +22,12 @@ const nextConfig: NextConfig = {
         hostname: 'source.unsplash.com',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'image.tmdb.org',
+        port: '',
+        pathname: '/**',
       }
     ],
   },
