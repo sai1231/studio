@@ -1,13 +1,12 @@
 
 'use client';
 import type React from 'react';
-import { useState } from 'react'; // Removed useEffect as it's no longer coordinating complex state
+import { useState } from 'react';
 import AppHeader from '@/components/core/app-header';
 import AppSidebar from '@/components/core/app-sidebar';
 import AddContentDialog from '@/components/core/add-content-dialog';
 import type { Collection, ContentItemFirestoreData, Tag as AppTag } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { analyzeImageContent } from '@/ai/flows/analyze-image-content';
 import { uploadFile, addContentItem } from '@/services/contentService';
 
 const mockCollections: Collection[] = [
@@ -22,7 +21,7 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
-  const { toast, update } = useToast(); // Removed dismiss as it's not directly used now
+  const { toast, update } = useToast();
 
   const handleAddContentFromDialog = async (newContentData: Omit<ContentItemFirestoreData, 'createdAt' | 'tags'> & { tags: AppTag[]}) => {
     const { id: toastId } = toast({
@@ -35,6 +34,9 @@ export default function AppLayout({
       await addContentItem({
         ...newContentData,
         tags: firestoreReadyTags,
+        // Ensure collectionId is passed; it's now mandatory in types
+        // If newContentData might not have it, ensure a default or error handling
+        collectionId: newContentData.collectionId || "default_collection_id", // Or handle if missing
       });
       update({
         id: toastId,
@@ -57,39 +59,10 @@ export default function AppLayout({
   const handleImageFileSelected = async (file: File) => {
     const { id: toastId } = toast({
       title: "Processing Image...",
-      description: "Reading file, analyzing content, and preparing for upload.",
+      description: "Reading file and preparing for upload.",
     });
 
-    let dataUrl: string;
     try {
-      dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target?.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    } catch (readError) {
-      console.error("Error reading file:", readError);
-      update({
-        id: toastId,
-        title: "Error Reading File",
-        description: "Could not read the image file.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      update({
-        id: toastId,
-        title: "Analyzing Image...",
-        description: "Extracting text and colors with AI. This may take a moment.",
-      });
-      
-      const analysisResult = await analyzeImageContent({ imageDataUri: dataUrl });
-      const dominantColors = analysisResult.dominantColors || [];
-      const extractedText = analysisResult.extractedText || '';
-
       update({
         id: toastId,
         title: "Uploading Image...",
@@ -105,9 +78,7 @@ export default function AppLayout({
         description: `Uploaded image: ${file.name}`,
         imageUrl: downloadURL,
         tags: [{id: 'upload', name: 'upload'}], 
-        collectionId: '', // TODO: Allow user to select collection
-        dominantColors: dominantColors,
-        extractedText: extractedText,
+        collectionId: mockCollections[0]?.id || "default_collection_id", // TODO: Allow user to select collection; for now, default to first mock or a placeholder
         // userId: "TODO_CURRENT_USER_ID", // Add when auth is ready
       };
       
@@ -116,7 +87,7 @@ export default function AppLayout({
       update({
         id: toastId,
         title: "Image Saved!",
-        description: `"${newImageContent.title}" saved. Colors: ${dominantColors.join(', ') || 'N/A'}. Text: ${extractedText ? 'Found' : 'None'}.`,
+        description: `"${newImageContent.title}" has been saved.`,
       });
       // TODO: Implement a way to refresh the dashboard list or use global state
     } catch (error) {

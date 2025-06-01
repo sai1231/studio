@@ -23,16 +23,8 @@ export interface ContentItemFirestoreData {
   imageUrl?: string; // For links, OG image. For images, direct storage URL.
   audioUrl?: string;
   tags: Tag[]; // Array of Tag objects
-  collectionId?: string; // Optional, if "None" is selected
+  collectionId: string; 
   userId?: string; // TODO: Add when Firebase Auth is integrated
-  sentiment?: {
-    label: 'positive' | 'negative' | 'neutral';
-    score: number;
-  };
-  url_domain_category?: string;
-  url_content_type?: string;
-  dominantColors?: string[];
-  extractedText?: string;
   createdAt: Timestamp; // Firestore server timestamp on creation
 }
 

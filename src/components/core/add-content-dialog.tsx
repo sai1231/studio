@@ -2,7 +2,7 @@
 'use client';
 
 import type React from 'react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -19,10 +19,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { X, Lightbulb, Loader2, Sparkles, Bold, Italic, Underline, Strikethrough, Heading1, Heading2, Heading3, List, ListOrdered, Palette, Quote, Minus } from 'lucide-react';
-import type { Collection, ContentItemType, Tag, ContentItemFirestoreData, ContentItem } from '@/types'; // Updated types
-import { suggestTags, type SuggestTagsInput } from '@/ai/flows/suggest-tags';
-import { analyzeLinkSentiment, type AnalyzeLinkSentimentInput } from '@/ai/flows/analyze-sentiment';
+import { X, Loader2, Bold, Italic, Underline, Strikethrough, Heading1, Heading2, Heading3, List, ListOrdered, Palette, Quote, Minus } from 'lucide-react';
+import type { Collection, ContentItemType, Tag, ContentItemFirestoreData, ContentItem } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
 import { useEditor, EditorContent, type Editor } from '@tiptap/react';
@@ -32,16 +30,12 @@ import TextStyle from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import Placeholder from '@tiptap/extension-placeholder';
 
-
 const contentFormSchemaBase = z.object({
   url: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   title: z.string().min(1, { message: 'Title is required.' }),
-  description: z.string().min(1, { message: 'Content is required.' }), // Content is now always required
-  collectionId: z.string().optional(),
+  description: z.string().min(1, { message: 'Content is required.' }),
+  collectionId: z.string().min(1, { message: 'Collection is required.' }), // Made collectionId required
 });
-
-// No longer need refinedContentFormSchema as image uploads are separate
-// and description is always required.
 
 export interface AddContentDialogOpenChange {
   open?: boolean;
@@ -50,12 +44,9 @@ export interface AddContentDialogOpenChange {
 
 interface AddContentDialogProps extends AddContentDialogOpenChange {
   collections: Collection[];
-  // onContentAdd now expects data that can be directly used for ContentItemFirestoreData
   onContentAdd: (newContent: Omit<ContentItemFirestoreData, 'createdAt' | 'tags'> & { tags: ContentItem['tags']}) => void;
   children?: React.ReactNode;
 }
-
-const PLACEHOLDER_NONE_COLLECTION_VALUE = "__none_collection__";
 
 const EditorToolbar: React.FC<{ editor: Editor | null }> = ({ editor }) => {
   if (!editor) {
@@ -95,13 +86,10 @@ const EditorToolbar: React.FC<{ editor: Editor | null }> = ({ editor }) => {
   );
 };
 
-
 const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange, collections, onContentAdd, children }) => {
   const [currentTags, setCurrentTags] = useState<Tag[]>([]);
   const [tagInput, setTagInput] = useState('');
-  const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
-  const [isSuggestingTags, setIsSuggestingTags] = useState(false);
-  const [isAnalyzingLink, setIsAnalyzingLink] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   const { toast } = useToast();
 
@@ -111,7 +99,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       url: '',
       title: '',
       description: '',
-      collectionId: '',
+      collectionId: collections[0]?.id || '', // Default to first collection or empty if none
     },
   });
   
@@ -146,26 +134,21 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
         url: '',
         title: '',
         description: initialDescription,
-        collectionId: '',
+        collectionId: collections[0]?.id || '',
       });
       setCurrentTags([]);
-      setSuggestedTags([]);
       setTagInput('');
       editor?.commands.setContent(initialDescription);
     }
-  }, [open, form, editor]);
+  }, [open, form, editor, collections]);
 
   useEffect(() => {
     return () => {
       editor?.destroy();
     };
   }, [editor]);
-
-  const watchedUrl = form.watch('url');
-  const watchedTitle = form.watch('title');
-  const watchedCollectionId = form.watch('collectionId');
   
-  const isLinkContent = !!watchedUrl && z.string().url().safeParse(watchedUrl).success;
+  const watchedCollectionId = form.watch('collectionId');
 
   const handleTagInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTagInput(e.target.value);
@@ -189,74 +172,31 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     setCurrentTags(currentTags.filter(tag => tag.id !== tagToRemove.id));
   };
 
-  const addSuggestedTag = (tagName: string) => {
-    if (!currentTags.find(tag => tag.name.toLowerCase() === tagName.toLowerCase())) {
-      setCurrentTags([...currentTags, { id: Date.now().toString(), name: tagName }]);
-    }
-    setSuggestedTags(prev => prev.filter(st => st.toLowerCase() !== tagName.toLowerCase()));
-  };
-
-  const handleSuggestTags = async () => {
-    if (!isLinkContent || !watchedTitle) {
-      toast({ title: "URL and Title needed", description: "Please enter a valid URL and Title to suggest tags.", variant: "destructive" });
-      return;
-    }
-    setIsSuggestingTags(true);
-    try {
-      const contentForAISuggestion = editor?.getText() || form.getValues('description') || '';
-      const aiInput: SuggestTagsInput = { url: watchedUrl as string, title: watchedTitle, content: contentForAISuggestion };
-      const result = await suggestTags(aiInput);
-      setSuggestedTags(result.tags.filter(st => !currentTags.some(ct => ct.name.toLowerCase() === st.toLowerCase())));
-      if (result.tags.length > 0) {
-        toast({ title: "Tags Suggested!", description: "AI has suggested some tags for your link." });
-      } else {
-        toast({ title: "No new tags suggested.", description: "AI couldn't find new relevant tags." });
-      }
-    } catch (error) {
-      console.error("Error suggesting tags:", error);
-      toast({ title: "Error", description: "Could not suggest tags at this time.", variant: "destructive" });
-    }
-    setIsSuggestingTags(false);
-  };
-
   async function onSubmit(values: z.infer<typeof contentFormSchemaBase>) {
+    setIsSaving(true);
     const finalIsLink = !!values.url && z.string().url().safeParse(values.url).success;
     const type: ContentItemType = finalIsLink ? 'link' : 'note';
-
-    let sentimentData;
-    if (finalIsLink) {
-      setIsAnalyzingLink(true);
-      try {
-          const contentForAISentiment = editor?.getText() || values.description || ''; // description is HTML from editor
-          const sentimentInput: AnalyzeLinkSentimentInput = { url: values.url as string, content: values.title + " " + contentForAISentiment };
-          const sentimentResult = await analyzeLinkSentiment(sentimentInput);
-          sentimentData = { label: sentimentResult.sentiment.toLowerCase() as 'positive' | 'negative' | 'neutral', score: sentimentResult.score };
-          toast({ title: "Sentiment Analyzed", description: `Link sentiment: ${sentimentData.label}` });
-      } catch (error) {
-          console.error("Error analyzing sentiment:", error);
-          toast({ title: "Sentiment Analysis Failed", description: "Could not analyze link sentiment.", variant: "destructive" });
-      }
-      setIsAnalyzingLink(false);
-    }
     
     const descriptionFromEditor = editor?.getHTML();
     const finalDescription = (descriptionFromEditor === '<p></p>' && editor?.isEmpty) ? '' : descriptionFromEditor;
 
-    // Prepare data for Firestore
     const contentData: Omit<ContentItemFirestoreData, 'createdAt' | 'tags'> & { tags: ContentItem['tags']} = {
       type,
       title: values.title,
       description: finalDescription || undefined,
-      collectionId: values.collectionId === PLACEHOLDER_NONE_COLLECTION_VALUE ? undefined : values.collectionId,
-      tags: currentTags, // currentTags is already Tag[]
+      collectionId: values.collectionId, // collectionId is now mandatory
+      tags: currentTags,
       url: finalIsLink ? values.url : undefined,
-      sentiment: finalIsLink ? sentimentData : undefined,
-      // imageUrl, audioUrl, etc., are not handled by this dialog directly anymore
-      // userId: "TODO_CURRENT_USER_ID", // Add when auth is ready
+      // userId: "TODO_CURRENT_USER_ID", 
     };
     
-    onContentAdd(contentData);
-    // Dialog closing is handled by the parent (AppLayout) after successful save.
+    try {
+      await onContentAdd(contentData); // This is now an async call to AppLayout
+    } catch (error) {
+      // Error toast is handled in AppLayout
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -266,7 +206,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
         <DialogHeader>
           <DialogTitle className="font-headline">Add Content</DialogTitle>
           <DialogDescription>
-            Provide a URL to save a link, or just add a title and content to save a note.
+            Provide a URL to save a link, or just add a title and content to save a note. Select a collection.
           </DialogDescription>
         </DialogHeader>
 
@@ -296,20 +236,18 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="collectionId" className="font-medium">Collection (Optional)</Label>
+            <Label htmlFor="collectionId" className="font-medium">Collection</Label>
             <Select
               onValueChange={(selectedValue) => {
-                form.setValue('collectionId', selectedValue === PLACEHOLDER_NONE_COLLECTION_VALUE ? '' : selectedValue, { shouldTouch: true });
+                form.setValue('collectionId', selectedValue, { shouldTouch: true, shouldValidate: true });
               }}
-              value={watchedCollectionId || PLACEHOLDER_NONE_COLLECTION_VALUE}
+              value={watchedCollectionId}
+              defaultValue={collections[0]?.id}
             >
               <SelectTrigger className="w-full focus:ring-accent">
                 <SelectValue placeholder="Select a collection" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={PLACEHOLDER_NONE_COLLECTION_VALUE}>
-                  None
-                </SelectItem>
                 {collections.map(collection => (
                   <SelectItem key={collection.id} value={collection.id}>
                     {collection.name}
@@ -317,17 +255,12 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                 ))}
               </SelectContent>
             </Select>
+            {form.formState.errors.collectionId && <p className="text-sm text-destructive">{form.formState.errors.collectionId.message}</p>}
           </div>
 
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <Label htmlFor="tags" className="font-medium">Tags (Optional)</Label>
-              {isLinkContent && (
-                <Button type="button" variant="outline" size="sm" onClick={handleSuggestTags} disabled={isSuggestingTags || !watchedTitle}>
-                  {isSuggestingTags ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4 text-primary" />}
-                  Suggest Tags
-                </Button>
-              )}
             </div>
             <div className="flex flex-wrap gap-2 mb-2">
               {currentTags.map(tag => (
@@ -347,30 +280,13 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
               placeholder="Add tags (press Enter or ,)"
               className="focus-visible:ring-accent"
             />
-             {suggestedTags.length > 0 && isLinkContent && (
-              <div className="mt-2 space-y-1">
-                <p className="text-xs text-muted-foreground flex items-center"><Lightbulb className="h-3 w-3 mr-1 text-yellow-400"/>Suggested tags:</p>
-                <div className="flex flex-wrap gap-1">
-                  {suggestedTags.map(tag => (
-                    <Badge
-                      key={tag}
-                      variant="outline"
-                      onClick={() => addSuggestedTag(tag)}
-                      className="cursor-pointer hover:bg-accent/20"
-                    >
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </form>
         <DialogFooter className="pt-4 border-t">
           <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
-          <Button type="submit" onClick={form.handleSubmit(onSubmit)} disabled={isAnalyzingLink || isSuggestingTags} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-            {(isAnalyzingLink || isSuggestingTags) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {(isAnalyzingLink) ? 'Analyzing...' : (isSuggestingTags ? 'Suggesting...' : 'Save Content')}
+          <Button type="submit" onClick={form.handleSubmit(onSubmit)} disabled={isSaving} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSaving ? 'Saving...' : 'Save Content'}
           </Button>
         </DialogFooter>
       </DialogContent>

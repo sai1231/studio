@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ExternalLink, Edit3, Trash2, MoreVertical, Globe, Smile, Meh, Frown, StickyNote, FileImage, ListChecks, Mic } from 'lucide-react';
+import { ExternalLink, Edit3, Trash2, MoreVertical, Globe, StickyNote, FileImage, ListChecks, Mic } from 'lucide-react';
 import type { ContentItem } from '@/types';
 
 interface ContentCardProps {
@@ -42,20 +42,6 @@ const getTypeIcon = (type: ContentItem['type']) => {
 }
 
 const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => {
-  const renderSentimentIcon = () => {
-    if (item.type !== 'link' || !item.sentiment) return null;
-    switch (item.sentiment.label) {
-      case 'positive':
-        return <Smile className="h-4 w-4 text-green-500" />;
-      case 'negative':
-        return <Frown className="h-4 w-4 text-red-500" />;
-      case 'neutral':
-        return <Meh className="h-4 w-4 text-yellow-500" />;
-      default:
-        return null;
-    }
-  };
-
   const isLink = item.type === 'link' && item.url;
 
   return (
@@ -107,10 +93,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
       </CardContent>
       <CardFooter className="flex justify-between items-center pt-4 border-t">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {item.type === 'link' && renderSentimentIcon()}
-          {item.type === 'link' && item.sentiment && (
-            <span className="capitalize">{item.sentiment.label} ({item.sentiment.score.toFixed(2)})</span>
-          )}
+          {/* Sentiment display removed */}
         </div>
         <div className="flex items-center gap-2">
           {isLink && (
