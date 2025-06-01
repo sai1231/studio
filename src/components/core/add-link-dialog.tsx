@@ -1,3 +1,4 @@
+
 'use client';
 
 import type React from 'react';
@@ -44,6 +45,7 @@ interface AddLinkDialogProps extends AddLinkDialogOpenChange {
   children?: React.ReactNode; // To allow custom trigger
 }
 
+const PLACEHOLDER_NONE_COLLECTION_VALUE = "__none_collection__";
 
 const AddLinkDialog: React.FC<AddLinkDialogProps> = ({ open, onOpenChange, collections, onLinkAdd, children }) => {
   const [currentTags, setCurrentTags] = useState<Tag[]>([]);
@@ -59,16 +61,17 @@ const AddLinkDialog: React.FC<AddLinkDialogProps> = ({ open, onOpenChange, colle
       url: '',
       title: '',
       description: '',
-      collectionId: '',
+      collectionId: '', // Default to empty string, meaning no collection
     },
   });
 
   const watchedUrl = form.watch('url');
   const watchedTitle = form.watch('title');
+  const watchedCollectionId = form.watch('collectionId');
 
   useEffect(() => {
     if (open) {
-      form.reset();
+      form.reset(); // This sets collectionId to its default ('')
       setCurrentTags([]);
       setSuggestedTags([]);
       setTagInput('');
@@ -111,7 +114,6 @@ const AddLinkDialog: React.FC<AddLinkDialogProps> = ({ open, onOpenChange, colle
     }
     setIsSuggesting(true);
     try {
-      // For 'content', we're using title as a placeholder. A real app might scrape the URL.
       const aiInput: SuggestTagsInput = { url: watchedUrl, title: watchedTitle, content: watchedTitle };
       const result = await suggestTags(aiInput);
       setSuggestedTags(result.tags.filter(st => !currentTags.some(ct => ct.name.toLowerCase() === st.toLowerCase())));
@@ -175,12 +177,23 @@ const AddLinkDialog: React.FC<AddLinkDialogProps> = ({ open, onOpenChange, colle
 
           <div className="space-y-2">
             <Label htmlFor="collectionId" className="font-medium">Collection (Optional)</Label>
-            <Select onValueChange={(value) => form.setValue('collectionId', value)} defaultValue={form.getValues('collectionId')}>
+            <Select
+              onValueChange={(selectedValue) => {
+                if (selectedValue === PLACEHOLDER_NONE_COLLECTION_VALUE) {
+                  form.setValue('collectionId', '', { shouldTouch: true });
+                } else {
+                  form.setValue('collectionId', selectedValue, { shouldTouch: true });
+                }
+              }}
+              value={watchedCollectionId || ''} // Use empty string for Select's value to show placeholder
+            >
               <SelectTrigger className="w-full focus:ring-accent">
                 <SelectValue placeholder="Select a collection" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value={PLACEHOLDER_NONE_COLLECTION_VALUE}>
+                  None
+                </SelectItem>
                 {collections.map(collection => (
                   <SelectItem key={collection.id} value={collection.id}>
                     {collection.name}
