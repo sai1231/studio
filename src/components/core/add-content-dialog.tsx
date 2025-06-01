@@ -2,10 +2,11 @@
 'use client';
 
 import type React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -20,8 +21,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { X, Lightbulb, Loader2, Sparkles, Link as LinkIcon, ImageIcon, ListTodo, Mic, StickyNote } from 'lucide-react';
-import type { Collection, ContentItem, ContentItemType, Tag } from '@/types'; // Updated imports
+import { X, Lightbulb, Loader2, Sparkles, Link as LinkIcon, ImageIcon, ListTodo, Mic, StickyNote, UploadCloud } from 'lucide-react';
+import type { Collection, ContentItem, ContentItemType, Tag } from '@/types';
 import { suggestTags, type SuggestTagsInput } from '@/ai/flows/suggest-tags';
 import { analyzeLinkSentiment, type AnalyzeLinkSentimentInput } from '@/ai/flows/analyze-sentiment';
 import { useToast } from '@/hooks/use-toast';
@@ -31,7 +32,7 @@ const baseFormSchema = z.object({
   title: z.string().min(1, { message: 'Title is required.' }),
   description: z.string().optional(),
   collectionId: z.string().optional(),
-  // tags are handled separately by component state, not react-hook-form
+  imageUrl: z.string().optional(), // For link previews or uploaded image Data URLs
 });
 
 // Schema for 'link' type, requiring URL
@@ -39,9 +40,15 @@ const linkFormSchema = baseFormSchema.extend({
   url: z.string().url({ message: 'Please enter a valid URL.' }),
 });
 
-// Schema for other types (note, image, todo, voice) where URL is not applicable
-const nonLinkFormSchema = baseFormSchema.extend({
-  url: z.string().optional(), // URL is optional and should not be present
+// Schema for 'note' type
+const noteFormSchema = baseFormSchema.extend({
+  url: z.string().optional(), // URL is not applicable
+});
+
+// Schema for 'image' type
+const imageFormSchema = baseFormSchema.extend({
+  url: z.string().optional(), // URL is not applicable for direct image upload
+  imageUrl: z.string().min(1, {message: 'Image is required.'}).optional(), // Will store Data URL
 });
 
 
@@ -53,11 +60,23 @@ export interface AddContentDialogOpenChange {
 interface AddContentDialogProps extends AddContentDialogOpenChange {
   collections: Collection[];
   onContentAdd: (newContent: Omit<ContentItem, 'id' | 'createdAt'>) => void;
-  // existingContent?: ContentItem | null; // For editing, to be implemented later
   children?: React.ReactNode;
 }
 
 const PLACEHOLDER_NONE_COLLECTION_VALUE = "__none_collection__";
+
+const getValidationSchema = (type: ContentItemType) => {
+  switch (type) {
+    case 'link':
+      return linkFormSchema;
+    case 'image':
+      return imageFormSchema;
+    case 'note':
+      return noteFormSchema;
+    default: // For 'todo', 'voice' which are not fully implemented yet
+      return baseFormSchema;
+  }
+};
 
 const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange, collections, onContentAdd, children }) => {
   const [currentTags, setCurrentTags] = useState<Tag[]>([]);
@@ -66,43 +85,55 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedContentType, setSelectedContentType] = useState<ContentItemType>('link');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
   const { toast } = useToast();
 
-  // We will manage form schema dynamically based on selectedContentType
   const form = useForm<z.infer<typeof baseFormSchema> & { url?: string }>({
-    resolver: zodResolver(selectedContentType === 'link' ? linkFormSchema : nonLinkFormSchema),
+    resolver: zodResolver(getValidationSchema(selectedContentType)),
     defaultValues: {
       url: '',
       title: '',
       description: '',
       collectionId: '',
+      imageUrl: '',
     },
   });
 
-  // Re-validate when content type changes
+  // Update resolver when content type changes
   useEffect(() => {
-    form.trigger();
+    form.reset(); // Reset form values
+    setImagePreview(null); // Clear image preview
+    const newSchema = getValidationSchema(selectedContentType);
+    // Manually update the resolver: This is a bit of a hack for react-hook-form.
+    // A more robust solution might involve re-initializing the form or using a different strategy for dynamic schemas.
+    (form as any). τότε = zodResolver(newSchema); // "τότε" is a placeholder for internal field, actual update might differ
+    form.trigger(); // Re-validate with the new schema
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedContentType, form.trigger]);
+  }, [selectedContentType]);
 
 
   const watchedUrl = form.watch('url');
   const watchedTitle = form.watch('title');
   const watchedDescription = form.watch('description');
   const watchedCollectionId = form.watch('collectionId');
+  const watchedImageUrl = form.watch('imageUrl');
 
   useEffect(() => {
     if (open) {
       form.reset({
-        url: '', // Reset all fields
+        url: '',
         title: '',
         description: '',
         collectionId: '',
+        imageUrl: '',
       });
       setCurrentTags([]);
       setSuggestedTags([]);
       setTagInput('');
-      // setSelectedContentType('link'); // Or keep the last selected one if preferred
+      setImagePreview(null);
+      // setSelectedContentType('link'); // Or keep the last selected one
     }
   }, [open, form]);
 
@@ -161,12 +192,37 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     setIsSuggesting(false);
   };
 
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setIsUploading(true);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const dataUrl = reader.result as string;
+        form.setValue('imageUrl', dataUrl, { shouldValidate: true });
+        setImagePreview(dataUrl);
+        if (!form.getValues('title')) {
+          form.setValue('title', file.name.replace(/\.[^/.]+$/, "")); // Set title from filename without extension
+        }
+        setIsUploading(false);
+        toast({ title: "Image Selected", description: file.name });
+      };
+      reader.onerror = () => {
+        setIsUploading(false);
+        toast({ title: "Error Reading File", variant: "destructive" });
+      }
+      reader.readAsDataURL(file);
+    }
+  };
+
+
   async function onSubmit(values: z.infer<typeof baseFormSchema> & { url?: string }) {
-    const commonData = {
+    const commonData: Omit<ContentItem, 'id' | 'createdAt' | 'type' | 'sentiment'> & { type?: ContentItemType; sentiment?: ContentItem['sentiment'] } = {
       title: values.title,
       description: values.description,
       collectionId: values.collectionId === PLACEHOLDER_NONE_COLLECTION_VALUE ? undefined : values.collectionId,
       tags: currentTags,
+      imageUrl: values.imageUrl || undefined,
     };
 
     if (selectedContentType === 'link') {
@@ -186,18 +242,25 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
           toast({ title: "Sentiment Analysis Failed", description: "Could not analyze link sentiment.", variant: "destructive" });
       }
       setIsAnalyzing(false);
-      onContentAdd({ ...commonData, type: 'link', url: values.url, sentiment: sentimentData });
+      onContentAdd({ ...commonData, type: 'link', url: values.url, sentiment: sentimentData, imageUrl: values.imageUrl || undefined });
     } else if (selectedContentType === 'note') {
-        onContentAdd({ ...commonData, type: 'note', url: undefined });
-    } else {
-      // For other types, currently show a toast.
+        onContentAdd({ ...commonData, type: 'note', url: undefined, imageUrl: undefined }); // Notes shouldn't have imageUrl unless specifically designed for it
+    } else if (selectedContentType === 'image') {
+        if (!values.imageUrl) {
+            form.setError('imageUrl', {type: 'manual', message: 'Please upload an image.'});
+            return;
+        }
+        onContentAdd({ ...commonData, type: 'image', url: undefined, imageUrl: values.imageUrl});
+    }
+    else {
+      // For 'todo', 'voice'
       toast({
         title: `${selectedContentType.charAt(0).toUpperCase() + selectedContentType.slice(1)} Content Type`,
         description: `Adding ${selectedContentType}s is not yet implemented.`,
         variant: "default",
       });
       // Still "save" with common fields and type
-      onContentAdd({ ...commonData, type: selectedContentType, url: undefined });
+      onContentAdd({ ...commonData, type: selectedContentType, url: undefined, imageUrl: undefined });
     }
     if (onOpenChange) onOpenChange(false);
   }
@@ -229,13 +292,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                     size="sm"
                     onClick={() => {
                       setSelectedContentType(item.type as ContentItemType);
-                      // Reset URL validation error if switching away from 'link' or to 'link' with no URL
-                      if (item.type !== 'link' && form.formState.errors.url) {
-                        form.clearErrors('url');
-                      }
-                      if (item.type === 'link' && !form.getValues('url')) {
-                         form.clearErrors('url'); // Clear if switching to link and url is empty
-                      }
+                      form.clearErrors(); // Clear all errors on type switch
                     }}
                     className="flex-1 sm:flex-none"
                 >
@@ -254,6 +311,36 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
             </div>
           )}
 
+          {selectedContentType === 'image' && (
+            <div className="space-y-2">
+              <Label htmlFor="imageFile" className="font-medium">Image File</Label>
+              <div className="flex items-center gap-2">
+                <Input 
+                    id="imageFile" 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleImageUpload} 
+                    className="flex-grow file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 focus-visible:ring-accent"
+                    disabled={isUploading}
+                />
+                {isUploading && <Loader2 className="h-5 w-5 animate-spin text-primary"/>}
+              </div>
+              {form.formState.errors.imageUrl && <p className="text-sm text-destructive">{form.formState.errors.imageUrl.message}</p>}
+              {imagePreview && (
+                <div className="mt-2 rounded-md border border-dashed border-border p-2 flex justify-center items-center max-h-48 overflow-hidden">
+                  <Image src={imagePreview} alt="Selected image preview" width={200} height={200} className="max-w-full max-h-44 object-contain rounded"/>
+                </div>
+              )}
+              {!imagePreview && !isUploading && (
+                <div className="mt-2 rounded-md border border-dashed border-border p-6 flex flex-col items-center justify-center text-muted-foreground">
+                    <UploadCloud className="h-10 w-10 mb-2"/>
+                    <p>Click or drag to upload an image</p>
+                </div>
+              )}
+            </div>
+          )}
+
+
           <div className="space-y-2">
             <Label htmlFor="title" className="font-medium">Title</Label>
             <Input id="title" {...form.register('title')} placeholder={selectedContentType === 'link' ? "My Awesome Link" : "Content Title"} className="focus-visible:ring-accent"/>
@@ -269,7 +356,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
               {...form.register('description')}
               placeholder={selectedContentType === 'note' ? "Write your note here..." : "A brief description..."}
               className="focus-visible:ring-accent"
-              rows={selectedContentType === 'note' ? 5 : 3}
+              rows={selectedContentType === 'note' ? 5 : (selectedContentType === 'image' ? 2 : 3)}
             />
              {form.formState.errors.description && <p className="text-sm text-destructive">{form.formState.errors.description.message}</p>}
           </div>
@@ -347,9 +434,10 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
         </form>
         <DialogFooter className="pt-4 border-t">
           <Button type="button" variant="outline" onClick={() => onOpenChange && onOpenChange(false)}>Cancel</Button>
-          <Button type="submit" onClick={form.handleSubmit(onSubmit)} disabled={isAnalyzing || isSuggesting} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+          <Button type="submit" onClick={form.handleSubmit(onSubmit)} disabled={isAnalyzing || isSuggesting || isUploading} className="bg-primary hover:bg-primary/90 text-primary-foreground">
             {(isAnalyzing && selectedContentType === 'link') && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {(isAnalyzing && selectedContentType === 'link') ? 'Analyzing...' : 'Add Content'}
+            {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {(isAnalyzing && selectedContentType === 'link') ? 'Analyzing...' : (isUploading ? 'Uploading...' : 'Add Content')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -358,3 +446,5 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
 };
 
 export default AddContentDialog;
+
+    

@@ -2,8 +2,8 @@
 'use client';
 import type React from 'react';
 import { useState, useEffect } from 'react';
-import ContentCard from '@/components/core/link-card'; // Renamed import, actual file name might still be link-card.tsx
-import type { ContentItem, Collection } from '@/types'; // Updated import
+import ContentCard from '@/components/core/link-card';
+import type { ContentItem, Collection } from '@/types';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ListFilter, LayoutGrid, LayoutList } from 'lucide-react';
 import AddContentDialog from '@/components/core/add-content-dialog';
@@ -31,6 +31,16 @@ const mockInitialContent: ContentItem[] = [
     tags: [{id: 't-feature', name: 'feature idea'}, {id: 't-klipped', name: 'klipped'}],
     collectionId: '1',
     createdAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+  },
+  {
+    id: 'img-1',
+    type: 'image',
+    title: 'Abstract Background',
+    description: 'A cool abstract background image found online.',
+    imageUrl: 'https://placehold.co/600x400.png',
+    tags: [{ id: 't-img', name: 'image' }, { id: 't-abstract', name: 'abstract' }],
+    collectionId: '2',
+    createdAt: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
   },
   {
     id: '2',
@@ -76,9 +86,9 @@ const mockCollections: Collection[] = [
 
 
 export default function DashboardPage() {
-  const [contentItems, setContentItems] = useState<ContentItem[]>([]); // Changed state name and type
+  const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
-  const [editingContent, setEditingContent] = useState<ContentItem | null>(null); // Changed type
+  const [editingContent, setEditingContent] = useState<ContentItem | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const { toast } = useToast();
 
@@ -87,11 +97,22 @@ export default function DashboardPage() {
   }, []);
 
   const handleAddContent = (newContentData: Omit<ContentItem, 'id' | 'createdAt'>) => {
+    let finalImageUrl = newContentData.imageUrl;
+    if (newContentData.type === 'link' && !newContentData.imageUrl) {
+      // Only set placeholder for links if no imageUrl is provided (e.g. from AI or manual input)
+      finalImageUrl = `https://placehold.co/600x400.png?text=${encodeURIComponent(newContentData.title.substring(0,15))}`;
+    } else if (newContentData.type === 'image' && !newContentData.imageUrl) {
+      // This case should ideally not happen if image upload is mandatory for 'image' type.
+      // If it can, use a generic placeholder.
+      finalImageUrl = `https://placehold.co/600x400.png?text=Image`;
+    }
+
+
     const newItem: ContentItem = {
       ...newContentData,
       id: Date.now().toString(),
       createdAt: new Date().toISOString(),
-      imageUrl: newContentData.imageUrl || (newContentData.type === 'link' ? `https://placehold.co/600x400.png?text=${encodeURIComponent(newContentData.title.substring(0,15))}` : undefined),
+      imageUrl: finalImageUrl, // Use the determined imageUrl
     };
     setContentItems(prevItems => [newItem, ...prevItems]);
     toast({ title: "Content Added", description: `"${newItem.title}" has been successfully saved.` });
@@ -102,9 +123,7 @@ export default function DashboardPage() {
   const handleEditContent = (itemToEdit: ContentItem) => {
     setEditingContent(itemToEdit);
     setIsAddContentDialogOpen(true);
-    // Toast for edit mode can be added here if needed, or within the dialog itself.
     // For now, direct edit functionality isn't fully wired up beyond opening the dialog.
-    // toast({ title: "Edit Mode", description: `Opening editor for "${itemToEdit.title}". (Edit not fully implemented)`});
   };
 
   const handleDeleteContent = (itemId: string) => {
@@ -144,7 +163,7 @@ export default function DashboardPage() {
       ) : (
         <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'grid-cols-1'}`}>
           {contentItems.map(item => (
-            <ContentCard // Using the (potentially renamed) ContentCard
+            <ContentCard
               key={item.id}
               item={item}
               onEdit={handleEditContent}
@@ -158,9 +177,10 @@ export default function DashboardPage() {
         onOpenChange={setIsAddContentDialogOpen}
         collections={mockCollections}
         onContentAdd={handleAddContent}
-        // Pass existingContent if you implement edit functionality within AddContentDialog
-        // existingContent={editingContent}
+        // existingContent={editingContent} // For full edit functionality
       />
     </div>
   );
 }
+
+    
