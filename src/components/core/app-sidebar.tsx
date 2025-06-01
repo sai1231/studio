@@ -2,7 +2,7 @@
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
-import { Home, Tag, Settings, LogOut, Users, ChevronDown, Plus, Globe, ClipboardList, Bookmark, Newspaper, Film, Baseline, Github, MessageSquare, MessagesSquare, BookOpen, LucideIcon, StickyNote, Briefcase, Library, FileText, Sparkles } from 'lucide-react';
+import { Home, Tag, Settings, LogOut, Users, ChevronDown, Plus, Globe, ClipboardList, Bookmark, Newspaper, Film, Baseline, Github, MessageSquare, MessagesSquare, BookOpen, LucideIcon, StickyNote, Briefcase, Library, FileText, Sparkles, Layers } from 'lucide-react'; // Added Layers
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -216,6 +216,15 @@ const AppSidebar: React.FC = () => {
         </ScrollArea>
         <Separator className="bg-sidebar-border my-2" />
         <div className="p-4">
+          <Link
+            href="/dashboard-experiment"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary aria-[current=page]:text-sidebar-primary-foreground"
+            >
+            <Layers className="h-4 w-4" /> 
+            Dashboard Experiment
+          </Link>
+        </div>
+        <div className="p-4">
             <ThemeToggle />
         </div>
         <div className="p-4 border-t border-sidebar-border">
@@ -230,3 +239,4 @@ const AppSidebar: React.FC = () => {
 };
 
 export default AppSidebar;
+
