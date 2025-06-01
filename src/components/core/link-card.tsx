@@ -28,22 +28,22 @@ const getHintFromItem = (item: ContentItem): string => {
 const getTypeSpecifics = (type: ContentItemType | undefined) => {
   switch (type) {
     case 'link':
-      return { icon: Globe, color: 'blue', bgClass: 'bg-sky-50 dark:bg-sky-950/60', iconRing: 'ring-sky-500/30', iconText: 'text-sky-600 dark:text-sky-400' };
+      return { icon: Globe, color: 'blue', iconRing: 'ring-sky-500/30', iconText: 'text-sky-600 dark:text-sky-400' };
     case 'note':
-      return { icon: StickyNote, color: 'yellow', bgClass: 'bg-yellow-50 dark:bg-yellow-950/60', iconRing: 'ring-yellow-500/30', iconText: 'text-yellow-600 dark:text-yellow-400' };
+      return { icon: StickyNote, color: 'yellow', iconRing: 'ring-yellow-500/30', iconText: 'text-yellow-600 dark:text-yellow-400' };
     case 'image':
-      return { icon: FileImage, color: 'gray', bgClass: 'bg-card', iconRing: 'ring-gray-500/30', iconText: 'text-gray-600 dark:text-gray-400' };
+      return { icon: FileImage, color: 'gray', iconRing: 'ring-gray-500/30', iconText: 'text-gray-600 dark:text-gray-400' };
     case 'todo':
-      return { icon: ListChecks, color: 'green', bgClass: 'bg-emerald-50 dark:bg-emerald-950/60', iconRing: 'ring-emerald-500/30', iconText: 'text-emerald-600 dark:text-emerald-400' };
+      return { icon: ListChecks, color: 'green', iconRing: 'ring-emerald-500/30', iconText: 'text-emerald-600 dark:text-emerald-400' };
     case 'voice':
-      return { icon: Mic, color: 'purple', bgClass: 'bg-purple-50 dark:bg-purple-950/60', iconRing: 'ring-purple-500/30', iconText: 'text-purple-600 dark:text-purple-400' };
+      return { icon: Mic, color: 'purple', iconRing: 'ring-purple-500/30', iconText: 'text-purple-600 dark:text-purple-400' };
     default:
-      return { icon: StickyNote, color: 'gray', bgClass: 'bg-card', iconRing: 'ring-gray-500/30', iconText: 'text-muted-foreground' };
+      return { icon: StickyNote, color: 'gray', iconRing: 'ring-gray-500/30', iconText: 'text-muted-foreground' };
   }
 };
 
 const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
-  const hasImage = item.imageUrl && (item.type === 'link' || item.type === 'image');
+  const hasImage = item.imageUrl && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice');
   const specifics = getTypeSpecifics(item.type);
   const IconComponent = specifics.icon;
 
@@ -66,8 +66,8 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
 
   return (
     <Card className={cn(
-      "overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group rounded-2xl break-inside-avoid mb-4",
-      !hasImage && specifics.bgClass
+      "overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group rounded-2xl break-inside-avoid mb-4"
+      // Removed: !hasImage && specifics.bgClass - All cards use default background now
     )}>
       <Link href={`/content/${item.id}`} passHref className="flex flex-col flex-grow group/link">
         <div className="flex flex-col flex-grow cursor-pointer">
@@ -84,7 +84,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
             </div>
           ) : null}
 
-          <CardHeader className={cn("pb-3", !hasImage ? "pt-4" : "pt-3")}>
+          <CardHeader className={cn("pb-2", !hasImage ? "pt-4" : "pt-3")}>
             <div className="flex items-center gap-3 mb-2">
               <div className={cn("p-2 rounded-full ring-2", specifics.iconRing, "bg-muted/30 dark:bg-muted/20")}>
                 <IconComponent className={cn("h-6 w-6", specifics.iconText)} />
@@ -102,9 +102,9 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
             )}
           </CardHeader>
 
-          <CardContent className={cn("flex-grow space-y-3", hasImage ? "pt-0 pb-3" : "pt-2 pb-3")}>
+          <CardContent className={cn("flex-grow space-y-3", hasImage ? "pt-0 pb-4" : "pt-2 pb-4")}>
             {item.description && (
-              <div className={cn("text-sm mb-3 break-words", specifics.bgClass !== 'bg-card' ? 'text-foreground/80' : 'text-muted-foreground')}>
+              <div className={cn("text-sm mb-3 break-words", 'text-muted-foreground')}>
                 {renderDescription(item.description)}
               </div>
             )}
@@ -118,12 +118,12 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
 
             <div className="flex flex-wrap gap-1.5 items-center">
               {item.domain && (
-                <Badge variant="outline" className={cn("text-xs py-0.5 px-1.5 font-normal", specifics.bgClass !== 'bg-card' ? 'border-foreground/20 text-foreground/70 bg-background/10 hover:bg-background/20' : 'border-blue-500/30 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30')}>
+                <Badge variant="outline" className={cn("text-xs py-0.5 px-1.5 font-normal", 'border-blue-500/30 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30')}>
                   <Landmark className="h-3 w-3 mr-1 opacity-70" />{item.domain}
                 </Badge>
               )}
               {item.contentType && (
-                <Badge variant="outline" className={cn("text-xs py-0.5 px-1.5 font-normal", specifics.bgClass !== 'bg-card' ? 'border-foreground/20 text-foreground/70 bg-background/10 hover:bg-background/20' : 'border-purple-500/30 text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30')}>
+                <Badge variant="outline" className={cn("text-xs py-0.5 px-1.5 font-normal", 'border-purple-500/30 text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30')}>
                   <Layers className="h-3 w-3 mr-1 opacity-70" />{item.contentType}
                 </Badge>
               )}
@@ -136,13 +136,13 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
                     {tag.name}
                   </Badge>
                 ))}
-                {item.tags.length > 2 && <Badge variant="outline" className={cn("text-xs py-0.5 px-1.5 font-normal", specifics.bgClass !== 'bg-card' ? 'border-foreground/20 text-foreground/70 bg-background/10 hover:bg-background/20' : '')}>+{item.tags.length - 2} more</Badge>}
+                {item.tags.length > 2 && <Badge variant="outline" className={cn("text-xs py-0.5 px-1.5 font-normal", '')}>+{item.tags.length - 2} more</Badge>}
               </div>
             )}
           </CardContent>
         </div>
       </Link>
-      <CardFooter className={cn("flex justify-between items-center pt-3 pb-3 px-4", specifics.bgClass !== 'bg-card' ? 'mt-auto border-t-0' : 'border-t-0')}>
+      <CardFooter className={cn("flex justify-between items-center pt-3 pb-3 px-4", 'mt-auto border-t-0')}>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {/* Placeholder for date or other small info */}
         </div>
@@ -151,7 +151,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" asChild onClick={handleActionClick} className={cn("h-8 w-8", specifics.bgClass !== 'bg-card' && 'bg-background/30 hover:bg-background/50 border-foreground/20 text-foreground/70')}>
+                  <Button variant="outline" size="icon" asChild onClick={handleActionClick} className={cn("h-8 w-8", 'bg-background/30 hover:bg-background/50 border-foreground/20 text-foreground/70')}>
                     <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Open link in new tab">
                       <ExternalLink className="h-3.5 w-3.5" />
                     </a>
@@ -174,7 +174,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
                     onDelete(item.id);
                   }} 
                   aria-label="Forget item"
-                  className={cn("h-8 w-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10", specifics.bgClass !== 'bg-card' && 'hover:bg-black/10 dark:hover:bg-white/10')}
+                  className={cn("h-8 w-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10", 'hover:bg-black/10 dark:hover:bg-white/10')}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
