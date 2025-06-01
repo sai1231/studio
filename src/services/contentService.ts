@@ -1,7 +1,7 @@
 
 'use server';
 
-import type { ContentItem, Zone, Tag } from '@/types';
+import type { ContentItem, Zone, Tag, MovieDetails } from '@/types';
 // Lucide icons are no longer imported here directly for mockZones
 
 let mockContentItems: ContentItem[] = [
@@ -96,7 +96,7 @@ let mockContentItems: ContentItem[] = [
   {
     id: '8',
     type: 'link',
-    url: 'https://medium.com/some-article-on-ux',
+    url: 'https://medium.com/the-memoirist/confessions-of-a-sweatshop-inspector-5d400752c408',
     title: 'An interesting article on UX Design Trends',
     description: 'Insights on a trending topic in user experience for 2024.',
     imageUrl: 'https://placehold.co/600x400.png',
@@ -305,6 +305,27 @@ let mockContentItems: ContentItem[] = [
     createdAt: new Date(Date.now() - 86400000 * 0.6).toISOString(),
     domain: 'tiktok.com',
     contentType: 'TikTok Video',
+  },
+  {
+    id: 'movie-1',
+    type: 'movie',
+    url: 'https://www.imdb.com/title/tt0133093/', // The Matrix
+    title: 'The Matrix',
+    description: 'A computer hacker learns from mysterious rebels about the true nature of his reality and his role in the war against its controllers.',
+    imageUrl: 'https://image.tmdb.org/t/p/w500/f89JUZ महज9f9dF5lH0bLgLgezO.jpg', // Example poster path
+    tags: [{ id: 't-movie', name: 'movie' }, { id: 't-scifi', name: 'sci-fi' }],
+    zoneId: '3',
+    createdAt: new Date(Date.now() - 86400000 * 10).toISOString(),
+    domain: 'imdb.com',
+    contentType: 'Movie',
+    movieDetails: {
+      posterPath: '/f89JUZ महज9f9dF5lH0bLgLgezO.jpg',
+      releaseYear: '1999',
+      rating: 8.7,
+      director: 'Lana Wachowski, Lilly Wachowski',
+      cast: ['Keanu Reeves', 'Laurence Fishburne', 'Carrie-Anne Moss', 'Hugo Weaving', 'Joe Pantoliano'],
+      genres: ['Action', 'Science Fiction'],
+    },
   }
 ];
 
@@ -358,7 +379,51 @@ export async function addContentItem(
   await new Promise(resolve => setTimeout(resolve, 100));
 
   let extractedDomain: string | undefined = itemData.domain;
-  if (itemData.type === 'link' && itemData.url && !extractedDomain) {
+  let itemType = itemData.type;
+  let finalContentType = itemData.contentType;
+  let finalImageUrl = itemData.imageUrl;
+  let finalDescription = itemData.description;
+  let movieDetailsData: MovieDetails | undefined = (itemData as any).movieDetails;
+
+
+  if (itemData.url && itemData.url.includes('imdb.com/title/') && process.env.TMDB_API_KEY) {
+    itemType = 'movie';
+    finalContentType = 'Movie';
+    const imdbId = itemData.url.split('/title/')[1].split('/')[0];
+    if (imdbId) {
+      try {
+        const tmdbResponse = await fetch(`https://api.themoviedb.org/3/find/${imdbId}?api_key=${process.env.TMDB_API_KEY}&external_source=imdb_id`);
+        if (!tmdbResponse.ok) {
+          throw new Error(`TMDb find API error: ${tmdbResponse.status}`);
+        }
+        const tmdbFindData = await tmdbResponse.json();
+
+        if (tmdbFindData.movie_results && tmdbFindData.movie_results.length > 0) {
+          const movieId = tmdbFindData.movie_results[0].id;
+          const movieDetailResponse = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${process.env.TMDB_API_KEY}&append_to_response=credits`);
+          if (!movieDetailResponse.ok) {
+            throw new Error(`TMDb movie detail API error: ${movieDetailResponse.status}`);
+          }
+          const movieData = await movieDetailResponse.json();
+
+          finalImageUrl = movieData.poster_path ? `https://image.tmdb.org/t/p/w500${movieData.poster_path}` : finalImageUrl;
+          finalDescription = movieData.overview || finalDescription;
+
+          movieDetailsData = {
+            posterPath: movieData.poster_path,
+            releaseYear: movieData.release_date ? movieData.release_date.split('-')[0] : undefined,
+            rating: movieData.vote_average ? parseFloat(movieData.vote_average.toFixed(1)) : undefined,
+            director: movieData.credits?.crew?.find((c: any) => c.job === 'Director')?.name,
+            cast: movieData.credits?.cast?.slice(0, 5).map((c: any) => c.name) || [],
+            genres: movieData.genres?.map((g: any) => g.name) || [],
+          };
+        }
+      } catch (e) {
+        console.error("Error fetching movie details from TMDb:", e);
+        // Keep original itemData.type, imageUrl, description if TMDb fetch fails
+      }
+    }
+  } else if (itemType === 'link' && itemData.url && !extractedDomain) {
     try {
       const urlObject = new URL(itemData.url);
       extractedDomain = urlObject.hostname.replace(/^www\./, '');
@@ -367,15 +432,19 @@ export async function addContentItem(
     }
   }
 
+
   const newItem: ContentItem = {
     ...itemData,
     id: Date.now().toString(),
     createdAt: new Date().toISOString(),
+    type: itemType,
     domain: extractedDomain,
-    contentType: itemData.contentType,
+    contentType: finalContentType,
     mindNote: itemData.mindNote,
     audioUrl: itemData.audioUrl,
-    imageUrl: itemData.imageUrl || (itemData.type !== 'note' && itemData.type !== 'voice' ? `https://placehold.co/600x400.png` : undefined)
+    imageUrl: finalImageUrl || (itemType !== 'note' && itemType !== 'voice' ? `https://placehold.co/600x400.png` : undefined),
+    description: finalDescription,
+    movieDetails: movieDetailsData,
   };
   mockContentItems.unshift(newItem);
   return newItem;
@@ -403,6 +472,9 @@ export async function updateContentItem(
     }
      if (updates.hasOwnProperty('audioUrl')) {
         newUpdates.audioUrl = updates.audioUrl;
+    }
+    if (updates.hasOwnProperty('movieDetails')) {
+        newUpdates.movieDetails = updates.movieDetails;
     }
 
 
@@ -448,3 +520,4 @@ export async function getUniqueContentTypes(): Promise<string[]> {
   });
   return Array.from(contentTypes).sort();
 }
+
