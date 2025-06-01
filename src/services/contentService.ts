@@ -38,11 +38,28 @@ export async function getContentItems(userId?: string): Promise<ContentItem[]> {
   const items: ContentItem[] = [];
   querySnapshot.forEach((doc) => {
     const data = doc.data() as ContentItemFirestoreData;
+    
+    let createdAtISO = new Date().toISOString(); // Default to now if createdAt is invalid
+    if (data.createdAt && typeof (data.createdAt as Timestamp).toDate === 'function') {
+      createdAtISO = (data.createdAt as Timestamp).toDate().toISOString();
+    } else if (data.createdAt) {
+      // If it exists but isn't a Timestamp, log a warning. It might be an old ISO string.
+      // For now, we'll attempt to parse it if it's a string, otherwise default.
+      console.warn(`Document ${doc.id} has an invalid createdAt field:`, data.createdAt);
+      if (typeof data.createdAt === 'string') {
+        const parsedDate = new Date(data.createdAt);
+        if (!isNaN(parsedDate.getTime())) {
+          createdAtISO = parsedDate.toISOString();
+        }
+      }
+    } else {
+      console.warn(`Document ${doc.id} is missing createdAt field. Defaulting to current time.`);
+    }
+
     items.push({
       ...data,
       id: doc.id,
-      createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
-      // Ensure tags are an array, even if undefined in Firestore for some old data
+      createdAt: createdAtISO,
       tags: data.tags || [], 
     });
   });
@@ -67,7 +84,10 @@ export async function updateContentItemInFirestore(
   try {
     const itemRef = doc(db, 'contentItems', itemId);
     // You might want to add an 'updatedAt: serverTimestamp()' field here as well
-    await updateDoc(itemRef, updates);
+    await updateDoc(itemRef, {
+      ...updates,
+      updatedAt: serverTimestamp() // Example: add an updatedAt field
+    });
   } catch (e) {
     console.error("Error updating document: ", e);
     throw new Error("Failed to update content item");
