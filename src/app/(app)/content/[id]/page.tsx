@@ -351,6 +351,18 @@ export default function ContentDetailPage() {
                 <div className="flex items-center text-xs text-muted-foreground mb-1.5">
                   <Globe className="h-3.5 w-3.5 mr-1.5" />
                   <span>{item.domain}</span>
+                  {item.type === 'link' && item.url && (
+                    <TooltipProvider>
+                        <Tooltip>
+                        <TooltipTrigger asChild>
+                            <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1 ml-1 text-primary hover:text-primary/80" title={`Open link: ${item.url}`}>
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Open link</p></TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                  )}
                 </div>
               )}
               <div className="flex items-center justify-between space-x-2 pr-20 relative"> 
@@ -365,18 +377,6 @@ export default function ContentDetailPage() {
                         placeholder="Enter title"
                     />
                 </div>
-                {item.type === 'link' && item.url && (
-                    <TooltipProvider>
-                        <Tooltip>
-                        <TooltipTrigger asChild>
-                            <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1 text-primary hover:text-primary/80" title={`Open link: ${item.url}`}>
-                            <ExternalLink className="h-5 w-5" />
-                            </a>
-                        </TooltipTrigger>
-                        <TooltipContent><p>Open link</p></TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                )}
               </div>
             </CardHeader>
 
@@ -602,3 +602,5 @@ export default function ContentDetailPage() {
   );
 }
     
+
+  
