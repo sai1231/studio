@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Analyzes the sentiment of the content behind a saved link.
@@ -41,6 +42,7 @@ const analyzeLinkSentimentFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+    return output || { sentiment: 'neutral', score: 0 }; // Provide a default if output is null
   }
 );
+

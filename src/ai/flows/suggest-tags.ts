@@ -1,3 +1,4 @@
+
 // This file holds the Genkit flow for suggesting tags for a newly saved link using AI.
 
 'use server';
@@ -52,6 +53,7 @@ const suggestTagsFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+    return output || { tags: [] }; // Provide a default if output is null
   }
 );
+
