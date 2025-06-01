@@ -12,18 +12,10 @@ import type { Zone, Tag as TagType } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from './theme-toggle';
 import { Separator } from '@/components/ui/separator';
-import { getZones, getUniqueDomains, getUniqueContentTypes } from '@/services/contentService';
+import { getZones, getUniqueDomains, getUniqueContentTypes, getUniqueTags } from '@/services/contentService';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-
-const mockTags: TagType[] = [
-  { id: 't1', name: 'productivity' },
-  { id: 't2', name: 'nextjs' },
-  { id: 't3', name: 'design' },
-  { id: 't4', name: 'inspiration' },
-  { id: 't5', name: 'ai' },
-];
 
 const predefinedContentTypes: Record<string, { icon: LucideIcon, name: string }> = {
   Post: { icon: Newspaper, name: 'Post' },
@@ -48,17 +40,20 @@ const AppSidebar: React.FC = () => {
   const [zones, setZones] = useState<Zone[]>([]);
   const [domains, setDomains] = useState<string[]>([]);
   const [contentTypes, setContentTypes] = useState<string[]>([]);
+  const [actualTags, setActualTags] = useState<TagType[]>([]);
   const { toast } = useToast();
 
   const fetchData = useCallback(async () => {
     try {
-      const [fetchedZones, fetchedDomains, fetchedContentTypes] = await Promise.all([
+      const [fetchedZones, fetchedDomains, fetchedContentTypes, fetchedTags] = await Promise.all([
         getZones(),
         getUniqueDomains(),
         getUniqueContentTypes(),
+        getUniqueTags(),
       ]);
       setZones(fetchedZones);
       setDomains(fetchedDomains);
+      setActualTags(fetchedTags);
 
       // Filter fetchedContentTypes to only include those in predefinedContentTypes
       const availablePredefinedTypes = fetchedContentTypes.filter(
@@ -149,15 +144,17 @@ const AppSidebar: React.FC = () => {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pl-4 mt-1 space-y-1">
-                  {mockTags.map((tag) => (
+                  {actualTags.length > 0 ? actualTags.map((tag) => (
                     <Link
                       key={tag.id}
-                      href={`/tags/${tag.id}`}
+                      href={`/tags/${encodeURIComponent(tag.name)}`}
                       className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary/80 aria-[current=page]:text-sidebar-primary-foreground"
                     >
                        # {tag.name}
                     </Link>
-                  ))}
+                  )) : (
+                    <p className="px-3 py-2 text-xs text-sidebar-foreground/60">No tags found.</p>
+                  )}
                    <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground/80 mt-1 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground">
                     <Plus className="h-4 w-4 mr-2" /> Manage Tags
                   </Button>
