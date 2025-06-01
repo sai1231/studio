@@ -3,6 +3,7 @@
 import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import ContentCard from '@/components/core/link-card';
+import ContentDetailDialog from '@/components/core/ContentDetailDialog'; // Import the new dialog
 import type { ContentItem, Zone as AppZone, Tag as AppTag } from '@/types';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ListFilter, LayoutGrid, LayoutList, Loader2, FolderOpen } from 'lucide-react';
@@ -15,8 +16,12 @@ export default function DashboardPage() {
   const [zones, setZones] = useState<AppZone[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
   const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
-  const [editingContent, setEditingContent] = useState<ContentItem | null>(null);
+  // State for the ContentDetailDialog
+  const [selectedItemIdForDetail, setSelectedItemIdForDetail] = useState<string | null>(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const { toast } = useToast();
 
@@ -58,7 +63,6 @@ export default function DashboardPage() {
         description: `"${contentData.title}" has been successfully saved.`,
       });
       setIsAddContentDialogOpen(false);
-      setEditingContent(null);
       fetchData(); 
     } catch (error) {
       console.error("Error saving content from dialog:", error);
@@ -71,10 +75,19 @@ export default function DashboardPage() {
     }
   };
 
-  const handleEditContent = (itemToEdit: ContentItem) => {
-    setEditingContent(itemToEdit); 
-    toast({ title: "Edit Action", description: `Preparing to edit "${itemToEdit.title}" (Dialog prefill not implemented).`});
-    setIsAddContentDialogOpen(true); 
+  const handleOpenDetailDialog = (item: ContentItem) => {
+    setSelectedItemIdForDetail(item.id);
+    setIsDetailDialogOpen(true);
+  };
+
+  const handleItemUpdateInDialog = (updatedItem: ContentItem) => {
+    // Option 1: Refetch all data
+    // fetchData();
+    // Option 2: Update specific item in local state (more performant)
+    setContentItems(prevItems => 
+      prevItems.map(item => item.id === updatedItem.id ? updatedItem : item)
+    );
+    toast({ title: "Item Updated", description: `"${updatedItem.title}" has been updated.`});
   };
 
   const handleDeleteContent = async (itemId: string) => {
@@ -84,7 +97,7 @@ export default function DashboardPage() {
     try {
       await deleteContentItem(itemId);
       toast({id: toastId, title: "Content Deleted", description: "The item has been removed.", variant: "default"});
-      fetchData(); 
+      fetchData(); // Refetch to ensure consistency, or could also just update local state
     } catch (e) {
       console.error("Error deleting content:", e);
       toast({id: toastId, title: "Error Deleting", description: "Could not delete item. Restoring.", variant: "destructive"});
@@ -135,7 +148,7 @@ export default function DashboardPage() {
           <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h2 className="text-xl font-medium text-muted-foreground">No content saved yet.</h2>
           <p className="text-muted-foreground mt-2">Start by adding your first item!</p>
-          <Button onClick={() => { setEditingContent(null); setIsAddContentDialogOpen(true);}} className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">
+          <Button onClick={() => { setIsAddContentDialogOpen(true);}} className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">
             <PlusCircle className="h-4 w-4 mr-2" />
             Add Your First Item
           </Button>
@@ -146,7 +159,7 @@ export default function DashboardPage() {
             <ContentCard
               key={item.id}
               item={item}
-              onEdit={handleEditContent}
+              onEdit={handleOpenDetailDialog} // Changed to open the detail dialog
               onDelete={handleDeleteContent}
             />
           ))}
@@ -158,6 +171,17 @@ export default function DashboardPage() {
         zones={zones}
         onContentAdd={handleAddOrUpdateContentDialog}
       />
+      {selectedItemIdForDetail && (
+        <ContentDetailDialog
+          itemId={selectedItemIdForDetail}
+          open={isDetailDialogOpen}
+          onOpenChange={(open) => {
+            setIsDetailDialogOpen(open);
+            if (!open) setSelectedItemIdForDetail(null); // Reset selected ID when dialog closes
+          }}
+          onItemUpdate={handleItemUpdateInDialog}
+        />
+      )}
     </div>
   );
 }

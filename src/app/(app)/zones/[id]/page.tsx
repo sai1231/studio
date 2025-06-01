@@ -5,11 +5,12 @@ import type React from 'react';
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import ContentCard from '@/components/core/link-card';
+import ContentDetailDialog from '@/components/core/ContentDetailDialog'; // Import the new dialog
 import type { ContentItem, Zone } from '@/types';
 import { Button } from '@/components/ui/button';
 import { LayoutGrid, LayoutList, ListFilter, FolderOpen, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getContentItems, getZoneById, deleteContentItem } from '@/services/contentService'; // Added deleteContentItem
+import { getContentItems, getZoneById, deleteContentItem } from '@/services/contentService';
 
 export default function ZonePage({ params }: { params: { id: string } }) {
   const zoneId = params.id;
@@ -20,7 +21,11 @@ export default function ZonePage({ params }: { params: { id: string } }) {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchZoneData = async () => { // Renamed for clarity
+  // State for the ContentDetailDialog
+  const [selectedItemIdForDetail, setSelectedItemIdForDetail] = useState<string | null>(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+
+  const fetchZoneData = async () => {
     setIsLoading(true);
     try {
       const foundZone = await getZoneById(zoneId);
@@ -46,13 +51,23 @@ export default function ZonePage({ params }: { params: { id: string } }) {
   useEffect(() => {
     fetchZoneData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zoneId, toast]); // fetchZoneData is not added to deps to avoid re-fetch on every render if not memoized
+  }, [zoneId, toast]);
 
-  const handleEditItem = (itemToEdit: ContentItem) => {
-    // This would typically open a dialog or navigate to an edit page
-    // For now, using a toast and potentially navigating to a generic edit page or opening AddContentDialog
-    toast({ title: "Edit Action", description: `Editing "${itemToEdit.title}" (Not fully implemented on this page).`});
-    // Example: router.push(`/dashboard?edit=${itemToEdit.id}`); // Or open AddContentDialog in edit mode
+  const handleOpenDetailDialog = (item: ContentItem) => {
+    setSelectedItemIdForDetail(item.id);
+    setIsDetailDialogOpen(true);
+  };
+  
+  const handleItemUpdateInDialog = (updatedItem: ContentItem) => {
+    // If the updated item's zoneId no longer matches current zone, remove it
+    if (updatedItem.zoneId !== zoneId) {
+      setItems(prevItems => prevItems.filter(item => item.id !== updatedItem.id));
+    } else {
+      setItems(prevItems => 
+        prevItems.map(item => item.id === updatedItem.id ? updatedItem : item)
+      );
+    }
+    toast({ title: "Item Updated", description: `"${updatedItem.title}" has been updated.`});
   };
 
   const handleDeleteItem = async (itemIdToDelete: string) => {
@@ -61,7 +76,7 @@ export default function ZonePage({ params }: { params: { id: string } }) {
     try {
       await deleteContentItem(itemIdToDelete);
       toast({ id: toastId, title: "Item Deleted", description: `"${itemTitle}" has been removed.`, variant: "default" });
-      fetchZoneData(); // Refetch data for the zone
+      fetchZoneData(); 
     } catch (e) {
       console.error("Error deleting content:", e);
       toast({ id: toastId, title: "Error Deleting", description: `Could not delete "${itemTitle}".`, variant: "destructive"});
@@ -126,11 +141,22 @@ export default function ZonePage({ params }: { params: { id: string } }) {
             <ContentCard
               key={item.id}
               item={item}
-              onEdit={handleEditItem}
+              onEdit={handleOpenDetailDialog} // Changed to open the detail dialog
               onDelete={handleDeleteItem}
             />
           ))}
         </div>
+      )}
+      {selectedItemIdForDetail && (
+        <ContentDetailDialog
+          itemId={selectedItemIdForDetail}
+          open={isDetailDialogOpen}
+          onOpenChange={(open) => {
+            setIsDetailDialogOpen(open);
+            if (!open) setSelectedItemIdForDetail(null);
+          }}
+          onItemUpdate={handleItemUpdateInDialog}
+        />
       )}
     </div>
   );

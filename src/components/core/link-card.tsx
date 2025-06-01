@@ -1,7 +1,7 @@
 
 import type React from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
+// Link import removed as navigation is handled by onEdit prop now
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 
 interface ContentCardProps {
   item: ContentItem;
+  onEdit: (item: ContentItem) => void; // This will now trigger the detail dialog
   onDelete: (itemId: string) => void;
 }
 
@@ -37,7 +38,7 @@ const tagColorPalettes = [
   'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100',
   'bg-purple-100 text-purple-800 dark:bg-purple-700 dark:text-purple-100',
   'bg-pink-100 text-pink-800 dark:bg-pink-700 dark:text-pink-100',
-  'bg-yellow-100 text-yellow-800 dark:bg-yellow-600 dark:text-yellow-100', // Adjusted dark for yellow contrast
+  'bg-yellow-100 text-yellow-800 dark:bg-yellow-600 dark:text-yellow-100',
   'bg-indigo-100 text-indigo-800 dark:bg-indigo-700 dark:text-indigo-100',
   'bg-teal-100 text-teal-800 dark:bg-teal-700 dark:text-teal-100',
   'bg-sky-100 text-sky-800 dark:bg-sky-700 dark:text-sky-100',
@@ -47,22 +48,25 @@ const tagColorPalettes = [
 
 const getTagStyles = (tagName: string): string => {
   let hash = 0;
+  if (!tagName || tagName.length === 0) {
+    return tagColorPalettes[0];
+  }
   for (let i = 0; i < tagName.length; i++) {
     hash = tagName.charCodeAt(i) + ((hash << 5) - hash);
-    hash = hash & hash; // Convert to 32bit integer
+    hash = hash & hash;
   }
   const index = Math.abs(hash) % tagColorPalettes.length;
   return tagColorPalettes[index];
 };
 
 
-const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
+const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => {
   const hasImage = item.imageUrl && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice');
   const specifics = getTypeSpecifics(item.type);
   const IconComponent = specifics.icon;
 
   const handleActionClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Prevent card click (onEdit) when clicking an action button
   };
 
   const renderDescription = (description: string | undefined) => {
@@ -81,19 +85,22 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
   const tagBaseClasses = "px-3 py-1 text-xs rounded-full font-medium";
 
   return (
-    <Card className={cn(
-      "overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group rounded-2xl break-inside-avoid mb-4"
-    )}>
-      <Link href={`/content/${item.id}`} passHref className="flex flex-col flex-grow group/link">
-        <div className="flex flex-col flex-grow cursor-pointer">
+    <Card 
+      className={cn(
+        "overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group rounded-2xl break-inside-avoid mb-4 cursor-pointer"
+      )}
+      onClick={() => onEdit(item)} // Trigger onEdit when card is clicked
+    >
+      <div className="flex flex-col flex-grow group/link"> {/* Removed Link wrapper, class was for hover effects */}
+        <div className="flex flex-col flex-grow">
           {hasImage ? (
             <div className="relative w-full h-56">
               <Image
                 src={item.imageUrl || "https://source.unsplash.com/600x400/?abstract"}
                 alt={item.title}
                 fill
-                objectFit="cover"
-                className="rounded-t-2xl group-hover/link:scale-105 transition-transform duration-300"
+                className="object-cover rounded-t-2xl group-hover/link:scale-105 transition-transform duration-300"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               />
             </div>
           ) : null}
@@ -161,7 +168,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
             )}
           </CardContent>
         </div>
-      </Link>
+      </div>
       <CardFooter className={cn("flex justify-between items-center pt-3 pb-3 px-4", 'mt-auto border-t-0')}>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {/* Placeholder for date or other small info */}
