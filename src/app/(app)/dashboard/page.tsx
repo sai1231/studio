@@ -1,3 +1,4 @@
+
 'use client';
 import type React from 'react';
 import { useState, useEffect } from 'react';
@@ -5,7 +6,7 @@ import LinkCard from '@/components/core/link-card';
 import type { LinkItem, Collection, Tag } from '@/types';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ListFilter, LayoutGrid, LayoutList } from 'lucide-react';
-import AddLinkDialog from '@/components/core/add-link-dialog'; // Re-import for potential direct use
+import AddContentDialog from '@/components/core/add-content-dialog'; // Updated import
 import { useToast } from '@/hooks/use-toast';
 
 // Mock Data - replace with actual data fetching
@@ -63,40 +64,33 @@ const mockCollections: Collection[] = [
 
 export default function DashboardPage() {
   const [links, setLinks] = useState<LinkItem[]>([]);
-  const [isAddLinkDialogOpen, setIsAddLinkDialogOpen] = useState(false); // For direct use if needed
-  const [editingLink, setEditingLink] = useState<LinkItem | null>(null);
+  const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false); // Renamed
+  const [editingLink, setEditingLink] = useState<LinkItem | null>(null); // EditingLink might become editingContent
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const { toast } = useToast();
   
-  // Load mock links on component mount
   useEffect(() => {
-    // Simulate fetching data
     setLinks(mockInitialLinks);
   }, []);
 
-
-  const handleAddLink = (newLinkData: Omit<LinkItem, 'id' | 'createdAt'>) => {
-    const newLink: LinkItem = {
-      ...newLinkData,
-      id: Date.now().toString(), // Simple ID generation
+  // Renamed handler, type might need to become more generic later
+  const handleAddContent = (newContentData: Omit<LinkItem, 'id' | 'createdAt'>) => {
+    const newLink: LinkItem = { // Still treating as LinkItem for now
+      ...newContentData,
+      id: Date.now().toString(), 
       createdAt: new Date().toISOString(),
-      imageUrl: newLinkData.imageUrl || `https://placehold.co/600x400.png?text=${encodeURIComponent(newLinkData.title.substring(0,15))}`, // placeholder
+      imageUrl: newContentData.imageUrl || `https://placehold.co/600x400.png?text=${encodeURIComponent(newContentData.title.substring(0,15))}`,
     };
     setLinks(prevLinks => [newLink, ...prevLinks]);
-    toast({ title: "Link Added", description: `"${newLink.title}" has been successfully saved.` });
-    setIsAddLinkDialogOpen(false); 
+    toast({ title: "Content Added", description: `"${newLink.title}" has been successfully saved.` });
+    setIsAddContentDialogOpen(false); 
     setEditingLink(null);
   };
 
   const handleEditLink = (linkToEdit: LinkItem) => {
     setEditingLink(linkToEdit);
-    // This would typically open the AddLinkDialog pre-filled with linkToEdit data
-    // For now, we'll just log it and set AddLinkDialogOpen if it's used directly
     console.log("Editing link:", linkToEdit);
-    // If AddLinkDialog is used directly on this page, you'd manage its state here:
-    setIsAddLinkDialogOpen(true); 
-    // The AddLinkDialog would need modification to handle an "edit" mode.
-    // For simplicity, the shared dialog via AppHeader is primary. This is a placeholder.
+    setIsAddContentDialogOpen(true); // Open the (now general) content dialog
     toast({ title: "Edit Mode", description: `Opening editor for "${linkToEdit.title}". (Edit not fully implemented)`});
   };
 
@@ -129,9 +123,9 @@ export default function DashboardPage() {
         <div className="text-center py-12">
           <h2 className="text-xl font-medium text-muted-foreground">No links saved yet.</h2>
           <p className="text-muted-foreground mt-2">Start by adding your first link!</p>
-          <Button onClick={() => setIsAddLinkDialogOpen(true)} className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">
+          <Button onClick={() => setIsAddContentDialogOpen(true)} className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">
             <PlusCircle className="h-4 w-4 mr-2" />
-            Add Your First Link
+            Add Your First Item
           </Button>
         </div>
       ) : (
@@ -146,13 +140,11 @@ export default function DashboardPage() {
           ))}
         </div>
       )}
-      {/* This is a secondary AddLinkDialog trigger/instance if needed directly on this page */}
-      {/* The primary one is in AppLayout/AppHeader */}
-      <AddLinkDialog
-        open={isAddLinkDialogOpen && editingLink === null} // Only open for new links if used here
-        onOpenChange={setIsAddLinkDialogOpen}
+      <AddContentDialog // Updated component and props
+        open={isAddContentDialogOpen && editingLink === null} 
+        onOpenChange={setIsAddContentDialogOpen}
         collections={mockCollections}
-        onLinkAdd={handleAddLink}
+        onContentAdd={handleAddContent} // Updated prop name
       />
     </div>
   );

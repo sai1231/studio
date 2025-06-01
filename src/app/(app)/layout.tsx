@@ -4,11 +4,10 @@ import type React from 'react';
 import { useState } from 'react';
 import AppHeader from '@/components/core/app-header';
 import AppSidebar from '@/components/core/app-sidebar';
-import AddLinkDialog from '@/components/core/add-link-dialog';
-import type { Collection, LinkItem } from '@/types'; // Assuming types are defined
+import AddContentDialog from '@/components/core/add-content-dialog'; // Updated import
+import type { Collection, LinkItem } from '@/types'; 
 import { useToast } from '@/hooks/use-toast';
 
-// Mock data for collections - replace with actual data fetching
 const mockCollections: Collection[] = [
   { id: '1', name: 'Work Projects' },
   { id: '2', name: 'Reading List' },
@@ -20,36 +19,36 @@ export default function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [isAddLinkDialogOpen, setIsAddLinkDialogOpen] = useState(false);
+  const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false); // Renamed state
   const { toast } = useToast();
 
-  const handleAddLink = (newLink: Omit<LinkItem, 'id' | 'createdAt'>) => {
-    console.log('New link added:', newLink);
-    // Here you would typically update your state or call an API
-    // For now, we'll just show a toast message
+  // Updated handler name and type (though type is simplified for now)
+  const handleAddContent = (newContent: Omit<LinkItem, 'id' | 'createdAt'>) => { 
+    console.log('New content added:', newContent);
     toast({
-      title: "Link Added!",
-      description: `"${newLink.title}" has been saved.`,
+      title: "Content Added!",
+      // Potentially make this message more generic or type-specific
+      description: `"${newContent.title}" has been saved.`, 
     });
-    setIsAddLinkDialogOpen(false); // Close dialog after adding
+    setIsAddContentDialogOpen(false); 
   };
 
   return (
     <div className="flex min-h-screen w-full">
       <AppSidebar />
-      <div className="flex flex-col flex-1 md:ml-64"> {/* Adjust margin for sidebar width */}
+      <div className="flex flex-col flex-1 md:ml-64"> 
         <AppHeader 
-          onAddLinkClick={() => setIsAddLinkDialogOpen(true)} 
+          onAddContentClick={() => setIsAddContentDialogOpen(true)} // Updated prop name
         />
         <main className="flex-1 p-4 md:p-6 lg:p-8 bg-background overflow-auto">
           {children}
         </main>
       </div>
-      <AddLinkDialog
-        open={isAddLinkDialogOpen}
-        onOpenChange={setIsAddLinkDialogOpen}
+      <AddContentDialog // Updated component
+        open={isAddContentDialogOpen}
+        onOpenChange={setIsAddContentDialogOpen}
         collections={mockCollections}
-        onLinkAdd={handleAddLink}
+        onContentAdd={handleAddContent} // Updated prop name
       />
     </div>
   );
