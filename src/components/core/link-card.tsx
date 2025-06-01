@@ -86,7 +86,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
 
           <CardHeader className={cn("pb-3", !hasImage ? "pt-4" : "pt-3")}>
             {!hasImage && (
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-baseline gap-3 mb-2"> {/* Changed items-center to items-baseline */}
                 <div className={cn("p-2 rounded-full ring-2", specifics.iconRing, specifics.iconBg?.replace('bg-', 'bg-opacity-50 dark:bg-opacity-50 bg-'))}>
                   <IconComponent className={cn("h-6 w-6", specifics.iconText)} />
                 </div>
@@ -153,7 +153,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
           </CardContent>
         </div>
       </Link>
-      <CardFooter className={cn("flex justify-between items-center pt-3 pb-3 px-4", specifics.bgClass !== 'bg-card' ? 'mt-auto' : '')}>
+      <CardFooter className={cn("flex justify-between items-center pt-3 pb-3 px-4", specifics.bgClass !== 'bg-card' ? 'mt-auto border-t-0' : 'border-t-0')}>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {/* Placeholder for date or other small info */}
         </div>
