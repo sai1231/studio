@@ -2,7 +2,7 @@
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
-import { Home, Tag, Settings, LogOut, Users, ChevronDown, Plus, Globe, ClipboardList, Bookmark, Newspaper, Film, Baseline, Github, MessageSquare, MessagesSquare, BookOpen, LucideIcon, StickyNote, Briefcase, Library } from 'lucide-react';
+import { Home, Tag, Settings, LogOut, Users, ChevronDown, Plus, Globe, ClipboardList, Bookmark, Newspaper, Film, Baseline, Github, MessageSquare, MessagesSquare, BookOpen, LucideIcon, StickyNote, Briefcase, Library, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -28,11 +28,12 @@ const mockTags: TagType[] = [
 const predefinedContentTypes: Record<string, { icon: LucideIcon, name: string }> = {
   Post: { icon: Newspaper, name: 'Post' },
   Reel: { icon: Film, name: 'Reel' },
-  Note: { icon: StickyNote, name: 'Note' }, // Changed from Text to Note
+  Note: { icon: StickyNote, name: 'Note' },
   Repositories: { icon: Github, name: 'Repositories' },
-  Tweet: { icon: MessageSquare, name: 'Tweet' }, // Using MessageSquare as Twitter icon isn't in Lucide
+  Tweet: { icon: MessageSquare, name: 'Tweet' },
   Thread: { icon: MessagesSquare, name: 'Thread' },
   Article: { icon: BookOpen, name: 'Article' },
+  PDF: { icon: FileText, name: 'PDF' },
 };
 
 const iconMap: { [key: string]: React.ElementType } = {
