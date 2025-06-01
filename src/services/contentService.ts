@@ -50,10 +50,22 @@ export async function getContentItems(userId?: string): Promise<ContentItem[]> {
   return [...mockContentItems].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
+// Function to get a single content item by ID
+export async function getContentItemById(id: string): Promise<ContentItem | undefined> {
+  await new Promise(resolve => setTimeout(resolve, 50));
+  return mockContentItems.find(item => item.id === id);
+}
+
 // Function to get all collections
 export async function getCollections(userId?: string): Promise<Collection[]> {
   await new Promise(resolve => setTimeout(resolve, 50));
   return [...mockCollections];
+}
+
+// Function to get a single collection by ID
+export async function getCollectionById(id: string): Promise<Collection | undefined> {
+  await new Promise(resolve => setTimeout(resolve, 50));
+  return mockCollections.find(collection => collection.id === id);
 }
 
 
