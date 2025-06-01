@@ -5,7 +5,7 @@ import type React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { getContentItemById, getZoneById, updateContentItem, getZones, addZone } from '@/services/contentService';
+import { getContentItemById, updateContentItem, getZones, addZone } from '@/services/contentService';
 import type { ContentItem, Zone, Tag } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil, ChevronDown } from 'lucide-react';
+import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil, ChevronDown, Ban } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -207,7 +207,7 @@ export default function ContentDetailPage() {
     setIsComboboxOpen(false);
     setComboboxSearchText('');
 
-    if (selectedZoneValue === undefined) { 
+    if (selectedZoneValue === undefined || selectedZoneValue === NO_ZONE_VALUE) { 
       if (item && item.zoneId !== undefined) {
         await handleFieldUpdate('zoneId', undefined);
       }
@@ -353,9 +353,10 @@ export default function ContentDetailPage() {
     ? allZones.filter(z => z.name.toLowerCase().includes(comboboxSearchText.toLowerCase()))
     : allZones;
 
-  const currentZoneNameForDisplay = editableZoneId
-    ? (allZones.find(z => z.id === editableZoneId)?.name || `Zone ID: ${editableZoneId}`)
-    : "No Zone Assigned";
+  const currentZoneObject = editableZoneId ? allZones.find(z => z.id === editableZoneId) : undefined;
+  const ZoneDisplayIcon = currentZoneObject?.icon || Bookmark;
+  const zoneDisplayName = currentZoneObject?.name || "No Zone Assigned";
+
   const tagBaseClasses = "px-3 py-1 text-xs rounded-full font-medium group relative";
 
 
@@ -484,8 +485,11 @@ export default function ContentDetailPage() {
                                 )}
                                 disabled={isSavingField || isUpdatingTags}
                             >
-                                {currentZoneNameForDisplay}
-                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                <div className="flex items-center">
+                                    <ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" />
+                                    <span className="truncate">{zoneDisplayName}</span>
+                                </div>
+                                <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-gray-50 dark:bg-gray-700">
@@ -510,7 +514,7 @@ export default function ContentDetailPage() {
                                     <CommandGroup>
                                         <CommandItem
                                             value={NO_ZONE_VALUE} 
-                                            onSelect={() => handleZoneSelection(undefined)}
+                                            onSelect={() => handleZoneSelection(NO_ZONE_VALUE)}
                                         >
                                             <Check
                                                 className={cn(
@@ -518,25 +522,30 @@ export default function ContentDetailPage() {
                                                 !editableZoneId ? "opacity-100" : "opacity-0"
                                                 )}
                                             />
+                                            <Ban className="mr-2 h-4 w-4 opacity-70 text-muted-foreground" />
                                             No Zone Assigned
                                         </CommandItem>
-                                        {filteredZones.map((z) => (
-                                        <CommandItem
-                                            key={z.id}
-                                            value={z.id}
-                                            onSelect={(currentValue) => {
-                                                handleZoneSelection(currentValue === editableZoneId ? undefined : currentValue);
-                                            }}
-                                        >
-                                            <Check
-                                            className={cn(
-                                                "mr-2 h-4 w-4",
-                                                editableZoneId === z.id ? "opacity-100" : "opacity-0"
-                                            )}
-                                            />
-                                            {z.name}
-                                        </CommandItem>
-                                        ))}
+                                        {filteredZones.map((z) => {
+                                          const CurrentZoneIcon = z.icon || Bookmark;
+                                          return (
+                                            <CommandItem
+                                                key={z.id}
+                                                value={z.id}
+                                                onSelect={(currentValue) => {
+                                                    handleZoneSelection(currentValue === editableZoneId ? undefined : currentValue);
+                                                }}
+                                            >
+                                                <Check
+                                                className={cn(
+                                                    "mr-2 h-4 w-4",
+                                                    editableZoneId === z.id ? "opacity-100" : "opacity-0"
+                                                )}
+                                                />
+                                                <CurrentZoneIcon className="mr-2 h-4 w-4 opacity-70" />
+                                                {z.name}
+                                            </CommandItem>
+                                          );
+                                        })}
                                     </CommandGroup>
                                 </CommandList>
                                 {comboboxSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === comboboxSearchText.trim().toLowerCase()) && (
@@ -661,6 +670,7 @@ export default function ContentDetailPage() {
     
 
   
+
 
 
 

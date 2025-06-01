@@ -2,6 +2,7 @@
 'use server'; 
 
 import type { ContentItem, Zone, Tag } from '@/types';
+import { Briefcase, Home, Library } from 'lucide-react';
 
 let mockContentItems: ContentItem[] = [
   {
@@ -201,9 +202,9 @@ let mockContentItems: ContentItem[] = [
 ];
 
 let mockZones: Zone[] = [ 
-  { id: '1', name: 'Work & Learning' },
-  { id: '2', name: 'Personal & Home' },
-  { id: '3', name: 'Interests & Media' },
+  { id: '1', name: 'Work & Learning', icon: Briefcase },
+  { id: '2', name: 'Personal & Home', icon: Home },
+  { id: '3', name: 'Interests & Media', icon: Library },
 ];
 
 // Function to get all content items
@@ -236,6 +237,7 @@ export async function addZone(name: string): Promise<Zone> {
   const newZone: Zone = {
     id: Date.now().toString(), // Simple ID generation for mock
     name: name.trim(),
+    // New zones won't have an icon by default, they can be assigned later if UI allows
   };
   mockZones.push(newZone);
   return newZone;
