@@ -25,6 +25,8 @@ export interface ContentItem {
   zoneId: string; // Renamed from collectionId
   userId?: string; 
   createdAt: string; // ISO date string
+  domain?: string; // e.g., instagram.com, youtube.com
+  contentType?: string; // e.g., Reel, Post, Article, Video
 }
 
 // Specific type for Link items, if needed for type guarding

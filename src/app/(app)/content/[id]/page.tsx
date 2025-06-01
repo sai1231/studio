@@ -5,12 +5,12 @@ import type React from 'react';
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { getContentItemById, getZoneById } from '@/services/contentService'; // Renamed getCollectionById to getZoneById
-import type { ContentItem, Zone } from '@/types'; // Renamed Collection to Zone
+import { getContentItemById, getZoneById } from '@/services/contentService'; 
+import type { ContentItem, Zone } from '@/types'; 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, CalendarDays, Folder, Tag as TagIcon, Globe, StickyNote, FileImage, ExternalLink, ListChecks, Mic } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Folder, Tag as TagIcon, Globe, StickyNote, FileImage, ExternalLink, ListChecks, Mic, Layers, Landmark } from 'lucide-react';
 import { format } from 'date-fns';
 
 const getTypeIcon = (type: ContentItem['type'] | undefined) => {
@@ -38,7 +38,7 @@ export default function ContentDetailPage() {
   const id = params.id as string;
 
   const [item, setItem] = useState<ContentItem | null>(null);
-  const [zone, setZone] = useState<Zone | null>(null); // Renamed collection to zone
+  const [zone, setZone] = useState<Zone | null>(null); 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,9 +51,9 @@ export default function ContentDetailPage() {
           const fetchedItem = await getContentItemById(id);
           if (fetchedItem) {
             setItem(fetchedItem);
-            if (fetchedItem.zoneId) { // Renamed collectionId to zoneId
-              const fetchedZone = await getZoneById(fetchedItem.zoneId); // Renamed getCollectionById to getZoneById, collectionId to zoneId
-              setZone(fetchedZone || null); // Renamed fetchedCollection to fetchedZone
+            if (fetchedItem.zoneId) { 
+              const fetchedZone = await getZoneById(fetchedItem.zoneId); 
+              setZone(fetchedZone || null); 
             }
           } else {
             setError('Content item not found.');
@@ -120,6 +120,7 @@ export default function ContentDetailPage() {
               alt={item.title}
               layout="fill"
               objectFit="cover"
+              data-ai-hint={item.title.substring(0,20)}
             />
           </div>
         )}
@@ -158,16 +159,28 @@ export default function ContentDetailPage() {
               <CalendarDays className="h-4 w-4" />
               <span>Created: {format(new Date(item.createdAt), 'MMMM d, yyyy p')}</span>
             </div>
-            {zone && ( // Renamed collection to zone
+            {zone && ( 
               <div className="flex items-center space-x-2 text-muted-foreground">
                 <Folder className="h-4 w-4" />
-                <span>Zone: {zone.name}</span> {/* Renamed Collection to Zone */}
+                <span>Zone: {zone.name}</span> 
               </div>
             )}
              <div className="flex items-center space-x-2 text-muted-foreground capitalize">
                 {getTypeIcon(item.type)}
                 <span>Type: {item.type}</span>
               </div>
+            {item.domain && (
+              <div className="flex items-center space-x-2 text-muted-foreground">
+                <Landmark className="h-4 w-4" />
+                <span>Domain: {item.domain}</span>
+              </div>
+            )}
+            {item.contentType && (
+              <div className="flex items-center space-x-2 text-muted-foreground">
+                <Layers className="h-4 w-4" />
+                <span>Content Type: {item.contentType}</span>
+              </div>
+            )}
           </div>
 
           {item.tags && item.tags.length > 0 && (

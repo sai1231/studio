@@ -12,8 +12,10 @@ let mockContentItems: ContentItem[] = [
     description: 'The React Framework for the Web.',
     imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't2', name: 'nextjs' }, { id: 't1', name: 'productivity' }],
-    zoneId: '1', // Renamed from collectionId
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
+    zoneId: '1', 
+    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), 
+    domain: 'nextjs.org',
+    contentType: 'Documentation',
   },
   {
     id: '2',
@@ -21,8 +23,9 @@ let mockContentItems: ContentItem[] = [
     title: 'My Shopping List',
     description: 'Milk, Eggs, Bread, Coffee',
     tags: [{ id: 't-personal', name: 'personal' }, { id: 't-todos', name: 'todos' }],
-    zoneId: '2', // Renamed from collectionId
-    createdAt: new Date(Date.now() - 86400000 * 1).toISOString(), // 1 day ago
+    zoneId: '2', 
+    createdAt: new Date(Date.now() - 86400000 * 1).toISOString(), 
+    contentType: 'List',
   },
   {
     id: '3',
@@ -31,15 +34,41 @@ let mockContentItems: ContentItem[] = [
     description: 'A beautiful landscape picture I found.',
     imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't4', name: 'inspiration' }, {id: 't-nature', name: 'nature'}],
-    zoneId: '1', // Renamed from collectionId
+    zoneId: '1', 
     createdAt: new Date().toISOString(),
+    contentType: 'Photograph',
   },
+  {
+    id: '4',
+    type: 'link',
+    url: 'https://www.instagram.com/reel/Cabcdefg/',
+    title: 'Cool Instagram Reel',
+    description: 'A very cool reel I saw.',
+    imageUrl: 'https://placehold.co/400x700.png',
+    tags: [{ id: 't-social', name: 'social media'}, { id: 't-fun', name: 'fun'}],
+    zoneId: '3',
+    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+    domain: 'instagram.com',
+    contentType: 'Reel',
+  },
+   {
+    id: '5',
+    type: 'link',
+    url: 'https://threads.net/@username/post/12345',
+    title: 'Interesting Threads Post',
+    description: 'Some thoughts on a topic.',
+    tags: [{ id: 't-social', name: 'social media'}, { id: 't-discussion', name: 'discussion'}],
+    zoneId: '3',
+    createdAt: new Date(Date.now() - 86400000 * 0.5).toISOString(),
+    domain: 'threads.net',
+    contentType: 'Post',
+  }
 ];
 
-let mockZones: Zone[] = [ // Renamed from mockCollections
+let mockZones: Zone[] = [ 
   { id: '1', name: 'Work Projects' },
   { id: '2', name: 'Personal Errands' },
-  { id: '3', name: 'Inspiration' },
+  { id: '3', name: 'Social Finds' },
 ];
 
 // Function to get all content items
@@ -55,15 +84,15 @@ export async function getContentItemById(id: string): Promise<ContentItem | unde
 }
 
 // Function to get all zones
-export async function getZones(userId?: string): Promise<Zone[]> { // Renamed from getCollections
+export async function getZones(userId?: string): Promise<Zone[]> { 
   await new Promise(resolve => setTimeout(resolve, 50));
-  return [...mockZones]; // Renamed from mockCollections
+  return [...mockZones]; 
 }
 
 // Function to get a single zone by ID
-export async function getZoneById(id: string): Promise<Zone | undefined> { // Renamed from getCollectionById
+export async function getZoneById(id: string): Promise<Zone | undefined> { 
   await new Promise(resolve => setTimeout(resolve, 50));
-  return mockZones.find(zone => zone.id === id); // Renamed from mockCollections
+  return mockZones.find(zone => zone.id === id); 
 }
 
 
@@ -72,10 +101,24 @@ export async function addContentItem(
   itemData: Omit<ContentItem, 'id' | 'createdAt'>
 ): Promise<ContentItem> {
   await new Promise(resolve => setTimeout(resolve, 100));
+  
+  let extractedDomain: string | undefined = itemData.domain;
+  if (itemData.type === 'link' && itemData.url && !extractedDomain) {
+    try {
+      const urlObject = new URL(itemData.url);
+      extractedDomain = urlObject.hostname.replace(/^www\./, '');
+    } catch (e) {
+      // Invalid URL, domain remains as passed or undefined
+      console.warn("Could not extract domain from URL:", itemData.url);
+    }
+  }
+
   const newItem: ContentItem = {
     ...itemData,
     id: Date.now().toString(), 
     createdAt: new Date().toISOString(),
+    domain: extractedDomain, // Use explicitly passed domain or extracted one
+    contentType: itemData.contentType,
   };
   mockContentItems.unshift(newItem); 
   return newItem;
@@ -106,4 +149,28 @@ export async function uploadFile(file: File, path: string): Promise<string> {
   console.log(`Mock uploading file ${file.name} to ${path}`);
   await new Promise(resolve => setTimeout(resolve, 200)); 
   return 'https://placehold.co/600x400.png'; 
+}
+
+// Function to get unique domains
+export async function getUniqueDomains(): Promise<string[]> {
+  await new Promise(resolve => setTimeout(resolve, 50));
+  const domains = new Set<string>();
+  mockContentItems.forEach(item => {
+    if (item.domain) {
+      domains.add(item.domain);
+    }
+  });
+  return Array.from(domains).sort();
+}
+
+// Function to get unique content types
+export async function getUniqueContentTypes(): Promise<string[]> {
+  await new Promise(resolve => setTimeout(resolve, 50));
+  const contentTypes = new Set<string>();
+  mockContentItems.forEach(item => {
+    if (item.contentType) {
+      contentTypes.add(item.contentType);
+    }
+  });
+  return Array.from(contentTypes).sort();
 }

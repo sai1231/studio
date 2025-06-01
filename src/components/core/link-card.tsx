@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ExternalLink, Edit3, Trash2, MoreVertical, Globe, StickyNote, FileImage, ListChecks, Mic } from 'lucide-react';
+import { ExternalLink, Edit3, Trash2, MoreVertical, Globe, StickyNote, FileImage, ListChecks, Mic, Layers, Landmark } from 'lucide-react';
 import type { ContentItem } from '@/types';
 
 interface ContentCardProps {
@@ -50,7 +50,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
   };
 
   return (
-    <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full group rounded-2xl"> {/* Increased rounding */}
+    <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full group rounded-2xl"> 
       <Link href={`/content/${item.id}`} passHref className="flex flex-col flex-grow">
         <div className="flex flex-col flex-grow cursor-pointer">
           {item.imageUrl && (item.type === 'link' || item.type === 'image') && (
@@ -61,7 +61,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                 layout="fill"
                 objectFit="cover"
                 data-ai-hint={getHintFromItem(item)}
-                className="rounded-t-2xl" // Match parent rounding
+                className="rounded-t-2xl" 
               />
             </div>
           )}
@@ -82,21 +82,33 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
               </CardDescription>
             )}
           </CardHeader>
-          <CardContent className="flex-grow">
-            {item.description && <div className={`text-sm ${item.type === 'note' ? 'text-foreground whitespace-pre-wrap' : 'text-muted-foreground'} mb-3 break-words`} dangerouslySetInnerHTML={{ __html: item.description.length > 150 ? item.description.substring(0, 150) + '...' : item.description }} />}
+          <CardContent className="flex-grow space-y-2">
+            {item.description && <div className={`text-sm ${item.type === 'note' ? 'text-foreground whitespace-pre-wrap' : 'text-muted-foreground'} mb-3 break-words`} dangerouslySetInnerHTML={{ __html: item.description.length > 100 ? item.description.substring(0, 100) + '...' : item.description }} />}
             {item.type === 'voice' && item.audioUrl && (
               <div className="my-2">
                 <p className="text-sm text-muted-foreground">Voice recording ready.</p>
               </div>
             )}
+            <div className="flex flex-wrap gap-1">
+              {item.domain && (
+                <Badge variant="outline" className="text-xs py-0.5 px-1.5 border-blue-500/50 text-blue-700 dark:text-blue-400">
+                  <Landmark className="h-3 w-3 mr-1 opacity-70" />{item.domain}
+                </Badge>
+              )}
+              {item.contentType && (
+                <Badge variant="outline" className="text-xs py-0.5 px-1.5 border-purple-500/50 text-purple-700 dark:text-purple-400">
+                  <Layers className="h-3 w-3 mr-1 opacity-70" />{item.contentType}
+                </Badge>
+              )}
+            </div>
             {item.tags && item.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                {item.tags.slice(0, 5).map((tag) => (
+                <div className="flex flex-wrap gap-2 pt-1">
+                {item.tags.slice(0, 3).map((tag) => (
                     <Badge key={tag.id} variant="secondary" className="font-normal">
                     {tag.name}
                     </Badge>
                 ))}
-                {item.tags.length > 5 && <Badge variant="outline">+{item.tags.length - 5} more</Badge>}
+                {item.tags.length > 3 && <Badge variant="outline">+{item.tags.length - 3} more</Badge>}
                 </div>
             )}
           </CardContent>

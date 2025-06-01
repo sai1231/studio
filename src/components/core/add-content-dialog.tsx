@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { X, Loader2, Bold, Italic, Underline, Strikethrough, Heading1, Heading2, Heading3, List, ListOrdered, Palette, Quote, Minus } from 'lucide-react';
-import type { Zone, ContentItemType, Tag, ContentItem } from '@/types'; // Renamed Collection to Zone
+import type { Zone, ContentItemType, Tag, ContentItem } from '@/types'; 
 import { useToast } from '@/hooks/use-toast';
 
 import { useEditor, EditorContent, type Editor } from '@tiptap/react';
@@ -34,7 +34,9 @@ const contentFormSchemaBase = z.object({
   url: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   title: z.string().min(1, { message: 'Title is required.' }),
   description: z.string().min(1, { message: 'Content is required for notes. Optional for links.' }).optional(),
-  zoneId: z.string().min(1, { message: 'Zone is required.' }), // Renamed collectionId to zoneId
+  zoneId: z.string().min(1, { message: 'Zone is required.' }), 
+  contentType: z.string().optional(),
+  domain: z.string().optional(),
 });
 
 export interface AddContentDialogOpenChange {
@@ -43,7 +45,7 @@ export interface AddContentDialogOpenChange {
 }
 
 interface AddContentDialogProps extends AddContentDialogOpenChange {
-  zones: Zone[]; // Renamed collections to zones
+  zones: Zone[]; 
   onContentAdd: (newContent: Omit<ContentItem, 'id' | 'createdAt'>) => void;
   children?: React.ReactNode;
 }
@@ -86,7 +88,7 @@ const EditorToolbar: React.FC<{ editor: Editor | null }> = ({ editor }) => {
   );
 };
 
-const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange, zones, onContentAdd, children }) => { // Renamed collections to zones
+const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange, zones, onContentAdd, children }) => { 
   const [currentTags, setCurrentTags] = useState<Tag[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -99,7 +101,9 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       url: '',
       title: '',
       description: '',
-      zoneId: zones[0]?.id || '', // Renamed collectionId to zoneId
+      zoneId: zones[0]?.id || '', 
+      contentType: '',
+      domain: '',
     },
   });
   
@@ -134,13 +138,15 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
         url: '',
         title: '',
         description: initialDescription,
-        zoneId: zones[0]?.id || '', // Renamed collectionId to zoneId
+        zoneId: zones[0]?.id || '', 
+        contentType: '',
+        domain: '',
       });
       setCurrentTags([]);
       setTagInput('');
       editor?.commands.setContent(initialDescription);
     }
-  }, [open, form, editor, zones]); // Renamed collections to zones
+  }, [open, form, editor, zones]); 
 
   useEffect(() => {
     return () => {
@@ -148,7 +154,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     };
   }, [editor]);
   
-  const watchedZoneId = form.watch('zoneId'); // Renamed watchedCollectionId to watchedZoneId
+  const watchedZoneId = form.watch('zoneId'); 
   const watchedUrl = form.watch('url');
 
   useEffect(() => {
@@ -157,6 +163,16 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       if (form.formState.errors.description?.message === 'Content is required for notes. Optional for links.') {
         form.clearErrors('description');
       }
+      try {
+        const urlObject = new URL(watchedUrl);
+        const extractedDomain = urlObject.hostname.replace(/^www\./, '');
+        form.setValue('domain', extractedDomain, {shouldValidate: true, shouldDirty: true});
+      } catch (e) {
+        // form.setValue('domain', '', {shouldValidate: true, shouldDirty: true}); // Clear if URL becomes invalid
+      }
+    } else {
+        // If not a link or URL is cleared, clear the domain field if it was auto-populated
+        // form.setValue('domain', '', {shouldValidate: true, shouldDirty: true});
     }
   }, [watchedUrl, editor, form]);
 
@@ -204,9 +220,11 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       type,
       title: values.title,
       description: finalDescription,
-      zoneId: values.zoneId, // Renamed collectionId to zoneId
+      zoneId: values.zoneId, 
       tags: currentTags,
       url: finalIsLink ? values.url : undefined,
+      domain: values.domain || (finalIsLink && values.url ? new URL(values.url).hostname.replace(/^www\./, '') : undefined),
+      contentType: values.contentType,
     };
     
     try {
@@ -241,6 +259,20 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
             <Input id="title" {...form.register('title')} placeholder="Content Title" className="focus-visible:ring-accent"/>
             {form.formState.errors.title && <p className="text-sm text-destructive">{form.formState.errors.title.message}</p>}
           </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="domain" className="font-medium">Domain (auto-filled for links)</Label>
+              <Input id="domain" {...form.register('domain')} placeholder="example.com" className="focus-visible:ring-accent"/>
+              {form.formState.errors.domain && <p className="text-sm text-destructive">{form.formState.errors.domain.message}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contentType" className="font-medium">Content Type (e.g., Article, Video)</Label>
+              <Input id="contentType" {...form.register('contentType')} placeholder="Article, Video, Post" className="focus-visible:ring-accent"/>
+              {form.formState.errors.contentType && <p className="text-sm text-destructive">{form.formState.errors.contentType.message}</p>}
+            </div>
+          </div>
+
 
           <div className="space-y-2">
             <Label htmlFor="description" className="font-medium">Content {!!watchedUrl ? "(Optional for links)" : "(Required for notes)"}</Label>
@@ -255,27 +287,27 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="zoneId" className="font-medium">Zone</Label> {/* Renamed collectionId to zoneId */}
+            <Label htmlFor="zoneId" className="font-medium">Zone</Label> 
             <Select
               onValueChange={(selectedValue) => {
-                form.setValue('zoneId', selectedValue, { shouldTouch: true, shouldValidate: true }); // Renamed collectionId to zoneId
+                form.setValue('zoneId', selectedValue, { shouldTouch: true, shouldValidate: true }); 
               }}
-              value={watchedZoneId} // Renamed watchedCollectionId to watchedZoneId
-              defaultValue={zones[0]?.id} // Renamed collections to zones
+              value={watchedZoneId} 
+              defaultValue={zones[0]?.id} 
             >
               <SelectTrigger className="w-full focus:ring-accent">
-                <SelectValue placeholder="Select a zone" /> {/* Renamed collection to zone */}
+                <SelectValue placeholder="Select a zone" /> 
               </SelectTrigger>
               <SelectContent>
-                {zones.map(zone => ( // Renamed collections to zones, collection to zone
+                {zones.map(zone => ( 
                   <SelectItem key={zone.id} value={zone.id}>
                     {zone.name}
                   </SelectItem>
                 ))}
-                 {zones.length === 0 && <SelectItem value="no-zones" disabled>No zones available</SelectItem>} {/* Renamed collections to zones */}
+                 {zones.length === 0 && <SelectItem value="no-zones" disabled>No zones available</SelectItem>} 
               </SelectContent>
             </Select>
-            {form.formState.errors.zoneId && <p className="text-sm text-destructive">{form.formState.errors.zoneId.message}</p>} {/* Renamed collectionId to zoneId */}
+            {form.formState.errors.zoneId && <p className="text-sm text-destructive">{form.formState.errors.zoneId.message}</p>} 
           </div>
 
           <div className="space-y-2">
