@@ -1,7 +1,7 @@
 
 'use client';
 import type React from 'react';
-import { Search, PlusCircle, Bell, UserCircle, Settings, LogOut } from 'lucide-react';
+import { Search, PlusCircle, Bell, UserCircle, Settings, LogOut, UploadCloud } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,23 +14,30 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import KlippedLogo from './klipped-logo';
-// Removed useToast as it's not used here anymore for stubbed features
 
 interface AppHeaderProps {
-  onAddContentClick: () => void; // Renamed from onAddLinkClick
+  onAddContentClick: () => void;
   onSearchChange?: (query: string) => void;
+  onImageFileSelected: (file: File) => void; // New prop for direct image upload
 }
 
-const AppHeader: React.FC<AppHeaderProps> = ({ onAddContentClick, onSearchChange }) => {
+const AppHeader: React.FC<AppHeaderProps> = ({ onAddContentClick, onSearchChange, onImageFileSelected }) => {
+  const handleImageUploadInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      onImageFileSelected(event.target.files[0]);
+      event.target.value = ''; // Reset input to allow selecting the same file again
+    }
+  };
+
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 md:px-6 shadow-sm">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-2 sm:gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 md:px-6 shadow-sm">
       <KlippedLogo className="hidden md:flex" />
       
       <div className="flex-1 relative ml-auto md:grow-0">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           type="search"
-          placeholder="Search links..."
+          placeholder="Search content..."
           className="w-full rounded-lg bg-muted pl-8 md:w-[200px] lg:w-[320px] focus-visible:ring-accent"
           onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
         />
@@ -39,12 +46,29 @@ const AppHeader: React.FC<AppHeaderProps> = ({ onAddContentClick, onSearchChange
       <Button 
         size="sm" 
         variant="default" 
-        onClick={onAddContentClick} // Directly call the handler
+        onClick={onAddContentClick}
         className="bg-primary hover:bg-primary/90 text-primary-foreground"
       >
-        <PlusCircle className="h-4 w-4 mr-2" />
-        Add
+        <PlusCircle className="h-4 w-4 mr-0 sm:mr-2" />
+        <span className="hidden sm:inline">Add</span>
       </Button>
+
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => document.getElementById('directImageUploadInput')?.click()}
+        aria-label="Upload Image"
+      >
+        <UploadCloud className="h-4 w-4 mr-0 sm:mr-2" />
+        <span className="hidden sm:inline">Image</span>
+      </Button>
+      <input
+        type="file"
+        id="directImageUploadInput"
+        className="hidden"
+        accept="image/*"
+        onChange={handleImageUploadInputChange}
+      />
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

@@ -88,42 +88,45 @@ const mockCollections: Collection[] = [
 export default function DashboardPage() {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
-  const [editingContent, setEditingContent] = useState<ContentItem | null>(null);
+  const [editingContent, setEditingContent] = useState<ContentItem | null>(null); // Not fully used for edit yet
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const { toast } = useToast();
 
   useEffect(() => {
+    // In a real app, fetch data here
     setContentItems(mockInitialContent);
   }, []);
 
-  const handleAddContent = (newContentData: Omit<ContentItem, 'id' | 'createdAt'>) => {
-    let finalImageUrl = newContentData.imageUrl;
-    if (newContentData.type === 'link' && !newContentData.imageUrl) {
-      // Only set placeholder for links if no imageUrl is provided (e.g. from AI or manual input)
-      finalImageUrl = `https://placehold.co/600x400.png?text=${encodeURIComponent(newContentData.title.substring(0,15))}`;
-    } else if (newContentData.type === 'image' && !newContentData.imageUrl) {
-      // This case should ideally not happen if image upload is mandatory for 'image' type.
-      // If it can, use a generic placeholder.
-      finalImageUrl = `https://placehold.co/600x400.png?text=Image`;
+  // This handler is for the AddContentDialog specifically within DashboardPage
+  const handleAddOrUpdateContent = (contentData: Omit<ContentItem, 'id' | 'createdAt'>) => {
+    // Basic placeholder image logic if type is 'link' and no imageUrl is provided
+    // This might come from AI summarization or manual entry without an explicit image.
+    let finalImageUrl = contentData.imageUrl;
+    if (contentData.type === 'link' && !contentData.imageUrl) {
+      finalImageUrl = `https://placehold.co/600x400.png?text=${encodeURIComponent(contentData.title.substring(0,15))}`;
     }
-
-
+    
+    // For new items (not editing for now)
     const newItem: ContentItem = {
-      ...newContentData,
-      id: Date.now().toString(),
+      ...contentData,
+      id: Date.now().toString(), // Simple ID generation for mock
       createdAt: new Date().toISOString(),
-      imageUrl: finalImageUrl, // Use the determined imageUrl
+      imageUrl: finalImageUrl, // Use potentially updated imageUrl
     };
-    setContentItems(prevItems => [newItem, ...prevItems]);
-    toast({ title: "Content Added", description: `"${newItem.title}" has been successfully saved.` });
+    setContentItems(prevItems => [newItem, ...prevItems].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    toast({ title: "Content Saved", description: `"${newItem.title}" has been successfully saved.` });
     setIsAddContentDialogOpen(false);
-    setEditingContent(null);
+    setEditingContent(null); // Clear editing state
   };
 
+
   const handleEditContent = (itemToEdit: ContentItem) => {
-    setEditingContent(itemToEdit);
+    // For now, editing will re-use the AddContentDialog.
+    // True editing would involve passing existingContent to the dialog and handling updates.
+    // This is a simplified "add again" for demonstration.
+    setEditingContent(itemToEdit); // This isn't fully utilized yet by AddContentDialog for pre-filling
+    toast({ title: "Editing Content", description: `Re-add "${itemToEdit.title}" with changes. Full edit not yet implemented.`});
     setIsAddContentDialogOpen(true);
-    // For now, direct edit functionality isn't fully wired up beyond opening the dialog.
   };
 
   const handleDeleteContent = (itemId: string) => {
@@ -176,11 +179,10 @@ export default function DashboardPage() {
         open={isAddContentDialogOpen}
         onOpenChange={setIsAddContentDialogOpen}
         collections={mockCollections}
-        onContentAdd={handleAddContent}
-        // existingContent={editingContent} // For full edit functionality
+        onContentAdd={handleAddOrUpdateContent}
+        // Pass editingContent here if AddContentDialog is enhanced to pre-fill for editing
+        // existingContent={editingContent} 
       />
     </div>
   );
 }
-
-    
