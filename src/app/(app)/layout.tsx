@@ -1,3 +1,4 @@
+
 'use client';
 import type React from 'react';
 import { useState } from 'react';
@@ -39,8 +40,6 @@ export default function AppLayout({
       <div className="flex flex-col flex-1 md:ml-64"> {/* Adjust margin for sidebar width */}
         <AppHeader 
           onAddLinkClick={() => setIsAddLinkDialogOpen(true)} 
-          open={isAddLinkDialogOpen} 
-          onOpenChange={setIsAddLinkDialogOpen}
         />
         <main className="flex-1 p-4 md:p-6 lg:p-8 bg-background overflow-auto">
           {children}
