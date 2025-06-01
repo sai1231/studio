@@ -86,10 +86,19 @@ body {
     @apply bg-background text-foreground;
   }
 
-  /* Basic Tiptap editor styling */
+  /* Tiptap editor specific styling */
   .ProseMirror {
-    @apply min-h-[100px] p-2 focus:outline-none;
+    @apply min-h-[150px] p-2 focus:outline-none bg-transparent;
+    /* Set a minimum height for comfortable typing */
+    /* Ensure it takes text color from the parent by default */
+    color: hsl(var(--foreground)); 
   }
+
+  .ProseMirror:focus {
+    /* Remove any default focus outline that might cause the "black box" */
+    @apply outline-none;
+  }
+  
   .ProseMirror p.is-editor-empty:first-child::before {
     content: attr(data-placeholder);
     float: left;
@@ -105,27 +114,22 @@ body {
   .ProseMirror blockquote { @apply border-l-4 border-primary pl-4 italic my-2 text-muted-foreground; }
   .ProseMirror hr { @apply border-border my-4; }
   .ProseMirror a { @apply text-primary underline; }
-}
+  .ProseMirror strong { @apply font-bold; }
+  .ProseMirror em { @apply italic; }
+  .ProseMirror u { @apply underline; }
+  .ProseMirror s { @apply line-through; }
 
-/* Tailwind Typography Plugin Base styles if you were using it:
-   Ensure this is compatible with your Tiptap setup.
-   For direct Tiptap styling, the .ProseMirror scope is more direct.
-*/
-/*
-.prose {
-  color: hsl(var(--foreground));
+  /* Dark mode Tiptap styling */
+  .dark .ProseMirror {
+    color: hsl(var(--foreground));
+  }
+  .dark .ProseMirror p.is-editor-empty:first-child::before {
+    color: hsl(var(--muted-foreground));
+  }
+  .dark .ProseMirror blockquote {
+    @apply border-primary text-muted-foreground;
+  }
+  .dark .ProseMirror a {
+    @apply text-primary;
+  }
 }
-.prose a {
-  color: hsl(var(--primary));
-}
-.prose strong {
-  color: hsl(var(--foreground));
-}
-.prose blockquote {
-  color: hsl(var(--muted-foreground));
-  border-left-color: hsl(var(--border));
-}
-.prose h1, .prose h2, .prose h3, .prose h4 {
-  color: hsl(var(--foreground));
-}
-*/
