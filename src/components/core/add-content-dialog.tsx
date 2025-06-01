@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { X, Lightbulb, Loader2, Sparkles, Bold, Italic, Underline, Strikethrough, Heading1, Heading2, Heading3, List, ListOrdered, Palette, Quote, Minus } from 'lucide-react';
-import type { Collection, ContentItem, ContentItemType, Tag } from '@/types';
+import type { Collection, ContentItemType, Tag, ContentItemFirestoreData, ContentItem } from '@/types'; // Updated types
 import { suggestTags, type SuggestTagsInput } from '@/ai/flows/suggest-tags';
 import { analyzeLinkSentiment, type AnalyzeLinkSentimentInput } from '@/ai/flows/analyze-sentiment';
 import { useToast } from '@/hooks/use-toast';
@@ -32,37 +32,16 @@ import TextStyle from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import Placeholder from '@tiptap/extension-placeholder';
 
-// Schema for the unified form
+
 const contentFormSchemaBase = z.object({
   url: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   title: z.string().min(1, { message: 'Title is required.' }),
-  description: z.string().optional(), // Optional at base level, required based on type
+  description: z.string().min(1, { message: 'Content is required.' }), // Content is now always required
   collectionId: z.string().optional(),
-  // imageUrl is handled dynamically, not part of base schema for link/note
 });
 
-// Refine schema based on whether URL is present (link vs note)
-const refinedContentFormSchema = contentFormSchemaBase.superRefine((data, ctx) => {
-  const isLink = data.url && z.string().url().safeParse(data.url).success;
-  if (!isLink && !data.description) { // If it's a note (no URL), description is required
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'Content is required for a note.',
-      path: ['description'],
-    });
-  }
-   if (!data.description && !isLink) { // Description is the main content for notes
-     ctx.addIssue({
-       code: z.ZodIssueCode.custom,
-       message: 'Content is required for a note.',
-       path: ['description'],
-     });
-   } else if (isLink && !data.description) {
-    // Allow empty description for links if user doesn't provide one
-   }
-
-});
-
+// No longer need refinedContentFormSchema as image uploads are separate
+// and description is always required.
 
 export interface AddContentDialogOpenChange {
   open?: boolean;
@@ -71,7 +50,8 @@ export interface AddContentDialogOpenChange {
 
 interface AddContentDialogProps extends AddContentDialogOpenChange {
   collections: Collection[];
-  onContentAdd: (newContent: Omit<ContentItem, 'id' | 'createdAt'>) => void;
+  // onContentAdd now expects data that can be directly used for ContentItemFirestoreData
+  onContentAdd: (newContent: Omit<ContentItemFirestoreData, 'createdAt' | 'tags'> & { tags: ContentItem['tags']}) => void;
   children?: React.ReactNode;
 }
 
@@ -82,7 +62,7 @@ const EditorToolbar: React.FC<{ editor: Editor | null }> = ({ editor }) => {
     return null;
   }
 
-  const presetColors = ['#000000', '#e03131', '#2f9e44', '#1971c2', '#f08c00']; // Black, Red, Green, Blue, Orange
+  const presetColors = ['#000000', '#e03131', '#2f9e44', '#1971c2', '#f08c00']; 
 
   return (
     <div className="flex flex-wrap gap-1 border border-input border-b-0 rounded-t-md p-1 bg-muted">
@@ -122,13 +102,11 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
   const [isSuggestingTags, setIsSuggestingTags] = useState(false);
   const [isAnalyzingLink, setIsAnalyzingLink] = useState(false);
-  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
-  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
-
+  
   const { toast } = useToast();
 
-  const form = useForm<z.infer<typeof refinedContentFormSchema>>({
-    resolver: zodResolver(refinedContentFormSchema),
+  const form = useForm<z.infer<typeof contentFormSchemaBase>>({
+    resolver: zodResolver(contentFormSchemaBase),
     defaultValues: {
       url: '',
       title: '',
@@ -153,7 +131,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     content: form.getValues('description') || '',
     onUpdate: ({ editor: currentEditor }) => {
       const html = currentEditor.getHTML();
-      // Set value only if it's not the default empty paragraph or if it's truly empty
       if (html === '<p></p>' && currentEditor.isEmpty) {
         form.setValue('description', '', { shouldValidate: true, shouldDirty: true });
       } else {
@@ -174,8 +151,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       setCurrentTags([]);
       setSuggestedTags([]);
       setTagInput('');
-      setUploadedImageUrl(null);
-      setImageUploadError(null);
       editor?.commands.setContent(initialDescription);
     }
   }, [open, form, editor]);
@@ -185,7 +160,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       editor?.destroy();
     };
   }, [editor]);
-
 
   const watchedUrl = form.watch('url');
   const watchedTitle = form.watch('title');
@@ -245,7 +219,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     setIsSuggestingTags(false);
   };
 
-  async function onSubmit(values: z.infer<typeof refinedContentFormSchema>) {
+  async function onSubmit(values: z.infer<typeof contentFormSchemaBase>) {
     const finalIsLink = !!values.url && z.string().url().safeParse(values.url).success;
     const type: ContentItemType = finalIsLink ? 'link' : 'note';
 
@@ -253,7 +227,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     if (finalIsLink) {
       setIsAnalyzingLink(true);
       try {
-          const contentForAISentiment = editor?.getText() || values.description || '';
+          const contentForAISentiment = editor?.getText() || values.description || ''; // description is HTML from editor
           const sentimentInput: AnalyzeLinkSentimentInput = { url: values.url as string, content: values.title + " " + contentForAISentiment };
           const sentimentResult = await analyzeLinkSentiment(sentimentInput);
           sentimentData = { label: sentimentResult.sentiment.toLowerCase() as 'positive' | 'negative' | 'neutral', score: sentimentResult.score };
@@ -268,20 +242,21 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     const descriptionFromEditor = editor?.getHTML();
     const finalDescription = (descriptionFromEditor === '<p></p>' && editor?.isEmpty) ? '' : descriptionFromEditor;
 
-
-    const contentData: Omit<ContentItem, 'id' | 'createdAt'> = {
+    // Prepare data for Firestore
+    const contentData: Omit<ContentItemFirestoreData, 'createdAt' | 'tags'> & { tags: ContentItem['tags']} = {
       type,
       title: values.title,
-      description: finalDescription || undefined, // Send empty string as undefined if truly empty
+      description: finalDescription || undefined,
       collectionId: values.collectionId === PLACEHOLDER_NONE_COLLECTION_VALUE ? undefined : values.collectionId,
-      tags: currentTags,
+      tags: currentTags, // currentTags is already Tag[]
       url: finalIsLink ? values.url : undefined,
       sentiment: finalIsLink ? sentimentData : undefined,
-      imageUrl: undefined, // This dialog no longer handles direct image uploads
+      // imageUrl, audioUrl, etc., are not handled by this dialog directly anymore
+      // userId: "TODO_CURRENT_USER_ID", // Add when auth is ready
     };
     
     onContentAdd(contentData);
-    if (onOpenChange) onOpenChange(false);
+    // Dialog closing is handled by the parent (AppLayout) after successful save.
   }
 
   return (
@@ -297,8 +272,8 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex-grow overflow-y-auto pr-2 space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="url" className="font-medium">URL (Optional)</Label>
-            <Input id="url" {...form.register('url')} placeholder="https://example.com (Leave empty for a note)" className="focus-visible:ring-accent"/>
+            <Label htmlFor="url" className="font-medium">URL (Optional for Notes)</Label>
+            <Input id="url" {...form.register('url')} placeholder="https://example.com" className="focus-visible:ring-accent"/>
             {form.formState.errors.url && <p className="text-sm text-destructive">{form.formState.errors.url.message}</p>}
           </div>
 
@@ -309,12 +284,10 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description" className="font-medium">
-              Content {isLinkContent ? '(Optional for links)' : ''}
-            </Label>
+            <Label htmlFor="description" className="font-medium">Content</Label>
             {editor && <EditorToolbar editor={editor} />}
             <div 
-              className={`rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ${editor ? ( form.formState.errors.description ? 'border-destructive focus-within:ring-destructive' : 'border-input' ) : ''} ${editor ? 'rounded-b-md rounded-t-none' : ''} `}
+              className={`rounded-md border bg-transparent focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ${editor ? ( form.formState.errors.description ? 'border-destructive focus-within:ring-destructive' : 'border-input' ) : ''} ${editor ? 'rounded-b-md rounded-t-none' : ''} `}
               onClick={() => editor?.chain().focus().run()}
             >
               <EditorContent editor={editor} />
@@ -394,7 +367,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
           </div>
         </form>
         <DialogFooter className="pt-4 border-t">
-          <Button type="button" variant="outline" onClick={() => onOpenChange && onOpenChange(false)}>Cancel</Button>
+          <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
           <Button type="submit" onClick={form.handleSubmit(onSubmit)} disabled={isAnalyzingLink || isSuggestingTags} className="bg-primary hover:bg-primary/90 text-primary-foreground">
             {(isAnalyzingLink || isSuggestingTags) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {(isAnalyzingLink) ? 'Analyzing...' : (isSuggestingTags ? 'Suggesting...' : 'Save Content')}

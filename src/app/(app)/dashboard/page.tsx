@@ -1,151 +1,137 @@
 
 'use client';
 import type React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import ContentCard from '@/components/core/link-card';
-import type { ContentItem, Collection } from '@/types';
+import type { ContentItem, Collection, ContentItemFirestoreData, Tag as AppTag } from '@/types';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, ListFilter, LayoutGrid, LayoutList } from 'lucide-react';
+import { PlusCircle, ListFilter, LayoutGrid, LayoutList, Loader2, FolderOpen } from 'lucide-react';
 import AddContentDialog from '@/components/core/add-content-dialog';
 import { useToast } from '@/hooks/use-toast';
-
-// Mock Data - replace with actual data fetching
-const mockInitialContent: ContentItem[] = [
-  {
-    id: '1',
-    type: 'link',
-    url: 'https://nextjs.org',
-    title: 'Next.js by Vercel - The React Framework for the Web',
-    description: 'Next.js enables you to create full-stack Web applications by extending the latest React features, and integrating powerful Rust-based JavaScript tooling for the fastest builds.',
-    imageUrl: 'https://placehold.co/600x400.png',
-    tags: [{ id: 't2', name: 'nextjs' }, { id: 't1', name: 'productivity' }],
-    collectionId: '1',
-    createdAt: new Date().toISOString(),
-    sentiment: { label: 'positive', score: 0.85 }
-  },
-  {
-    id: 'note-1',
-    type: 'note',
-    title: 'Quick Idea for Klipped App',
-    description: 'Consider adding a feature for collaborative collections. \nUsers could share a collection with friends or colleagues.\n\n- Permissions (view, edit)\n- Real-time updates?',
-    tags: [{id: 't-feature', name: 'feature idea'}, {id: 't-klipped', name: 'klipped'}],
-    collectionId: '1',
-    createdAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-  },
-  {
-    id: 'img-1',
-    type: 'image',
-    title: 'Abstract Background',
-    description: 'A cool abstract background image found online.',
-    imageUrl: 'https://placehold.co/600x400.png',
-    tags: [{ id: 't-img', name: 'image' }, { id: 't-abstract', name: 'abstract' }],
-    collectionId: '2',
-    createdAt: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
-  },
-  {
-    id: '2',
-    type: 'link',
-    url: 'https://tailwindcss.com',
-    title: 'Tailwind CSS - Rapidly build modern websites without ever leaving your HTML.',
-    description: 'A utility-first CSS framework packed with classes like flex, pt-4, text-center and rotate-90 that can be composed to build any design, directly in your markup.',
-    imageUrl: 'https://placehold.co/600x400.png',
-    tags: [{ id: 't3', name: 'design' }, { id: 't1', name: 'productivity' }],
-    collectionId: '2',
-    createdAt: new Date(Date.now() - 86400000).toISOString(), // Yesterday
-    sentiment: { label: 'neutral', score: 0.15 }
-  },
-  {
-    id: '3',
-    type: 'link',
-    url: 'https://www.figma.com',
-    title: 'Figma: the collaborative interface design tool.',
-    description: 'Figma is a vector graphics editor and prototyping tool which is primarily web-based, with additional offline features enabled by desktop applications for macOS and Windows.',
-    imageUrl: 'https://placehold.co/600x400.png',
-    tags: [{ id: 't3', name: 'design' }, { id: 't4', name: 'inspiration' }],
-    createdAt: new Date(Date.now() - 172800000).toISOString(), // Two days ago
-    sentiment: { label: 'positive', score: 0.92 }
-  },
-   {
-    id: '4',
-    type: 'link',
-    url: 'https://openai.com/blog/chatgpt',
-    title: 'ChatGPT: Optimizing Language Models for Dialogue',
-    description: 'We’ve trained a model called ChatGPT which interacts in a conversational way. The dialogue format makes it possible for ChatGPT to answer followup questions, admit its mistakes, challenge incorrect premises, and reject inappropriate requests.',
-    imageUrl: 'https://placehold.co/600x400.png',
-    tags: [{ id: 't5', name: 'ai' }, { id: 't1', name: 'productivity' }],
-    collectionId: '1',
-    createdAt: new Date(Date.now() - 259200000).toISOString(),
-    sentiment: { label: 'negative', score: -0.40 }
-  },
-];
+import { getContentItems, addContentItem, deleteContentItemFromFirestore } from '@/services/contentService'; // Import Firebase services
 
 const mockCollections: Collection[] = [
   { id: '1', name: 'Work Projects' },
   { id: '2', name: 'Reading List' },
+  { id: '3', name: 'Recipes' },
 ];
-
 
 export default function DashboardPage() {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
-  const [editingContent, setEditingContent] = useState<ContentItem | null>(null); // Not fully used for edit yet
+  const [editingContent, setEditingContent] = useState<ContentItem | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const { toast } = useToast();
 
-  useEffect(() => {
-    // In a real app, fetch data here
-    setContentItems(mockInitialContent);
-  }, []);
-
-  // This handler is for the AddContentDialog specifically within DashboardPage
-  const handleAddOrUpdateContent = (contentData: Omit<ContentItem, 'id' | 'createdAt'>) => {
-    // Basic placeholder image logic if type is 'link' and no imageUrl is provided
-    // This might come from AI summarization or manual entry without an explicit image.
-    let finalImageUrl = contentData.imageUrl;
-    if (contentData.type === 'link' && !contentData.imageUrl) {
-      finalImageUrl = `https://placehold.co/600x400.png?text=${encodeURIComponent(contentData.title.substring(0,15))}`;
+  const fetchItems = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const items = await getContentItems(); // TODO: Pass userId when auth is ready
+      setContentItems(items);
+    } catch (err) {
+      console.error("Error fetching content items:", err);
+      setError("Failed to load content. Please try again later.");
+      toast({ title: "Error", description: "Could not fetch content.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
     }
-    
-    // For new items (not editing for now)
-    const newItem: ContentItem = {
-      ...contentData,
-      id: Date.now().toString(), // Simple ID generation for mock
-      createdAt: new Date().toISOString(),
-      imageUrl: finalImageUrl, // Use potentially updated imageUrl
-    };
-    setContentItems(prevItems => [newItem, ...prevItems].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-    toast({ title: "Content Saved", description: `"${newItem.title}" has been successfully saved.` });
-    setIsAddContentDialogOpen(false);
-    setEditingContent(null); // Clear editing state
-  };
+  }, [toast]);
 
+  useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
+
+  const handleAddOrUpdateContentDialog = async (
+    contentData: Omit<ContentItemFirestoreData, 'createdAt' | 'tags'> & { tags: AppTag[] }
+  ) => {
+    const { id: toastId } = toast({
+      title: "Saving Content...",
+      description: "Please wait while your content is being saved.",
+    });
+    try {
+      const firestoreReadyTags: ContentItemFirestoreData['tags'] = contentData.tags;
+      // TODO: if editingContent, this should be an update operation
+      await addContentItem({
+        ...contentData,
+        tags: firestoreReadyTags,
+        // userId: "TODO_CURRENT_USER_ID", 
+      });
+      toast({
+        id: toastId,
+        title: "Content Saved!",
+        description: `"${contentData.title}" has been successfully saved.`,
+      });
+      setIsAddContentDialogOpen(false);
+      setEditingContent(null);
+      fetchItems(); // Re-fetch items to show the new one
+    } catch (error) {
+      console.error("Error saving content from dialog:", error);
+      toast({
+        id: toastId,
+        title: "Error Saving Content",
+        description: "Could not save your content. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleEditContent = (itemToEdit: ContentItem) => {
-    // For now, editing will re-use the AddContentDialog.
-    // True editing would involve passing existingContent to the dialog and handling updates.
-    // This is a simplified "add again" for demonstration.
-    setEditingContent(itemToEdit); // This isn't fully utilized yet by AddContentDialog for pre-filling
-    toast({ title: "Editing Content", description: `Re-add "${itemToEdit.title}" with changes. Full edit not yet implemented.`});
-    setIsAddContentDialogOpen(true);
+    // This is a simplified edit. For a real edit, you'd pre-fill the dialog
+    // and the dialog's onContentAdd would handle updates.
+    setEditingContent(itemToEdit); // Store item for potential pre-fill in dialog (not fully implemented)
+    toast({ title: "Edit Action", description: `Editing "${itemToEdit.title}" (Not fully implemented on this page for Firestore updates).`});
+    // For now, opening dialog for "new" item, ideally would prefill
+    setIsAddContentDialogOpen(true); 
   };
 
-  const handleDeleteContent = (itemId: string) => {
-    setContentItems(prevItems => prevItems.filter(item => item.id !== itemId));
-    toast({ title: "Content Deleted", description: "The item has been removed.", variant: "destructive" });
+  const handleDeleteContent = async (itemId: string) => {
+    const originalItems = [...contentItems];
+    setContentItems(prevItems => prevItems.filter(item => item.id !== itemId)); // Optimistic update
+    const {id: toastId} = toast({ title: "Deleting Item...", description: "Removing content item."});
+    try {
+      await deleteContentItemFromFirestore(itemId);
+      toast({id: toastId, title: "Content Deleted", description: "The item has been removed.", variant: "default"});
+      // No need to call fetchItems() if optimistic update is enough and reliable
+    } catch (e) {
+      console.error("Error deleting content:", e);
+      toast({id: toastId, title: "Error Deleting", description: "Could not delete item. Restoring.", variant: "destructive"});
+      setContentItems(originalItems); // Revert optimistic update
+    }
   };
+  
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Loading Your Content...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8 text-center text-destructive">
+        <FolderOpen className="h-16 w-16 mx-auto text-destructive mb-4" />
+        <h1 className="text-2xl font-headline font-semibold">Error Loading Content</h1>
+        <p className="text-muted-foreground mt-2">{error}</p>
+        <Button onClick={fetchItems} className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">Try Again</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-2">
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <h1 className="text-3xl font-headline font-semibold text-foreground">My Content</h1>
         <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => setViewMode('grid')} className={viewMode === 'grid' ? 'bg-accent text-accent-foreground' : ''}>
+            <Button variant="outline" size="icon" onClick={() => setViewMode('grid')} className={viewMode === 'grid' ? 'bg-accent text-accent-foreground' : ''} aria-label="Grid View">
                 <LayoutGrid className="h-4 w-4"/>
-                <span className="sr-only">Grid View</span>
             </Button>
-            <Button variant="outline" size="icon" onClick={() => setViewMode('list')} className={viewMode === 'list' ? 'bg-accent text-accent-foreground' : ''}>
+            <Button variant="outline" size="icon" onClick={() => setViewMode('list')} className={viewMode === 'list' ? 'bg-accent text-accent-foreground' : ''} aria-label="List View">
                 <LayoutList className="h-4 w-4"/>
-                <span className="sr-only">List View</span>
             </Button>
             <Button variant="outline">
                 <ListFilter className="h-4 w-4 mr-2"/>
@@ -156,6 +142,7 @@ export default function DashboardPage() {
 
       {contentItems.length === 0 ? (
         <div className="text-center py-12">
+          <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h2 className="text-xl font-medium text-muted-foreground">No content saved yet.</h2>
           <p className="text-muted-foreground mt-2">Start by adding your first item!</p>
           <Button onClick={() => { setEditingContent(null); setIsAddContentDialogOpen(true);}} className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">
@@ -179,8 +166,8 @@ export default function DashboardPage() {
         open={isAddContentDialogOpen}
         onOpenChange={setIsAddContentDialogOpen}
         collections={mockCollections}
-        onContentAdd={handleAddOrUpdateContent}
-        // Pass editingContent here if AddContentDialog is enhanced to pre-fill for editing
+        onContentAdd={handleAddOrUpdateContentDialog}
+        // TODO: Pass editingContent (properly typed) to AddContentDialog for pre-filling form for editing
         // existingContent={editingContent} 
       />
     </div>

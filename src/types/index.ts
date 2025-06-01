@@ -1,53 +1,50 @@
 
+import type { Timestamp } from 'firebase/firestore';
 
 export interface Tag {
-  id: string;
+  id: string; // Could be randomly generated or same as name for simplicity if names are unique
   name: string;
 }
 
 export interface Collection {
   id: string;
   name: string;
-  icon?: React.ElementType; // Lucide icon component
+  icon?: React.ElementType;
 }
 
 export type ContentItemType = 'link' | 'note' | 'image' | 'todo' | 'voice';
 
-export interface ContentItem {
-  id: string;
+// Data structure for Firestore document (excluding id, which is the doc key)
+export interface ContentItemFirestoreData {
   type: ContentItemType;
   title: string;
-  description?: string; // For notes, this is the main content
-  url?: string; // Only for 'link' type
-  imageUrl?: string; // For 'link' preview or 'image' type
-  audioUrl?: string; // For 'voice' type
-  tags: Tag[];
-  collectionId: string; // User-selected collection, mandatory
-  createdAt: string; // ISO date string
-  sentiment?: { // Specific to 'link' type
+  description?: string;
+  url?: string;
+  imageUrl?: string; // For links, OG image. For images, direct storage URL.
+  audioUrl?: string;
+  tags: Tag[]; // Array of Tag objects
+  collectionId?: string; // Optional, if "None" is selected
+  userId?: string; // TODO: Add when Firebase Auth is integrated
+  sentiment?: {
     label: 'positive' | 'negative' | 'neutral';
     score: number;
   };
-  /**
-   * For items of type 'link', this field stores the domain of the URL.
-   * Examples: "Instagram", "TikTok", "Medium", "YouTube".
-   * Populated by a background process.
-   */
   url_domain_category?: string;
-  /**
-   * For items of type 'link', this field stores the specific content type within that domain.
-   * Examples: "Post", "Reel", "Article", "Video", "Tweet".
-   * Populated by a background process.
-   */
   url_content_type?: string;
-  // New fields for image analysis
   dominantColors?: string[];
   extractedText?: string;
+  createdAt: Timestamp; // Firestore server timestamp on creation
 }
 
-// For backward compatibility and specific link operations, we can still use LinkItem
-// but ContentItem becomes the primary type for lists.
+// Data structure used in the application code (includes id and converted createdAt)
+export interface ContentItem extends Omit<ContentItemFirestoreData, 'createdAt' | 'tags'> {
+  id: string; // Firestore document ID
+  tags: Tag[]; // Ensure tags are Tag[] for client-side consistency
+  createdAt: string; // ISO date string (converted from Timestamp)
+}
+
+// Specific type for Link items, if needed for type guarding
 export type LinkItem = ContentItem & {
   type: 'link';
-  url: string; // url is mandatory for LinkItem
+  url: string;
 };
