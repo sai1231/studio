@@ -16,11 +16,11 @@ export default function AppLayout({
 }) {
   const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
   const [collections, setCollections] = useState<Collection[]>([]);
-  const { toast, update } = useToast();
+  const { toast } = useToast(); // Only destructure toast
 
   const fetchCollections = useCallback(async () => {
     try {
-      const fetchedCollections = await getCollections();
+      const fetchedCollections = await getCollections(); // Mock service call
       setCollections(fetchedCollections);
     } catch (error) {
       console.error("Error fetching collections:", error);
@@ -33,27 +33,25 @@ export default function AppLayout({
   }, [fetchCollections]);
 
   const handleAddContentFromDialog = async (newContentData: Omit<ContentItem, 'id' | 'createdAt'>) => {
-    const { id: toastId } = toast({
+    const currentToast = toast({ // Call toast and store the instance
       title: "Saving Content...",
       description: "Please wait while your content is being saved.",
     });
     try {
       await addContentItem({
         ...newContentData,
-        // collectionId is already part of newContentData from the dialog
       });
-      update({
-        id: toastId,
+      currentToast.update({ // Use update method from the currentToast instance
+        id: currentToast.id,
         title: "Content Saved!",
         description: `"${newContentData.title}" (${newContentData.type}) has been saved.`,
       });
       setIsAddContentDialogOpen(false);
       // TODO: Implement a way to refresh the dashboard list or use global state for mock data
-      // For now, user might need to manually refresh dashboard page if it's open
     } catch (error) {
       console.error("Error saving content from dialog:", error);
-      update({
-        id: toastId,
+      currentToast.update({ // Use update method from the currentToast instance
+        id: currentToast.id,
         title: "Error Saving Content",
         description: "Could not save your content. Please try again.",
         variant: "destructive",
@@ -62,22 +60,22 @@ export default function AppLayout({
   };
 
   const handleImageFileSelected = async (file: File) => {
-    const { id: toastId } = toast({
+    const currentToast = toast({ // Call toast and store the instance
       title: "Processing Image...",
       description: "Preparing your image.",
     });
 
     try {
-      const imagePath = `contentImages/${Date.now()}_${file.name}`; // Path for mock upload
-      const downloadURL = await uploadFile(file, imagePath); // Mock upload
+      const imagePath = `contentImages/${Date.now()}_${file.name}`; 
+      const downloadURL = await uploadFile(file, imagePath); 
 
-      update({
-        id: toastId,
+      currentToast.update({ // Use update method from the currentToast instance
+        id: currentToast.id,
         title: "Saving Image...",
-        description: "Adding your image to the collection.",
+        description: "Adding your image to your collection.",
       });
       
-      const defaultCollectionId = collections.length > 0 ? collections[0].id : "1"; // Fallback
+      const defaultCollectionId = collections.length > 0 ? collections[0].id : "1";
 
       const newImageContent: Omit<ContentItem, 'id' | 'createdAt'> = {
         type: 'image',
@@ -85,21 +83,21 @@ export default function AppLayout({
         description: `Uploaded image: ${file.name}`,
         imageUrl: downloadURL,
         tags: [{id: 'upload', name: 'upload'}], 
-        collectionId: defaultCollectionId,
+        collectionId: defaultCollectionId, 
       };
       
       await addContentItem(newImageContent);
 
-      update({
-        id: toastId,
+      currentToast.update({ // Use update method from the currentToast instance
+        id: currentToast.id,
         title: "Image Saved!",
         description: `"${newImageContent.title}" has been saved.`,
       });
       // TODO: Implement refresh for dashboard
     } catch (error) {
       console.error("Error processing image upload:", error);
-      update({
-        id: toastId,
+      currentToast.update({ // Use update method from the currentToast instance
+        id: currentToast.id,
         title: "Image Upload Failed",
         description: "Could not process your image. Please try again.",
         variant: "destructive",
@@ -130,7 +128,7 @@ export default function AppLayout({
       <AddContentDialog
         open={isAddContentDialogOpen}
         onOpenChange={setIsAddContentDialogOpen}
-        collections={collections} // Pass fetched/mocked collections
+        collections={collections} 
         onContentAdd={handleAddContentFromDialog} 
       />
     </div>
