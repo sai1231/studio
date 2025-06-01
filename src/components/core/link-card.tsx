@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Layers, Landmark, PlayCircle } from 'lucide-react';
-import type { ContentItem, ContentItemType } from '@/types';
+import type { ContentItem, ContentItemType, Tag } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface ContentCardProps {
@@ -32,6 +32,25 @@ const getTypeSpecifics = (type: ContentItemType | undefined) => {
   }
 };
 
+const getTagStyles = (tagName: string): string => {
+  const lowerTagName = tagName.toLowerCase();
+  // Primary Keywords
+  if (['nextjs', 'react', 'typescript', 'javascript', 'dev', 'frontend', 'backend', 'api', 'docs', 'framework', 'library', 'web'].some(kw => lowerTagName.includes(kw))) {
+    return 'bg-blue-200 text-blue-900 dark:bg-blue-700 dark:text-blue-100';
+  }
+  // Social Keywords
+  if (['twitter', 'instagram', 'facebook', 'linkedin', 'social', 'threads', 'community', 'forum'].some(kw => lowerTagName.includes(kw))) {
+    return 'bg-sky-100 text-sky-700 dark:bg-sky-700 dark:text-sky-100';
+  }
+  // Warning Keywords (using 'code' as per user example)
+  if (lowerTagName.includes('code')) { // Or more explicit warning keywords if needed
+    return 'bg-red-200 text-red-700 dark:bg-red-700 dark:text-red-100';
+  }
+  // Neutral/Meta as default
+  return 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-100';
+};
+
+
 const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
   const hasImage = item.imageUrl && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice');
   const specifics = getTypeSpecifics(item.type);
@@ -54,6 +73,8 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
     return <div className="text-sm text-muted-foreground break-words" dangerouslySetInnerHTML={{ __html: truncatedDescription }} />;
   };
 
+  const tagBaseClasses = "px-3 py-1 text-xs rounded-full font-medium";
+
   return (
     <Card className={cn(
       "overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group rounded-2xl break-inside-avoid mb-4"
@@ -63,7 +84,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
           {hasImage ? (
             <div className="relative w-full h-56">
               <Image
-                src={item.imageUrl || "https://placehold.co/600x400.png"}
+                src={item.imageUrl || "https://source.unsplash.com/600x400/?abstract"}
                 alt={item.title}
                 fill
                 objectFit="cover"
@@ -120,11 +141,17 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
             {item.tags && item.tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {item.tags.slice(0, 2).map((tag) => ( 
-                  <Badge key={tag.id} variant="default" className="font-normal text-xs py-0.5 px-1.5">
+                  <Badge key={tag.id} className={cn(tagBaseClasses, getTagStyles(tag.name))}>
                     {tag.name}
                   </Badge>
                 ))}
-                {item.tags.length > 2 && <Badge variant="outline" className={cn("text-xs py-0.5 px-1.5 font-normal", '')}>+{item.tags.length - 2} more</Badge>}
+                {item.tags.length > 2 && 
+                  <Badge 
+                    className={cn(tagBaseClasses, "bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-100")}
+                  >
+                    +{item.tags.length - 2} more
+                  </Badge>
+                }
               </div>
             )}
           </CardContent>

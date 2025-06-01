@@ -22,6 +22,24 @@ import { cn } from '@/lib/utils';
 
 const NO_ZONE_VALUE = "__NO_ZONE__"; 
 
+const getTagStyles = (tagName: string): string => {
+  const lowerTagName = tagName.toLowerCase();
+  // Primary Keywords
+  if (['nextjs', 'react', 'typescript', 'javascript', 'dev', 'frontend', 'backend', 'api', 'docs', 'framework', 'library', 'web'].some(kw => lowerTagName.includes(kw))) {
+    return 'bg-blue-200 text-blue-900 dark:bg-blue-700 dark:text-blue-100';
+  }
+  // Social Keywords
+  if (['twitter', 'instagram', 'facebook', 'linkedin', 'social', 'threads', 'community', 'forum'].some(kw => lowerTagName.includes(kw))) {
+    return 'bg-sky-100 text-sky-700 dark:bg-sky-700 dark:text-sky-100';
+  }
+  // Warning Keywords (using 'code' as per user example)
+  if (lowerTagName.includes('code')) { 
+    return 'bg-red-200 text-red-700 dark:bg-red-700 dark:text-red-100';
+  }
+  // Neutral/Meta as default
+  return 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-100';
+};
+
 export default function ContentDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -317,6 +335,7 @@ export default function ContentDetailPage() {
     : allZones;
 
   const currentZoneName = allZones.find(z => z.id === editableZoneId)?.name || "Select zone...";
+  const tagBaseClasses = "px-3 py-1 text-xs rounded-full font-medium group relative";
 
 
   return (
@@ -497,7 +516,7 @@ export default function ContentDetailPage() {
               <div className="pt-1"> 
                 <div className="flex flex-wrap items-center gap-2 mb-2"> 
                   {editableTags.map(tag => (
-                    <Badge key={tag.id} variant="secondary" className="font-normal text-sm px-3 py-1 group relative">
+                    <Badge key={tag.id} className={cn(tagBaseClasses, getTagStyles(tag.name))}>
                       {tag.name}
                       <Button
                         variant="ghost"
@@ -603,3 +622,4 @@ export default function ContentDetailPage() {
     
 
   
+
