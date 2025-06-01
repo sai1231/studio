@@ -26,7 +26,7 @@ const mockUserProfile: UserProfile = {
   name: 'Samantha Bee',
   email: 'samantha@example.com',
   bio: 'Digital enthusiast, avid reader, and professional content clipper. Always on the lookout for the next big idea or fascinating article to save and share. Exploring the web one clip at a time!',
-  avatarUrl: 'https://placehold.co/128x128.png',
+  avatarUrl: 'https://source.unsplash.com/random/128x128/?portrait,person',
   joinedDate: new Date(2023, 4, 15), // May 15, 2023
 };
 
@@ -152,3 +152,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

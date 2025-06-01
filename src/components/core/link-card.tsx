@@ -61,7 +61,7 @@ const getTagStyles = (tagName: string): string => {
 
 
 const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => {
-  const hasImage = item.imageUrl && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice');
+  const hasImage = item.imageUrl && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice' || item.type === 'movie'); // Added movie type
   const specifics = getTypeSpecifics(item.type);
   const IconComponent = specifics.icon;
 
@@ -83,7 +83,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
   };
 
   const tagBaseClasses = "px-3 py-1 text-xs rounded-full font-medium";
-  const imageToDisplay = item.imageUrl || "https://placehold.co/600x400.png";
+  const imageToDisplay = item.imageUrl || "https://source.unsplash.com/random/600x400/?abstract,default";
   const imageAiHint = item.imageUrl ? item.title.split(' ').slice(0,2).join(' ') : "abstract default";
 
 
@@ -222,3 +222,4 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
 };
 
 export default ContentCard;
+

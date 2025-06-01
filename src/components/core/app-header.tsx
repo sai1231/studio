@@ -41,7 +41,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
             <Avatar className="h-9 w-9">
-              <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" data-ai-hint="user avatar"/>
+              <AvatarImage src="https://source.unsplash.com/random/40x40/?avatar,user" alt="User Avatar" data-ai-hint="user avatar"/>
               <AvatarFallback>U</AvatarFallback>
             </Avatar>
           </Button>
@@ -73,3 +73,4 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 };
 
 export default AppHeader;
+

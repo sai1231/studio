@@ -25,7 +25,7 @@ let mockContentItems: ContentItem[] = [
     title: 'Next.js Docs',
     description: 'The React Framework for the Web - Documentation.',
     mindNote: 'Remember to check the latest ISR strategies.',
-    imageUrl: 'https://placehold.co/600x400.png',
+    imageUrl: 'https://source.unsplash.com/random/600x400/?programming,web',
     tags: [{ id: 't2', name: 'nextjs' }, { id: 't1', name: 'productivity' }],
     zoneId: '1',
     createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
@@ -48,7 +48,7 @@ let mockContentItems: ContentItem[] = [
     title: 'Awesome Landscape',
     description: 'A beautiful landscape picture I found during a hike.',
     mindNote: 'Could be a good wallpaper for my desktop.',
-    imageUrl: 'https://placehold.co/600x400.png',
+    imageUrl: 'https://source.unsplash.com/random/600x400/?landscape,nature',
     tags: [{ id: 't4', name: 'inspiration' }, {id: 't-nature', name: 'nature'}],
     zoneId: '1',
     createdAt: new Date().toISOString(),
@@ -59,7 +59,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://www.instagram.com/reel/Cabcdefg/',
     title: 'Cool Instagram Reel',
     description: 'A very cool reel I saw about travel hacks.',
-    imageUrl: 'https://placehold.co/400x700.png',
+    imageUrl: 'https://source.unsplash.com/random/400x700/?social,media',
     tags: [{ id: 't-social', name: 'social media'}, { id: 't-fun', name: 'fun'}, {id: 't-travel', name: 'travel'}],
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
@@ -72,7 +72,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://threads.net/@username/post/12345',
     title: 'Interesting Threads Post on AI Ethics',
     description: 'Some thoughts on the future of AI and ethical considerations.',
-    imageUrl: 'https://placehold.co/600x400.png', // Added placeholder for Threads
+    imageUrl: 'https://source.unsplash.com/random/600x400/?technology,ethics',
     tags: [{ id: 't-social', name: 'social media'}, { id: 't-discussion', name: 'discussion'}, {id: 't-ai', name: 'ai ethics'}],
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 0.5).toISOString(),
@@ -86,7 +86,7 @@ let mockContentItems: ContentItem[] = [
     title: 'React GitHub Repository',
     description: 'A declarative, efficient, and flexible JavaScript library for building user interfaces.',
     mindNote: 'Check out their contribution guidelines and recent updates.',
-    imageUrl: 'https://placehold.co/600x400.png',
+    imageUrl: 'https://source.unsplash.com/random/600x400/?code,repository',
     tags: [{ id: 't-code', name: 'code' }, { id: 't-js', name: 'javascript' }],
     zoneId: '1',
     createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
@@ -99,7 +99,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://x.com/elonmusk/status/1234567890', // Keep using x.com for twitter
     title: 'Elon Musk Tweet about Space',
     description: 'A tweet from Elon Musk regarding SpaceX.',
-    imageUrl: 'https://placehold.co/600x400.png', // Added placeholder for Tweet
+    imageUrl: 'https://source.unsplash.com/random/600x400/?space,tweet',
     tags: [{ id: 't-social', name: 'social media' }, {id: 't-space', name: 'space'}],
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 0.2).toISOString(),
@@ -112,7 +112,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://drata.com/resources/reports/grc-trends?utm_source=Hacker_News&utm_medium=display&utm_campaign=20250505_stateofgrc_may2025_DG_all_ALL',
     title: 'An interesting article on GRC Trends',
     description: 'Insights on a trending topic in Governance, Risk, and Compliance for 2025. Drata GRC report for security professionals.',
-    imageUrl: 'https://placehold.co/600x400.png',
+    imageUrl: 'https://source.unsplash.com/random/600x400/?business,article',
     tags: [{ id: 't-reading', name: 'reading' }, { id: 't-grc', name: 'GRC'}],
     zoneId: '2',
     createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
@@ -136,7 +136,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://dribbble.com/shots/popular/animation',
     title: 'Dribbble Animation Inspiration',
     description: 'Popular animations on Dribbble for UI ideas.',
-    imageUrl: 'https://placehold.co/600x400.png',
+    imageUrl: 'https://source.unsplash.com/random/600x400/?design,animation',
     tags: [{ id: 't-design', name: 'design' }, { id: 't4', name: 'inspiration' }, {id: 't-animation', name: 'animation'}],
     zoneId: '1',
     createdAt: new Date(Date.now() - 86400000 * 6).toISOString(),
@@ -159,7 +159,7 @@ let mockContentItems: ContentItem[] = [
     title: 'Tokyo Street Scene',
     description: 'A vibrant street in Tokyo at night.',
     mindNote: 'Love the neon lights here.',
-    imageUrl: 'https://placehold.co/600x400.png',
+    imageUrl: 'https://source.unsplash.com/random/600x400/?tokyo,street',
     tags: [{ id: 't-travel', name: 'travel' }, { id: 't-city', name: 'cityscape' }],
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 1.5).toISOString(),
@@ -170,7 +170,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://www.bonappetit.com/recipe/pasta-aglio-e-olio',
     title: 'Simple Pasta Aglio e Olio Recipe',
     description: 'A quick and delicious garlic and oil pasta.',
-    imageUrl: 'https://placehold.co/600x400.png',
+    imageUrl: 'https://source.unsplash.com/random/600x400/?pasta,recipe',
     tags: [{ id: 't-recipe', name: 'recipe' }, { id: 't-cooking', name: 'cooking' }],
     zoneId: '2',
     createdAt: new Date(Date.now() - 86400000 * 0.8).toISOString(),
@@ -194,7 +194,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://www.theverge.com/tech',
     title: 'The Verge - Tech News',
     description: 'Latest technology news, reviews, and analysis.',
-    imageUrl: 'https://placehold.co/600x400.png',
+    imageUrl: 'https://source.unsplash.com/random/600x400/?news,tech',
     tags: [{ id: 't-news', name: 'news' }, { id: 't-tech', name: 'technology' }],
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 2.5).toISOString(),
@@ -207,8 +207,8 @@ let mockContentItems: ContentItem[] = [
     url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     title: 'Important Tech Presentation (Music Video)',
     description: 'A must-watch presentation on new web technologies and classic tunes.',
-    imageUrl: 'https://placehold.co/600x400.png',
-    tags: [{ id: 't-video', name: 'video' }, { id: 't-tech-presentation', name: 'technology presentation' }, {id: 't-music', name: 'music'}], // Changed ID here
+    imageUrl: 'https://source.unsplash.com/random/600x400/?music,video',
+    tags: [{ id: 't-video', name: 'video' }, { id: 't-tech-presentation', name: 'technology presentation' }, {id: 't-music', name: 'music'}],
     zoneId: '1',
     createdAt: new Date(Date.now() - 86400000 * 0.7).toISOString(),
     domain: 'youtube.com',
@@ -221,7 +221,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://x.com/SpaceX/status/1700000000000000000', // Example, actual status ID is illustrative
     title: 'SpaceX Tweet about Starship Mission',
     description: 'Latest updates on the Starship program and upcoming test flights. Follow for more news.',
-    imageUrl: 'https://placehold.co/600x400.png',
+    imageUrl: 'https://source.unsplash.com/random/600x400/?spacex,mission',
     tags: [{ id: 't-space', name: 'space' }, { id: 't-spacex', name: 'SpaceX'}, { id: 't-social', name: 'social media' }],
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 0.1).toISOString(),
@@ -234,7 +234,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://www.instagram.com/p/Cxyz123AbcD/', // Example Instagram post URL structure
     title: 'Amazing Bali Travel Highlights',
     description: 'Captured the incredible sunsets and vibrant culture of Bali. A must-visit destination!',
-    imageUrl: 'https://placehold.co/600x400.png',
+    imageUrl: 'https://source.unsplash.com/random/600x400/?bali,travel',
     tags: [{ id: 't-travel', name: 'travel' }, { id: 't-instagram', name: 'instagram'}, { id: 't-photography', name: 'photography' }],
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 0.9).toISOString(),
@@ -247,7 +247,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://open.spotify.com/track/0SiywuOBRc1A30kK3uVz0o', // Example Spotify track URL
     title: 'Lo-fi Chill Beats for Study/Relax',
     description: 'My go-to Spotify track for deep focus sessions or just unwinding after a long day.',
-    imageUrl: 'https://placehold.co/600x400.png',
+    imageUrl: 'https://source.unsplash.com/random/600x400/?lofi,music',
     tags: [{ id: 't-music', name: 'music' }, { id: 't-spotify', name: 'spotify' }, { id: 't-lofi', name: 'lo-fi' }],
     zoneId: '2',
     createdAt: new Date(Date.now() - 86400000 * 1.2).toISOString(),
@@ -260,7 +260,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://vimeo.com/1234567890', // Example Vimeo video URL
     title: 'Indie Animation Short: "The Last Leaf"',
     description: 'A beautifully animated short film with a touching story. Great for inspiration.',
-    imageUrl: 'https://placehold.co/600x400.png',
+    imageUrl: 'https://source.unsplash.com/random/600x400/?animation,film',
     tags: [{ id: 't-animation', name: 'animation' }, { id: 't-vimeo', name: 'vimeo'}, { id: 't-shortfilm', name: 'short film' }],
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 2.2).toISOString(),
@@ -273,7 +273,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://soundcloud.com/exampleartist/new-electronic-track', // Example SoundCloud URL
     title: 'Fresh Electronic Track by ExampleArtist',
     description: 'Check out this new upbeat electronic music piece, perfect for a workout or coding.',
-    imageUrl: 'https://placehold.co/600x400.png',
+    imageUrl: 'https://source.unsplash.com/random/600x400/?electronic,music',
     tags: [{ id: 't-music', name: 'music' }, { id: 't-soundcloud', name: 'soundcloud'}, { id: 't-electronic', name: 'electronic' }],
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 0.4).toISOString(),
@@ -286,7 +286,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://www.figma.com/community/file/123456789/Mobile-App-UI-Kit', // Example Figma Community URL
     title: 'Mobile App UI Kit - Figma Community',
     description: 'A comprehensive UI kit for designing modern mobile applications. Includes various components and screens.',
-    imageUrl: 'https://placehold.co/600x400.png',
+    imageUrl: 'https://source.unsplash.com/random/600x400/?design,mobile',
     tags: [{ id: 't-design', name: 'design' }, { id: 't-figma', name: 'figma'}, { id: 't-ui', name: 'UI Kit' }],
     zoneId: '1',
     createdAt: new Date(Date.now() - 86400000 * 3.5).toISOString(),
@@ -299,7 +299,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://gist.github.com/anonymous/123abc456def789ghi', // Example GitHub Gist URL
     title: 'Python Web Scraping Snippet - Gist',
     description: 'A quick Python script using BeautifulSoup and Requests for web scraping tasks.',
-    imageUrl: 'https://placehold.co/600x400.png',
+    imageUrl: 'https://source.unsplash.com/random/600x400/?python,code',
     tags: [{ id: 't-code', name: 'code' }, { id: 't-python', name: 'python'}, { id: 't-gist', name: 'gist' }],
     zoneId: '1',
     createdAt: new Date(Date.now() - 86400000 * 1.8).toISOString(),
@@ -312,7 +312,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://www.tiktok.com/@tiktok/video/7000000000000000000', // Example TikTok video URL structure
     title: 'Viral TikTok Dance Challenge',
     description: 'The latest dance trend taking over TikTok. Fun to watch!',
-    imageUrl: 'https://placehold.co/400x700.png',
+    imageUrl: 'https://source.unsplash.com/random/400x700/?tiktok,dance',
     tags: [{ id: 't-social', name: 'social media' }, { id: 't-tiktok', name: 'tiktok'}, { id: 't-fun', name: 'fun' }],
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 0.6).toISOString(),
@@ -459,7 +459,7 @@ export async function addContentItem(
     contentType: finalContentType, // Use potentially updated finalContentType
     mindNote: itemData.mindNote,
     audioUrl: itemData.audioUrl,
-    imageUrl: finalImageUrl || (itemType !== 'note' && itemType !== 'voice' && itemType !== 'movie' && !(itemType === 'link' && finalContentType === 'PDF') ? `https://placehold.co/600x400.png` : undefined),
+    imageUrl: finalImageUrl || (itemType !== 'note' && itemType !== 'voice' && itemType !== 'movie' && !(itemType === 'link' && finalContentType === 'PDF') ? `https://source.unsplash.com/random/600x400/?content,item` : undefined),
     description: finalDescription, // Use potentially updated finalDescription
     movieDetails: movieDetailsData, // Use potentially updated movieDetailsData
   };
@@ -513,8 +513,8 @@ export async function uploadFile(file: File, path: string): Promise<string> {
     // Return a more representative mock URL for PDFs, ensuring it's unique enough for testing
     return `https://storage.example.com/uploads/${Date.now()}_${encodeURIComponent(file.name)}`;
   }
-  // For images, return a dynamic placehold.co URL
-  return `https://placehold.co/600x400.png`;
+  // For images, return a dynamic Unsplash URL
+  return `https://source.unsplash.com/random/600x400/?uploaded,image`;
 }
 
 // Function to get unique domains
