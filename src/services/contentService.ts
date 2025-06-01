@@ -10,6 +10,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://nextjs.org/docs',
     title: 'Next.js Docs',
     description: 'The React Framework for the Web - Documentation.',
+    mindNote: 'Remember to check the latest ISR strategies.',
     imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't2', name: 'nextjs' }, { id: 't1', name: 'productivity' }],
     zoneId: '1', 
@@ -25,18 +26,18 @@ let mockContentItems: ContentItem[] = [
     tags: [{ id: 't-personal', name: 'personal' }, { id: 't-todos', name: 'todos' }],
     zoneId: '2', 
     createdAt: new Date(Date.now() - 86400000 * 1).toISOString(), 
-    contentType: 'Note', // Updated from 'Text' or 'List' to 'Note'
+    contentType: 'Note',
   },
   {
     id: '3',
     type: 'image',
     title: 'Awesome Landscape',
     description: 'A beautiful landscape picture I found.',
+    mindNote: 'Could be a good wallpaper.',
     imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't4', name: 'inspiration' }, {id: 't-nature', name: 'nature'}],
     zoneId: '1', 
     createdAt: new Date().toISOString(),
-    // contentType: 'Image', // Can leave this as Image or remove if not in predefined list
   },
   {
     id: '4',
@@ -69,6 +70,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://github.com/facebook/react',
     title: 'React GitHub Repository',
     description: 'A declarative, efficient, and flexible JavaScript library for building user interfaces.',
+    mindNote: 'Check out their contribution guidelines.',
     tags: [{ id: 't-code', name: 'code' }, { id: 't-js', name: 'javascript' }],
     zoneId: '1',
     createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
@@ -97,7 +99,7 @@ let mockContentItems: ContentItem[] = [
     zoneId: '2',
     createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
     domain: 'medium.com',
-    contentType: 'Article', // Changed from 'Post' to 'Article' to match preferred list if needed
+    contentType: 'Article', 
   }
 ];
 
@@ -154,6 +156,7 @@ export async function addContentItem(
     createdAt: new Date().toISOString(),
     domain: extractedDomain,
     contentType: itemData.contentType,
+    mindNote: itemData.mindNote,
   };
   mockContentItems.unshift(newItem); 
   return newItem;
@@ -173,7 +176,14 @@ export async function updateContentItem(
   await new Promise(resolve => setTimeout(resolve, 100));
   const itemIndex = mockContentItems.findIndex(item => item.id === itemId);
   if (itemIndex > -1) {
-    mockContentItems[itemIndex] = { ...mockContentItems[itemIndex], ...updates };
+    // Ensure mindNote can be explicitly set to empty string or undefined
+    const currentItem = mockContentItems[itemIndex];
+    const newUpdates = {...updates};
+    if (updates.hasOwnProperty('mindNote')) {
+        newUpdates.mindNote = updates.mindNote;
+    }
+
+    mockContentItems[itemIndex] = { ...currentItem, ...newUpdates };
     return mockContentItems[itemIndex];
   }
   return undefined;

@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, CalendarDays, Folder, Tag as TagIcon, Globe, StickyNote, FileImage, ExternalLink, ListChecks, Mic, Layers, Landmark, Plus, X, Loader2, Check } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Folder, Tag as TagIcon, Globe, StickyNote, FileImage, ExternalLink, ListChecks, Mic, Layers, Landmark, Plus, X, Loader2, Check, Edit3 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -36,7 +36,7 @@ const getTypeIcon = (type: ContentItem['type'] | undefined) => {
   }
 };
 
-const NO_ZONE_VALUE = "__NO_ZONE__"; // Define a non-empty value for "No Zone" option
+const NO_ZONE_VALUE = "__NO_ZONE__"; 
 
 export default function ContentDetailPage() {
   const params = useParams();
@@ -45,12 +45,13 @@ export default function ContentDetailPage() {
   const id = params.id as string;
 
   const [item, setItem] = useState<ContentItem | null>(null);
-  const [zone, setZone] = useState<Zone | null>(null); // This zone is just for display if needed, editableZoneId is the source of truth for edits.
+  const [zone, setZone] = useState<Zone | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [editableTitle, setEditableTitle] = useState('');
   const [editableDescription, setEditableDescription] = useState('');
+  const [editableMindNote, setEditableMindNote] = useState('');
   const [editableZoneId, setEditableZoneId] = useState<string | undefined>(undefined);
   const [allZones, setAllZones] = useState<Zone[]>([]);
   const [isSavingItemDetails, setIsSavingItemDetails] = useState(false);
@@ -73,10 +74,10 @@ export default function ContentDetailPage() {
             setItem(fetchedItem);
             setEditableTitle(fetchedItem.title);
             setEditableDescription(fetchedItem.description || '');
+            setEditableMindNote(fetchedItem.mindNote || '');
             setEditableZoneId(fetchedItem.zoneId);
             setEditableTags(fetchedItem.tags || []);
 
-            // Set current zone for display purposes (not directly for editing via this state)
             if (fetchedItem.zoneId) {
               const fetchedCurrentZone = await getZoneById(fetchedItem.zoneId);
               setZone(fetchedCurrentZone || null);
@@ -124,6 +125,11 @@ export default function ContentDetailPage() {
     setEditableDescription(e.target.value);
     setHasContentChanges(true);
   };
+  
+  const handleMindNoteChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setEditableMindNote(e.target.value);
+    setHasContentChanges(true);
+  };
 
   const handleZoneChange = (value: string) => {
     setEditableZoneId(value === NO_ZONE_VALUE ? undefined : value);
@@ -137,12 +143,12 @@ export default function ContentDetailPage() {
         const updatedDetails: Partial<ContentItem> = {
             title: editableTitle,
             description: editableDescription,
+            mindNote: (item.type === 'image' || item.type === 'link') ? editableMindNote : undefined,
             zoneId: editableZoneId, 
         };
         const updated = await updateContentItem(item.id, updatedDetails);
         if (updated) {
-            setItem(updated); // Update local item state with the full updated item
-            // Update displayed zone based on the new editableZoneId
+            setItem(updated); 
             if (updated.zoneId) {
                  const newCurrentZone = allZones.find(z => z.id === updated.zoneId);
                  setZone(newCurrentZone || null);
@@ -166,6 +172,7 @@ export default function ContentDetailPage() {
     if (item) {
         setEditableTitle(item.title);
         setEditableDescription(item.description || '');
+        setEditableMindNote(item.mindNote || '');
         setEditableZoneId(item.zoneId);
         setHasContentChanges(false);
     }
@@ -179,14 +186,13 @@ export default function ContentDetailPage() {
       if (updatedItem) {
         setItem(prevItem => prevItem ? { ...prevItem, tags: updatedItem.tags || [] } : null);
         setEditableTags(updatedItem.tags || []);
-        // Success toast removed as per user request
       } else {
         throw new Error("Failed to update item tags.");
       }
     } catch (e) {
       console.error('Error updating tags:', e);
       toast({ title: "Error", description: "Could not save tags. Please try again.", variant: "destructive" });
-      if(item) setEditableTags(item.tags || []); // Revert optimistic update on error
+      if(item) setEditableTags(item.tags || []); 
     } finally {
       setIsUpdatingTags(false);
     }
@@ -194,7 +200,7 @@ export default function ContentDetailPage() {
 
   const handleRemoveTag = (tagIdToRemove: string) => {
     const newTags = editableTags.filter(tag => tag.id !== tagIdToRemove);
-    setEditableTags(newTags); // Optimistic update
+    setEditableTags(newTags); 
     saveTags(newTags);
   };
 
@@ -205,15 +211,15 @@ export default function ContentDetailPage() {
     }
     if (editableTags.find(tag => tag.name.toLowerCase() === newTagInput.trim().toLowerCase())) {
       toast({ title: "Duplicate Tag", description: `Tag "${newTagInput.trim()}" already exists.`, variant: "destructive" });
-      setNewTagInput(''); // Clear input even if duplicate
+      setNewTagInput(''); 
       return;
     }
-    const newTag: Tag = { id: Date.now().toString(), name: newTagInput.trim() }; // Simple ID generation
+    const newTag: Tag = { id: Date.now().toString(), name: newTagInput.trim() }; 
     const newTags = [...editableTags, newTag];
     
-    setEditableTags(newTags); // Optimistic update
+    setEditableTags(newTags); 
     setNewTagInput('');
-    setIsAddingTag(false); // Hide input after adding
+    setIsAddingTag(false); 
     saveTags(newTags);
   };
 
@@ -312,7 +318,9 @@ export default function ContentDetailPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
-            <h3 className="text-lg font-semibold mb-2 text-foreground">Description</h3>
+            <h3 className="text-lg font-semibold mb-2 text-foreground flex items-center">
+                <Edit3 className="h-4 w-4 mr-2 text-muted-foreground"/> Description
+            </h3>
             <Textarea
                 value={editableDescription}
                 onChange={handleDescriptionChange}
@@ -321,6 +329,22 @@ export default function ContentDetailPage() {
                 className="w-full min-h-[120px] focus-visible:ring-accent"
             />
           </div>
+
+          {(item.type === 'image' || item.type === 'link') && (
+             <div>
+                <h3 className="text-lg font-semibold mb-2 text-foreground flex items-center">
+                    <StickyNote className="h-4 w-4 mr-2 text-muted-foreground"/> Mind Note
+                </h3>
+                <Textarea
+                    value={editableMindNote}
+                    onChange={handleMindNoteChange}
+                    disabled={isSavingItemDetails}
+                    placeholder="Add your personal thoughts or quick notes here..."
+                    className="w-full min-h-[80px] focus-visible:ring-accent"
+                />
+            </div>
+          )}
+
            {item.type === 'voice' && item.audioUrl && (
             <div>
               <h3 className="text-lg font-semibold mb-2 text-foreground">Voice Note</h3>
@@ -354,7 +378,7 @@ export default function ContentDetailPage() {
             <div className="flex items-center space-x-2 text-muted-foreground">
                 <Folder className="h-4 w-4" />
                 <Select
-                    value={editableZoneId || ""} // Shows placeholder if editableZoneId is undefined/empty
+                    value={editableZoneId || NO_ZONE_VALUE} // Use NO_ZONE_VALUE when editableZoneId is undefined
                     onValueChange={handleZoneChange}
                     disabled={isSavingItemDetails || allZones.length === 0}
                 >
@@ -472,3 +496,4 @@ export default function ContentDetailPage() {
     
 
     
+

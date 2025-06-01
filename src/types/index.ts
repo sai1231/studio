@@ -18,11 +18,12 @@ export interface ContentItem {
   type: ContentItemType;
   title: string;
   description?: string;
+  mindNote?: string; // Added Mind Note field
   url?: string;
   imageUrl?: string; 
   audioUrl?: string;
   tags: Tag[]; 
-  zoneId?: string; // Renamed from collectionId, made optional
+  zoneId?: string; 
   userId?: string; 
   createdAt: string; // ISO date string
   domain?: string; // e.g., instagram.com, youtube.com
