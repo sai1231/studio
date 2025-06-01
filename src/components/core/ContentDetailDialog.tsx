@@ -390,7 +390,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
 
               return (
                 <div className={cn(
-                  showMediaColumn ? "md:grid md:grid-cols-[minmax(0,_2fr)_minmax(0,_3fr)] gap-6" : ""
+                  showMediaColumn ? "md:grid md:grid-cols-[minmax(0,_3fr)_minmax(0,_2fr)] gap-6" : ""
                 )}>
                   {showMediaColumn && (
                     <div className="relative w-full overflow-hidden rounded-xl shadow-sm aspect-video">

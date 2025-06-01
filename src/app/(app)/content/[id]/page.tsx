@@ -384,7 +384,7 @@ export default function ContentDetailPage() {
 
       <Card className="shadow-xl overflow-hidden">
         <div className={cn(
-          showMediaColumn ? "md:grid md:grid-cols-[minmax(0,_7fr)_minmax(0,_3fr)]" : ""
+          showMediaColumn ? "md:grid md:grid-cols-[minmax(0,_3fr)_minmax(0,_2fr)] gap-6" : ""
         )}>
           {showMediaColumn && (
             <div className={cn(
@@ -395,7 +395,7 @@ export default function ContentDetailPage() {
                 <iframe
                   src={embedUrl}
                   title={editableTitle || 'Embedded Content'}
-                  className="absolute top-0 left-0 w-full h-full border-0"
+                  className="absolute top-0 left-0 w-full h-full border-0 rounded-xl"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
                 ></iframe>
@@ -405,7 +405,7 @@ export default function ContentDetailPage() {
                   alt={editableTitle || 'Content Image'}
                   fill
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="object-cover"
+                  className="object-cover rounded-xl"
                 />
               ) : null}
             </div>
@@ -683,3 +683,4 @@ export default function ContentDetailPage() {
     </div>
   );
 }
+
