@@ -32,14 +32,12 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const { toast } = useToast();
 
-  const [currentLoadingMessage, setCurrentLoadingMessage] = useState(
-    pageLoadingMessages[Math.floor(Math.random() * pageLoadingMessages.length)]
-  );
+  const [clientLoadingMessage, setClientLoadingMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (isLoading) {
       const randomIndex = Math.floor(Math.random() * pageLoadingMessages.length);
-      setCurrentLoadingMessage(pageLoadingMessages[randomIndex]);
+      setClientLoadingMessage(pageLoadingMessages[randomIndex]);
     }
   }, [isLoading]);
 
@@ -127,7 +125,9 @@ export default function DashboardPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">{currentLoadingMessage}</p>
+        <p className="mt-4 text-muted-foreground">
+          {clientLoadingMessage || pageLoadingMessages[0]}
+        </p>
       </div>
     );
   }
