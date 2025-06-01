@@ -9,7 +9,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import KlippedLogo from './klipped-logo';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import type { Zone, Tag as TagType } from '@/types';
-// Avatar imports are removed as the avatar section is being removed.
 import { ThemeToggle } from './theme-toggle';
 import { Separator } from '@/components/ui/separator';
 import { getZones, getUniqueDomains, getUniqueContentTypes, getUniqueTags } from '@/services/contentService';
@@ -83,8 +82,6 @@ const AppSidebar: React.FC = () => {
           <KlippedLogo />
         </div>
 
-        {/* User profile section removed from here */}
-
         <ScrollArea className="flex-1 py-2 px-4">
           <nav className="grid items-start gap-1 text-sm font-medium">
             <Link
@@ -95,7 +92,7 @@ const AppSidebar: React.FC = () => {
               All Content
             </Link>
 
-            <Accordion type="multiple" defaultValue={['zones', 'tags', 'domains', 'contentTypes']} className="w-full">
+            <Accordion type="multiple" defaultValue={['zones']} className="w-full">
               <AccordionItem value="zones" className="border-b-0">
                 <AccordionTrigger className="px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg hover:no-underline">
                   <div className="flex items-center gap-3">
