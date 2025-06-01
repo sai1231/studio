@@ -2,8 +2,8 @@
 'use client';
 
 import type React from 'react';
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect, use } from 'react'; // Added 'use'
+import { useRouter } from 'next/navigation';
 import ContentCard from '@/components/core/link-card';
 import ContentDetailDialog from '@/components/core/ContentDetailDialog'; 
 import type { ContentItem, Zone } from '@/types';
@@ -20,7 +20,11 @@ const pageLoadingMessages = [
 ];
 
 export default function ZonePage({ params }: { params: { id: string } }) {
-  const zoneId = params.id;
+  // Unwrap the params prop using React.use() as suggested by Next.js
+  // This assumes Next.js might pass 'params' as a Promise.
+  const resolvedParams = use(params as any); // Using 'as any' for now if TS complains about params not being a Promise type.
+                                          // The warning implies params is a Promise at runtime.
+  const zoneId = resolvedParams.id;
   const router = useRouter();
   const [items, setItems] = useState<ContentItem[]>([]);
   const [currentZone, setCurrentZone] = useState<Zone | null>(null);
@@ -64,9 +68,11 @@ export default function ZonePage({ params }: { params: { id: string } }) {
   };
 
   useEffect(() => {
-    fetchZoneData();
+    if (zoneId) { // Ensure zoneId is available before fetching
+      fetchZoneData();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zoneId, toast]);
+  }, [zoneId, toast]); // zoneId is now a dependency
 
   const handleOpenDetailDialog = (item: ContentItem) => {
     setSelectedItemIdForDetail(item.id);
@@ -169,3 +175,4 @@ export default function ZonePage({ params }: { params: { id: string } }) {
     </div>
   );
 }
+
