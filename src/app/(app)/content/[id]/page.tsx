@@ -122,7 +122,6 @@ export default function ContentDetailPage() {
     if (editableTags.find(tag => tag.name.toLowerCase() === newTagInput.trim().toLowerCase())) {
       toast({ title: "Duplicate Tag", description: `Tag "${newTagInput.trim()}" already exists.`, variant: "destructive" });
       setNewTagInput('');
-      // Keep isAddingTag true to allow correction or new input
       return;
     }
     const newTag: Tag = { id: Date.now().toString(), name: newTagInput.trim() };
@@ -324,9 +323,8 @@ export default function ContentDetailPage() {
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
-                                variant="outline"
                                 size="icon"
-                                className="h-8 w-8 rounded-full border-dashed hover:bg-accent hover:text-accent-foreground"
+                                className="h-8 w-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
                                 onClick={() => setIsAddingTag(true)}
                                 disabled={isUpdatingTags}
                                 aria-label="Add new tag"
@@ -347,10 +345,11 @@ export default function ContentDetailPage() {
           </div>
         </CardContent>
         <CardFooter>
-          {/* Footer can be used for actions like edit, delete item, etc. if needed */}
         </CardFooter>
       </Card>
     </div>
   );
 }
     
+
+      
