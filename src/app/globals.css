@@ -46,7 +46,7 @@ body {
   .dark {
     --background: 220 15% 10%; /* Cool dark gray */
     --foreground: 220 10% 85%; /* Off-white for text */
-    --card: 220 15% 15%; /* Slightly lighter dark gray for cards */
+    --card: 0 0% 12%; /* Neutral dark gray (#1E1E1E) */
     --card-foreground: 220 10% 85%;
     --popover: 220 15% 12%;
     --popover-foreground: 220 10% 85%;
