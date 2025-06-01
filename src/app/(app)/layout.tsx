@@ -9,7 +9,7 @@ import type { Collection, ContentItem, ContentItemFirestoreData, Tag as AppTag }
 import { useToast } from '@/hooks/use-toast';
 import { analyzeImageContent } from '@/ai/flows/analyze-image-content';
 import { uploadFile, addContentItem } from '@/services/contentService';
-import { useImageColor } from 'use-image-color';
+import useImageColor from 'use-image-color'; // Changed to default import
 
 const mockCollections: Collection[] = [
   { id: '1', name: 'Work Projects' },
@@ -96,7 +96,7 @@ export default function AppLayout({
     }
     
     setProcessingImageDetails({ file, dataUrl, toastId: currentToastId });
-    setAiExtractedText(null);
+    setAiExtractedText(null); // Reset previous AI text
     setIsAiProcessingText(true);
 
     update({
@@ -110,7 +110,8 @@ export default function AppLayout({
       setAiExtractedText(analysisResult.extractedText);
     } catch (error) {
       console.error("Error analyzing image text with AI:", error);
-      setAiExtractedText(""); // Default to empty string on error
+      setAiExtractedText(""); // Default to empty string on error to avoid blocking
+      toast({ title: "AI Text Extraction Failed", description: "Could not extract text from image.", variant: "destructive"});
     } finally {
       setIsAiProcessingText(false);
     }
@@ -128,7 +129,7 @@ export default function AppLayout({
         });
 
         const finalDominantColors = imageColorsError || !extractedImageColors ? [] : extractedImageColors;
-        const finalTextToSave = aiExtractedText === null ? "" : aiExtractedText;
+        const finalTextToSave = aiExtractedText === null ? "" : aiExtractedText; // Ensure it's not null for DB
 
         try {
           update({
@@ -149,6 +150,7 @@ export default function AppLayout({
             collectionId: '', // TODO: Allow user to select collection
             dominantColors: finalDominantColors,
             extractedText: finalTextToSave,
+            // userId: "TODO_CURRENT_USER_ID", // Add when auth is ready
           };
           
           await addContentItem(newImageContent);
@@ -169,7 +171,7 @@ export default function AppLayout({
           });
         } finally {
           setProcessingImageDetails(null); // Reset to allow next upload
-          setAiExtractedText(null);
+          setAiExtractedText(null); // Reset AI text
         }
       };
 
