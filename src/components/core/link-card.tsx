@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ExternalLink, Edit3, Trash2, MoreVertical, Globe, StickyNote, FileImage, ListChecks, Mic, Layers, Landmark, PlayCircle } from 'lucide-react';
+import { ExternalLink, Trash2, MoreVertical, Globe, StickyNote, FileImage, ListChecks, Mic, Layers, Landmark, PlayCircle } from 'lucide-react';
 import type { ContentItem, ContentItemType } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -67,7 +67,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
 
   return (
     <Card className={cn(
-      "overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group rounded-2xl break-inside-avoid mb-4", // Removed 'border'
+      "overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group rounded-2xl break-inside-avoid mb-4",
       !hasImage && specifics.bgClass
     )}>
       <Link href={`/content/${item.id}`} passHref className="flex flex-col flex-grow group/link">
@@ -154,7 +154,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
           </CardContent>
         </div>
       </Link>
-      <CardFooter className={cn("flex justify-between items-center pt-3 pb-3 px-4", specifics.bgClass !== 'bg-card' ? 'mt-auto' : '')}> {/* Removed border-t, adjusted padding */}
+      <CardFooter className={cn("flex justify-between items-center pt-3 pb-3 px-4", specifics.bgClass !== 'bg-card' ? 'mt-auto' : '')}>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {/* Placeholder for date or other small info */}
         </div>
@@ -173,10 +173,6 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" onClick={handleActionClick}>
-              <DropdownMenuItem onClick={() => onEdit(item)}>
-                <Edit3 className="mr-2 h-4 w-4" />
-                Edit
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onDelete(item.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
@@ -190,4 +186,3 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
 };
 
 export default ContentCard;
-
