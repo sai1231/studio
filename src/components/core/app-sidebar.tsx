@@ -55,7 +55,6 @@ const AppSidebar: React.FC = () => {
       setDomains(fetchedDomains);
       setActualTags(fetchedTags);
 
-      // Filter fetchedContentTypes to only include those in predefinedContentTypes
       const availablePredefinedTypes = fetchedContentTypes.filter(
         type => predefinedContentTypes[type]
       );
@@ -196,10 +195,14 @@ const AppSidebar: React.FC = () => {
                     if (!typeDetails) return null;
                     const IconComponent = typeDetails.icon;
                     return (
-                      <div key={contentTypeKey} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80">
+                      <Link
+                        key={contentTypeKey}
+                        href={`/content-types/${encodeURIComponent(contentTypeKey)}`}
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary/80 aria-[current=page]:text-sidebar-primary-foreground"
+                      >
                         <IconComponent className="h-4 w-4 opacity-70" />
                         {typeDetails.name}
-                      </div>
+                      </Link>
                     );
                   })}
                   {contentTypes.length === 0 && <p className="px-3 py-2 text-xs text-sidebar-foreground/60">No matching content types found.</p>}
