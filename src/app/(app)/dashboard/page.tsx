@@ -19,7 +19,7 @@ import { getContentItems, addContentItem, deleteContentItem, getZones, getUnique
 import { cn } from '@/lib/utils';
 
 const pageLoadingMessages = [
-  "Organizing your thoughts...",
+  "Organizing your memories...",
   "Fetching your inspirations...",
   "Aligning your ideas...",
   "Connecting the dots...",
@@ -227,7 +227,7 @@ export default function DashboardPage() {
   return (
     <div className="container mx-auto py-2">
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-        <h1 className="text-3xl font-headline font-semibold text-foreground">My Thoughts</h1>
+        <h1 className="text-3xl font-headline font-semibold text-foreground">My Memories</h1>
         <div className="flex items-center gap-2">
             <Popover open={isFilterPopoverOpen} onOpenChange={setIsFilterPopoverOpen}>
                 <PopoverTrigger asChild>
@@ -369,3 +369,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
