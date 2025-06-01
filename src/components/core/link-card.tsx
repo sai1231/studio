@@ -85,30 +85,19 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
           ) : null}
 
           <CardHeader className={cn("pb-3", !hasImage ? "pt-4" : "pt-3")}>
-            {!hasImage && (
-              <div className="flex items-baseline gap-3 mb-2"> {/* Changed items-center to items-baseline */}
-                <div className={cn("p-2 rounded-full ring-2", specifics.iconRing, specifics.iconBg?.replace('bg-', 'bg-opacity-50 dark:bg-opacity-50 bg-'))}>
-                  <IconComponent className={cn("h-6 w-6", specifics.iconText)} />
-                </div>
-                <CardTitle className="text-xl font-headline leading-tight group-hover/link:text-primary transition-colors">
-                  {item.title}
-                </CardTitle>
+            <div className="flex items-baseline gap-3 mb-2">
+              <div className={cn("p-2 rounded-full ring-2", specifics.iconRing, "bg-muted/30 dark:bg-muted/20")}>
+                <IconComponent className={cn("h-6 w-6", specifics.iconText)} />
               </div>
-            )}
-            {hasImage && (
-                 <CardTitle className="text-lg font-headline leading-tight group-hover/link:text-primary transition-colors">
-                    {item.title}
-                </CardTitle>
-            )}
-            {item.type === 'link' && (
+              <CardTitle className="text-xl font-headline leading-tight group-hover/link:text-primary transition-colors">
+                {item.title}
+              </CardTitle>
+            </div>
+            
+            {item.type === 'link' && item.url && (
               <CardDescription className="text-xs text-muted-foreground flex items-center pt-1">
                 <Globe className="h-3 w-3 mr-1.5 shrink-0" />
                 <span className="truncate group-hover/link:underline">{item.url}</span>
-              </CardDescription>
-            )}
-            {item.type !== 'link' && !hasImage && (
-              <CardDescription className={cn("text-xs flex items-center pt-1", specifics.iconText ? specifics.iconText.replace('text-', 'text-opacity-70 ') : 'text-muted-foreground')}>
-                <span className="capitalize">{item.type}</span>
               </CardDescription>
             )}
           </CardHeader>
