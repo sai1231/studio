@@ -85,7 +85,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
           ) : null}
 
           <CardHeader className={cn("pb-3", !hasImage ? "pt-4" : "pt-3")}>
-            <div className="flex items-center gap-3 mb-2"> {/* Changed items-baseline to items-center */}
+            <div className="flex items-center gap-3 mb-2">
               <div className={cn("p-2 rounded-full ring-2", specifics.iconRing, "bg-muted/30 dark:bg-muted/20")}>
                 <IconComponent className={cn("h-6 w-6", specifics.iconText)} />
               </div>
@@ -132,7 +132,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
             {item.tags && item.tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {item.tags.slice(0, 2).map((tag) => ( 
-                  <Badge key={tag.id} variant="secondary" className="font-normal bg-opacity-70 dark:bg-opacity-50 text-xs py-0.5 px-1.5">
+                  <Badge key={tag.id} variant="default" className="font-normal text-xs py-0.5 px-1.5">
                     {tag.name}
                   </Badge>
                 ))}
