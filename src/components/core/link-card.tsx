@@ -85,7 +85,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete }) => {
           ) : null}
 
           <CardHeader className={cn("pb-3", !hasImage ? "pt-4" : "pt-3")}>
-            <div className="flex items-baseline gap-3 mb-2">
+            <div className="flex items-center gap-3 mb-2"> {/* Changed items-baseline to items-center */}
               <div className={cn("p-2 rounded-full ring-2", specifics.iconRing, "bg-muted/30 dark:bg-muted/20")}>
                 <IconComponent className={cn("h-6 w-6", specifics.iconText)} />
               </div>
