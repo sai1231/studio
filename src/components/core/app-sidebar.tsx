@@ -89,7 +89,7 @@ const AppSidebar: React.FC = () => {
               className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary aria-[current=page]:text-sidebar-primary-foreground"
             >
               <Home className="h-4 w-4" />
-              All Content
+              All Memories
             </Link>
 
             <Link
