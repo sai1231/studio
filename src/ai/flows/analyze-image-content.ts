@@ -48,8 +48,14 @@ const analyzeImageContentFlow = ai.defineFlow(
     outputSchema: AnalyzeImageContentOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    // Ensure output is not null, providing default empty values if necessary.
-    return output || { dominantColors: [], extractedText: '' };
+    try {
+      const {output} = await prompt(input);
+      // Ensure output is not null, providing default empty values if necessary.
+      return output || { dominantColors: [], extractedText: '' };
+    } catch (error) {
+      console.error('Error in analyzeImageContentFlow:', error);
+      // Return a default safe output if any error occurs during the prompt call or Zod parsing
+      return { dominantColors: [], extractedText: '' };
+    }
   }
 );
