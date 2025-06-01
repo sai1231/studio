@@ -31,7 +31,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
         <Input
           type="search"
-          placeholder="Search your Mati content..." // Changed Klipped to Mati
+          placeholder="Search your memories" 
           className="w-full rounded-lg bg-muted pl-12 pr-4 py-4 text-lg h-14 focus-visible:ring-accent"
           onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
         />
