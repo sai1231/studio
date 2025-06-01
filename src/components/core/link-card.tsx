@@ -1,3 +1,4 @@
+
 import type React from 'react';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +13,20 @@ interface LinkCardProps {
   onEdit: (link: LinkItem) => void;
   onDelete: (linkId: string) => void;
 }
+
+const getHintFromLink = (link: LinkItem): string => {
+  let hint = "website content"; // Default hint
+  if (link.tags && link.tags.length > 0) {
+    // Use first word of up to two tags
+    hint = link.tags.slice(0, 2).map(tag => tag.name.split(' ')[0]).join(' ');
+  } else if (link.title) {
+    // Use first two words of title if no tags
+    hint = link.title.split(' ').slice(0, 2).join(' ');
+  }
+  // Ensure hint is not empty and respects potential length limits (though explicit limit not enforced here, just structure)
+  return hint.toLowerCase() || "web content"; 
+};
+
 
 const LinkCard: React.FC<LinkCardProps> = ({ link, onEdit, onDelete }) => {
   const renderSentimentIcon = () => {
@@ -37,7 +52,7 @@ const LinkCard: React.FC<LinkCardProps> = ({ link, onEdit, onDelete }) => {
             alt={link.title} 
             layout="fill" 
             objectFit="cover" 
-            data-ai-hint="website preview technology"
+            data-ai-hint={getHintFromLink(link)}
           />
         </div>
       )}
@@ -96,3 +111,4 @@ const LinkCard: React.FC<LinkCardProps> = ({ link, onEdit, onDelete }) => {
 };
 
 export default LinkCard;
+
