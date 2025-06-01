@@ -37,17 +37,26 @@ export async function getContentItems(userId?: string): Promise<ContentItem[]> {
   const querySnapshot = await getDocs(q);
   const items: ContentItem[] = [];
   querySnapshot.forEach((doc) => {
-    const data = doc.data() as ContentItemFirestoreData;
-    
+    const rawData = doc.data();
+
+    // Validate required fields from Firestore
+    if (!rawData.title || !rawData.type || !rawData.collectionId) {
+      console.warn(`Document ${doc.id} is missing required fields (title, type, or collectionId) and will be skipped. Data:`, rawData);
+      return; // Skip this document
+    }
+
+    // Now that basic required fields are checked, we can cast more confidently.
+    // However, other fields in ContentItemFirestoreData might still be missing if not handled.
+    const firestoreData = rawData as ContentItemFirestoreData; 
+
     let createdAtISO = new Date().toISOString(); // Default to now if createdAt is invalid
-    if (data.createdAt && typeof (data.createdAt as Timestamp).toDate === 'function') {
-      createdAtISO = (data.createdAt as Timestamp).toDate().toISOString();
-    } else if (data.createdAt) {
+    if (firestoreData.createdAt && typeof (firestoreData.createdAt as Timestamp).toDate === 'function') {
+      createdAtISO = (firestoreData.createdAt as Timestamp).toDate().toISOString();
+    } else if (firestoreData.createdAt) {
       // If it exists but isn't a Timestamp, log a warning. It might be an old ISO string.
-      // For now, we'll attempt to parse it if it's a string, otherwise default.
-      console.warn(`Document ${doc.id} has an invalid createdAt field:`, data.createdAt);
-      if (typeof data.createdAt === 'string') {
-        const parsedDate = new Date(data.createdAt);
+      console.warn(`Document ${doc.id} has an invalid createdAt field:`, firestoreData.createdAt);
+      if (typeof firestoreData.createdAt === 'string') {
+        const parsedDate = new Date(firestoreData.createdAt);
         if (!isNaN(parsedDate.getTime())) {
           createdAtISO = parsedDate.toISOString();
         }
@@ -57,10 +66,17 @@ export async function getContentItems(userId?: string): Promise<ContentItem[]> {
     }
 
     items.push({
-      ...data,
       id: doc.id,
+      title: firestoreData.title,
+      type: firestoreData.type,
+      description: firestoreData.description, // Optional
+      url: firestoreData.url, // Optional
+      imageUrl: firestoreData.imageUrl, // Optional
+      audioUrl: firestoreData.audioUrl, // Optional
+      collectionId: firestoreData.collectionId,
+      userId: firestoreData.userId, // Optional
       createdAt: createdAtISO,
-      tags: data.tags || [], 
+      tags: firestoreData.tags || [], // Ensure tags is always an array
     });
   });
   return items;
