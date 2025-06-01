@@ -2,7 +2,7 @@
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
-import { Home, Tag, Settings, LogOut, Users, ChevronDown, Plus, Globe, ClipboardList, Bookmark, Newspaper, Film, Baseline, Github, MessageSquare, MessagesSquare, BookOpen, LucideIcon, StickyNote } from 'lucide-react';
+import { Home, Tag, Settings, LogOut, Users, ChevronDown, Plus, Globe, ClipboardList, Bookmark, Newspaper, Film, Baseline, Github, MessageSquare, MessagesSquare, BookOpen, LucideIcon, StickyNote, Briefcase, Library } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -14,6 +14,7 @@ import { ThemeToggle } from './theme-toggle';
 import { Separator } from '@/components/ui/separator';
 import { getZones, getUniqueDomains, getUniqueContentTypes } from '@/services/contentService';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 
 const mockTags: TagType[] = [
@@ -34,6 +35,13 @@ const predefinedContentTypes: Record<string, { icon: LucideIcon, name: string }>
   Article: { icon: BookOpen, name: 'Article' },
 };
 
+const iconMap: { [key: string]: React.ElementType } = {
+  Briefcase,
+  Home,
+  Library,
+  Bookmark,
+};
+
 
 const AppSidebar: React.FC = () => {
   const [zones, setZones] = useState<Zone[]>([]);
@@ -50,7 +58,7 @@ const AppSidebar: React.FC = () => {
       ]);
       setZones(fetchedZones);
       setDomains(fetchedDomains);
-      
+
       // Filter fetchedContentTypes to only include those in predefinedContentTypes
       const availablePredefinedTypes = fetchedContentTypes.filter(
         type => predefinedContentTypes[type]
@@ -83,7 +91,7 @@ const AppSidebar: React.FC = () => {
         <div className="px-4 py-3 border-b border-sidebar-border">
           <div className="flex items-center space-x-3">
             <Avatar className="h-10 w-10">
-              <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" data-ai-hint="user avatar" />
+              <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" />
               <AvatarFallback>U</AvatarFallback>
             </Avatar>
             <div>
@@ -112,16 +120,20 @@ const AppSidebar: React.FC = () => {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pl-4 mt-1 space-y-1">
-                  {zones.map((zone) => (
-                    <Link
-                      key={zone.id}
-                      href={`/zones/${zone.id}`}
-                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary/80 aria-[current=page]:text-sidebar-primary-foreground"
-                    >
-                      {zone.icon ? <zone.icon className="h-4 w-4" /> : <Bookmark className="h-4 w-4 opacity-50" />}
-                      {zone.name}
-                    </Link>
-                  ))}
+                  {zones.map((zone) => {
+                    const IconComponent = zone.icon && iconMap[zone.icon] ? iconMap[zone.icon] : Bookmark;
+                    const isDefaultIcon = !zone.icon || !iconMap[zone.icon];
+                    return (
+                      <Link
+                        key={zone.id}
+                        href={`/zones/${zone.id}`}
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary/80 aria-[current=page]:text-sidebar-primary-foreground"
+                      >
+                        <IconComponent className={cn("h-4 w-4", isDefaultIcon && "opacity-50")} />
+                        {zone.name}
+                      </Link>
+                    );
+                  })}
                   <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground/80 mt-1 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground">
                     <Plus className="h-4 w-4 mr-2" /> Add Zone
                   </Button>
@@ -161,7 +173,7 @@ const AppSidebar: React.FC = () => {
                 <AccordionContent className="pl-4 mt-1 space-y-1">
                   {domains.map((domain) => (
                     <div key={domain} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80">
-                       <Globe className="h-4 w-4 opacity-70" /> 
+                       <Globe className="h-4 w-4 opacity-70" />
                        {formatDomainName(domain)}
                     </div>
                   ))}

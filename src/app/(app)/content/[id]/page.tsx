@@ -14,13 +14,29 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil, ChevronDown, Ban } from 'lucide-react';
+import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil, ChevronDown, Ban, Briefcase, Home, Library } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-const NO_ZONE_VALUE = "__NO_ZONE__"; 
+const NO_ZONE_VALUE = "__NO_ZONE__";
+
+const iconMap: { [key: string]: React.ElementType } = {
+  Briefcase,
+  Home,
+  Library,
+  Bookmark,
+  Ban,
+};
+
+const getIconComponent = (iconName?: string): React.ElementType => {
+  if (iconName && iconMap[iconName]) {
+    return iconMap[iconName];
+  }
+  return Bookmark; // Default icon
+};
+
 
 const tagColorPalettes = [
   'bg-blue-100 text-blue-800 dark:bg-blue-700 dark:text-blue-100',
@@ -38,11 +54,11 @@ const tagColorPalettes = [
 const getTagStyles = (tagName: string): string => {
   let hash = 0;
   if (!tagName || tagName.length === 0) {
-    return tagColorPalettes[0]; 
+    return tagColorPalettes[0];
   }
   for (let i = 0; i < tagName.length; i++) {
     hash = tagName.charCodeAt(i) + ((hash << 5) - hash);
-    hash = hash & hash; 
+    hash = hash & hash;
   }
   const index = Math.abs(hash) % tagColorPalettes.length;
   return tagColorPalettes[index];
@@ -84,7 +100,7 @@ export default function ContentDetailPage() {
   const [editableDescription, setEditableDescription] = useState('');
   const [editableMindNote, setEditableMindNote] = useState('');
   const [editableZoneId, setEditableZoneId] = useState<string | undefined>(undefined);
-  
+
   const [allZones, setAllZones] = useState<Zone[]>([]);
   const [isSavingField, setIsSavingField] = useState(false);
 
@@ -103,7 +119,7 @@ export default function ContentDetailPage() {
       const fetchData = async () => {
         setIsLoading(true);
         setError(null);
-        setEmbedUrl(null); 
+        setEmbedUrl(null);
         try {
           const fetchedItem = await getContentItemById(id);
           if (fetchedItem) {
@@ -160,7 +176,7 @@ export default function ContentDetailPage() {
       let updatePayload: Partial<ContentItem> = { [fieldName]: value };
       const updatedItem = await updateContentItem(item.id, updatePayload);
       if (updatedItem) {
-        setItem(updatedItem); 
+        setItem(updatedItem);
       } else {
         throw new Error(`Failed to update ${fieldName}.`);
       }
@@ -171,7 +187,7 @@ export default function ContentDetailPage() {
       setIsSavingField(false);
     }
   };
-  
+
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEditableTitle(e.target.value);
   };
@@ -186,18 +202,18 @@ export default function ContentDetailPage() {
   };
   const handleDescriptionBlur = () => {
     if (item && editableDescription !== (item.description || '')) {
-       if (item.type === 'note' || item.type === 'todo') { 
+       if (item.type === 'note' || item.type === 'todo') {
          handleFieldUpdate('description', editableDescription);
        }
     }
   };
-  
+
   const handleMindNoteChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setEditableMindNote(e.target.value);
   };
   const handleMindNoteBlur = () => {
     if (item && editableMindNote !== (item.mindNote || '')) {
-      if (item.type === 'link' || item.type === 'image' || item.type === 'voice') { 
+      if (item.type === 'link' || item.type === 'image' || item.type === 'voice') {
         handleFieldUpdate('mindNote', editableMindNote);
       }
     }
@@ -207,7 +223,7 @@ export default function ContentDetailPage() {
     setIsComboboxOpen(false);
     setComboboxSearchText('');
 
-    if (selectedZoneValue === undefined || selectedZoneValue === NO_ZONE_VALUE) { 
+    if (selectedZoneValue === undefined || selectedZoneValue === NO_ZONE_VALUE) {
       if (item && item.zoneId !== undefined) {
         await handleFieldUpdate('zoneId', undefined);
       }
@@ -247,7 +263,7 @@ export default function ContentDetailPage() {
 
 
   const saveTags = async (tagsToSave: Tag[]) => {
-    if (!item || isSavingField) return; 
+    if (!item || isSavingField) return;
     setIsUpdatingTags(true);
     try {
       const updatedItemWithTags = await updateContentItem(item.id, { tags: tagsToSave });
@@ -259,7 +275,7 @@ export default function ContentDetailPage() {
     } catch (e) {
       console.error('Error updating tags:', e);
       toast({ title: "Error", description: "Could not save tags. Please try again.", variant: "destructive" });
-      if(item) setEditableTags(item.tags || []); 
+      if(item) setEditableTags(item.tags || []);
     } finally {
       setIsUpdatingTags(false);
     }
@@ -277,14 +293,14 @@ export default function ContentDetailPage() {
     }
     if (editableTags.find(tag => tag.name.toLowerCase() === newTagInput.trim().toLowerCase())) {
       toast({ title: "Duplicate Tag", description: `Tag "${newTagInput.trim()}" already exists.`, variant: "destructive" });
-      setNewTagInput(''); 
+      setNewTagInput('');
       return;
     }
-    const newTag: Tag = { id: Date.now().toString(), name: newTagInput.trim() }; 
+    const newTag: Tag = { id: Date.now().toString(), name: newTagInput.trim() };
     const newTags = [...editableTags, newTag];
-    
+
     setNewTagInput('');
-    setIsAddingTag(false); 
+    setIsAddingTag(false);
     saveTags(newTags);
   };
 
@@ -342,10 +358,10 @@ export default function ContentDetailPage() {
       </div>
     );
   }
-  
+
   const isDescriptionReadOnly = item.type === 'link' || item.type === 'image' || item.type === 'voice';
   const showMindNote = item.type === 'link' || item.type === 'image' || item.type === 'voice';
-  
+
   const showMediaColumn = embedUrl || (item.imageUrl && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice'));
 
 
@@ -354,7 +370,7 @@ export default function ContentDetailPage() {
     : allZones;
 
   const currentZoneObject = editableZoneId ? allZones.find(z => z.id === editableZoneId) : undefined;
-  const ZoneDisplayIcon = currentZoneObject?.icon || Bookmark;
+  const ZoneDisplayIcon = getIconComponent(currentZoneObject?.icon);
   const zoneDisplayName = currentZoneObject?.name || "No Zone Assigned";
 
   const tagBaseClasses = "px-3 py-1 text-xs rounded-full font-medium group relative";
@@ -372,8 +388,8 @@ export default function ContentDetailPage() {
         )}>
           {showMediaColumn && (
             <div className={cn(
-                "relative w-full overflow-hidden rounded-xl shadow-sm", 
-                embedUrl ? "aspect-video" : "aspect-[3/4] md:aspect-auto md:h-full" 
+                "relative w-full overflow-hidden rounded-xl shadow-sm",
+                embedUrl ? "aspect-video" : "aspect-[3/4] md:aspect-auto md:h-full"
             )}>
               {embedUrl ? (
                 <iframe
@@ -398,7 +414,7 @@ export default function ContentDetailPage() {
           <div className="flex flex-col">
              <CardHeader className={cn(
                 "pb-4",
-                 showMediaColumn ? "" : "rounded-t-lg" 
+                 showMediaColumn ? "" : "rounded-t-lg"
             )}>
               {item.domain && (
                 <div className="flex items-center text-xs text-muted-foreground mb-1.5">
@@ -418,7 +434,7 @@ export default function ContentDetailPage() {
                   )}
                 </div>
               )}
-              <div className="flex items-center justify-between space-x-2 pr-20 relative"> 
+              <div className="flex items-center justify-between space-x-2 pr-20 relative">
                 <div className="flex items-center space-x-2 flex-grow">
                     {isSavingField && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
                     <Input
@@ -433,17 +449,17 @@ export default function ContentDetailPage() {
               </div>
             </CardHeader>
 
-            <CardContent className="space-y-4 pt-2 flex-grow"> 
+            <CardContent className="space-y-4 pt-2 flex-grow">
               <div>
-                <h3 className="text-lg font-semibold mb-1 text-foreground flex items-center sr-only"> 
+                <h3 className="text-lg font-semibold mb-1 text-foreground flex items-center sr-only">
                     <Edit3 className="h-4 w-4 mr-2 text-muted-foreground"/> Description
                 </h3>
                 {isDescriptionReadOnly ? (
                     <div className={cn(
                         "prose dark:prose-invert prose-sm max-w-none py-2 px-1 min-h-[60px]",
-                        "text-sm text-gray-500 dark:text-gray-400" 
+                        "text-sm text-gray-500 dark:text-gray-400"
                       )}
-                    > 
+                    >
                         {editableDescription ? (
                             <div dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
                         ) : (
@@ -457,20 +473,20 @@ export default function ContentDetailPage() {
                         onBlur={handleDescriptionBlur}
                         disabled={isSavingField || isUpdatingTags}
                         placeholder="Enter description..."
-                        className="w-full min-h-[100px] focus-visible:ring-accent" 
+                        className="w-full min-h-[100px] focus-visible:ring-accent"
                     />
                 )}
               </div>
 
               {item.type === 'voice' && item.audioUrl && (
-                <div className="mt-2"> 
+                <div className="mt-2">
                   <audio controls src={item.audioUrl} className="w-full">
                     Your browser does not support the audio element.
                   </audio>
                 </div>
               )}
 
-              <div className="text-sm items-center pt-1"> 
+              <div className="text-sm items-center pt-1">
                 <div className="flex items-center space-x-2">
                      <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
                         <PopoverTrigger asChild>
@@ -494,7 +510,7 @@ export default function ContentDetailPage() {
                         </PopoverTrigger>
                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-gray-50 dark:bg-gray-700">
                             <Command>
-                                <CommandInput 
+                                <CommandInput
                                     placeholder="Search or create zone..."
                                     value={comboboxSearchText}
                                     onValueChange={setComboboxSearchText}
@@ -513,7 +529,7 @@ export default function ContentDetailPage() {
                                     </CommandEmpty>
                                     <CommandGroup>
                                         <CommandItem
-                                            value={NO_ZONE_VALUE} 
+                                            value={NO_ZONE_VALUE}
                                             onSelect={() => handleZoneSelection(NO_ZONE_VALUE)}
                                         >
                                             <Check
@@ -526,7 +542,7 @@ export default function ContentDetailPage() {
                                             No Zone Assigned
                                         </CommandItem>
                                         {filteredZones.map((z) => {
-                                          const CurrentZoneIcon = z.icon || Bookmark;
+                                          const ListItemIcon = getIconComponent(z.icon);
                                           return (
                                             <CommandItem
                                                 key={z.id}
@@ -541,7 +557,7 @@ export default function ContentDetailPage() {
                                                     editableZoneId === z.id ? "opacity-100" : "opacity-0"
                                                 )}
                                                 />
-                                                <CurrentZoneIcon className="mr-2 h-4 w-4 opacity-70" />
+                                                <ListItemIcon className="mr-2 h-4 w-4 opacity-70" />
                                                 {z.name}
                                             </CommandItem>
                                           );
@@ -560,9 +576,9 @@ export default function ContentDetailPage() {
                     </Popover>
                 </div>
               </div>
-              
-              <div className="pt-1"> 
-                <div className="flex flex-wrap items-center gap-2 mb-2"> 
+
+              <div className="pt-1">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
                   {editableTags.map(tag => (
                     <Badge key={tag.id} className={cn(tagBaseClasses, getTagStyles(tag.name))}>
                       {tag.name}
@@ -639,8 +655,8 @@ export default function ContentDetailPage() {
               </div>
 
               {showMindNote && (
-                <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg mt-4"> 
-                    <h3 className="text-lg font-semibold mb-1 text-foreground flex items-center"> 
+                <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg mt-4">
+                    <h3 className="text-lg font-semibold mb-1 text-foreground flex items-center">
                         <StickyNote className="h-4 w-4 mr-2 text-muted-foreground"/> Mind Note
                     </h3>
                     <Textarea
@@ -661,19 +677,9 @@ export default function ContentDetailPage() {
                     <span>{format(new Date(item.createdAt), 'MMM d, yyyy')}</span>
                 </div>
             </CardFooter>
-          </div> 
-        </div> 
+          </div>
+        </div>
       </Card>
     </div>
   );
 }
-    
-
-  
-
-
-
-
-
-
-

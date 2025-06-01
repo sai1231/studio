@@ -1,8 +1,8 @@
 
-'use server'; 
+'use server';
 
 import type { ContentItem, Zone, Tag } from '@/types';
-import { Briefcase, Home, Library } from 'lucide-react';
+// Lucide icons are no longer imported here directly for mockZones
 
 let mockContentItems: ContentItem[] = [
   {
@@ -14,8 +14,8 @@ let mockContentItems: ContentItem[] = [
     mindNote: 'Remember to check the latest ISR strategies.',
     imageUrl: 'https://source.unsplash.com/600x400/?technology,code,web',
     tags: [{ id: 't2', name: 'nextjs' }, { id: 't1', name: 'productivity' }],
-    zoneId: '1', 
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), 
+    zoneId: '1',
+    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
     domain: 'nextjs.org',
     contentType: 'Documentation',
   },
@@ -25,8 +25,8 @@ let mockContentItems: ContentItem[] = [
     title: 'My Shopping List',
     description: 'Milk, Eggs, Bread, Coffee, Avocado, Chicken Breast',
     tags: [{ id: 't-personal', name: 'personal' }, { id: 't-todos', name: 'todos' }],
-    zoneId: '2', 
-    createdAt: new Date(Date.now() - 86400000 * 1).toISOString(), 
+    zoneId: '2',
+    createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
     contentType: 'List',
   },
   {
@@ -37,7 +37,7 @@ let mockContentItems: ContentItem[] = [
     mindNote: 'Could be a good wallpaper for my desktop.',
     imageUrl: 'https://source.unsplash.com/600x400/?landscape,nature,mountains',
     tags: [{ id: 't4', name: 'inspiration' }, {id: 't-nature', name: 'nature'}],
-    zoneId: '1', 
+    zoneId: '1',
     createdAt: new Date().toISOString(),
   },
   {
@@ -99,17 +99,17 @@ let mockContentItems: ContentItem[] = [
     description: 'Insights on a trending topic in user experience for 2024.',
     imageUrl: 'https://source.unsplash.com/600x400/?design,ux,article',
     tags: [{ id: 't-reading', name: 'reading' }, { id: 't-design', name: 'UX design'}],
-    zoneId: '2', 
+    zoneId: '2',
     createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
     domain: 'medium.com',
-    contentType: 'Article', 
+    contentType: 'Article',
   },
   {
     id: '9',
     type: 'voice',
     title: 'Quick Voice Memo - Project Update',
     description: 'Reminder for upcoming meeting and agenda points for Project Phoenix.',
-    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', 
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
     tags: [{ id: 't-work', name: 'work' }, { id: 't-reminder', name: 'reminder' }],
     zoneId: '1',
     createdAt: new Date(Date.now() - 86400000 * 0.1).toISOString(),
@@ -192,7 +192,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     title: 'Important Tech Presentation (Music Video)',
     description: 'A must-watch presentation on new web technologies and classic tunes.',
-    imageUrl: 'https://source.unsplash.com/600x400/?youtube,presentation,music', 
+    imageUrl: 'https://source.unsplash.com/600x400/?youtube,presentation,music',
     tags: [{ id: 't-video', name: 'video' }, { id: 't-tech', name: 'technology presentation' }, {id: 't-music', name: 'music'}],
     zoneId: '1',
     createdAt: new Date(Date.now() - 86400000 * 0.7).toISOString(),
@@ -201,10 +201,10 @@ let mockContentItems: ContentItem[] = [
   }
 ];
 
-let mockZones: Zone[] = [ 
-  { id: '1', name: 'Work & Learning', icon: Briefcase },
-  { id: '2', name: 'Personal & Home', icon: Home },
-  { id: '3', name: 'Interests & Media', icon: Library },
+let mockZones: Zone[] = [
+  { id: '1', name: 'Work & Learning', icon: 'Briefcase' },
+  { id: '2', name: 'Personal & Home', icon: 'Home' },
+  { id: '3', name: 'Interests & Media', icon: 'Library' },
 ];
 
 // Function to get all content items
@@ -220,15 +220,15 @@ export async function getContentItemById(id: string): Promise<ContentItem | unde
 }
 
 // Function to get all zones
-export async function getZones(userId?: string): Promise<Zone[]> { 
+export async function getZones(userId?: string): Promise<Zone[]> {
   await new Promise(resolve => setTimeout(resolve, 50));
-  return [...mockZones]; 
+  return [...mockZones];
 }
 
 // Function to get a single zone by ID
-export async function getZoneById(id: string): Promise<Zone | undefined> { 
+export async function getZoneById(id: string): Promise<Zone | undefined> {
   await new Promise(resolve => setTimeout(resolve, 50));
-  return mockZones.find(zone => zone.id === id); 
+  return mockZones.find(zone => zone.id === id);
 }
 
 // Function to add a new zone
@@ -249,7 +249,7 @@ export async function addContentItem(
   itemData: Omit<ContentItem, 'id' | 'createdAt'>
 ): Promise<ContentItem> {
   await new Promise(resolve => setTimeout(resolve, 100));
-  
+
   let extractedDomain: string | undefined = itemData.domain;
   if (itemData.type === 'link' && itemData.url && !extractedDomain) {
     try {
@@ -262,15 +262,15 @@ export async function addContentItem(
 
   const newItem: ContentItem = {
     ...itemData,
-    id: Date.now().toString(), 
+    id: Date.now().toString(),
     createdAt: new Date().toISOString(),
     domain: extractedDomain,
     contentType: itemData.contentType,
     mindNote: itemData.mindNote,
-    audioUrl: itemData.audioUrl, 
+    audioUrl: itemData.audioUrl,
     imageUrl: itemData.imageUrl || (itemData.type !== 'note' && itemData.type !== 'voice' ? `https://source.unsplash.com/600x400/?${itemData.title.split(" ")[0] || 'abstract'}` : undefined)
   };
-  mockContentItems.unshift(newItem); 
+  mockContentItems.unshift(newItem);
   return newItem;
 }
 
@@ -308,15 +308,15 @@ export async function updateContentItem(
 // Mock function for file upload, returns a placeholder URL
 export async function uploadFile(file: File, path: string): Promise<string> {
   console.log(`Mock uploading file ${file.name} to ${path}`);
-  await new Promise(resolve => setTimeout(resolve, 200)); 
-  
+  await new Promise(resolve => setTimeout(resolve, 200));
+
   if (file.type.startsWith('audio/')) {
     // For audio, return a generic mp3 link
     return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-Random.mp3'; // Using a more generic name
   }
   // For images, return a dynamic Unsplash URL based on a simple keyword from filename or a default
   const query = file.name.split('.')[0].split(' ')[0] || 'upload'; // a simple keyword
-  return `https://source.unsplash.com/600x400/?${query},abstract`; 
+  return `https://source.unsplash.com/600x400/?${query},abstract`;
 }
 
 // Function to get unique domains
