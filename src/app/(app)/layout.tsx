@@ -5,9 +5,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import AppHeader from '@/components/core/app-header';
 import AppSidebar from '@/components/core/app-sidebar';
 import AddContentDialog from '@/components/core/add-content-dialog';
-import type { Zone, ContentItem } from '@/types'; // Renamed Collection to Zone
+import type { Zone, ContentItem } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { addContentItem, getZones, uploadFile } from '@/services/contentService'; // Renamed getCollections to getZones
+import { addContentItem, getZones, uploadFile } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -23,22 +23,22 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
-  const [zones, setZones] = useState<Zone[]>([]); // Renamed collections to zones
+  const [zones, setZones] = useState<Zone[]>([]);
   const { toast } = useToast();
   const imageUploadInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchZones = useCallback(async () => { // Renamed fetchCollections to fetchZones
+  const fetchZones = useCallback(async () => {
     try {
-      const fetchedZones = await getZones(); // Renamed getCollections to getZones
-      setZones(fetchedZones); // Renamed collections to zones
+      const fetchedZones = await getZones();
+      setZones(fetchedZones);
     } catch (error) {
-      console.error("Error fetching zones:", error); // Renamed collections to zones
-      toast({ title: "Error", description: "Could not load zones.", variant: "destructive" }); // Renamed collections to zones
+      console.error("Error fetching zones:", error);
+      toast({ title: "Error", description: "Could not load zones.", variant: "destructive" });
     }
   }, [toast]);
 
   useEffect(() => {
-    fetchZones(); // Renamed fetchCollections to fetchZones
+    fetchZones();
   }, [fetchZones]);
 
   const handleAddContentFromDialog = async (newContentData: Omit<ContentItem, 'id' | 'createdAt'>) => {
@@ -80,10 +80,10 @@ export default function AppLayout({
       currentToast.update({
         id: currentToast.id,
         title: "Saving Image...",
-        description: "Adding your image to your zone.", // Renamed collection to zone
+        description: "Adding your image to your zone.",
       });
       
-      const defaultZoneId = zones.length > 0 ? zones[0].id : "1"; // Renamed defaultCollectionId to defaultZoneId
+      const defaultZoneId = zones.length > 0 ? zones[0].id : "1"; 
 
       const newImageContent: Omit<ContentItem, 'id' | 'createdAt'> = {
         type: 'image',
@@ -91,7 +91,7 @@ export default function AppLayout({
         description: `Uploaded image: ${file.name}`,
         imageUrl: downloadURL,
         tags: [{id: 'upload', name: 'upload'}], 
-        zoneId: defaultZoneId, // Renamed collectionId to zoneId
+        zoneId: defaultZoneId,
       };
       
       await addContentItem(newImageContent);
@@ -134,7 +134,7 @@ export default function AppLayout({
   return (
     <div className="flex min-h-screen w-full">
       <AppSidebar />
-      <div className="flex flex-col flex-1 md:ml-64">
+      <div className="flex flex-col flex-1 md:ml-64 min-w-0"> {/* Added min-w-0 here */}
         <AppHeader />
         <main className="flex-1 p-4 md:p-6 lg:p-8 bg-background overflow-auto">
           {children}
@@ -143,7 +143,7 @@ export default function AppLayout({
       <AddContentDialog
         open={isAddContentDialogOpen}
         onOpenChange={setIsAddContentDialogOpen}
-        zones={zones} // Renamed collections to zones
+        zones={zones}
         onContentAdd={handleAddContentFromDialog} 
       />
       
