@@ -142,7 +142,7 @@ export default function ContentDetailPage() {
     try {
         const updatedDetails: Partial<ContentItem> = {
             title: editableTitle,
-            description: editableDescription,
+            description: (item.type === 'link' || item.type === 'image' || item.type === 'voice') ? item.description : editableDescription, // Keep original description if read-only
             mindNote: (item.type === 'image' || item.type === 'link') ? editableMindNote : undefined,
             zoneId: editableZoneId, 
         };
@@ -186,6 +186,7 @@ export default function ContentDetailPage() {
       if (updatedItem) {
         setItem(prevItem => prevItem ? { ...prevItem, tags: updatedItem.tags || [] } : null);
         setEditableTags(updatedItem.tags || []);
+        // Success toast removed as per user request
       } else {
         throw new Error("Failed to update item tags.");
       }
@@ -277,6 +278,8 @@ export default function ContentDetailPage() {
       </div>
     );
   }
+  
+  const isDescriptionReadOnly = item.type === 'link' || item.type === 'image' || item.type === 'voice';
 
   return (
     <div className="container mx-auto py-6 max-w-3xl">
@@ -319,14 +322,15 @@ export default function ContentDetailPage() {
         <CardContent className="space-y-6">
           <div>
             <h3 className="text-lg font-semibold mb-2 text-foreground flex items-center">
-                <Edit3 className="h-4 w-4 mr-2 text-muted-foreground"/> Description
+                <Edit3 className="h-4 w-4 mr-2 text-muted-foreground"/> Description {isDescriptionReadOnly && <span className="text-xs text-muted-foreground ml-2">(Read-only)</span>}
             </h3>
             <Textarea
                 value={editableDescription}
                 onChange={handleDescriptionChange}
-                disabled={isSavingItemDetails}
-                placeholder="Enter description..."
+                disabled={isSavingItemDetails || isDescriptionReadOnly}
+                placeholder={isDescriptionReadOnly && !editableDescription ? "No description provided." : "Enter description..."}
                 className="w-full min-h-[120px] focus-visible:ring-accent"
+                readOnly={isDescriptionReadOnly}
             />
           </div>
 
@@ -378,7 +382,7 @@ export default function ContentDetailPage() {
             <div className="flex items-center space-x-2 text-muted-foreground">
                 <Folder className="h-4 w-4" />
                 <Select
-                    value={editableZoneId || NO_ZONE_VALUE} // Use NO_ZONE_VALUE when editableZoneId is undefined
+                    value={editableZoneId || NO_ZONE_VALUE} 
                     onValueChange={handleZoneChange}
                     disabled={isSavingItemDetails || allZones.length === 0}
                 >
@@ -496,4 +500,5 @@ export default function ContentDetailPage() {
     
 
     
+
 
