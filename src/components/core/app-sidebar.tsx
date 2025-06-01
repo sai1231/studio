@@ -8,8 +8,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import KlippedLogo from './klipped-logo';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import type { Zone, Tag as TagType } from '@/types'; // Renamed Collection to Zone
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ThemeToggle } from './theme-toggle'; // Import ThemeToggle
+import { Separator } from '@/components/ui/separator';
 
-const mockZones: Zone[] = [ // Renamed mockCollections to mockZones
+const mockZones: Zone[] = [
   { id: '1', name: 'Work Projects', icon: Folder },
   { id: '2', name: 'Reading List', icon: Folder },
   { id: '3', name: 'Recipes', icon: Folder },
@@ -26,59 +29,73 @@ const mockTags: TagType[] = [
 
 const AppSidebar: React.FC = () => {
   return (
-    <aside className="hidden border-r bg-sidebar md:block w-64 fixed top-0 left-0 h-full z-20">
-      <div className="flex h-full max-h-screen flex-col gap-2">
-        <div className="flex h-16 items-center border-b px-6">
+    <aside className="hidden border-r bg-sidebar text-sidebar-foreground md:block w-64 fixed top-0 left-0 h-full z-20">
+      <div className="flex h-full max-h-screen flex-col">
+        <div className="flex h-16 items-center border-b border-sidebar-border px-6">
           <KlippedLogo />
         </div>
+
+        <div className="px-4 py-3 border-b border-sidebar-border">
+          <div className="flex items-center space-x-3">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" data-ai-hint="user avatar" />
+              <AvatarFallback>U</AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="text-sm font-medium text-sidebar-foreground">Samantha</p>
+              <p className="text-xs text-sidebar-foreground/70">samantha@email.com</p>
+            </div>
+          </div>
+        </div>
+
         <ScrollArea className="flex-1 py-2 px-4">
           <nav className="grid items-start gap-1 text-sm font-medium">
             <Link
               href="/dashboard"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary aria-[current=page]:text-sidebar-primary-foreground"
             >
               <Home className="h-4 w-4" />
-              All Links
+              All Content
             </Link>
 
-            <Accordion type="multiple" defaultValue={['zones', 'tags']} className="w-full"> {/* Renamed collections to zones */}
-              <AccordionItem value="zones"> {/* Renamed collections to zones */}
+            <Accordion type="multiple" defaultValue={['zones', 'tags']} className="w-full">
+              <AccordionItem value="zones" className="border-b-0">
                 <AccordionTrigger className="px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg hover:no-underline">
                   <div className="flex items-center gap-3">
                     <Folder className="h-4 w-4" />
-                    Zones {/* Renamed Collections to Zones */}
+                    Zones
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="pl-4">
-                  {mockZones.map((zone) => ( // Renamed mockCollections to mockZones, collection to zone
+                <AccordionContent className="pl-4 mt-1 space-y-1">
+                  {mockZones.map((zone) => (
                     <Link
                       key={zone.id}
-                      href={`/zones/${zone.id}`} // Renamed collections to zones
-                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground"
+                      href={`/zones/${zone.id}`}
+                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary/80 aria-[current=page]:text-sidebar-primary-foreground"
                     >
                       {zone.icon && <zone.icon className="h-4 w-4" />}
                       {zone.name}
                     </Link>
                   ))}
                   <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground/80 mt-1 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground">
-                    <Plus className="h-4 w-4 mr-2" /> Add Zone {/* Renamed Add Collection to Add Zone */}
+                    <Plus className="h-4 w-4 mr-2" /> Add Zone
                   </Button>
                 </AccordionContent>
               </AccordionItem>
 
-              <AccordionItem value="tags">
+              <AccordionItem value="tags" className="border-b-0">
                 <AccordionTrigger className="px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg hover:no-underline">
                   <div className="flex items-center gap-3">
                     <Tag className="h-4 w-4" />
                     Tags
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="pl-4">
+                <AccordionContent className="pl-4 mt-1 space-y-1">
                   {mockTags.map((tag) => (
                     <Link
                       key={tag.id}
                       href={`/tags/${tag.id}`}
-                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground"
+                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary/80 aria-[current=page]:text-sidebar-primary-foreground"
                     >
                        # {tag.name}
                     </Link>
@@ -99,7 +116,11 @@ const AppSidebar: React.FC = () => {
             </Link>
           </nav>
         </ScrollArea>
-        <div className="mt-auto p-4 border-t">
+        <Separator className="bg-sidebar-border my-2" />
+        <div className="p-4">
+            <ThemeToggle />
+        </div>
+        <div className="p-4 border-t border-sidebar-border">
            <Button variant="ghost" className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
              <LogOut className="h-4 w-4 mr-2" />
              Logout

@@ -50,7 +50,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
   };
 
   return (
-    <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full group">
+    <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full group rounded-2xl"> {/* Increased rounding */}
       <Link href={`/content/${item.id}`} passHref className="flex flex-col flex-grow">
         <div className="flex flex-col flex-grow cursor-pointer">
           {item.imageUrl && (item.type === 'link' || item.type === 'image') && (
@@ -61,6 +61,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                 layout="fill"
                 objectFit="cover"
                 data-ai-hint={getHintFromItem(item)}
+                className="rounded-t-2xl" // Match parent rounding
               />
             </div>
           )}
