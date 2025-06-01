@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { getContentItemById, updateContentItem, getZones, addZone } from '@/services/contentService';
-import type { ContentItem, Zone, Tag } from '@/types';
+import type { ContentItem, Zone, Tag, MovieDetails } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil, ChevronDown, Ban, Briefcase, Home, Library } from 'lucide-react';
+import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil, ChevronDown, Ban, Briefcase, Home, Library, Star, Film, Users, Clapperboard, Glasses } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -202,7 +202,7 @@ export default function ContentDetailPage() {
   };
   const handleDescriptionBlur = () => {
     if (item && editableDescription !== (item.description || '')) {
-       if (item.type === 'note' || item.type === 'todo') {
+       if (item.type === 'note' || item.type === 'todo' || item.type === 'movie') { // Allow movie description edit
          handleFieldUpdate('description', editableDescription);
        }
     }
@@ -213,7 +213,7 @@ export default function ContentDetailPage() {
   };
   const handleMindNoteBlur = () => {
     if (item && editableMindNote !== (item.mindNote || '')) {
-      if (item.type === 'link' || item.type === 'image' || item.type === 'voice') {
+      if (item.type === 'link' || item.type === 'image' || item.type === 'voice' || item.type === 'movie') {
         handleFieldUpdate('mindNote', editableMindNote);
       }
     }
@@ -359,10 +359,9 @@ export default function ContentDetailPage() {
     );
   }
 
-  const isDescriptionReadOnly = item.type === 'link' || item.type === 'image' || item.type === 'voice';
-  const showMindNote = item.type === 'link' || item.type === 'image' || item.type === 'voice';
-
-  const showMediaColumn = embedUrl || (item.imageUrl && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice'));
+  const isDescriptionReadOnly = (item.type === 'link' && item.contentType !== 'Article' && item.type !== 'movie') || item.type === 'image' || item.type === 'voice';
+  const showMindNote = item.type === 'link' || item.type === 'image' || item.type === 'voice' || item.type === 'movie';
+  const showMediaColumn = embedUrl || (item.imageUrl && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice' || item.type === 'movie'));
 
 
   const filteredZones = comboboxSearchText
@@ -403,6 +402,7 @@ export default function ContentDetailPage() {
                 <Image
                   src={item.imageUrl}
                   alt={editableTitle || 'Content Image'}
+                  data-ai-hint={item.title || "image"}
                   fill
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   className="object-cover rounded-xl"
@@ -413,14 +413,14 @@ export default function ContentDetailPage() {
 
           <div className="flex flex-col">
              <CardHeader className={cn(
-                "pb-4",
+                "pb-2", // Reduced bottom padding
                  showMediaColumn ? "" : "rounded-t-lg"
             )}>
               {item.domain && (
                 <div className="flex items-center text-xs text-muted-foreground mb-1.5">
                   <Globe className="h-3.5 w-3.5 mr-1.5" />
                   <span>{item.domain}</span>
-                  {item.type === 'link' && item.url && (
+                  {(item.type === 'link' || item.type === 'movie') && item.url && (
                     <TooltipProvider>
                         <Tooltip>
                         <TooltipTrigger asChild>
@@ -447,9 +447,47 @@ export default function ContentDetailPage() {
                     />
                 </div>
               </div>
+               {item.contentType === 'Article' && item.url && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                  className="mt-3"
+                >
+                  <a
+                    href={`https://www.printfriendly.com/p/print/?source=klipped&url=${encodeURIComponent(item.url)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Glasses className="mr-2 h-4 w-4" />
+                    Simplified View
+                  </a>
+                </Button>
+              )}
             </CardHeader>
 
-            <CardContent className="space-y-4 pt-2 flex-grow">
+            <CardContent className="space-y-4 pt-4 flex-grow"> {/* Increased top padding if article button not present */}
+              {item.type === 'movie' && item.movieDetails && (
+                <div className="space-y-2 border-b pb-3 mb-3">
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Star className="h-4 w-4 mr-1.5 text-yellow-400 fill-yellow-400" />
+                    <span>{item.movieDetails.rating ? `${item.movieDetails.rating.toFixed(1)}/10` : 'N/A'}</span>
+                    <span className="mx-2">|</span>
+                    <CalendarDays className="h-4 w-4 mr-1.5" />
+                    <span>{item.movieDetails.releaseYear || 'N/A'}</span>
+                  </div>
+                  {item.movieDetails.director && <p className="text-sm"><strong className="font-medium text-foreground">Director:</strong> {item.movieDetails.director}</p>}
+                   {item.movieDetails.cast && item.movieDetails.cast.length > 0 && <p className="text-sm"><strong className="font-medium text-foreground">Cast:</strong> {item.movieDetails.cast.slice(0,5).join(', ')}{item.movieDetails.cast.length > 5 ? '...' : ''}</p>}
+                  {item.movieDetails.genres && item.movieDetails.genres.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {item.movieDetails.genres.map(genre => (
+                        <Badge key={genre} variant="secondary" className="text-xs">{genre}</Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div>
                 <h3 className="text-lg font-semibold mb-1 text-foreground flex items-center sr-only">
                     <Edit3 className="h-4 w-4 mr-2 text-muted-foreground"/> Description
