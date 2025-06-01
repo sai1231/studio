@@ -54,19 +54,20 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
 
   const renderDescription = (description: string | undefined) => {
     if (!description) return null;
+    const truncatedDescription = description.length > 150 ? description.substring(0, 150) + '...' : description;
     if (item.type === 'note' || item.type === 'todo') {
-      return description.split('\n').map((line, index) => (
+      return truncatedDescription.split('\n').map((line, index) => (
         <p key={index} className="mb-1 last:mb-0">
           {line.startsWith('- ') || line.startsWith('* ') ? `• ${line.substring(2)}` : line}
         </p>
       ));
     }
-    return <div className="text-sm text-muted-foreground break-words" dangerouslySetInnerHTML={{ __html: description.length > 100 ? description.substring(0, 100) + '...' : description }} />;
+    return <div className="text-sm text-muted-foreground break-words" dangerouslySetInnerHTML={{ __html: truncatedDescription }} />;
   };
 
   return (
     <Card className={cn(
-      "overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full group rounded-2xl",
+      "overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col group rounded-2xl break-inside-avoid mb-4",
       !hasImage && specifics.bgClass 
     )}>
       <Link href={`/content/${item.id}`} passHref className="flex flex-col flex-grow group/link">

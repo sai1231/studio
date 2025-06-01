@@ -5,56 +5,67 @@ import type React from 'react';
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import ContentCard from '@/components/core/link-card';
-import type { ContentItem, Zone } from '@/types'; // Updated to Zone
+import type { ContentItem, Zone } from '@/types';
 import { Button } from '@/components/ui/button';
 import { LayoutGrid, LayoutList, ListFilter, FolderOpen, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getContentItems, getZoneById } from '@/services/contentService'; // Updated to getZoneById
+import { getContentItems, getZoneById, deleteContentItem } from '@/services/contentService'; // Added deleteContentItem
 
-export default function ZonePage({ params }: { params: { id: string } }) { // Renamed from CollectionPage
-  const zoneId = params.id; // Renamed from collectionId
+export default function ZonePage({ params }: { params: { id: string } }) {
+  const zoneId = params.id;
   const router = useRouter();
   const [items, setItems] = useState<ContentItem[]>([]);
-  const [currentZone, setCurrentZone] = useState<Zone | null>(null); // Renamed from currentCollection
+  const [currentZone, setCurrentZone] = useState<Zone | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
+  const fetchZoneData = async () => { // Renamed for clarity
     setIsLoading(true);
-    const fetchData = async () => {
-      try {
-        const foundZone = await getZoneById(zoneId); // Use new service function
-        if (foundZone) {
-          setCurrentZone(foundZone);
-          const allContent = await getContentItems(); // Fetch all items
-          const zoneItems = allContent.filter(item => item.zoneId === zoneId); // Filter by zoneId
-          setItems(zoneItems);
-        } else {
-          setCurrentZone(null);
-          setItems([]);
-        }
-      } catch (error) {
-        console.error("Error fetching zone data:", error);
-        toast({ title: "Error", description: "Could not load zone details.", variant: "destructive" });
+    try {
+      const foundZone = await getZoneById(zoneId);
+      if (foundZone) {
+        setCurrentZone(foundZone);
+        const allContent = await getContentItems();
+        const zoneItems = allContent.filter(item => item.zoneId === zoneId);
+        setItems(zoneItems);
+      } else {
         setCurrentZone(null);
         setItems([]);
-      } finally {
-        setIsLoading(false);
       }
-    };
-    fetchData();
-  }, [zoneId, toast]);
+    } catch (error) {
+      console.error("Error fetching zone data:", error);
+      toast({ title: "Error", description: "Could not load zone details.", variant: "destructive" });
+      setCurrentZone(null);
+      setItems([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchZoneData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zoneId, toast]); // fetchZoneData is not added to deps to avoid re-fetch on every render if not memoized
 
   const handleEditItem = (itemToEdit: ContentItem) => {
+    // This would typically open a dialog or navigate to an edit page
+    // For now, using a toast and potentially navigating to a generic edit page or opening AddContentDialog
     toast({ title: "Edit Action", description: `Editing "${itemToEdit.title}" (Not fully implemented on this page).`});
+    // Example: router.push(`/dashboard?edit=${itemToEdit.id}`); // Or open AddContentDialog in edit mode
   };
 
   const handleDeleteItem = async (itemIdToDelete: string) => {
-    // For mock, we'd call a delete service function then refetch or filter locally
-    setItems(prevItems => prevItems.filter(item => item.id !== itemIdToDelete));
-    toast({ title: "Item Deleted", description: "The item has been removed from this zone view.", variant: "destructive" });
-    // In a real app, you would call deleteContentItem(itemIdToDelete) and then refetch or update state.
+    const itemTitle = items.find(item => item.id === itemIdToDelete)?.title || "Item";
+    const { id: toastId } = toast({ title: "Deleting Item...", description: `Removing "${itemTitle}".`});
+    try {
+      await deleteContentItem(itemIdToDelete);
+      toast({ id: toastId, title: "Item Deleted", description: `"${itemTitle}" has been removed.`, variant: "default" });
+      fetchZoneData(); // Refetch data for the zone
+    } catch (e) {
+      console.error("Error deleting content:", e);
+      toast({ id: toastId, title: "Error Deleting", description: `Could not delete "${itemTitle}".`, variant: "destructive"});
+    }
   };
 
   if (isLoading) {
@@ -110,7 +121,7 @@ export default function ZonePage({ params }: { params: { id: string } }) { // Re
           </p>
         </div>
       ) : (
-        <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'grid-cols-1'}`}>
+        <div className={viewMode === 'grid' ? 'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4' : 'grid grid-cols-1 gap-4'}>
           {items.map(item => (
             <ContentCard
               key={item.id}

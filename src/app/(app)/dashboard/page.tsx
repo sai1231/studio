@@ -3,16 +3,16 @@
 import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import ContentCard from '@/components/core/link-card';
-import type { ContentItem, Zone as AppZone, Tag as AppTag } from '@/types'; // Renamed Collection to Zone
+import type { ContentItem, Zone as AppZone, Tag as AppTag } from '@/types';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ListFilter, LayoutGrid, LayoutList, Loader2, FolderOpen } from 'lucide-react';
 import AddContentDialog from '@/components/core/add-content-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { getContentItems, addContentItem, deleteContentItem, getZones } from '@/services/contentService'; // Renamed getCollections to getZones
+import { getContentItems, addContentItem, deleteContentItem, getZones } from '@/services/contentService';
 
 export default function DashboardPage() {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
-  const [zones, setZones] = useState<AppZone[]>([]); // Renamed collections to zones
+  const [zones, setZones] = useState<AppZone[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
@@ -24,12 +24,12 @@ export default function DashboardPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const [items, fetchedZones] = await Promise.all([ // Renamed fetchedCollections to fetchedZones
+      const [items, fetchedZones] = await Promise.all([
         getContentItems(),
-        getZones() // Renamed getCollections to getZones
+        getZones()
       ]);
       setContentItems(items);
-      setZones(fetchedZones); // Renamed collections to zones
+      setZones(fetchedZones);
     } catch (err) {
       console.error("Error fetching data:", err);
       setError("Failed to load content. Please try again later.");
@@ -141,7 +141,7 @@ export default function DashboardPage() {
           </Button>
         </div>
       ) : (
-        <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'grid-cols-1'}`}>
+        <div className={viewMode === 'grid' ? 'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4' : 'grid grid-cols-1 gap-4'}>
           {contentItems.map(item => (
             <ContentCard
               key={item.id}
@@ -155,7 +155,7 @@ export default function DashboardPage() {
       <AddContentDialog
         open={isAddContentDialogOpen}
         onOpenChange={setIsAddContentDialogOpen}
-        zones={zones} // Renamed collections to zones
+        zones={zones}
         onContentAdd={handleAddOrUpdateContentDialog}
       />
     </div>
