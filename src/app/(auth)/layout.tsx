@@ -1,6 +1,6 @@
 
 import type React from 'react';
-import MatiLogo from '@/components/core/klipped-logo'; // Changed from KlippedLogo
+import MatiLogo from '@/components/core/mati-logo';
 
 export default function AuthLayout({
   children,
@@ -10,7 +10,7 @@ export default function AuthLayout({
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-background to-secondary p-4">
       <div className="mb-8">
-        <MatiLogo iconSize={32} textSize="text-3xl" /> {/* Changed from KlippedLogo */}
+        <MatiLogo iconSize={32} textSize="text-3xl" />
       </div>
       <div className="w-full max-w-md">
         {children}
