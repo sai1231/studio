@@ -111,7 +111,7 @@ let mockContentItems: ContentItem[] = [
     type: 'link',
     url: 'https://drata.com/resources/reports/grc-trends?utm_source=Hacker_News&utm_medium=display&utm_campaign=20250505_stateofgrc_may2025_DG_all_ALL',
     title: 'An interesting article on GRC Trends',
-    description: 'Insights on a trending topic in Governance, Risk, and Compliance for 2025.',
+    description: 'Insights on a trending topic in Governance, Risk, and Compliance for 2025. Drata GRC report for security professionals.',
     imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't-reading', name: 'reading' }, { id: 't-grc', name: 'GRC'}],
     zoneId: '2',
@@ -396,40 +396,44 @@ export async function addContentItem(
   let finalContentType = itemData.contentType;
   let finalImageUrl = itemData.imageUrl;
   let finalDescription = itemData.description;
-  let movieDetailsData: MovieDetails | undefined = (itemData as any).movieDetails;
+  let movieDetailsData: MovieDetails | undefined = itemData.type === 'movie' ? itemData.movieDetails : undefined;
 
 
   if (itemData.url && itemData.url.includes('imdb.com/title/') && process.env.TMDB_API_KEY) {
     itemType = 'movie';
-    finalContentType = 'Movie';
+    finalContentType = 'Movie'; // Explicitly set content type for movies
     const imdbId = itemData.url.split('/title/')[1].split('/')[0];
     if (imdbId) {
       try {
         const tmdbResponse = await fetch(`https://api.themoviedb.org/3/find/${imdbId}?api_key=${process.env.TMDB_API_KEY}&external_source=imdb_id`);
         if (!tmdbResponse.ok) {
-          throw new Error(`TMDb find API error: ${tmdbResponse.status}`);
-        }
-        const tmdbFindData = await tmdbResponse.json();
+          console.error(`TMDb find API error: ${tmdbResponse.status} ${tmdbResponse.statusText}`);
+          // Do not throw, proceed with original/default data
+        } else {
+          const tmdbFindData = await tmdbResponse.json();
 
-        if (tmdbFindData.movie_results && tmdbFindData.movie_results.length > 0) {
-          const movieId = tmdbFindData.movie_results[0].id;
-          const movieDetailResponse = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${process.env.TMDB_API_KEY}&append_to_response=credits`);
-          if (!movieDetailResponse.ok) {
-            throw new Error(`TMDb movie detail API error: ${movieDetailResponse.status}`);
+          if (tmdbFindData.movie_results && tmdbFindData.movie_results.length > 0) {
+            const movieId = tmdbFindData.movie_results[0].id;
+            const movieDetailResponse = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${process.env.TMDB_API_KEY}&append_to_response=credits`);
+            if (!movieDetailResponse.ok) {
+               console.error(`TMDb movie detail API error: ${movieDetailResponse.status} ${movieDetailResponse.statusText}`);
+              // Do not throw, proceed
+            } else {
+              const movieData = await movieDetailResponse.json();
+
+              finalImageUrl = movieData.poster_path ? `https://image.tmdb.org/t/p/w500${movieData.poster_path}` : finalImageUrl;
+              finalDescription = movieData.overview || finalDescription;
+
+              movieDetailsData = {
+                posterPath: movieData.poster_path,
+                releaseYear: movieData.release_date ? movieData.release_date.split('-')[0] : undefined,
+                rating: movieData.vote_average ? parseFloat(movieData.vote_average.toFixed(1)) : undefined,
+                director: movieData.credits?.crew?.find((c: any) => c.job === 'Director')?.name,
+                cast: movieData.credits?.cast?.slice(0, 5).map((c: any) => c.name) || [],
+                genres: movieData.genres?.map((g: any) => g.name) || [],
+              };
+            }
           }
-          const movieData = await movieDetailResponse.json();
-
-          finalImageUrl = movieData.poster_path ? `https://image.tmdb.org/t/p/w500${movieData.poster_path}` : finalImageUrl;
-          finalDescription = movieData.overview || finalDescription;
-
-          movieDetailsData = {
-            posterPath: movieData.poster_path,
-            releaseYear: movieData.release_date ? movieData.release_date.split('-')[0] : undefined,
-            rating: movieData.vote_average ? parseFloat(movieData.vote_average.toFixed(1)) : undefined,
-            director: movieData.credits?.crew?.find((c: any) => c.job === 'Director')?.name,
-            cast: movieData.credits?.cast?.slice(0, 5).map((c: any) => c.name) || [],
-            genres: movieData.genres?.map((g: any) => g.name) || [],
-          };
         }
       } catch (e) {
         console.error("Error fetching movie details from TMDb:", e);
@@ -450,14 +454,14 @@ export async function addContentItem(
     ...itemData,
     id: Date.now().toString(),
     createdAt: new Date().toISOString(),
-    type: itemType,
+    type: itemType, // Use potentially updated itemType
     domain: extractedDomain,
-    contentType: finalContentType,
+    contentType: finalContentType, // Use potentially updated finalContentType
     mindNote: itemData.mindNote,
     audioUrl: itemData.audioUrl,
     imageUrl: finalImageUrl || (itemType !== 'note' && itemType !== 'voice' && itemType !== 'movie' && !(itemType === 'link' && finalContentType === 'PDF') ? `https://placehold.co/600x400.png` : undefined),
-    description: finalDescription,
-    movieDetails: movieDetailsData,
+    description: finalDescription, // Use potentially updated finalDescription
+    movieDetails: movieDetailsData, // Use potentially updated movieDetailsData
   };
   mockContentItems.unshift(newItem);
   return newItem;
@@ -537,3 +541,16 @@ export async function getUniqueContentTypes(): Promise<string[]> {
   return Array.from(contentTypes).sort();
 }
 
+// Function to get all unique tags
+export async function getUniqueTags(userId?: string): Promise<Tag[]> {
+  await new Promise(resolve => setTimeout(resolve, 50));
+  const allTagsMap = new Map<string, Tag>();
+  mockContentItems.forEach(item => {
+    (item.tags || []).forEach(tag => { // Ensure item.tags exists
+      if (tag && tag.name && !allTagsMap.has(tag.name.toLowerCase())) { 
+        allTagsMap.set(tag.name.toLowerCase(), tag);
+      }
+    });
+  });
+  return Array.from(allTagsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
