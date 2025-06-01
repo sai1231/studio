@@ -2,7 +2,7 @@
 'use client';
 
 import type React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { getContentItemById, getZoneById, updateContentItem } from '@/services/contentService'; 
@@ -11,7 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, CalendarDays, Folder, Tag as TagIcon, Globe, StickyNote, FileImage, ExternalLink, ListChecks, Mic, Layers, Landmark, PlusCircle, X, Loader2 } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Folder, Tag as TagIcon, Globe, StickyNote, FileImage, ExternalLink, ListChecks, Mic, Layers, Landmark, Plus, X, Loader2, Check } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -48,6 +49,8 @@ export default function ContentDetailPage() {
   const [editableTags, setEditableTags] = useState<Tag[]>([]);
   const [newTagInput, setNewTagInput] = useState('');
   const [isUpdatingTags, setIsUpdatingTags] = useState(false);
+  const [isAddingTag, setIsAddingTag] = useState(false);
+  const newTagInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (id) {
@@ -77,14 +80,20 @@ export default function ContentDetailPage() {
     }
   }, [id]);
 
+  useEffect(() => {
+    if (isAddingTag && newTagInputRef.current) {
+      newTagInputRef.current.focus();
+    }
+  }, [isAddingTag]);
+
   const saveTags = async (tagsToSave: Tag[]) => {
     if (!item) return;
     setIsUpdatingTags(true);
     try {
       const updatedItem = await updateContentItem(item.id, { tags: tagsToSave });
       if (updatedItem) {
-        setItem(updatedItem); // Update local item state
-        setEditableTags(updatedItem.tags || []); // Refresh editable tags from source
+        setItem(updatedItem); 
+        setEditableTags(updatedItem.tags || []); 
         toast({ title: "Tags Updated", description: "Your tags have been saved." });
       } else {
         throw new Error("Failed to update item.");
@@ -92,7 +101,6 @@ export default function ContentDetailPage() {
     } catch (e) {
       console.error('Error updating tags:', e);
       toast({ title: "Error", description: "Could not save tags. Please try again.", variant: "destructive" });
-      // Optionally revert editableTags to item.tags if save fails and you want to rollback UI
       setEditableTags(item.tags || []);
     } finally {
       setIsUpdatingTags(false);
@@ -101,24 +109,28 @@ export default function ContentDetailPage() {
 
   const handleRemoveTag = (tagIdToRemove: string) => {
     const newTags = editableTags.filter(tag => tag.id !== tagIdToRemove);
-    setEditableTags(newTags); // Optimistically update UI
+    setEditableTags(newTags); 
     saveTags(newTags);
   };
 
   const handleAddNewTag = () => {
     if (newTagInput.trim() === '') {
       toast({ title: "Empty Tag", description: "Tag name cannot be empty.", variant: "destructive" });
+      setIsAddingTag(false); 
       return;
     }
     if (editableTags.find(tag => tag.name.toLowerCase() === newTagInput.trim().toLowerCase())) {
       toast({ title: "Duplicate Tag", description: `Tag "${newTagInput.trim()}" already exists.`, variant: "destructive" });
       setNewTagInput('');
+      // Keep isAddingTag true to allow correction or new input
       return;
     }
     const newTag: Tag = { id: Date.now().toString(), name: newTagInput.trim() };
     const newTags = [...editableTags, newTag];
-    setEditableTags(newTags); // Optimistically update UI
+    
+    setEditableTags(newTags); 
     setNewTagInput('');
+    setIsAddingTag(false);
     saveTags(newTags);
   };
   
@@ -127,7 +139,17 @@ export default function ContentDetailPage() {
       event.preventDefault();
       handleAddNewTag();
     }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setNewTagInput('');
+      setIsAddingTag(false);
+    }
   };
+
+  const handleCancelAddTag = () => {
+    setNewTagInput('');
+    setIsAddingTag(false);
+  }
 
 
   if (isLoading) {
@@ -248,7 +270,7 @@ export default function ContentDetailPage() {
             <h3 className="text-lg font-semibold mb-3 text-foreground flex items-center">
               <TagIcon className="h-5 w-5 mr-2 text-primary" /> Tags {isUpdatingTags && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
             </h3>
-            <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
               {editableTags.map(tag => (
                 <Badge key={tag.id} variant="secondary" className="font-normal text-sm px-3 py-1 group relative">
                   {tag.name}
@@ -264,23 +286,64 @@ export default function ContentDetailPage() {
                   </Button>
                 </Badge>
               ))}
-              {editableTags.length === 0 && !isUpdatingTags && (
-                <p className="text-sm text-muted-foreground">No tags yet. Add one below.</p>
+              {isAddingTag ? (
+                <div className="flex items-center gap-1">
+                  <Input
+                    ref={newTagInputRef}
+                    value={newTagInput}
+                    onChange={(e) => setNewTagInput(e.target.value)}
+                    placeholder="New tag"
+                    onKeyDown={handleTagInputKeyDown}
+                    disabled={isUpdatingTags}
+                    className="h-8 text-sm w-32 focus-visible:ring-accent"
+                    autoFocus
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    onClick={handleAddNewTag}
+                    disabled={isUpdatingTags || newTagInput.trim() === ''}
+                    aria-label="Confirm add tag"
+                  >
+                    <Check className="h-4 w-4 text-green-600" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    onClick={handleCancelAddTag}
+                    disabled={isUpdatingTags}
+                    aria-label="Cancel add tag"
+                  >
+                    <X className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              ) : (
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8 rounded-full border-dashed hover:bg-accent hover:text-accent-foreground"
+                                onClick={() => setIsAddingTag(true)}
+                                disabled={isUpdatingTags}
+                                aria-label="Add new tag"
+                            >
+                                <Plus className="h-4 w-4" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Add new tag</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <Input 
-                value={newTagInput} 
-                onChange={(e) => setNewTagInput(e.target.value)}
-                placeholder="Add a new tag"
-                onKeyDown={handleTagInputKeyDown}
-                disabled={isUpdatingTags}
-                className="focus-visible:ring-accent"
-              />
-              <Button onClick={handleAddNewTag} disabled={isUpdatingTags || newTagInput.trim() === ''} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                <PlusCircle className="h-4 w-4 mr-2" /> Add Tag
-              </Button>
-            </div>
+            {editableTags.length === 0 && !isAddingTag && !isUpdatingTags && (
+                <p className="text-sm text-muted-foreground">No tags yet. Click '+' to add one.</p>
+            )}
           </div>
         </CardContent>
         <CardFooter>
@@ -290,5 +353,4 @@ export default function ContentDetailPage() {
     </div>
   );
 }
-
     
