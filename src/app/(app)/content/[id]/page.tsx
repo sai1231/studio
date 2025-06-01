@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, ChevronsUpDown } from 'lucide-react';
+import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -76,7 +76,7 @@ export default function ContentDetailPage() {
   const id = params.id as string;
 
   const [item, setItem] = useState<ContentItem | null>(null);
-  const [zone, setZone] = useState<Zone | null>(null); 
+  // const [zone, setZone] = useState<Zone | null>(null); // zone is derived from item.zoneId and allZones
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [embedUrl, setEmbedUrl] = useState<string | null>(null);
@@ -112,12 +112,7 @@ export default function ContentDetailPage() {
             if (fetchedItem.type === 'link' && fetchedItem.url) {
               setEmbedUrl(getEmbedUrl(fetchedItem.url));
             }
-            if (fetchedItem.zoneId) {
-              const fetchedCurrentZone = await getZoneById(fetchedItem.zoneId);
-              setZone(fetchedCurrentZone || null);
-            } else {
-              setZone(null);
-            }
+            // No need to setZone separately if it's derived
           } else {
             setError('Content item not found.');
           }
@@ -168,15 +163,7 @@ export default function ContentDetailPage() {
       const updatedItem = await updateContentItem(item.id, updatePayload);
       if (updatedItem) {
         setItem(updatedItem); 
-
-        if (fieldName === 'zoneId') {
-          if (updatedItem.zoneId) {
-            const newCurrentZone = allZones.find(z => z.id === updatedItem.zoneId);
-            setZone(newCurrentZone || null);
-          } else {
-            setZone(null);
-          }
-        }
+        // zone state will update implicitly due to editableZoneId change if fieldName is zoneId
       } else {
         throw new Error(`Failed to update ${fieldName}.`);
       }
@@ -250,7 +237,7 @@ export default function ContentDetailPage() {
         await handleFieldUpdate('zoneId', newZone.id);
       }
       setEditableZoneId(newZone.id);
-      setZone(newZone); 
+      // setZone(newZone); // zone state removed, derived from editableZoneId
       toast({ title: "Zone Created", description: `Zone "${newZone.name}" created and assigned.` });
     } catch (e) {
       console.error('Error creating zone:', e);
@@ -370,7 +357,9 @@ export default function ContentDetailPage() {
     ? allZones.filter(z => z.name.toLowerCase().includes(comboboxSearchText.toLowerCase()))
     : allZones;
 
-  const currentZoneName = allZones.find(z => z.id === editableZoneId)?.name || "Select zone...";
+  const currentZoneNameForDisplay = editableZoneId
+    ? (allZones.find(z => z.id === editableZoneId)?.name || `Zone ID: ${editableZoneId}`)
+    : "No Zone Assigned";
   const tagBaseClasses = "px-3 py-1 text-xs rounded-full font-medium group relative";
 
 
@@ -412,7 +401,7 @@ export default function ContentDetailPage() {
           <div className="flex flex-col">
              <CardHeader className={cn(
                 "pb-4",
-                 showMediaColumn ? "" : "rounded-t-lg" // Only apply rounded-t-lg if no media column
+                 showMediaColumn ? "" : "rounded-t-lg" 
             )}>
               {item.domain && (
                 <div className="flex items-center text-xs text-muted-foreground mb-1.5">
@@ -453,11 +442,15 @@ export default function ContentDetailPage() {
                     <Edit3 className="h-4 w-4 mr-2 text-muted-foreground"/> Description
                 </h3>
                 {isDescriptionReadOnly ? (
-                    <div className="prose dark:prose-invert prose-sm max-w-none text-foreground/90 py-2 px-1 min-h-[60px]"> 
+                    <div className={cn(
+                        "prose dark:prose-invert prose-sm max-w-none py-2 px-1 min-h-[60px]",
+                        "text-sm text-gray-500 dark:text-gray-400" 
+                      )}
+                    > 
                         {editableDescription ? (
                             <div dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
                         ) : (
-                            <p className="text-muted-foreground italic">No description provided.</p>
+                            <p className="italic">No description provided.</p>
                         )}
                     </div>
                 ) : (
@@ -481,24 +474,25 @@ export default function ContentDetailPage() {
               )}
 
               <div className="text-sm items-center pt-1"> 
-                <div className="flex items-center space-x-2 text-muted-foreground">
-                    <Bookmark className="h-4 w-4" />
+                <div className="flex items-center space-x-2">
                      <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
                         <PopoverTrigger asChild>
                             <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={isComboboxOpen}
-                            className="w-full md:w-[250px] justify-between h-9 text-sm focus-visible:ring-accent"
-                            disabled={isSavingField || isUpdatingTags}
+                                variant="ghost"
+                                role="combobox"
+                                aria-expanded={isComboboxOpen}
+                                className={cn(
+                                    "flex items-center justify-start text-left space-x-1.5 p-1 h-auto rounded-md hover:bg-muted focus-visible:ring-2 focus-visible:ring-accent w-auto text-sm",
+                                    (isSavingField || isUpdatingTags) ? "opacity-50" : ""
+                                )}
+                                disabled={isSavingField || isUpdatingTags}
                             >
-                            {editableZoneId
-                                ? allZones.find((z) => z.id === editableZoneId)?.name
-                                : "Select zone..."}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                <Bookmark className="h-4 w-4 text-muted-foreground" />
+                                <span>{currentZoneNameForDisplay}</span>
+                                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-gray-50 dark:bg-gray-700">
                             <Command>
                                 <CommandInput 
                                     placeholder="Search or create zone..."
@@ -519,7 +513,7 @@ export default function ContentDetailPage() {
                                     </CommandEmpty>
                                     <CommandGroup>
                                         <CommandItem
-                                            value={NO_ZONE_VALUE}
+                                            value={NO_ZONE_VALUE} 
                                             onSelect={() => handleZoneSelection(undefined)}
                                         >
                                             <Check
@@ -528,7 +522,7 @@ export default function ContentDetailPage() {
                                                 !editableZoneId ? "opacity-100" : "opacity-0"
                                                 )}
                                             />
-                                            No Zone
+                                            No Zone Assigned
                                         </CommandItem>
                                         {filteredZones.map((z) => (
                                         <CommandItem
@@ -640,7 +634,7 @@ export default function ContentDetailPage() {
               </div>
 
               {showMindNote && (
-                <div className="pt-1"> 
+                <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg mt-4"> 
                     <h3 className="text-lg font-semibold mb-1 text-foreground flex items-center"> 
                         <StickyNote className="h-4 w-4 mr-2 text-muted-foreground"/> Mind Note
                     </h3>
@@ -650,7 +644,7 @@ export default function ContentDetailPage() {
                         onBlur={handleMindNoteBlur}
                         disabled={isSavingField || isUpdatingTags}
                         placeholder="Add your personal thoughts or quick notes here..."
-                        className="w-full min-h-[80px] focus-visible:ring-accent"
+                        className="w-full min-h-[80px] focus-visible:ring-accent bg-transparent dark:bg-transparent border-gray-300 dark:border-gray-700"
                     />
                 </div>
               )}
@@ -671,6 +665,7 @@ export default function ContentDetailPage() {
     
 
   
+
 
 
 
