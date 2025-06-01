@@ -1,7 +1,7 @@
 
 'use client';
 import type React from 'react';
-import { Search, PlusCircle, UploadCloud, Mic } from 'lucide-react';
+import { Search } from 'lucide-react'; // Removed PlusCircle, UploadCloud, Mic
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -16,26 +16,15 @@ import {
 import { UserCircle, Settings, LogOut } from 'lucide-react';
 
 interface AppHeaderProps {
-  onAddContentClick: () => void;
-  onImageFileSelected: (file: File) => void;
-  onRecordVoiceClick: () => void;
   onSearchChange?: (query: string) => void;
+  // Removed onAddContentClick, onImageFileSelected, onRecordVoiceClick
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({ 
-  onAddContentClick, 
-  onImageFileSelected,
-  onRecordVoiceClick,
   onSearchChange 
 }) => {
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      onImageFileSelected(file);
-      event.target.value = ''; // Reset file input
-    }
-  };
+  // handleFileSelect is removed as the upload button is no longer here
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-2 sm:gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 md:px-6 shadow-sm">
@@ -50,41 +39,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         />
       </div>
 
-      <div className="flex items-center gap-1 sm:gap-2">
-        <Button 
-          size="icon"
-          variant="ghost"
-          onClick={onAddContentClick}
-          aria-label="Add content"
-        >
-          <PlusCircle className="h-5 w-5" />
-        </Button>
-
-        <Button 
-          size="icon" 
-          variant="ghost" 
-          onClick={() => document.getElementById('imageUploadInput')?.click()}
-          aria-label="Upload image"
-        >
-          <UploadCloud className="h-5 w-5" />
-        </Button>
-        <input 
-          type="file" 
-          id="imageUploadInput" 
-          accept="image/*" 
-          className="hidden" 
-          onChange={handleFileSelect} 
-        />
-
-        <Button 
-          size="icon" 
-          variant="ghost" 
-          onClick={onRecordVoiceClick}
-          aria-label="Record voice"
-        >
-          <Mic className="h-5 w-5" />
-        </Button>
-      </div>
+      {/* Action buttons (Plus, Upload, Mic) are removed from here */}
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
