@@ -18,24 +18,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
-const getTypeIcon = (type: ContentItem['type'] | undefined) => {
-  if (!type) return <StickyNote className="h-5 w-5 text-muted-foreground" />;
-  switch (type) {
-    case 'link':
-      return <Globe className="h-5 w-5 text-primary" />;
-    case 'note':
-      return <StickyNote className="h-5 w-5 text-primary" />;
-    case 'image':
-      return <FileImage className="h-5 w-5 text-primary" />;
-    case 'todo':
-      return <ListChecks className="h-5 w-5 text-primary" />;
-    case 'voice':
-      return <Mic className="h-5 w-5 text-primary" />;
-    default:
-      return <StickyNote className="h-5 w-5 text-muted-foreground" />;
-  }
-};
-
 const NO_ZONE_VALUE = "__NO_ZONE__"; 
 
 export default function ContentDetailPage() {
@@ -127,13 +109,10 @@ export default function ContentDetailPage() {
     if (!item || isSavingField) return;
     setIsSavingField(true);
 
-    // Store previous value in case of error for potential revert (optional for now)
-    // const previousValue = item[fieldName];
-
     try {
       const updatedItem = await updateContentItem(item.id, { [fieldName]: value });
       if (updatedItem) {
-        setItem(updatedItem); // This will trigger the useEffect to update editable states
+        setItem(updatedItem); 
 
         if (fieldName === 'zoneId') {
           if (updatedItem.zoneId) {
@@ -143,15 +122,12 @@ export default function ContentDetailPage() {
             setZone(null);
           }
         }
-        // Success toast removed as changes are immediate
       } else {
         throw new Error(`Failed to update ${fieldName}.`);
       }
     } catch (e) {
       console.error(`Error updating ${fieldName}:`, e);
       toast({ title: "Error", description: `Could not update ${fieldName}.`, variant: "destructive" });
-      // Optionally revert item state here if robust error handling is needed
-      // setItem(prevItem => prevItem ? {...prevItem, [fieldName]: previousValue } : null);
     } finally {
       setIsSavingField(false);
     }
@@ -171,7 +147,7 @@ export default function ContentDetailPage() {
   };
   const handleDescriptionBlur = () => {
     if (item && editableDescription !== (item.description || '')) {
-       if (item.type === 'note' || item.type === 'todo') { // Only save if editable type
+       if (item.type === 'note' || item.type === 'todo') { 
          handleFieldUpdate('description', editableDescription);
        }
     }
@@ -182,7 +158,7 @@ export default function ContentDetailPage() {
   };
   const handleMindNoteBlur = () => {
     if (item && editableMindNote !== (item.mindNote || '')) {
-      if (item.type === 'link' || item.type === 'image' || item.type === 'voice') { // Only save if editable type
+      if (item.type === 'link' || item.type === 'image' || item.type === 'voice') { 
         handleFieldUpdate('mindNote', editableMindNote);
       }
     }
@@ -190,14 +166,14 @@ export default function ContentDetailPage() {
 
   const handleZoneChange = (value: string) => {
     const newZoneId = value === NO_ZONE_VALUE ? undefined : value;
-    setEditableZoneId(newZoneId); // Optimistically update local state for select visual
+    setEditableZoneId(newZoneId); 
     if (item && newZoneId !== item.zoneId) {
       handleFieldUpdate('zoneId', newZoneId);
     }
   };
 
   const saveTags = async (tagsToSave: Tag[]) => {
-    if (!item || isSavingField) return; // also check isSavingField
+    if (!item || isSavingField) return; 
     setIsUpdatingTags(true);
     try {
       const updatedItemWithTags = await updateContentItem(item.id, { tags: tagsToSave });
@@ -305,7 +281,7 @@ export default function ContentDetailPage() {
         <ArrowLeft className="mr-2 h-4 w-4" /> Back
       </Button>
 
-      <Card className="shadow-xl">
+      <Card className="shadow-xl relative">
         {item.imageUrl && (item.type === 'image' || item.type === 'link') && (
           <div className="relative w-full h-72 rounded-t-lg overflow-hidden">
             <Image
@@ -317,10 +293,13 @@ export default function ContentDetailPage() {
             />
           </div>
         )}
-        <CardHeader>
-          <div className="flex items-start space-x-3 mb-2">
-            <span className="mt-2">{getTypeIcon(item.type)}</span>
-             {isSavingField && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2 mt-2" />}
+        <CardHeader className="pb-4">
+          <div className="absolute top-4 right-4 text-xs text-muted-foreground flex items-center bg-background/70 px-2 py-1 rounded-full backdrop-blur-sm">
+            <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
+            <span>{format(new Date(item.createdAt), 'MMM d, yyyy')}</span>
+          </div>
+          <div className="flex items-center space-x-2">
+             {isSavingField && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
             <Input
                 value={editableTitle}
                 onChange={handleTitleChange}
@@ -331,7 +310,7 @@ export default function ContentDetailPage() {
             />
           </div>
           {item.type === 'link' && item.url && (
-            <CardDescription className="text-sm text-muted-foreground flex items-center pl-8">
+            <CardDescription className="text-sm text-muted-foreground flex items-center mt-1">
               <ExternalLink className="h-4 w-4 mr-2" />
               <a href={item.url} target="_blank" rel="noopener noreferrer" className="hover:underline text-primary break-all">
                 {item.url}
@@ -339,66 +318,44 @@ export default function ContentDetailPage() {
             </CardDescription>
           )}
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 pt-2">
           <div>
-            <h3 className="text-lg font-semibold mb-2 text-foreground flex items-center">
-                <Edit3 className="h-4 w-4 mr-2 text-muted-foreground"/> Description {isDescriptionReadOnly && <span className="text-xs text-muted-foreground ml-2">(Read-only)</span>}
+             <h3 className="text-lg font-semibold mb-2 text-foreground flex items-center">
+                <Edit3 className="h-4 w-4 mr-2 text-muted-foreground"/> Description
             </h3>
-            <Textarea
-                value={editableDescription}
-                onChange={handleDescriptionChange}
-                onBlur={handleDescriptionBlur}
-                disabled={isSavingField || isUpdatingTags || isDescriptionReadOnly}
-                placeholder={isDescriptionReadOnly && !editableDescription ? "No description provided." : "Enter description..."}
-                className="w-full min-h-[120px] focus-visible:ring-accent"
-                readOnly={isDescriptionReadOnly}
-            />
+            {isDescriptionReadOnly ? (
+                <div className="prose dark:prose-invert prose-sm max-w-none text-foreground/90 min-h-[100px] py-2 px-3 rounded-md border border-input bg-muted/30">
+                    {editableDescription ? (
+                        <div dangerouslySetInnerHTML={{ __html: editableDescription }} />
+                    ) : (
+                        <p className="text-muted-foreground italic">No description provided.</p>
+                    )}
+                </div>
+            ) : (
+                <Textarea
+                    value={editableDescription}
+                    onChange={handleDescriptionChange}
+                    onBlur={handleDescriptionBlur}
+                    disabled={isSavingField || isUpdatingTags}
+                    placeholder="Enter description..."
+                    className="w-full min-h-[120px] focus-visible:ring-accent"
+                />
+            )}
           </div>
 
-          {showMindNote && (
-             <div>
-                <h3 className="text-lg font-semibold mb-2 text-foreground flex items-center">
-                    <StickyNote className="h-4 w-4 mr-2 text-muted-foreground"/> Mind Note
-                </h3>
-                <Textarea
-                    value={editableMindNote}
-                    onChange={handleMindNoteChange}
-                    onBlur={handleMindNoteBlur}
-                    disabled={isSavingField || isUpdatingTags}
-                    placeholder="Add your personal thoughts or quick notes here..."
-                    className="w-full min-h-[80px] focus-visible:ring-accent"
-                />
-            </div>
-          )}
-
            {item.type === 'voice' && item.audioUrl && (
-            <div>
-              <h3 className="text-lg font-semibold mb-2 text-foreground">Voice Note</h3>
+            <div className="mt-4">
               <audio controls src={item.audioUrl} className="w-full">
                 Your browser does not support the audio element.
               </audio>
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div className="flex items-center space-x-2 text-muted-foreground">
-              <CalendarDays className="h-4 w-4" />
-              <span>Created: {format(new Date(item.createdAt), 'MMMM d, yyyy p')}</span>
-            </div>
-             <div className="flex items-center space-x-2 text-muted-foreground capitalize">
-                {getTypeIcon(item.type)}
-                <span>Type: {item.type}</span>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 text-sm items-center pt-2">
             {item.domain && (
               <div className="flex items-center space-x-2 text-muted-foreground">
                 <Landmark className="h-4 w-4" />
-                <span>Domain: {item.domain}</span>
-              </div>
-            )}
-            {item.contentType && (
-              <div className="flex items-center space-x-2 text-muted-foreground">
-                <Layers className="h-4 w-4" />
-                <span>Content Type: {item.contentType}</span>
+                <span>{item.domain}</span>
               </div>
             )}
             <div className="flex items-center space-x-2 text-muted-foreground">
@@ -422,10 +379,7 @@ export default function ContentDetailPage() {
             </div>
           </div>
           
-          <div>
-            <h3 className="text-lg font-semibold mb-3 text-foreground flex items-center">
-              <TagIcon className="h-5 w-5 mr-2 text-primary" /> Tags {isUpdatingTags && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-            </h3>
+          <div className="pt-2">
             <div className="flex flex-wrap items-center gap-2 mb-3">
               {editableTags.map(tag => (
                 <Badge key={tag.id} variant="secondary" className="font-normal text-sm px-3 py-1 group relative">
@@ -495,18 +449,35 @@ export default function ContentDetailPage() {
                     </Tooltip>
                 </TooltipProvider>
               )}
+               {isUpdatingTags && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
             </div>
             {editableTags.length === 0 && !isAddingTag && !isUpdatingTags && (
                 <p className="text-sm text-muted-foreground">No tags yet. Click '+' to add one.</p>
             )}
           </div>
+
+           {showMindNote && (
+             <div className="pt-2">
+                <h3 className="text-lg font-semibold mb-2 text-foreground flex items-center">
+                    <StickyNote className="h-4 w-4 mr-2 text-muted-foreground"/> Mind Note
+                </h3>
+                <Textarea
+                    value={editableMindNote}
+                    onChange={handleMindNoteChange}
+                    onBlur={handleMindNoteBlur}
+                    disabled={isSavingField || isUpdatingTags}
+                    placeholder="Add your personal thoughts or quick notes here..."
+                    className="w-full min-h-[80px] focus-visible:ring-accent"
+                />
+            </div>
+          )}
+
         </CardContent>
         <CardFooter>
+          {/* Footer can be used for explicit save/cancel if auto-save is not desired later */}
         </CardFooter>
       </Card>
     </div>
   );
 }
-    
-
     
