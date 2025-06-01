@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, CalendarDays, Layers, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe } from 'lucide-react';
+import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -318,7 +318,7 @@ export default function ContentDetailPage() {
                   <span>{item.domain}</span>
                 </div>
               )}
-              <div className="flex items-center justify-between space-x-2"> 
+              <div className="flex items-center justify-between space-x-2 pr-20"> 
                 <div className="flex items-center space-x-2 flex-grow">
                     {isSavingField && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
                     <Input
@@ -380,7 +380,7 @@ export default function ContentDetailPage() {
 
               <div className="text-sm items-center pt-1"> 
                 <div className="flex items-center space-x-2 text-muted-foreground">
-                    <Layers className="h-4 w-4" />
+                    <Bookmark className="h-4 w-4" />
                     <Select
                         value={editableZoneId || NO_ZONE_VALUE} 
                         onValueChange={handleZoneChange}
