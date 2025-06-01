@@ -94,14 +94,15 @@ export default function ContentDetailPage() {
       if (updatedItem) {
         setItem(updatedItem); 
         setEditableTags(updatedItem.tags || []); 
-        toast({ title: "Tags Updated", description: "Your tags have been saved." });
+        // Removed success toast: toast({ title: "Tags Updated", description: "Your tags have been saved." });
       } else {
         throw new Error("Failed to update item.");
       }
     } catch (e) {
       console.error('Error updating tags:', e);
       toast({ title: "Error", description: "Could not save tags. Please try again.", variant: "destructive" });
-      setEditableTags(item.tags || []);
+      // Revert to original tags from item if save failed
+      if(item) setEditableTags(item.tags || []);
     } finally {
       setIsUpdatingTags(false);
     }
@@ -116,12 +117,12 @@ export default function ContentDetailPage() {
   const handleAddNewTag = () => {
     if (newTagInput.trim() === '') {
       toast({ title: "Empty Tag", description: "Tag name cannot be empty.", variant: "destructive" });
-      setIsAddingTag(false); 
+      // Don't close the input on empty, let user correct
       return;
     }
     if (editableTags.find(tag => tag.name.toLowerCase() === newTagInput.trim().toLowerCase())) {
       toast({ title: "Duplicate Tag", description: `Tag "${newTagInput.trim()}" already exists.`, variant: "destructive" });
-      setNewTagInput('');
+      setNewTagInput(''); // Clear input on duplicate
       return;
     }
     const newTag: Tag = { id: Date.now().toString(), name: newTagInput.trim() };
@@ -353,3 +354,5 @@ export default function ContentDetailPage() {
     
 
       
+
+    
