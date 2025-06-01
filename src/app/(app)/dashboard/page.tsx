@@ -3,36 +3,35 @@
 import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import ContentCard from '@/components/core/link-card';
-import type { ContentItem, Collection, ContentItemFirestoreData, Tag as AppTag } from '@/types';
+import type { ContentItem, Collection, Tag as AppTag } from '@/types';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ListFilter, LayoutGrid, LayoutList, Loader2, FolderOpen } from 'lucide-react';
 import AddContentDialog from '@/components/core/add-content-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { getContentItems, addContentItem, deleteContentItemFromFirestore } from '@/services/contentService'; // Import Firebase services
-
-const mockCollections: Collection[] = [
-  { id: '1', name: 'Work Projects' },
-  { id: '2', name: 'Reading List' },
-  { id: '3', name: 'Recipes' },
-];
+import { getContentItems, addContentItem, deleteContentItem, getCollections } from '@/services/contentService'; 
 
 export default function DashboardPage() {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
-  const [editingContent, setEditingContent] = useState<ContentItem | null>(null);
+  const [editingContent, setEditingContent] = useState<ContentItem | null>(null); // For future edit functionality
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const { toast } = useToast();
 
-  const fetchItems = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const items = await getContentItems(); // TODO: Pass userId when auth is ready
+      const [items, fetchedCollections] = await Promise.all([
+        getContentItems(), // TODO: Pass userId when auth is ready
+        getCollections() // TODO: Pass userId when auth is ready
+      ]);
       setContentItems(items);
+      setCollections(fetchedCollections);
     } catch (err) {
-      console.error("Error fetching content items:", err);
+      console.error("Error fetching data:", err);
       setError("Failed to load content. Please try again later.");
       toast({ title: "Error", description: "Could not fetch content.", variant: "destructive" });
     } finally {
@@ -41,24 +40,20 @@ export default function DashboardPage() {
   }, [toast]);
 
   useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
+    fetchData();
+  }, [fetchData]);
 
   const handleAddOrUpdateContentDialog = async (
-    contentData: Omit<ContentItemFirestoreData, 'createdAt' | 'tags'> & { tags: AppTag[] }
+    contentData: Omit<ContentItem, 'id' | 'createdAt'>
   ) => {
     const { id: toastId } = toast({
       title: "Saving Content...",
       description: "Please wait while your content is being saved.",
     });
     try {
-      const firestoreReadyTags: ContentItemFirestoreData['tags'] = contentData.tags;
-      // TODO: if editingContent, this should be an update operation
-      await addContentItem({
-        ...contentData,
-        tags: firestoreReadyTags,
-        // userId: "TODO_CURRENT_USER_ID", 
-      });
+      // If editingContent, this should be an update operation (not fully implemented for mock)
+      // For now, we just add as new
+      await addContentItem(contentData); 
       toast({
         id: toastId,
         title: "Content Saved!",
@@ -66,7 +61,7 @@ export default function DashboardPage() {
       });
       setIsAddContentDialogOpen(false);
       setEditingContent(null);
-      fetchItems(); // Re-fetch items to show the new one
+      fetchData(); // Re-fetch items to show the new one
     } catch (error) {
       console.error("Error saving content from dialog:", error);
       toast({
@@ -79,11 +74,8 @@ export default function DashboardPage() {
   };
 
   const handleEditContent = (itemToEdit: ContentItem) => {
-    // This is a simplified edit. For a real edit, you'd pre-fill the dialog
-    // and the dialog's onContentAdd would handle updates.
-    setEditingContent(itemToEdit); // Store item for potential pre-fill in dialog (not fully implemented)
-    toast({ title: "Edit Action", description: `Editing "${itemToEdit.title}" (Not fully implemented on this page for Firestore updates).`});
-    // For now, opening dialog for "new" item, ideally would prefill
+    setEditingContent(itemToEdit); 
+    toast({ title: "Edit Action", description: `Preparing to edit "${itemToEdit.title}" (Dialog prefill not implemented).`});
     setIsAddContentDialogOpen(true); 
   };
 
@@ -92,9 +84,9 @@ export default function DashboardPage() {
     setContentItems(prevItems => prevItems.filter(item => item.id !== itemId)); // Optimistic update
     const {id: toastId} = toast({ title: "Deleting Item...", description: "Removing content item."});
     try {
-      await deleteContentItemFromFirestore(itemId);
+      await deleteContentItem(itemId);
       toast({id: toastId, title: "Content Deleted", description: "The item has been removed.", variant: "default"});
-      // No need to call fetchItems() if optimistic update is enough and reliable
+      fetchData(); // Re-fetch to confirm, or rely on optimistic update if mock service is robust
     } catch (e) {
       console.error("Error deleting content:", e);
       toast({id: toastId, title: "Error Deleting", description: "Could not delete item. Restoring.", variant: "destructive"});
@@ -117,7 +109,7 @@ export default function DashboardPage() {
         <FolderOpen className="h-16 w-16 mx-auto text-destructive mb-4" />
         <h1 className="text-2xl font-headline font-semibold">Error Loading Content</h1>
         <p className="text-muted-foreground mt-2">{error}</p>
-        <Button onClick={fetchItems} className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">Try Again</Button>
+        <Button onClick={fetchData} className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">Try Again</Button>
       </div>
     );
   }
@@ -165,9 +157,9 @@ export default function DashboardPage() {
       <AddContentDialog
         open={isAddContentDialogOpen}
         onOpenChange={setIsAddContentDialogOpen}
-        collections={mockCollections}
+        collections={collections}
         onContentAdd={handleAddOrUpdateContentDialog}
-        // TODO: Pass editingContent (properly typed) to AddContentDialog for pre-filling form for editing
+        // Pass editingContent (properly typed) for pre-filling form for editing
         // existingContent={editingContent} 
       />
     </div>

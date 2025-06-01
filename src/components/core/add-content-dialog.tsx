@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { X, Loader2, Bold, Italic, Underline, Strikethrough, Heading1, Heading2, Heading3, List, ListOrdered, Palette, Quote, Minus } from 'lucide-react';
-import type { Collection, ContentItemType, Tag, ContentItemFirestoreData, ContentItem } from '@/types';
+import type { Collection, ContentItemType, Tag, ContentItem } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
 import { useEditor, EditorContent, type Editor } from '@tiptap/react';
@@ -33,8 +33,8 @@ import Placeholder from '@tiptap/extension-placeholder';
 const contentFormSchemaBase = z.object({
   url: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   title: z.string().min(1, { message: 'Title is required.' }),
-  description: z.string().min(1, { message: 'Content is required.' }),
-  collectionId: z.string().min(1, { message: 'Collection is required.' }), // Made collectionId required
+  description: z.string().min(1, { message: 'Content is required for notes. Optional for links.' }).optional(), // Making description optional for links
+  collectionId: z.string().min(1, { message: 'Collection is required.' }),
 });
 
 export interface AddContentDialogOpenChange {
@@ -44,8 +44,9 @@ export interface AddContentDialogOpenChange {
 
 interface AddContentDialogProps extends AddContentDialogOpenChange {
   collections: Collection[];
-  onContentAdd: (newContent: Omit<ContentItemFirestoreData, 'createdAt' | 'tags'> & { tags: ContentItem['tags']}) => void;
+  onContentAdd: (newContent: Omit<ContentItem, 'id' | 'createdAt'>) => void;
   children?: React.ReactNode;
+  // existingContent?: ContentItem | null; // For editing later
 }
 
 const EditorToolbar: React.FC<{ editor: Editor | null }> = ({ editor }) => {
@@ -99,7 +100,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       url: '',
       title: '',
       description: '',
-      collectionId: collections[0]?.id || '', // Default to first collection or empty if none
+      collectionId: collections[0]?.id || '', 
     },
   });
   
@@ -149,6 +150,25 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   }, [editor]);
   
   const watchedCollectionId = form.watch('collectionId');
+  const watchedUrl = form.watch('url');
+
+  // Update description validation based on whether it's a link or note
+  useEffect(() => {
+    const isLink = !!watchedUrl && z.string().url().safeParse(watchedUrl).success;
+    if (isLink) {
+      // For links, description is optional
+      if (form.formState.errors.description?.message === 'Content is required for notes. Optional for links.') {
+        form.clearErrors('description');
+      }
+    } else {
+      // For notes, description is required if it was previously empty
+      const currentDescription = editor?.getHTML();
+      if (!currentDescription || (currentDescription === '<p></p>' && editor?.isEmpty)) {
+         // No need to set error here, zod schema handles it on submit based on non-link
+      }
+    }
+  }, [watchedUrl, editor, form]);
+
 
   const handleTagInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTagInput(e.target.value);
@@ -178,22 +198,31 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     const type: ContentItemType = finalIsLink ? 'link' : 'note';
     
     const descriptionFromEditor = editor?.getHTML();
-    const finalDescription = (descriptionFromEditor === '<p></p>' && editor?.isEmpty) ? '' : descriptionFromEditor;
+    let finalDescription = (descriptionFromEditor === '<p></p>' && editor?.isEmpty) ? '' : descriptionFromEditor;
 
-    const contentData: Omit<ContentItemFirestoreData, 'createdAt' | 'tags'> & { tags: ContentItem['tags']} = {
+    if (type === 'note' && !finalDescription) {
+        form.setError('description', { type: 'manual', message: 'Content is required for notes.' });
+        setIsSaving(false);
+        return;
+    }
+    if (type === 'link' && !finalDescription) { // If link and description is empty, make it undefined
+        finalDescription = undefined;
+    }
+
+
+    const contentData: Omit<ContentItem, 'id' | 'createdAt'> = {
       type,
       title: values.title,
-      description: finalDescription || undefined,
-      collectionId: values.collectionId, // collectionId is now mandatory
+      description: finalDescription,
+      collectionId: values.collectionId,
       tags: currentTags,
       url: finalIsLink ? values.url : undefined,
-      // userId: "TODO_CURRENT_USER_ID", 
     };
     
     try {
-      await onContentAdd(contentData); // This is now an async call to AppLayout
+      await onContentAdd(contentData); 
     } catch (error) {
-      // Error toast is handled in AppLayout
+      // Error toast is handled by the caller (AppLayout or DashboardPage)
     } finally {
       setIsSaving(false);
     }
@@ -224,7 +253,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description" className="font-medium">Content</Label>
+            <Label htmlFor="description" className="font-medium">Content {!!watchedUrl ? "(Optional for links)" : "(Required for notes)"}</Label>
             {editor && <EditorToolbar editor={editor} />}
             <div 
               className={`rounded-md border bg-transparent focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ${editor ? ( form.formState.errors.description ? 'border-destructive focus-within:ring-destructive' : 'border-input' ) : ''} ${editor ? 'rounded-b-md rounded-t-none' : ''} `}
@@ -253,6 +282,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                     {collection.name}
                   </SelectItem>
                 ))}
+                 {collections.length === 0 && <SelectItem value="no-collections" disabled>No collections available</SelectItem>}
               </SelectContent>
             </Select>
             {form.formState.errors.collectionId && <p className="text-sm text-destructive">{form.formState.errors.collectionId.message}</p>}

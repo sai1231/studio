@@ -1,111 +1,100 @@
 
-'use server'; // Can be used by Server Actions or called from client components that then call server actions
+'use server'; 
 
-import { db, storage } from '@/lib/firebase';
-import { collection, addDoc, getDocs, serverTimestamp, query, orderBy, Timestamp, doc, deleteDoc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { ContentItem, ContentItemFirestoreData, Tag } from '@/types';
+import type { ContentItem, Collection, Tag } from '@/types';
 
-// Function to upload a file to Firebase Storage
-export async function uploadFile(file: File, path: string): Promise<string> {
-  const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, file);
-  const downloadURL = await getDownloadURL(storageRef);
-  return downloadURL;
-}
+let mockContentItems: ContentItem[] = [
+  {
+    id: '1',
+    type: 'link',
+    url: 'https://nextjs.org',
+    title: 'Next.js by Vercel',
+    description: 'The React Framework for the Web.',
+    imageUrl: 'https://placehold.co/600x400.png',
+    tags: [{ id: 't2', name: 'nextjs' }, { id: 't1', name: 'productivity' }],
+    collectionId: '1',
+    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
+  },
+  {
+    id: '2',
+    type: 'note',
+    title: 'My Shopping List',
+    description: 'Milk, Eggs, Bread, Coffee',
+    tags: [{ id: 't-personal', name: 'personal' }, { id: 't-todos', name: 'todos' }],
+    collectionId: '2',
+    createdAt: new Date(Date.now() - 86400000 * 1).toISOString(), // 1 day ago
+  },
+  {
+    id: '3',
+    type: 'image',
+    title: 'Awesome Landscape',
+    description: 'A beautiful landscape picture I found.',
+    imageUrl: 'https://placehold.co/600x400.png',
+    tags: [{ id: 't4', name: 'inspiration' }, {id: 't-nature', name: 'nature'}],
+    collectionId: '1',
+    createdAt: new Date().toISOString(),
+  },
+];
 
-// Function to add a new content item to Firestore
-export async function addContentItem(
-  itemData: Omit<ContentItemFirestoreData, 'createdAt'> // createdAt will be set by serverTimestamp
-): Promise<string> {
-  try {
-    const docRef = await addDoc(collection(db, 'contentItems'), {
-      ...itemData,
-      createdAt: serverTimestamp(),
-    });
-    return docRef.id;
-  } catch (e) {
-    console.error("Error adding document: ", e);
-    throw new Error("Failed to add content item");
-  }
-}
+let mockCollections: Collection[] = [
+  { id: '1', name: 'Work Projects' },
+  { id: '2', name: 'Personal Errands' },
+  { id: '3', name: 'Inspiration' },
+];
 
-// Function to get all content items from Firestore
+// Function to get all content items
 export async function getContentItems(userId?: string): Promise<ContentItem[]> {
+  // Simulate async operation
+  await new Promise(resolve => setTimeout(resolve, 100));
   // TODO: Implement filtering by userId when authentication is in place
-  const q = query(collection(db, 'contentItems'), orderBy('createdAt', 'desc'));
-  const querySnapshot = await getDocs(q);
-  const items: ContentItem[] = [];
-  querySnapshot.forEach((doc) => {
-    const rawData = doc.data();
-
-    // Validate required fields from Firestore
-    if (!rawData.title || !rawData.type || !rawData.collectionId) {
-      console.warn(`Document ${doc.id} is missing required fields (title, type, or collectionId) and will be skipped. Data:`, rawData);
-      return; // Skip this document
-    }
-
-    // Now that basic required fields are checked, we can cast more confidently.
-    // However, other fields in ContentItemFirestoreData might still be missing if not handled.
-    const firestoreData = rawData as ContentItemFirestoreData; 
-
-    let createdAtISO = new Date().toISOString(); // Default to now if createdAt is invalid
-    if (firestoreData.createdAt && typeof (firestoreData.createdAt as Timestamp).toDate === 'function') {
-      createdAtISO = (firestoreData.createdAt as Timestamp).toDate().toISOString();
-    } else if (firestoreData.createdAt) {
-      // If it exists but isn't a Timestamp, log a warning. It might be an old ISO string.
-      console.warn(`Document ${doc.id} has an invalid createdAt field:`, firestoreData.createdAt);
-      if (typeof firestoreData.createdAt === 'string') {
-        const parsedDate = new Date(firestoreData.createdAt);
-        if (!isNaN(parsedDate.getTime())) {
-          createdAtISO = parsedDate.toISOString();
-        }
-      }
-    } else {
-      console.warn(`Document ${doc.id} is missing createdAt field. Defaulting to current time.`);
-    }
-
-    items.push({
-      id: doc.id,
-      title: firestoreData.title,
-      type: firestoreData.type,
-      description: firestoreData.description, // Optional
-      url: firestoreData.url, // Optional
-      imageUrl: firestoreData.imageUrl, // Optional
-      audioUrl: firestoreData.audioUrl, // Optional
-      collectionId: firestoreData.collectionId,
-      userId: firestoreData.userId, // Optional
-      createdAt: createdAtISO,
-      tags: firestoreData.tags || [], // Ensure tags is always an array
-    });
-  });
-  return items;
+  return [...mockContentItems].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
-// Function to delete a content item from Firestore
-export async function deleteContentItemFromFirestore(itemId: string): Promise<void> {
-  try {
-    await deleteDoc(doc(db, 'contentItems', itemId));
-  } catch (e) {
-    console.error("Error deleting document: ", e);
-    throw new Error("Failed to delete content item");
-  }
+// Function to get all collections
+export async function getCollections(userId?: string): Promise<Collection[]> {
+  await new Promise(resolve => setTimeout(resolve, 50));
+  return [...mockCollections];
 }
 
-// Function to update a content item in Firestore
-export async function updateContentItemInFirestore(
+
+// Function to add a new content item
+export async function addContentItem(
+  itemData: Omit<ContentItem, 'id' | 'createdAt'>
+): Promise<ContentItem> {
+  await new Promise(resolve => setTimeout(resolve, 100));
+  const newItem: ContentItem = {
+    ...itemData,
+    id: Date.now().toString(), // Simple ID generation for mock
+    createdAt: new Date().toISOString(),
+  };
+  mockContentItems.unshift(newItem); // Add to the beginning like Firestore desc order
+  return newItem;
+}
+
+// Function to delete a content item
+export async function deleteContentItem(itemId: string): Promise<void> {
+  await new Promise(resolve => setTimeout(resolve, 100));
+  mockContentItems = mockContentItems.filter(item => item.id !== itemId);
+}
+
+// Function to update a content item
+export async function updateContentItem(
   itemId: string,
-  updates: Partial<Omit<ContentItemFirestoreData, 'createdAt' | 'userId'>>
-): Promise<void> {
-  try {
-    const itemRef = doc(db, 'contentItems', itemId);
-    // You might want to add an 'updatedAt: serverTimestamp()' field here as well
-    await updateDoc(itemRef, {
-      ...updates,
-      updatedAt: serverTimestamp() // Example: add an updatedAt field
-    });
-  } catch (e) {
-    console.error("Error updating document: ", e);
-    throw new Error("Failed to update content item");
+  updates: Partial<Omit<ContentItem, 'id' | 'createdAt' | 'userId'>>
+): Promise<ContentItem | undefined> {
+  await new Promise(resolve => setTimeout(resolve, 100));
+  const itemIndex = mockContentItems.findIndex(item => item.id === itemId);
+  if (itemIndex > -1) {
+    mockContentItems[itemIndex] = { ...mockContentItems[itemIndex], ...updates };
+    return mockContentItems[itemIndex];
   }
+  return undefined;
+}
+
+// Mock function for file upload, returns a placeholder URL
+export async function uploadFile(file: File, path: string): Promise<string> {
+  console.log(`Mock uploading file ${file.name} to ${path}`);
+  await new Promise(resolve => setTimeout(resolve, 200)); // Simulate upload time
+  // Return a generic placeholder or one based on file type if needed
+  return 'https://placehold.co/600x400.png'; 
 }
