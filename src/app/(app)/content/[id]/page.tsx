@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, CalendarDays, Folder, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Landmark } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Folder, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -108,7 +108,20 @@ export default function ContentDetailPage() {
     setIsSavingField(true);
 
     try {
-      const updatedItem = await updateContentItem(item.id, { [fieldName]: value });
+      // For description, if it's for link/image/voice, it's read-only from UI, so we shouldn't update.
+      // However, the UI already prevents editing. If it's a note/todo, it's editable.
+      const currentDescriptionIsReadOnly = item.type === 'link' || item.type === 'image' || item.type === 'voice';
+      let updatePayload: Partial<ContentItem> = { [fieldName]: value };
+
+      if (fieldName === 'description' && currentDescriptionIsReadOnly) {
+        // This case should ideally not be reached if UI properly disables editing.
+        // But as a safeguard, prevent updating description for read-only types.
+        // Or, ensure `value` is the original if it somehow gets here.
+        // For now, we rely on the UI disabling input.
+      }
+
+
+      const updatedItem = await updateContentItem(item.id, updatePayload);
       if (updatedItem) {
         setItem(updatedItem); 
 
@@ -126,6 +139,7 @@ export default function ContentDetailPage() {
     } catch (e) {
       console.error(`Error updating ${fieldName}:`, e);
       toast({ title: "Error", description: `Could not update ${fieldName}.`, variant: "destructive" });
+      // Revert optimistic UI update if necessary, though current setup re-fetches/re-sets item
     } finally {
       setIsSavingField(false);
     }
@@ -285,8 +299,7 @@ export default function ContentDetailPage() {
         <div className={cn(
           showTwoColumnLayout ? "md:grid md:grid-cols-[minmax(0,_7fr)_minmax(0,_3fr)]" : ""
         )}>
-          {/* Left Column: Image (conditional for two-column layout) */}
-          {showTwoColumnLayout && item.imageUrl && ( // item.imageUrl check is redundant if showTwoColumnLayout implies it
+          {showTwoColumnLayout && item.imageUrl && (
             <div className="relative w-full aspect-[3/4] md:aspect-auto md:h-full overflow-hidden">
               <Image
                 src={item.imageUrl}
@@ -299,21 +312,7 @@ export default function ContentDetailPage() {
             </div>
           )}
 
-          {/* Right Column (or full width content) */}
           <div className="flex flex-col">
-            {/* Fallback Full-Width Image (This should not render if showTwoColumnLayout is true when image exists) */}
-            {/* !showTwoColumnLayout && item.imageUrl && (
-              <div className="relative w-full h-72 rounded-t-lg overflow-hidden">
-                <Image
-                  src={item.imageUrl}
-                  alt={editableTitle}
-                  layout="fill"
-                  objectFit="cover"
-                  className="rounded-t-lg"
-                />
-              </div>
-            ) */}
-            
             <CardHeader className={cn(
               "pb-4 relative",
               showTwoColumnLayout ? "md:rounded-tl-none md:rounded-tr-lg" : (!item.imageUrl || showTwoColumnLayout) ? "rounded-t-lg" : ""
@@ -322,7 +321,7 @@ export default function ContentDetailPage() {
                 <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
                 <span>{format(new Date(item.createdAt), 'MMM d, yyyy')}</span>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 pr-20"> 
                 {isSavingField && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
                 <Input
                     value={editableTitle}
@@ -343,15 +342,15 @@ export default function ContentDetailPage() {
               )}
             </CardHeader>
 
-            <CardContent className="space-y-6 pt-2 flex-grow">
+            <CardContent className="space-y-4 pt-2 flex-grow"> 
               <div>
-                <h3 className="text-lg font-semibold mb-2 text-foreground flex items-center sr-only">
+                <h3 className="text-lg font-semibold mb-1 text-foreground flex items-center sr-only"> 
                     <Edit3 className="h-4 w-4 mr-2 text-muted-foreground"/> Description
                 </h3>
                 {isDescriptionReadOnly ? (
-                    <div className="prose dark:prose-invert prose-sm max-w-none text-foreground/90 min-h-[100px] py-2 px-3 rounded-md border border-transparent bg-transparent">
+                    <div className="prose dark:prose-invert prose-sm max-w-none text-foreground/90 py-2 px-1 min-h-[60px]"> 
                         {editableDescription ? (
-                            <div dangerouslySetInnerHTML={{ __html: editableDescription }} />
+                            <div dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
                         ) : (
                             <p className="text-muted-foreground italic">No description provided.</p>
                         )}
@@ -363,26 +362,20 @@ export default function ContentDetailPage() {
                         onBlur={handleDescriptionBlur}
                         disabled={isSavingField || isUpdatingTags}
                         placeholder="Enter description..."
-                        className="w-full min-h-[120px] focus-visible:ring-accent"
+                        className="w-full min-h-[100px] focus-visible:ring-accent" 
                     />
                 )}
               </div>
 
               {item.type === 'voice' && item.audioUrl && (
-                <div className="mt-4">
+                <div className="mt-2"> 
                   <audio controls src={item.audioUrl} className="w-full">
                     Your browser does not support the audio element.
                   </audio>
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 text-sm items-center pt-2">
-                {item.domain && (
-                  <div className="flex items-center space-x-2 text-muted-foreground">
-                    <Landmark className="h-4 w-4" />
-                    <span>{item.domain}</span>
-                  </div>
-                )}
+              <div className="text-sm items-center pt-1"> 
                 <div className="flex items-center space-x-2 text-muted-foreground">
                     <Folder className="h-4 w-4" />
                     <Select
@@ -404,8 +397,8 @@ export default function ContentDetailPage() {
                 </div>
               </div>
               
-              <div className="pt-2">
-                <div className="flex flex-wrap items-center gap-2 mb-3">
+              <div className="pt-1"> 
+                <div className="flex flex-wrap items-center gap-2 mb-2"> 
                   {editableTags.map(tag => (
                     <Badge key={tag.id} variant="secondary" className="font-normal text-sm px-3 py-1 group relative">
                       {tag.name}
@@ -482,8 +475,8 @@ export default function ContentDetailPage() {
               </div>
 
               {showMindNote && (
-                <div className="pt-2">
-                    <h3 className="text-lg font-semibold mb-2 text-foreground flex items-center">
+                <div className="pt-1"> 
+                    <h3 className="text-lg font-semibold mb-1 text-foreground flex items-center"> 
                         <StickyNote className="h-4 w-4 mr-2 text-muted-foreground"/> Mind Note
                     </h3>
                     <Textarea
@@ -501,10 +494,12 @@ export default function ContentDetailPage() {
             <CardFooter>
               {/* Footer can be used for explicit save/cancel if auto-save is not desired later */}
             </CardFooter>
-          </div> {/* End of right column / full width content area */}
-        </div> {/* End of main grid container */}
+          </div> 
+        </div> 
       </Card>
     </div>
   );
 }
+    
+
     
