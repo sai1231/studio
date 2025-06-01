@@ -184,6 +184,19 @@ let mockContentItems: ContentItem[] = [
     createdAt: new Date(Date.now() - 86400000 * 2.5).toISOString(),
     domain: 'theverge.com',
     contentType: 'News',
+  },
+  {
+    id: '16',
+    type: 'link',
+    url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    title: 'Important Tech Presentation (Music Video)',
+    description: 'A must-watch presentation on new web technologies and classic tunes.',
+    imageUrl: 'https://source.unsplash.com/600x400/?youtube,presentation,music', 
+    tags: [{ id: 't-video', name: 'video' }, { id: 't-tech', name: 'technology presentation' }, {id: 't-music', name: 'music'}],
+    zoneId: '1',
+    createdAt: new Date(Date.now() - 86400000 * 0.7).toISOString(),
+    domain: 'youtube.com',
+    contentType: 'Video',
   }
 ];
 
@@ -252,7 +265,8 @@ export async function addContentItem(
     domain: extractedDomain,
     contentType: itemData.contentType,
     mindNote: itemData.mindNote,
-    audioUrl: itemData.audioUrl, // Ensure audioUrl is passed through
+    audioUrl: itemData.audioUrl, 
+    imageUrl: itemData.imageUrl || (itemData.type !== 'note' && itemData.type !== 'voice' ? `https://source.unsplash.com/600x400/?${itemData.title.split(" ")[0] || 'abstract'}` : undefined)
   };
   mockContentItems.unshift(newItem); 
   return newItem;
@@ -295,10 +309,12 @@ export async function uploadFile(file: File, path: string): Promise<string> {
   await new Promise(resolve => setTimeout(resolve, 200)); 
   
   if (file.type.startsWith('audio/')) {
-    return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3';
+    // For audio, return a generic mp3 link
+    return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-Random.mp3'; // Using a more generic name
   }
-  // Return a dynamic Unsplash URL for images, potentially using a keyword if easy
-  return 'https://source.unsplash.com/600x400/?upload,abstract'; 
+  // For images, return a dynamic Unsplash URL based on a simple keyword from filename or a default
+  const query = file.name.split('.')[0].split(' ')[0] || 'upload'; // a simple keyword
+  return `https://source.unsplash.com/600x400/?${query},abstract`; 
 }
 
 // Function to get unique domains

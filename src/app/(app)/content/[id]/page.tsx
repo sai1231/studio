@@ -37,6 +37,9 @@ const tagColorPalettes = [
 
 const getTagStyles = (tagName: string): string => {
   let hash = 0;
+  if (!tagName || tagName.length === 0) {
+    return tagColorPalettes[0]; // Default color for empty or undefined tag names
+  }
   for (let i = 0; i < tagName.length; i++) {
     hash = tagName.charCodeAt(i) + ((hash << 5) - hash);
     hash = hash & hash; // Convert to 32bit integer
@@ -44,6 +47,28 @@ const getTagStyles = (tagName: string): string => {
   const index = Math.abs(hash) % tagColorPalettes.length;
   return tagColorPalettes[index];
 };
+
+const getEmbedUrl = (url: string | undefined): string | null => {
+  if (!url) return null;
+  try {
+    const urlObj = new URL(url);
+    if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
+      let videoId = urlObj.searchParams.get('v');
+      if (urlObj.hostname.includes('youtu.be')) {
+        videoId = urlObj.pathname.substring(1);
+      }
+      if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}`;
+      }
+    }
+    // Add other platform checks here (e.g., Instagram, Twitter) later
+  } catch (e) {
+    console.warn("Could not parse URL for embed:", url, e);
+    return null;
+  }
+  return null;
+};
+
 
 export default function ContentDetailPage() {
   const params = useParams();
@@ -55,6 +80,7 @@ export default function ContentDetailPage() {
   const [zone, setZone] = useState<Zone | null>(null); 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [embedUrl, setEmbedUrl] = useState<string | null>(null);
 
   const [editableTitle, setEditableTitle] = useState('');
   const [editableDescription, setEditableDescription] = useState('');
@@ -79,10 +105,14 @@ export default function ContentDetailPage() {
       const fetchData = async () => {
         setIsLoading(true);
         setError(null);
+        setEmbedUrl(null); 
         try {
           const fetchedItem = await getContentItemById(id);
           if (fetchedItem) {
             setItem(fetchedItem);
+            if (fetchedItem.type === 'link' && fetchedItem.url) {
+              setEmbedUrl(getEmbedUrl(fetchedItem.url));
+            }
             if (fetchedItem.zoneId) {
               const fetchedCurrentZone = await getZoneById(fetchedItem.zoneId);
               setZone(fetchedCurrentZone || null);
@@ -333,7 +363,10 @@ export default function ContentDetailPage() {
   
   const isDescriptionReadOnly = item.type === 'link' || item.type === 'image' || item.type === 'voice';
   const showMindNote = item.type === 'link' || item.type === 'image' || item.type === 'voice';
-  const showTwoColumnLayout = !!item.imageUrl;
+  
+  // Determine if the media column (left side) should be shown
+  const showMediaColumn = embedUrl || (item.imageUrl && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice'));
+
 
   const filteredZones = comboboxSearchText
     ? allZones.filter(z => z.name.toLowerCase().includes(comboboxSearchText.toLowerCase()))
@@ -351,24 +384,37 @@ export default function ContentDetailPage() {
 
       <Card className="shadow-xl overflow-hidden">
         <div className={cn(
-          showTwoColumnLayout ? "md:grid md:grid-cols-[minmax(0,_7fr)_minmax(0,_3fr)]" : ""
+          showMediaColumn ? "md:grid md:grid-cols-[minmax(0,_7fr)_minmax(0,_3fr)]" : ""
         )}>
-          {showTwoColumnLayout && item.imageUrl && (
-            <div className="relative w-full aspect-[3/4] md:aspect-auto md:h-full overflow-hidden">
-              <Image
-                src={item.imageUrl}
-                alt={editableTitle}
-                fill
-                objectFit="cover"
-                className="md:rounded-l-lg md:rounded-tr-none rounded-t-lg"
-              />
+          {showMediaColumn && (
+            <div className={cn(
+                "relative w-full overflow-hidden bg-muted md:rounded-l-lg md:rounded-tr-none rounded-t-lg",
+                embedUrl ? "aspect-video" : "aspect-[3/4] md:aspect-auto md:h-full" // Maintain aspect ratio for images
+            )}>
+              {embedUrl ? (
+                <iframe
+                  src={embedUrl}
+                  title={editableTitle || 'Embedded Content'}
+                  className="absolute top-0 left-0 w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                ></iframe>
+              ) : item.imageUrl ? (
+                <Image
+                  src={item.imageUrl}
+                  alt={editableTitle || 'Content Image'}
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  className="object-cover"
+                />
+              ) : null}
             </div>
           )}
 
           <div className="flex flex-col">
-            <CardHeader className={cn(
-              "pb-4",
-              showTwoColumnLayout ? "md:rounded-tl-none md:rounded-tr-lg" : (!item.imageUrl || showTwoColumnLayout) ? "rounded-t-lg" : ""
+             <CardHeader className={cn(
+                "pb-4",
+                showMediaColumn ? "md:rounded-tl-none md:rounded-tr-lg" : "rounded-t-lg"
             )}>
               {item.domain && (
                 <div className="flex items-center text-xs text-muted-foreground mb-1.5">
@@ -627,5 +673,6 @@ export default function ContentDetailPage() {
     
 
   
+
 
 
