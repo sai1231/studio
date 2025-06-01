@@ -1,11 +1,12 @@
 
 import type React from 'react';
 import Image from 'next/image';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+// Badge is not used as tags/domain/contentType are removed in this experimental card
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ExternalLink, Trash2 } from 'lucide-react';
-import type { ContentItem } from '@/types';
+import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, PlayCircle } from 'lucide-react'; // Layers, Landmark removed
+import type { ContentItem, ContentItemType } from '@/types'; // Tag type import removed
 import { cn } from '@/lib/utils';
 
 interface ContentCardExperimentProps {
@@ -13,6 +14,23 @@ interface ContentCardExperimentProps {
   onEdit: (item: ContentItem) => void;
   onDelete: (itemId: string) => void;
 }
+
+const getTypeSpecifics = (type: ContentItemType | undefined) => {
+  switch (type) {
+    case 'link':
+      return { icon: Globe, color: 'blue', iconRing: 'ring-sky-500/30', iconText: 'text-sky-600 dark:text-sky-400' };
+    case 'note':
+      return { icon: StickyNote, color: 'yellow', iconRing: 'ring-yellow-500/30', iconText: 'text-yellow-600 dark:text-yellow-400' };
+    case 'image':
+      return { icon: FileImage, color: 'gray', iconRing: 'ring-gray-500/30', iconText: 'text-gray-600 dark:text-gray-400' };
+    case 'todo':
+      return { icon: ListChecks, color: 'green', iconRing: 'ring-emerald-500/30', iconText: 'text-emerald-600 dark:text-emerald-400' };
+    case 'voice':
+      return { icon: Mic, color: 'purple', iconRing: 'ring-purple-500/30', iconText: 'text-purple-600 dark:text-purple-400' };
+    default:
+      return { icon: StickyNote, color: 'gray', iconRing: 'ring-gray-500/30', iconText: 'text-muted-foreground' };
+  }
+};
 
 const pixabayFallbackImages = [
   'https://cdn.pixabay.com/photo/2023/06/21/06/12/man-8078578_640.jpg',
@@ -29,81 +47,169 @@ const getNextFallbackImage = () => {
 
 const ContentCardExperiment: React.FC<ContentCardExperimentProps> = ({ item, onEdit, onDelete }) => {
   const handleActionClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card's onEdit from firing when an icon is clicked
+    e.stopPropagation();
   };
 
-  const imageToDisplay = item.imageUrl || getNextFallbackImage();
-  const imageAiHint = item.imageUrl ? (item.title || 'image').split(' ').slice(0, 2).join(' ') : "abstract design";
-  const displayText = item.title || (item.description ? `${item.description.substring(0, 70)}...` : 'Untitled');
-
-  return (
-    <Card
-      className={cn(
-        "relative overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 group rounded-2xl break-inside-avoid mb-4 cursor-pointer",
-        "aspect-video bg-muted" // Using aspect-video for a common ratio, bg-muted as a base
-      )}
-      onClick={() => onEdit(item)}
-    >
-      <Image
-        src={imageToDisplay}
-        alt={item.title || 'Content image'}
-        data-ai-hint={imageAiHint}
-        fill
-        className="object-cover group-hover:scale-105 transition-transform duration-300"
-        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        priority={false} // Consider setting priority for LCP images if applicable on dashboard
-      />
-
-      {/* Text Overlay (Bottom) */}
-      <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 via-black/50 to-transparent">
-        <h3 className="text-base font-semibold text-white shadow-black/50 drop-shadow-sm truncate" title={displayText}>
-          {displayText}
-        </h3>
-      </div>
-
-      {/* Icons Overlay (Top Right on Hover) */}
-      <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-        {item.type === 'link' && item.url && (
+  // Rule 1: For any image, just show the image without any text
+  if (item.type === 'image' && item.imageUrl) {
+    return (
+      <Card
+        className={cn(
+          "relative overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 group rounded-2xl break-inside-avoid mb-4 cursor-pointer",
+          "aspect-video bg-muted" // Maintain aspect ratio for consistency
+        )}
+        onClick={() => onEdit(item)}
+      >
+        <Image
+          src={item.imageUrl}
+          alt={item.title || 'Content image'}
+          data-ai-hint={(item.title || 'image').split(' ').slice(0, 2).join(' ')}
+          fill
+          className="object-cover group-hover:scale-105 transition-transform duration-300"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        />
+        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant="outline"
+                  variant="default" // Using default but styled to appear like an overlay button
                   size="icon"
-                  asChild
-                  onClick={handleActionClick}
-                  className="h-9 w-9 bg-black/50 hover:bg-black/70 border-white/30 text-white shadow-md"
-                  aria-label="Open link in new tab"
+                  onClick={(e) => {
+                    handleActionClick(e);
+                    onDelete(item.id);
+                  }}
+                  className="h-9 w-9 bg-black/50 hover:bg-red-600/90 border-white/30 text-white shadow-md"
+                  aria-label="Forget item"
                 >
-                  <a href={item.url} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent><p>Open link</p></TooltipContent>
+              <TooltipContent><p>Forget</p></TooltipContent>
             </Tooltip>
           </TooltipProvider>
-        )}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="default" // Changed from destructive to default with custom styling for overlay
-                size="icon"
-                onClick={(e) => {
-                  handleActionClick(e);
-                  onDelete(item.id);
-                }}
-                className="h-9 w-9 bg-black/50 hover:bg-red-600/90 border-white/30 text-white shadow-md"
-                aria-label="Forget item"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent><p>Forget</p></TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        </div>
+      </Card>
+    );
+  }
+
+  // Fallback for other types or image type without imageUrl
+  const hasImage = item.imageUrl && (item.type === 'link' || item.type === 'note' || item.type === 'voice' || item.type === 'movie');
+  const specifics = getTypeSpecifics(item.type);
+  const IconComponent = specifics.icon;
+  const imageToDisplay = item.imageUrl || getNextFallbackImage();
+  const imageAiHint = item.imageUrl ? (item.title || 'image').split(' ').slice(0, 2).join(' ') : "abstract design";
+
+  const renderDescription = (description: string | undefined) => {
+    if (!description) return null;
+    const truncatedDescription = description.length > 150 ? description.substring(0, 150) + '...' : description;
+    if (item.type === 'note' || item.type === 'todo') {
+      return truncatedDescription.split('\n').map((line, index) => (
+        <p key={index} className="mb-1 last:mb-0">
+          {line.startsWith('- ') || line.startsWith('* ') ? `• ${line.substring(2)}` : line}
+        </p>
+      ));
+    }
+    return <div className="text-sm text-muted-foreground break-words" dangerouslySetInnerHTML={{ __html: truncatedDescription }} />;
+  };
+
+  return (
+    <Card
+      className={cn(
+        "overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group rounded-2xl break-inside-avoid mb-4 cursor-pointer"
+      )}
+      onClick={() => onEdit(item)}
+    >
+      <div className="flex flex-col flex-grow group/link">
+        <div className="flex flex-col flex-grow">
+          {hasImage && (
+            <div className="relative w-full h-56">
+              <Image
+                src={imageToDisplay}
+                alt={item.title}
+                data-ai-hint={imageAiHint}
+                fill
+                className="object-cover rounded-t-2xl group-hover/link:scale-105 transition-transform duration-300"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              />
+            </div>
+          )}
+
+          <CardHeader className={cn("pb-2", !hasImage ? "pt-4" : "pt-3")}>
+            <div className="flex items-center gap-3 mb-2">
+              {!hasImage && (
+                <div className={cn("p-2 rounded-full ring-2", specifics.iconRing, "bg-muted/30 dark:bg-muted/20")}>
+                  <IconComponent className={cn("h-6 w-6", specifics.iconText)} />
+                </div>
+              )}
+              <CardTitle className="text-xl font-headline leading-tight group-hover/link:text-primary transition-colors">
+                {item.title}
+              </CardTitle>
+            </div>
+            {item.type === 'link' && item.url && (
+              <CardDescription className="text-xs text-muted-foreground flex items-center pt-1">
+                <Globe className="h-3 w-3 mr-1.5 shrink-0" />
+                <span className="truncate group-hover/link:underline">{item.url}</span>
+              </CardDescription>
+            )}
+          </CardHeader>
+
+          <CardContent className={cn("flex-grow space-y-3", hasImage ? "pt-0 pb-4" : "pt-2 pb-4")}>
+            {item.description && (
+              <div className={cn("text-sm mb-3 break-words", 'text-muted-foreground')}>
+                {renderDescription(item.description)}
+              </div>
+            )}
+            {item.type === 'voice' && item.audioUrl && (
+              <div className="my-2 flex items-center gap-2 text-sm text-muted-foreground">
+                <PlayCircle className={cn("h-5 w-5", specifics.iconText)} />
+                <span>Voice recording ready.</span>
+              </div>
+            )}
+            {/* Tags, domain, and contentType badges are intentionally removed for the experimental card */}
+          </CardContent>
+        </div>
       </div>
+      <CardFooter className={cn("flex justify-between items-center pt-3 pb-3 px-4", 'mt-auto border-t-0')}>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          {/* Placeholder for date or other small info */}
+        </div>
+        <div className="flex items-center gap-2">
+          {item.type === 'link' && item.url && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="icon" asChild onClick={handleActionClick} className={cn("h-8 w-8", 'bg-background/30 hover:bg-background/50 border-foreground/20 text-foreground/70')}>
+                    <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Open link in new tab">
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Open link</p></TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    handleActionClick(e);
+                    onDelete(item.id);
+                  }}
+                  aria-label="Forget item"
+                  className={cn("h-8 w-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10", 'hover:bg-black/10 dark:hover:bg-white/10')}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p>Forget</p></TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </CardFooter>
     </Card>
   );
 };
