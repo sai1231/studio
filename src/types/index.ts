@@ -40,6 +40,9 @@ export interface ContentItem {
    * Populated by a background process.
    */
   url_content_type?: string;
+  // New fields for image analysis
+  dominantColors?: string[];
+  extractedText?: string;
 }
 
 // For backward compatibility and specific link operations, we can still use LinkItem
@@ -48,4 +51,3 @@ export type LinkItem = ContentItem & {
   type: 'link';
   url: string; // url is mandatory for LinkItem
 };
-

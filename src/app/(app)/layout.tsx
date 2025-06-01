@@ -7,6 +7,7 @@ import AppSidebar from '@/components/core/app-sidebar';
 import AddContentDialog from '@/components/core/add-content-dialog';
 import type { Collection, ContentItem, ContentItemType } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { analyzeImageContent } from '@/ai/flows/analyze-image-content'; // Import the new flow
 
 const mockCollections: Collection[] = [
   { id: '1', name: 'Work Projects' },
@@ -34,22 +35,70 @@ export default function AppLayout({
     setIsAddContentDialogOpen(false);
   };
 
-  const handleImageFileSelected = (file: File) => {
+  const handleImageFileSelected = async (file: File) => {
+    const { id: toastId } = toast({
+      title: "Processing Image...",
+      description: "Reading file and preparing for analysis.",
+    });
+
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const imageUrl = e.target?.result as string;
+      if (!imageUrl) {
+        toast({
+          id: toastId,
+          title: "Error Reading File",
+          description: "Could not read the image file.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        id: toastId,
+        title: "Analyzing Image...",
+        description: "Extracting colors and text. This may take a moment.",
+      });
+
+      let analysisResult;
+      try {
+        analysisResult = await analyzeImageContent({ imageDataUri: imageUrl });
+      } catch (error) {
+        console.error("Error analyzing image:", error);
+        toast({
+          id: toastId,
+          title: "AI Analysis Failed",
+          description: "Could not analyze the image with AI. Saving image without extracted data.",
+          variant: "destructive",
+        });
+        analysisResult = { dominantColors: [], extractedText: "" }; // Proceed without AI data
+      }
+
       const newImageContent: Omit<ContentItem, 'id' | 'createdAt'> = {
         type: 'image',
         title: file.name || 'Uploaded Image',
         description: `Uploaded image: ${file.name}`,
         imageUrl: imageUrl,
         tags: [{id: 'upload', name: 'upload'}], // Default tag
+        collectionId: '', // TODO: Allow user to select collection for direct uploads
+        dominantColors: analysisResult.dominantColors,
+        extractedText: analysisResult.extractedText,
       };
-      console.log('New image content:', newImageContent);
+      
+      console.log('New image content with AI analysis:', newImageContent);
       // TODO: Add this to the main content list (e.g., via global state or API call)
       toast({
-        title: "Image Selected",
-        description: `"${newImageContent.title}" is ready to be saved (not fully implemented yet). Image preview functionality will show in card once saved to list.`,
+        id: toastId,
+        title: "Image Processed!",
+        description: `"${newImageContent.title}" analyzed. Colors: ${newImageContent.dominantColors?.join(', ') || 'N/A'}. Text: ${newImageContent.extractedText ? 'Found' : 'None'}.`,
+      });
+    };
+    reader.onerror = () => {
+      toast({
+        id: toastId,
+        title: "Error Reading File",
+        description: "An error occurred while reading the image file.",
+        variant: "destructive",
       });
     };
     reader.readAsDataURL(file);
