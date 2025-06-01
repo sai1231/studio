@@ -144,6 +144,17 @@ export async function getZoneById(id: string): Promise<Zone | undefined> {
   return mockZones.find(zone => zone.id === id); 
 }
 
+// Function to add a new zone
+export async function addZone(name: string): Promise<Zone> {
+  await new Promise(resolve => setTimeout(resolve, 50));
+  const newZone: Zone = {
+    id: Date.now().toString(), // Simple ID generation for mock
+    name: name.trim(),
+  };
+  mockZones.push(newZone);
+  return newZone;
+}
+
 
 // Function to add a new content item
 export async function addContentItem(

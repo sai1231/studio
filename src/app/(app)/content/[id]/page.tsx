@@ -5,15 +5,16 @@ import type React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { getContentItemById, getZoneById, updateContentItem, getZones } from '@/services/contentService';
+import { getContentItemById, getZoneById, updateContentItem, getZones, addZone } from '@/services/contentService';
 import type { ContentItem, Zone, Tag } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark } from 'lucide-react';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
+import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, ChevronsUpDown } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -45,6 +46,10 @@ export default function ContentDetailPage() {
   const [isUpdatingTags, setIsUpdatingTags] = useState(false);
   const [isAddingTag, setIsAddingTag] = useState(false);
   const newTagInputRef = useRef<HTMLInputElement>(null);
+
+  const [isComboboxOpen, setIsComboboxOpen] = useState(false);
+  const [comboboxSearchText, setComboboxSearchText] = useState('');
+
 
   useEffect(() => {
     if (id) {
@@ -79,7 +84,6 @@ export default function ContentDetailPage() {
             setAllZones(fetchedZones);
         } catch (e) {
             console.error("Failed to fetch zones for dropdown", e);
-            // Toast handled by caller if needed
         }
       };
       fetchAllZonesData();
@@ -108,15 +112,7 @@ export default function ContentDetailPage() {
     setIsSavingField(true);
 
     try {
-      const currentDescriptionIsReadOnly = item.type === 'link' || item.type === 'image' || item.type === 'voice';
       let updatePayload: Partial<ContentItem> = { [fieldName]: value };
-
-      if (fieldName === 'description' && currentDescriptionIsReadOnly) {
-        // Safeguard: prevent updating description for read-only types.
-        // Value here should ideally be the original if UI prevents changes.
-      }
-
-
       const updatedItem = await updateContentItem(item.id, updatePayload);
       if (updatedItem) {
         setItem(updatedItem); 
@@ -171,13 +167,49 @@ export default function ContentDetailPage() {
     }
   };
 
-  const handleZoneChange = (value: string) => {
-    const newZoneId = value === NO_ZONE_VALUE ? undefined : value;
-    // setEditableZoneId is called by useEffect when item changes
-    if (item && newZoneId !== item.zoneId) {
-      handleFieldUpdate('zoneId', newZoneId);
+  const handleZoneSelection = async (selectedZoneValue: string | undefined) => {
+    setIsComboboxOpen(false);
+    setComboboxSearchText('');
+
+    if (selectedZoneValue === undefined) { // "No Zone" selected
+      if (item && item.zoneId !== undefined) {
+        await handleFieldUpdate('zoneId', undefined);
+      }
+      setEditableZoneId(undefined);
+      return;
+    }
+
+    const existingZone = allZones.find(z => z.id === selectedZoneValue);
+    if (existingZone) {
+      if (item && item.zoneId !== existingZone.id) {
+        await handleFieldUpdate('zoneId', existingZone.id);
+      }
+      setEditableZoneId(existingZone.id);
     }
   };
+
+  const handleCreateZone = async (zoneName: string) => {
+    if (!zoneName.trim()) return;
+    setIsSavingField(true);
+    try {
+      const newZone = await addZone(zoneName.trim());
+      setAllZones(prev => [...prev, newZone]);
+      if (item) {
+        await handleFieldUpdate('zoneId', newZone.id);
+      }
+      setEditableZoneId(newZone.id);
+      setZone(newZone); // Update current zone display
+      toast({ title: "Zone Created", description: `Zone "${newZone.name}" created and assigned.` });
+    } catch (e) {
+      console.error('Error creating zone:', e);
+      toast({ title: "Error", description: "Could not create new zone.", variant: "destructive" });
+    } finally {
+      setIsSavingField(false);
+      setIsComboboxOpen(false);
+      setComboboxSearchText('');
+    }
+  };
+
 
   const saveTags = async (tagsToSave: Tag[]) => {
     if (!item || isSavingField) return; 
@@ -186,7 +218,6 @@ export default function ContentDetailPage() {
       const updatedItemWithTags = await updateContentItem(item.id, { tags: tagsToSave });
       if (updatedItemWithTags) {
         setItem(prevItem => prevItem ? { ...prevItem, tags: updatedItemWithTags.tags || [] } : null);
-        // setEditableTags is called by useEffect when item changes
       } else {
         throw new Error("Failed to update item tags.");
       }
@@ -201,7 +232,6 @@ export default function ContentDetailPage() {
 
   const handleRemoveTag = (tagIdToRemove: string) => {
     const newTags = editableTags.filter(tag => tag.id !== tagIdToRemove);
-    // setEditableTags(newTags); // Optimistic update, will be confirmed by useEffect
     saveTags(newTags);
   };
 
@@ -218,7 +248,6 @@ export default function ContentDetailPage() {
     const newTag: Tag = { id: Date.now().toString(), name: newTagInput.trim() }; 
     const newTags = [...editableTags, newTag];
     
-    // setEditableTags(newTags); // Optimistic update, will be confirmed by useEffect
     setNewTagInput('');
     setIsAddingTag(false); 
     saveTags(newTags);
@@ -283,6 +312,12 @@ export default function ContentDetailPage() {
   const showMindNote = item.type === 'link' || item.type === 'image' || item.type === 'voice';
   const showTwoColumnLayout = !!item.imageUrl;
 
+  const filteredZones = comboboxSearchText
+    ? allZones.filter(z => z.name.toLowerCase().includes(comboboxSearchText.toLowerCase()))
+    : allZones;
+
+  const currentZoneName = allZones.find(z => z.id === editableZoneId)?.name || "Select zone...";
+
 
   return (
     <div className="container mx-auto py-6 max-w-4xl">
@@ -318,7 +353,7 @@ export default function ContentDetailPage() {
                   <span>{item.domain}</span>
                 </div>
               )}
-              <div className="flex items-center justify-between space-x-2 pr-20"> 
+              <div className="flex items-center justify-between space-x-2 pr-20 relative"> 
                 <div className="flex items-center space-x-2 flex-grow">
                     {isSavingField && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
                     <Input
@@ -381,22 +416,82 @@ export default function ContentDetailPage() {
               <div className="text-sm items-center pt-1"> 
                 <div className="flex items-center space-x-2 text-muted-foreground">
                     <Bookmark className="h-4 w-4" />
-                    <Select
-                        value={editableZoneId || NO_ZONE_VALUE} 
-                        onValueChange={handleZoneChange}
-                        disabled={isSavingField || isUpdatingTags || allZones.length === 0}
-                    >
-                        <SelectTrigger className="w-full md:w-[200px] h-9 text-sm focus-visible:ring-accent">
-                            <SelectValue placeholder="Select zone" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {allZones.map(z => (
-                                <SelectItem key={z.id} value={z.id}>{z.name}</SelectItem>
-                            ))}
-                            {allZones.length === 0 && <SelectItem value="loadingzones" disabled>Loading zones...</SelectItem>}
-                            <SelectItem value={NO_ZONE_VALUE}>No Zone</SelectItem>
-                        </SelectContent>
-                    </Select>
+                     <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
+                        <PopoverTrigger asChild>
+                            <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={isComboboxOpen}
+                            className="w-full md:w-[250px] justify-between h-9 text-sm focus-visible:ring-accent"
+                            disabled={isSavingField || isUpdatingTags}
+                            >
+                            {editableZoneId
+                                ? allZones.find((z) => z.id === editableZoneId)?.name
+                                : "Select zone..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                            <Command>
+                                <CommandInput 
+                                    placeholder="Search or create zone..."
+                                    value={comboboxSearchText}
+                                    onValueChange={setComboboxSearchText}
+                                />
+                                <CommandList>
+                                    <CommandEmpty>
+                                    {comboboxSearchText.trim() === '' ? 'No zone found.' : (
+                                        <Button
+                                            variant="ghost"
+                                            className="w-full justify-start"
+                                            onClick={() => handleCreateZone(comboboxSearchText)}
+                                        >
+                                            <Plus className="mr-2 h-4 w-4" /> Create "{comboboxSearchText}"
+                                        </Button>
+                                    )}
+                                    </CommandEmpty>
+                                    <CommandGroup>
+                                        <CommandItem
+                                            value={NO_ZONE_VALUE}
+                                            onSelect={() => handleZoneSelection(undefined)}
+                                        >
+                                            <Check
+                                                className={cn(
+                                                "mr-2 h-4 w-4",
+                                                !editableZoneId ? "opacity-100" : "opacity-0"
+                                                )}
+                                            />
+                                            No Zone
+                                        </CommandItem>
+                                        {filteredZones.map((z) => (
+                                        <CommandItem
+                                            key={z.id}
+                                            value={z.id}
+                                            onSelect={(currentValue) => {
+                                                handleZoneSelection(currentValue === editableZoneId ? undefined : currentValue);
+                                            }}
+                                        >
+                                            <Check
+                                            className={cn(
+                                                "mr-2 h-4 w-4",
+                                                editableZoneId === z.id ? "opacity-100" : "opacity-0"
+                                            )}
+                                            />
+                                            {z.name}
+                                        </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                </CommandList>
+                                {comboboxSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === comboboxSearchText.trim().toLowerCase()) && (
+                                    <CommandGroup className="border-t">
+                                        <CommandItem onSelect={() => handleCreateZone(comboboxSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer">
+                                            <Plus className="mr-2 h-4 w-4" /> Create "{comboboxSearchText.trim()}"
+                                        </CommandItem>
+                                    </CommandGroup>
+                                )}
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
                 </div>
               </div>
               
@@ -506,8 +601,4 @@ export default function ContentDetailPage() {
     </div>
   );
 }
-    
-
-    
-
     
