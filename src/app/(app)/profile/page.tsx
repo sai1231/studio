@@ -26,8 +26,8 @@ const mockUserProfile: UserProfile = {
   name: 'Samantha Bee',
   email: 'samantha@example.com',
   bio: 'Digital enthusiast, avid reader, and professional content clipper. Always on the lookout for the next big idea or fascinating article to save and share. Exploring the web one clip at a time!',
-  avatarUrl: 'https://source.unsplash.com/random/128x128/?portrait,person',
-  joinedDate: new Date(2023, 4, 15), // May 15, 2023
+  avatarUrl: 'https://cdn.pixabay.com/photo/2023/06/21/06/12/man-8078578_640.jpg', 
+  joinedDate: new Date(2023, 4, 15), 
 };
 
 export default function ProfilePage() {
@@ -39,7 +39,6 @@ export default function ProfilePage() {
 
   const handleSaveChanges = async () => {
     setIsSaving(true);
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     setProfile(prev => ({ ...prev, name: editableName, bio: editableBio }));
     setIsSaving(false);
@@ -152,4 +151,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-

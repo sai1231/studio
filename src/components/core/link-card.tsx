@@ -1,7 +1,6 @@
 
 import type React from 'react';
 import Image from 'next/image';
-// Link import removed as navigation is handled by onEdit prop now
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,7 +11,7 @@ import { cn } from '@/lib/utils';
 
 interface ContentCardProps {
   item: ContentItem;
-  onEdit: (item: ContentItem) => void; // This will now trigger the detail dialog
+  onEdit: (item: ContentItem) => void; 
   onDelete: (itemId: string) => void;
 }
 
@@ -59,14 +58,27 @@ const getTagStyles = (tagName: string): string => {
   return tagColorPalettes[index];
 };
 
+const pixabayFallbackImages = [ 
+  'https://cdn.pixabay.com/photo/2023/06/21/06/12/man-8078578_640.jpg',
+  'https://cdn.pixabay.com/photo/2024/07/09/03/48/shiva-poster-8882318_1280.jpg',
+  'https://cdn.pixabay.com/photo/2025/05/14/16/21/city-9599967_960_720.jpg',
+  'https://cdn.pixabay.com/photo/2024/05/26/10/00/lighthouse-8788992_640.jpg',
+  'https://cdn.pixabay.com/photo/2024/04/09/15/07/coffee-8686017_640.jpg'
+];
+let lastUsedFallbackIndex = -1; 
+const getNextFallbackImage = () => {
+  lastUsedFallbackIndex = (lastUsedFallbackIndex + 1) % pixabayFallbackImages.length;
+  return pixabayFallbackImages[lastUsedFallbackIndex];
+};
+
 
 const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => {
-  const hasImage = item.imageUrl && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice' || item.type === 'movie'); // Added movie type
+  const hasImage = item.imageUrl && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice' || item.type === 'movie');
   const specifics = getTypeSpecifics(item.type);
   const IconComponent = specifics.icon;
 
   const handleActionClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click (onEdit) when clicking an action button
+    e.stopPropagation(); 
   };
 
   const renderDescription = (description: string | undefined) => {
@@ -83,8 +95,8 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
   };
 
   const tagBaseClasses = "px-3 py-1 text-xs rounded-full font-medium";
-  const imageToDisplay = item.imageUrl || "https://source.unsplash.com/random/600x400/?abstract,default";
-  const imageAiHint = item.imageUrl ? item.title.split(' ').slice(0,2).join(' ') : "abstract default";
+  const imageToDisplay = item.imageUrl || getNextFallbackImage(); // Use sequential fallback
+  const imageAiHint = item.imageUrl ? item.title.split(' ').slice(0,2).join(' ') : "abstract city";
 
 
   return (
@@ -92,9 +104,9 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
       className={cn(
         "overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group rounded-2xl break-inside-avoid mb-4 cursor-pointer"
       )}
-      onClick={() => onEdit(item)} // Trigger onEdit when card is clicked
+      onClick={() => onEdit(item)} 
     >
-      <div className="flex flex-col flex-grow group/link"> {/* Removed Link wrapper, class was for hover effects */}
+      <div className="flex flex-col flex-grow group/link"> 
         <div className="flex flex-col flex-grow">
           {hasImage ? (
             <div className="relative w-full h-56">
@@ -222,4 +234,3 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
 };
 
 export default ContentCard;
-

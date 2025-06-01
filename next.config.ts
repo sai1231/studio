@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'source.unsplash.com',
+        hostname: 'cdn.pixabay.com', // Added Pixabay
         port: '',
         pathname: '/**',
       },
