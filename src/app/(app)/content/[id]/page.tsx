@@ -16,6 +16,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil, ChevronDown, Ban, Briefcase, Home, Library, Star, Film, Users, Clapperboard, Glasses } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import ReadableArticleView from '@/components/core/ReadableArticleView';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -112,6 +113,10 @@ export default function ContentDetailPage() {
 
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   const [comboboxSearchText, setComboboxSearchText] = useState('');
+
+  const [isArticleViewOpen, setIsArticleViewOpen] = useState(false);
+  const [articleViewData, setArticleViewData] = useState<{ title: string; content: string } | null>(null);
+  const [isFetchingArticle, setIsFetchingArticle] = useState(false);
 
 
   useEffect(() => {
@@ -321,6 +326,31 @@ export default function ContentDetailPage() {
     setIsAddingTag(false);
   }
 
+  const handleOpenSimplifiedView = async () => {
+    if (!item || !item.url) return;
+    setIsFetchingArticle(true);
+    try {
+      const response = await fetch(`/api/readability?url=${encodeURIComponent(item.url)}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to fetch article (status: ${response.status})`);
+      }
+      const data = await response.json();
+      setArticleViewData({ title: data.title, content: data.content });
+      setIsArticleViewOpen(true);
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : "Unknown error";
+      toast({
+        title: "Error Fetching Article",
+        description: `Could not load simplified view: ${errorMessage}`,
+        variant: "destructive",
+      });
+      setArticleViewData(null);
+    } finally {
+      setIsFetchingArticle(false);
+    }
+  };
+
 
   if (isLoading) {
     return (
@@ -451,17 +481,16 @@ export default function ContentDetailPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  asChild
                   className="mt-3"
+                  onClick={handleOpenSimplifiedView}
+                  disabled={isFetchingArticle}
                 >
-                  <a
-                    href={`https://www.printfriendly.com/p/print/?source=klipped&url=${encodeURIComponent(item.url)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
+                  {isFetchingArticle ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
                     <Glasses className="mr-2 h-4 w-4" />
-                    Simplified View
-                  </a>
+                  )}
+                  Simplified View
                 </Button>
               )}
             </CardHeader>
@@ -718,7 +747,14 @@ export default function ContentDetailPage() {
           </div>
         </div>
       </Card>
+      {articleViewData && (
+        <ReadableArticleView
+          open={isArticleViewOpen}
+          onOpenChange={setIsArticleViewOpen}
+          title={articleViewData.title}
+          htmlContent={articleViewData.content}
+        />
+      )}
     </div>
   );
 }
-
