@@ -1,7 +1,7 @@
 
 'use client';
 
-import type React from 'react';
+import React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { getContentItems, deleteContentItem } from '@/services/contentService';
