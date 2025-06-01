@@ -16,6 +16,7 @@ import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, Command
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil, ChevronDown, Ban, Briefcase, Home, Library } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -83,6 +84,15 @@ const getEmbedUrl = (url: string | undefined): string | null => {
   return null;
 };
 
+const loadingMessages = [
+  "Organizing your thoughts...",
+  "Fetching your inspirations...",
+  "Aligning your ideas...",
+  "Connecting the dots...",
+  "Unpacking wisdom...",
+  "Brewing brilliance...",
+];
+
 interface ContentDetailDialogProps {
   itemId: string | null;
   open: boolean;
@@ -97,6 +107,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [embedUrl, setEmbedUrl] = useState<string | null>(null);
+  const [currentLoadingMessage, setCurrentLoadingMessage] = useState(loadingMessages[0]);
 
   const [editableTitle, setEditableTitle] = useState('');
   const [editableDescription, setEditableDescription] = useState('');
@@ -117,16 +128,18 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
 
   useEffect(() => {
     if (open && itemId) {
-      setIsLoading(true); // Ensure loading state is set at the beginning of fetch
+      setIsLoading(true); 
       setError(null);
       setEmbedUrl(null);
-      // Reset item specific states to avoid showing stale data briefly
       setItem(null);
       setEditableTitle('');
       setEditableDescription('');
       setEditableMindNote('');
       setEditableZoneId(undefined);
       setEditableTags([]);
+      
+      const randomIndex = Math.floor(Math.random() * loadingMessages.length);
+      setCurrentLoadingMessage(loadingMessages[randomIndex]);
 
       const fetchData = async () => {
         try {
@@ -139,13 +152,11 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
           } else {
             setError('Content item not found.');
             toast({ title: "Error", description: "Content item not found.", variant: "destructive" });
-            // onOpenChange(false); // Optionally close dialog if item not found after loading
           }
         } catch (e) {
           console.error('Error fetching content details for dialog:', e);
           setError('Failed to load content details.');
           toast({ title: "Error", description: "Failed to load content details.", variant: "destructive" });
-          // onOpenChange(false); // Optionally close dialog on error
         } finally {
           setIsLoading(false);
         }
@@ -162,13 +173,12 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       };
       fetchAllZonesData();
     } else if (!open) {
-      // Reset item-specific state when dialog is explicitly closed or itemId is null
       setItem(null);
-      setIsLoading(true); // Reset to loading for next open
+      setIsLoading(true); 
       setError(null);
       setEmbedUrl(null);
     }
-  }, [itemId, open, toast]); // Removed onOpenChange from deps to avoid potential loops
+  }, [itemId, open, toast]); 
 
   useEffect(() => {
     if (item) {
@@ -344,9 +354,9 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
     setIsAddingTag(false);
   }
 
-  const dialogTitleText = isLoading ? "Loading Details..." : (item?.title || (error ? "Error Loading" : "Content Details"));
+  const dialogTitleText = isLoading ? currentLoadingMessage : (item?.title || (error ? "Error Loading" : "Content Details"));
   
-  if (!open) { // Prevent rendering if not open
+  if (!open) { 
     return null;
   }
 
@@ -358,25 +368,48 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
             {dialogTitleText}
           </DialogTitle>
         </DialogHeader>
-
-        {isLoading ? (
-          <div className="flex-grow flex items-center justify-center py-8">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          </div>
-        ) : error || !item ? (
-          <div className="flex-grow flex items-center justify-center py-8 text-center">
-            <div>
-              <X className="h-12 w-12 mx-auto text-destructive mb-3" />
-              <h2 className="text-xl font-semibold text-destructive">
-                {error || 'Content Item Not Found'}
-              </h2>
-              <p className="text-muted-foreground mt-1">Please try again or select another item.</p>
+        
+        <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar py-4">
+          {isLoading ? (
+            <div className="md:grid md:grid-cols-[minmax(0,_3fr)_minmax(0,_2fr)] gap-6">
+              {/* Left Column Skeleton (Media) */}
+              <div className="relative w-full overflow-hidden rounded-xl shadow-sm aspect-video">
+                <Skeleton className="h-full w-full" />
+              </div>
+              {/* Right Column Skeleton (Details) */}
+              <div className="flex flex-col space-y-4 mt-6 md:mt-0">
+                <Skeleton className="h-7 w-3/4 rounded" /> {/* Title Skeleton */}
+                <Skeleton className="h-4 w-1/2 rounded" /> {/* Domain/Link Skeleton */}
+                <div className="space-y-2"> {/* Description Skeleton */}
+                  <Skeleton className="h-4 w-full rounded" />
+                  <Skeleton className="h-4 w-full rounded" />
+                  <Skeleton className="h-4 w-5/6 rounded" />
+                </div>
+                <Skeleton className="h-10 w-48 rounded" /> {/* Zone Selector Skeleton */}
+                <div className="flex flex-wrap gap-2"> {/* Tags Skeleton */}
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                  <Skeleton className="h-6 w-24 rounded-full" />
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                </div>
+                <div className="bg-muted/50 dark:bg-muted/20 p-3 rounded-lg mt-4"> {/* Mind Note Area Skeleton */}
+                  <Skeleton className="h-5 w-1/3 mb-2 rounded" /> {/* Mind Note Title Skeleton */}
+                  <Skeleton className="h-16 w-full rounded" /> {/* Mind Note Textarea Skeleton */}
+                </div>
+              </div>
             </div>
-          </div>
-        ) : (
-          // Main content area for the item details
-          <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar py-4">
-            {(() => { // IIFE to keep variables scoped for content rendering
+          ) : error || !item ? (
+            <div className="flex-grow flex items-center justify-center py-8 text-center">
+              <div>
+                <X className="h-12 w-12 mx-auto text-destructive mb-3" />
+                <h2 className="text-xl font-semibold text-destructive">
+                  {error || 'Content Item Not Found'}
+                </h2>
+                <p className="text-muted-foreground mt-1">Please try again or select another item.</p>
+              </div>
+            </div>
+          ) : (
+            // Main content area for the item details
+            (() => { 
               const isDescriptionReadOnly = item.type === 'link' || item.type === 'image' || item.type === 'voice';
               const showMindNote = item.type === 'link' || item.type === 'image' || item.type === 'voice';
               const showMediaColumn = embedUrl || (item.imageUrl && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice'));
@@ -414,7 +447,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                     </div>
                   )}
 
-                  <div className="flex flex-col space-y-4">
+                  <div className="flex flex-col space-y-4 mt-6 md:mt-0">
                       {item.domain && (
                           <div className="flex items-center text-xs text-muted-foreground">
                           <Globe className="h-3.5 w-3.5 mr-1.5" />
@@ -633,12 +666,13 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                               />
                           </div>
                       )}
-                  </div> {/* End of right column content */}
+                  </div> 
                 </div> 
               );
-            })()}
-          </div>
-        )}
+            })()
+          )}
+        </div>
+
 
         <DialogFooter className="border-t pt-4 flex-shrink-0">
           {item && !isLoading && !error && (
