@@ -442,7 +442,7 @@ export async function addContentItem(
     contentType: finalContentType,
     mindNote: itemData.mindNote,
     audioUrl: itemData.audioUrl,
-    imageUrl: finalImageUrl || (itemType !== 'note' && itemType !== 'voice' ? `https://placehold.co/600x400.png` : undefined),
+    imageUrl: finalImageUrl || (itemType !== 'note' && itemType !== 'voice' && itemType !== 'movie' && !(itemType === 'link' && finalContentType === 'PDF') ? `https://placehold.co/600x400.png` : undefined),
     description: finalDescription,
     movieDetails: movieDetailsData,
   };
@@ -490,8 +490,11 @@ export async function uploadFile(file: File, path: string): Promise<string> {
   await new Promise(resolve => setTimeout(resolve, 200));
 
   if (file.type.startsWith('audio/')) {
-    // For audio, return a generic mp3 link
-    return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-Random.mp3'; // Using a more generic name
+    return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-Random.mp3';
+  }
+  if (file.type === 'application/pdf') {
+    // Return a more representative mock URL for PDFs, ensuring it's unique enough for testing
+    return `https://storage.example.com/uploads/${Date.now()}_${encodeURIComponent(file.name)}`;
   }
   // For images, return a dynamic placehold.co URL
   return `https://placehold.co/600x400.png`;

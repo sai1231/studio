@@ -15,7 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, FileText, ImageUp, Mic, UploadCloud } from 'lucide-react';
+import { Plus, FileText, ImageUp, Mic, UploadCloud, FileUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function AppLayout({
@@ -27,6 +27,7 @@ export default function AppLayout({
   const [zones, setZones] = useState<Zone[]>([]);
   const { toast } = useToast();
   const imageUploadInputRef = useRef<HTMLInputElement>(null);
+  const pdfUploadInputRef = useRef<HTMLInputElement>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   const fetchZones = useCallback(async () => {
@@ -87,7 +88,7 @@ export default function AppLayout({
       });
 
       const defaultZoneId = zones.length > 0 ? zones[0].id : undefined;
-       if (!defaultZoneId && zones.length > 0) { // Check if zones exist but still no defaultZoneId
+       if (!defaultZoneId && zones.length > 0) { 
         console.warn("No default zone available, image might not be assigned to a zone.");
        }
 
@@ -97,7 +98,7 @@ export default function AppLayout({
         title: file.name || 'Uploaded Image',
         description: `Uploaded image: ${file.name}`,
         imageUrl: downloadURL,
-        tags: [{id: 'upload', name: 'upload'}, { id: 'dnd-drop', name: 'dropped' }],
+        tags: [{id: 'upload', name: 'upload'}, { id: file.type.startsWith('image/') ? 'image-upload' : 'file-upload', name: file.type.startsWith('image/') ? 'image' : 'file' }],
         zoneId: defaultZoneId,
       };
 
@@ -119,6 +120,57 @@ export default function AppLayout({
     }
   };
 
+  const handlePdfFileSelected = async (file: File) => {
+    const currentToast = toast({
+      title: "Processing PDF...",
+      description: "Preparing your PDF.",
+    });
+
+    try {
+      const pdfPath = `contentPdfs/${Date.now()}_${file.name}`;
+      const downloadURL = await uploadFile(file, pdfPath);
+
+      currentToast.update({
+        id: currentToast.id,
+        title: "Saving PDF...",
+        description: "Adding your PDF to your library.",
+      });
+
+      const defaultZoneId = zones.length > 0 ? zones[0].id : undefined;
+      if (!defaultZoneId && zones.length > 0) {
+        console.warn("No default zone available, PDF might not be assigned to a zone.");
+      }
+
+      const newPdfContent: Omit<ContentItem, 'id' | 'createdAt'> = {
+        type: 'link', // PDFs are treated as links to the uploaded file
+        title: file.name || 'Uploaded PDF',
+        url: downloadURL,
+        description: `Uploaded PDF: ${file.name}`,
+        tags: [{ id: 'upload', name: 'upload' }, { id: 'pdf-upload', name: 'pdf' }],
+        zoneId: defaultZoneId,
+        contentType: 'PDF',
+        domain: 'klipped.internal.storage', 
+      };
+
+      await addContentItem(newPdfContent);
+
+      currentToast.update({
+        id: currentToast.id,
+        title: "PDF Saved!",
+        description: `"${newPdfContent.title}" has been saved as a link.`,
+      });
+    } catch (error) {
+      console.error("Error processing PDF upload:", error);
+      currentToast.update({
+        id: currentToast.id,
+        title: "PDF Upload Failed",
+        description: "Could not process your PDF. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+
   const handleUploadImageClick = () => {
     imageUploadInputRef.current?.click();
   };
@@ -127,6 +179,18 @@ export default function AppLayout({
     const file = event.target.files?.[0];
     if (file) {
       handleImageFileSelected(file);
+      if (event.target) event.target.value = '';
+    }
+  };
+
+  const handleUploadPdfClick = () => {
+    pdfUploadInputRef.current?.click();
+  };
+
+  const handlePdfInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handlePdfFileSelected(file);
       if (event.target) event.target.value = '';
     }
   };
@@ -245,6 +309,10 @@ export default function AppLayout({
         await handleImageFileSelected(file);
         return;
       }
+      if (file.type === 'application/pdf') {
+        await handlePdfFileSelected(file);
+        return;
+      }
       if (file.type === 'text/plain') {
         const text = await file.text();
         await saveDroppedItem('note', file.name || `Dropped Text File`, text);
@@ -356,6 +424,10 @@ export default function AppLayout({
             <ImageUp className="mr-2 h-4 w-4" />
             <span>Upload Image</span>
           </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleUploadPdfClick} className="cursor-pointer">
+            <FileUp className="mr-2 h-4 w-4" />
+            <span>Upload PDF</span>
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={handleRecordVoiceClick} className="cursor-pointer">
             <Mic className="mr-2 h-4 w-4" />
             <span>Record Voice</span>
@@ -365,9 +437,16 @@ export default function AppLayout({
       <input
         type="file"
         ref={imageUploadInputRef}
-        accept="image/*,text/plain" // Allow text files for drop
+        accept="image/*"
         className="hidden"
         onChange={handleImageInputChange}
+      />
+      <input
+        type="file"
+        ref={pdfUploadInputRef}
+        accept=".pdf,application/pdf"
+        className="hidden"
+        onChange={handlePdfInputChange}
       />
     </div>
   );
