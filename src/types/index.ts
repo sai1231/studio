@@ -4,7 +4,7 @@ export interface Tag {
   name: string;
 }
 
-export interface Collection {
+export interface Zone { // Renamed from Collection
   id:string;
   name: string;
   icon?: React.ElementType;
@@ -22,7 +22,7 @@ export interface ContentItem {
   imageUrl?: string; 
   audioUrl?: string;
   tags: Tag[]; 
-  collectionId: string; 
+  zoneId: string; // Renamed from collectionId
   userId?: string; 
   createdAt: string; // ISO date string
 }

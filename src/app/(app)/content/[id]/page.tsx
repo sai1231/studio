@@ -5,8 +5,8 @@ import type React from 'react';
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { getContentItemById, getCollectionById } from '@/services/contentService';
-import type { ContentItem, Collection } from '@/types';
+import { getContentItemById, getZoneById } from '@/services/contentService'; // Renamed getCollectionById to getZoneById
+import type { ContentItem, Zone } from '@/types'; // Renamed Collection to Zone
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,7 +38,7 @@ export default function ContentDetailPage() {
   const id = params.id as string;
 
   const [item, setItem] = useState<ContentItem | null>(null);
-  const [collection, setCollection] = useState<Collection | null>(null);
+  const [zone, setZone] = useState<Zone | null>(null); // Renamed collection to zone
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,9 +51,9 @@ export default function ContentDetailPage() {
           const fetchedItem = await getContentItemById(id);
           if (fetchedItem) {
             setItem(fetchedItem);
-            if (fetchedItem.collectionId) {
-              const fetchedCollection = await getCollectionById(fetchedItem.collectionId);
-              setCollection(fetchedCollection || null);
+            if (fetchedItem.zoneId) { // Renamed collectionId to zoneId
+              const fetchedZone = await getZoneById(fetchedItem.zoneId); // Renamed getCollectionById to getZoneById, collectionId to zoneId
+              setZone(fetchedZone || null); // Renamed fetchedCollection to fetchedZone
             }
           } else {
             setError('Content item not found.');
@@ -96,7 +96,6 @@ export default function ContentDetailPage() {
   }
 
   if (!item) {
-    // This case should ideally be covered by the error state if item not found
     return (
       <div className="container mx-auto py-8 text-center">
         <h1 className="text-2xl font-semibold text-muted-foreground">Content Item Not Found</h1>
@@ -154,16 +153,15 @@ export default function ContentDetailPage() {
             </div>
           )}
 
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div className="flex items-center space-x-2 text-muted-foreground">
               <CalendarDays className="h-4 w-4" />
               <span>Created: {format(new Date(item.createdAt), 'MMMM d, yyyy p')}</span>
             </div>
-            {collection && (
+            {zone && ( // Renamed collection to zone
               <div className="flex items-center space-x-2 text-muted-foreground">
                 <Folder className="h-4 w-4" />
-                <span>Collection: {collection.name}</span>
+                <span>Zone: {zone.name}</span> {/* Renamed Collection to Zone */}
               </div>
             )}
              <div className="flex items-center space-x-2 text-muted-foreground capitalize">
@@ -188,7 +186,6 @@ export default function ContentDetailPage() {
           )}
         </CardContent>
         <CardFooter>
-          {/* Future actions like edit/delete could go here */}
         </CardFooter>
       </Card>
     </div>

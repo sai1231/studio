@@ -1,7 +1,7 @@
 
 'use server'; 
 
-import type { ContentItem, Collection, Tag } from '@/types';
+import type { ContentItem, Zone, Tag } from '@/types'; // Renamed Collection to Zone
 
 let mockContentItems: ContentItem[] = [
   {
@@ -12,7 +12,7 @@ let mockContentItems: ContentItem[] = [
     description: 'The React Framework for the Web.',
     imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't2', name: 'nextjs' }, { id: 't1', name: 'productivity' }],
-    collectionId: '1',
+    zoneId: '1', // Renamed from collectionId
     createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
   },
   {
@@ -21,7 +21,7 @@ let mockContentItems: ContentItem[] = [
     title: 'My Shopping List',
     description: 'Milk, Eggs, Bread, Coffee',
     tags: [{ id: 't-personal', name: 'personal' }, { id: 't-todos', name: 'todos' }],
-    collectionId: '2',
+    zoneId: '2', // Renamed from collectionId
     createdAt: new Date(Date.now() - 86400000 * 1).toISOString(), // 1 day ago
   },
   {
@@ -31,12 +31,12 @@ let mockContentItems: ContentItem[] = [
     description: 'A beautiful landscape picture I found.',
     imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't4', name: 'inspiration' }, {id: 't-nature', name: 'nature'}],
-    collectionId: '1',
+    zoneId: '1', // Renamed from collectionId
     createdAt: new Date().toISOString(),
   },
 ];
 
-let mockCollections: Collection[] = [
+let mockZones: Zone[] = [ // Renamed from mockCollections
   { id: '1', name: 'Work Projects' },
   { id: '2', name: 'Personal Errands' },
   { id: '3', name: 'Inspiration' },
@@ -44,9 +44,7 @@ let mockCollections: Collection[] = [
 
 // Function to get all content items
 export async function getContentItems(userId?: string): Promise<ContentItem[]> {
-  // Simulate async operation
   await new Promise(resolve => setTimeout(resolve, 100));
-  // TODO: Implement filtering by userId when authentication is in place
   return [...mockContentItems].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
@@ -56,16 +54,16 @@ export async function getContentItemById(id: string): Promise<ContentItem | unde
   return mockContentItems.find(item => item.id === id);
 }
 
-// Function to get all collections
-export async function getCollections(userId?: string): Promise<Collection[]> {
+// Function to get all zones
+export async function getZones(userId?: string): Promise<Zone[]> { // Renamed from getCollections
   await new Promise(resolve => setTimeout(resolve, 50));
-  return [...mockCollections];
+  return [...mockZones]; // Renamed from mockCollections
 }
 
-// Function to get a single collection by ID
-export async function getCollectionById(id: string): Promise<Collection | undefined> {
+// Function to get a single zone by ID
+export async function getZoneById(id: string): Promise<Zone | undefined> { // Renamed from getCollectionById
   await new Promise(resolve => setTimeout(resolve, 50));
-  return mockCollections.find(collection => collection.id === id);
+  return mockZones.find(zone => zone.id === id); // Renamed from mockCollections
 }
 
 
@@ -76,10 +74,10 @@ export async function addContentItem(
   await new Promise(resolve => setTimeout(resolve, 100));
   const newItem: ContentItem = {
     ...itemData,
-    id: Date.now().toString(), // Simple ID generation for mock
+    id: Date.now().toString(), 
     createdAt: new Date().toISOString(),
   };
-  mockContentItems.unshift(newItem); // Add to the beginning like Firestore desc order
+  mockContentItems.unshift(newItem); 
   return newItem;
 }
 
@@ -106,7 +104,6 @@ export async function updateContentItem(
 // Mock function for file upload, returns a placeholder URL
 export async function uploadFile(file: File, path: string): Promise<string> {
   console.log(`Mock uploading file ${file.name} to ${path}`);
-  await new Promise(resolve => setTimeout(resolve, 200)); // Simulate upload time
-  // Return a generic placeholder or one based on file type if needed
+  await new Promise(resolve => setTimeout(resolve, 200)); 
   return 'https://placehold.co/600x400.png'; 
 }

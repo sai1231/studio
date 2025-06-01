@@ -3,20 +3,20 @@
 import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import ContentCard from '@/components/core/link-card';
-import type { ContentItem, Collection, Tag as AppTag } from '@/types';
+import type { ContentItem, Zone as AppZone, Tag as AppTag } from '@/types'; // Renamed Collection to Zone
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ListFilter, LayoutGrid, LayoutList, Loader2, FolderOpen } from 'lucide-react';
 import AddContentDialog from '@/components/core/add-content-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { getContentItems, addContentItem, deleteContentItem, getCollections } from '@/services/contentService'; 
+import { getContentItems, addContentItem, deleteContentItem, getZones } from '@/services/contentService'; // Renamed getCollections to getZones
 
 export default function DashboardPage() {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
-  const [collections, setCollections] = useState<Collection[]>([]);
+  const [zones, setZones] = useState<AppZone[]>([]); // Renamed collections to zones
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
-  const [editingContent, setEditingContent] = useState<ContentItem | null>(null); // For future edit functionality
+  const [editingContent, setEditingContent] = useState<ContentItem | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const { toast } = useToast();
 
@@ -24,12 +24,12 @@ export default function DashboardPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const [items, fetchedCollections] = await Promise.all([
-        getContentItems(), // TODO: Pass userId when auth is ready
-        getCollections() // TODO: Pass userId when auth is ready
+      const [items, fetchedZones] = await Promise.all([ // Renamed fetchedCollections to fetchedZones
+        getContentItems(),
+        getZones() // Renamed getCollections to getZones
       ]);
       setContentItems(items);
-      setCollections(fetchedCollections);
+      setZones(fetchedZones); // Renamed collections to zones
     } catch (err) {
       console.error("Error fetching data:", err);
       setError("Failed to load content. Please try again later.");
@@ -51,8 +51,6 @@ export default function DashboardPage() {
       description: "Please wait while your content is being saved.",
     });
     try {
-      // If editingContent, this should be an update operation (not fully implemented for mock)
-      // For now, we just add as new
       await addContentItem(contentData); 
       toast({
         id: toastId,
@@ -61,7 +59,7 @@ export default function DashboardPage() {
       });
       setIsAddContentDialogOpen(false);
       setEditingContent(null);
-      fetchData(); // Re-fetch items to show the new one
+      fetchData(); 
     } catch (error) {
       console.error("Error saving content from dialog:", error);
       toast({
@@ -81,16 +79,16 @@ export default function DashboardPage() {
 
   const handleDeleteContent = async (itemId: string) => {
     const originalItems = [...contentItems];
-    setContentItems(prevItems => prevItems.filter(item => item.id !== itemId)); // Optimistic update
+    setContentItems(prevItems => prevItems.filter(item => item.id !== itemId)); 
     const {id: toastId} = toast({ title: "Deleting Item...", description: "Removing content item."});
     try {
       await deleteContentItem(itemId);
       toast({id: toastId, title: "Content Deleted", description: "The item has been removed.", variant: "default"});
-      fetchData(); // Re-fetch to confirm, or rely on optimistic update if mock service is robust
+      fetchData(); 
     } catch (e) {
       console.error("Error deleting content:", e);
       toast({id: toastId, title: "Error Deleting", description: "Could not delete item. Restoring.", variant: "destructive"});
-      setContentItems(originalItems); // Revert optimistic update
+      setContentItems(originalItems); 
     }
   };
   
@@ -157,10 +155,8 @@ export default function DashboardPage() {
       <AddContentDialog
         open={isAddContentDialogOpen}
         onOpenChange={setIsAddContentDialogOpen}
-        collections={collections}
+        zones={zones} // Renamed collections to zones
         onContentAdd={handleAddOrUpdateContentDialog}
-        // Pass editingContent (properly typed) for pre-filling form for editing
-        // existingContent={editingContent} 
       />
     </div>
   );

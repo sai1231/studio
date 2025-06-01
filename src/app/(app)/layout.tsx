@@ -1,13 +1,13 @@
 
 'use client';
 import type React from 'react';
-import { useState, useEffect, useCallback, useRef } from 'react'; // Added useRef
+import { useState, useEffect, useCallback, useRef } from 'react';
 import AppHeader from '@/components/core/app-header';
 import AppSidebar from '@/components/core/app-sidebar';
 import AddContentDialog from '@/components/core/add-content-dialog';
-import type { Collection, ContentItem } from '@/types';
+import type { Zone, ContentItem } from '@/types'; // Renamed Collection to Zone
 import { useToast } from '@/hooks/use-toast';
-import { addContentItem, getCollections, uploadFile } from '@/services/contentService';
+import { addContentItem, getZones, uploadFile } from '@/services/contentService'; // Renamed getCollections to getZones
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -15,7 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, FileText, ImageUp, Mic } from 'lucide-react'; // Added icons
+import { Plus, FileText, ImageUp, Mic } from 'lucide-react';
 
 export default function AppLayout({
   children,
@@ -23,23 +23,23 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
-  const [collections, setCollections] = useState<Collection[]>([]);
+  const [zones, setZones] = useState<Zone[]>([]); // Renamed collections to zones
   const { toast } = useToast();
   const imageUploadInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchCollections = useCallback(async () => {
+  const fetchZones = useCallback(async () => { // Renamed fetchCollections to fetchZones
     try {
-      const fetchedCollections = await getCollections();
-      setCollections(fetchedCollections);
+      const fetchedZones = await getZones(); // Renamed getCollections to getZones
+      setZones(fetchedZones); // Renamed collections to zones
     } catch (error) {
-      console.error("Error fetching collections:", error);
-      toast({ title: "Error", description: "Could not load collections.", variant: "destructive" });
+      console.error("Error fetching zones:", error); // Renamed collections to zones
+      toast({ title: "Error", description: "Could not load zones.", variant: "destructive" }); // Renamed collections to zones
     }
   }, [toast]);
 
   useEffect(() => {
-    fetchCollections();
-  }, [fetchCollections]);
+    fetchZones(); // Renamed fetchCollections to fetchZones
+  }, [fetchZones]);
 
   const handleAddContentFromDialog = async (newContentData: Omit<ContentItem, 'id' | 'createdAt'>) => {
     const currentToast = toast({
@@ -56,7 +56,6 @@ export default function AppLayout({
         description: `"${newContentData.title}" (${newContentData.type}) has been saved.`,
       });
       setIsAddContentDialogOpen(false);
-      // TODO: Implement a way to refresh the dashboard list or use global state for mock data
     } catch (error) {
       console.error("Error saving content from dialog:", error);
       currentToast.update({
@@ -81,10 +80,10 @@ export default function AppLayout({
       currentToast.update({
         id: currentToast.id,
         title: "Saving Image...",
-        description: "Adding your image to your collection.",
+        description: "Adding your image to your zone.", // Renamed collection to zone
       });
       
-      const defaultCollectionId = collections.length > 0 ? collections[0].id : "1";
+      const defaultZoneId = zones.length > 0 ? zones[0].id : "1"; // Renamed defaultCollectionId to defaultZoneId
 
       const newImageContent: Omit<ContentItem, 'id' | 'createdAt'> = {
         type: 'image',
@@ -92,7 +91,7 @@ export default function AppLayout({
         description: `Uploaded image: ${file.name}`,
         imageUrl: downloadURL,
         tags: [{id: 'upload', name: 'upload'}], 
-        collectionId: defaultCollectionId, 
+        zoneId: defaultZoneId, // Renamed collectionId to zoneId
       };
       
       await addContentItem(newImageContent);
@@ -102,7 +101,6 @@ export default function AppLayout({
         title: "Image Saved!",
         description: `"${newImageContent.title}" has been saved.`,
       });
-      // TODO: Implement refresh for dashboard
     } catch (error) {
       console.error("Error processing image upload:", error);
       currentToast.update({
@@ -122,7 +120,7 @@ export default function AppLayout({
     const file = event.target.files?.[0];
     if (file) {
       handleImageFileSelected(file);
-      if (event.target) event.target.value = ''; // Reset file input
+      if (event.target) event.target.value = ''; 
     }
   };
 
@@ -137,9 +135,7 @@ export default function AppLayout({
     <div className="flex min-h-screen w-full">
       <AppSidebar />
       <div className="flex flex-col flex-1 md:ml-64">
-        <AppHeader
-          // Removed onAddContentClick, onImageFileSelected, onRecordVoiceClick props
-        />
+        <AppHeader />
         <main className="flex-1 p-4 md:p-6 lg:p-8 bg-background overflow-auto">
           {children}
         </main>
@@ -147,11 +143,10 @@ export default function AppLayout({
       <AddContentDialog
         open={isAddContentDialogOpen}
         onOpenChange={setIsAddContentDialogOpen}
-        collections={collections} 
+        zones={zones} // Renamed collections to zones
         onContentAdd={handleAddContentFromDialog} 
       />
       
-      {/* Floating Action Button with Dropdown Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button

@@ -1,3 +1,4 @@
+
 'use client';
 import type React from 'react';
 import { Home, Tag, Folder, Settings, LogOut, Users, ChevronDown, Plus } from 'lucide-react';
@@ -6,9 +7,9 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import KlippedLogo from './klipped-logo';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import type { Collection, Tag as TagType } from '@/types';
+import type { Zone, Tag as TagType } from '@/types'; // Renamed Collection to Zone
 
-const mockCollections: Collection[] = [
+const mockZones: Zone[] = [ // Renamed mockCollections to mockZones
   { id: '1', name: 'Work Projects', icon: Folder },
   { id: '2', name: 'Reading List', icon: Folder },
   { id: '3', name: 'Recipes', icon: Folder },
@@ -40,27 +41,27 @@ const AppSidebar: React.FC = () => {
               All Links
             </Link>
 
-            <Accordion type="multiple" defaultValue={['collections', 'tags']} className="w-full">
-              <AccordionItem value="collections">
+            <Accordion type="multiple" defaultValue={['zones', 'tags']} className="w-full"> {/* Renamed collections to zones */}
+              <AccordionItem value="zones"> {/* Renamed collections to zones */}
                 <AccordionTrigger className="px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg hover:no-underline">
                   <div className="flex items-center gap-3">
                     <Folder className="h-4 w-4" />
-                    Collections
+                    Zones {/* Renamed Collections to Zones */}
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pl-4">
-                  {mockCollections.map((collection) => (
+                  {mockZones.map((zone) => ( // Renamed mockCollections to mockZones, collection to zone
                     <Link
-                      key={collection.id}
-                      href={`/collections/${collection.id}`}
+                      key={zone.id}
+                      href={`/zones/${zone.id}`} // Renamed collections to zones
                       className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground"
                     >
-                      {collection.icon && <collection.icon className="h-4 w-4" />}
-                      {collection.name}
+                      {zone.icon && <zone.icon className="h-4 w-4" />}
+                      {zone.name}
                     </Link>
                   ))}
                   <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground/80 mt-1 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground">
-                    <Plus className="h-4 w-4 mr-2" /> Add Collection
+                    <Plus className="h-4 w-4 mr-2" /> Add Zone {/* Renamed Add Collection to Add Zone */}
                   </Button>
                 </AccordionContent>
               </AccordionItem>
