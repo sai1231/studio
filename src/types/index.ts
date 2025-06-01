@@ -22,7 +22,7 @@ export interface ContentItem {
   imageUrl?: string; 
   audioUrl?: string;
   tags: Tag[]; 
-  zoneId: string; // Renamed from collectionId
+  zoneId?: string; // Renamed from collectionId, made optional
   userId?: string; 
   createdAt: string; // ISO date string
   domain?: string; // e.g., instagram.com, youtube.com
@@ -34,3 +34,4 @@ export type LinkItem = ContentItem & {
   type: 'link';
   url: string;
 };
+

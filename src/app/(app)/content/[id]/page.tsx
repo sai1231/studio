@@ -36,6 +36,7 @@ const getTypeIcon = (type: ContentItem['type'] | undefined) => {
   }
 };
 
+const NO_ZONE_VALUE = "__NO_ZONE__"; // Define a non-empty value for "No Zone" option
 
 export default function ContentDetailPage() {
   const params = useParams();
@@ -44,7 +45,7 @@ export default function ContentDetailPage() {
   const id = params.id as string;
 
   const [item, setItem] = useState<ContentItem | null>(null);
-  const [zone, setZone] = useState<Zone | null>(null);
+  const [zone, setZone] = useState<Zone | null>(null); // This zone is just for display if needed, editableZoneId is the source of truth for edits.
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,11 +76,14 @@ export default function ContentDetailPage() {
             setEditableZoneId(fetchedItem.zoneId);
             setEditableTags(fetchedItem.tags || []);
 
+            // Set current zone for display purposes (not directly for editing via this state)
             if (fetchedItem.zoneId) {
-              const fetchedZone = await getZoneById(fetchedItem.zoneId);
-              setZone(fetchedZone || null);
+              const fetchedCurrentZone = await getZoneById(fetchedItem.zoneId);
+              setZone(fetchedCurrentZone || null);
+            } else {
+              setZone(null);
             }
-            setHasContentChanges(false); // Reset changes flag
+            setHasContentChanges(false); 
           } else {
             setError('Content item not found.');
           }
@@ -122,7 +126,7 @@ export default function ContentDetailPage() {
   };
 
   const handleZoneChange = (value: string) => {
-    setEditableZoneId(value);
+    setEditableZoneId(value === NO_ZONE_VALUE ? undefined : value);
     setHasContentChanges(true);
   };
 
@@ -133,14 +137,17 @@ export default function ContentDetailPage() {
         const updatedDetails: Partial<ContentItem> = {
             title: editableTitle,
             description: editableDescription,
-            zoneId: editableZoneId,
+            zoneId: editableZoneId, 
         };
         const updated = await updateContentItem(item.id, updatedDetails);
         if (updated) {
-            setItem(updated);
-            if (editableZoneId && updated.zoneId === editableZoneId) {
-                const newCurrentZone = allZones.find(z => z.id === editableZoneId);
-                setZone(newCurrentZone || null);
+            setItem(updated); // Update local item state with the full updated item
+            // Update displayed zone based on the new editableZoneId
+            if (updated.zoneId) {
+                 const newCurrentZone = allZones.find(z => z.id === updated.zoneId);
+                 setZone(newCurrentZone || null);
+            } else {
+                 setZone(null);
             }
             toast({ title: "Success", description: "Item details updated." });
             setHasContentChanges(false);
@@ -172,13 +179,14 @@ export default function ContentDetailPage() {
       if (updatedItem) {
         setItem(prevItem => prevItem ? { ...prevItem, tags: updatedItem.tags || [] } : null);
         setEditableTags(updatedItem.tags || []);
+        // Success toast removed as per user request
       } else {
-        throw new Error("Failed to update item.");
+        throw new Error("Failed to update item tags.");
       }
     } catch (e) {
       console.error('Error updating tags:', e);
       toast({ title: "Error", description: "Could not save tags. Please try again.", variant: "destructive" });
-      if(item) setEditableTags(item.tags || []);
+      if(item) setEditableTags(item.tags || []); // Revert optimistic update on error
     } finally {
       setIsUpdatingTags(false);
     }
@@ -186,7 +194,7 @@ export default function ContentDetailPage() {
 
   const handleRemoveTag = (tagIdToRemove: string) => {
     const newTags = editableTags.filter(tag => tag.id !== tagIdToRemove);
-    setEditableTags(newTags);
+    setEditableTags(newTags); // Optimistic update
     saveTags(newTags);
   };
 
@@ -197,15 +205,15 @@ export default function ContentDetailPage() {
     }
     if (editableTags.find(tag => tag.name.toLowerCase() === newTagInput.trim().toLowerCase())) {
       toast({ title: "Duplicate Tag", description: `Tag "${newTagInput.trim()}" already exists.`, variant: "destructive" });
-      setNewTagInput('');
+      setNewTagInput(''); // Clear input even if duplicate
       return;
     }
-    const newTag: Tag = { id: Date.now().toString(), name: newTagInput.trim() };
+    const newTag: Tag = { id: Date.now().toString(), name: newTagInput.trim() }; // Simple ID generation
     const newTags = [...editableTags, newTag];
-
-    setEditableTags(newTags);
+    
+    setEditableTags(newTags); // Optimistic update
     setNewTagInput('');
-    setIsAddingTag(false);
+    setIsAddingTag(false); // Hide input after adding
     saveTags(newTags);
   };
 
@@ -346,7 +354,7 @@ export default function ContentDetailPage() {
             <div className="flex items-center space-x-2 text-muted-foreground">
                 <Folder className="h-4 w-4" />
                 <Select
-                    value={editableZoneId || ""}
+                    value={editableZoneId || ""} // Shows placeholder if editableZoneId is undefined/empty
                     onValueChange={handleZoneChange}
                     disabled={isSavingItemDetails || allZones.length === 0}
                 >
@@ -357,8 +365,8 @@ export default function ContentDetailPage() {
                         {allZones.map(z => (
                             <SelectItem key={z.id} value={z.id}>{z.name}</SelectItem>
                         ))}
-                        {allZones.length === 0 && <SelectItem value="loading" disabled>Loading zones...</SelectItem>}
-                         <SelectItem value="" disabled={!!editableZoneId}>No Zone</SelectItem>
+                        {allZones.length === 0 && <SelectItem value="loadingzones" disabled>Loading zones...</SelectItem>}
+                         <SelectItem value={NO_ZONE_VALUE}>No Zone</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
