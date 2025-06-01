@@ -1,4 +1,5 @@
 
+
 export interface Tag {
   id: string;
   name: string;
@@ -21,12 +22,24 @@ export interface ContentItem {
   imageUrl?: string; // For 'link' preview or 'image' type
   audioUrl?: string; // For 'voice' type
   tags: Tag[];
-  collectionId?: string;
+  collectionId: string; // User-selected collection, mandatory
   createdAt: string; // ISO date string
   sentiment?: { // Specific to 'link' type
     label: 'positive' | 'negative' | 'neutral';
     score: number;
   };
+  /**
+   * For items of type 'link', this field stores the domain of the URL.
+   * Examples: "Instagram", "TikTok", "Medium", "YouTube".
+   * Populated by a background process.
+   */
+  url_domain_category?: string;
+  /**
+   * For items of type 'link', this field stores the specific content type within that domain.
+   * Examples: "Post", "Reel", "Article", "Video", "Tweet".
+   * Populated by a background process.
+   */
+  url_content_type?: string;
 }
 
 // For backward compatibility and specific link operations, we can still use LinkItem
@@ -35,3 +48,4 @@ export type LinkItem = ContentItem & {
   type: 'link';
   url: string; // url is mandatory for LinkItem
 };
+
