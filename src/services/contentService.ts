@@ -12,7 +12,7 @@ let mockContentItems: ContentItem[] = [
     title: 'Next.js Docs',
     description: 'The React Framework for the Web - Documentation.',
     mindNote: 'Remember to check the latest ISR strategies.',
-    imageUrl: 'https://source.unsplash.com/600x400/?technology,code,web',
+    imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't2', name: 'nextjs' }, { id: 't1', name: 'productivity' }],
     zoneId: '1',
     createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
@@ -35,7 +35,7 @@ let mockContentItems: ContentItem[] = [
     title: 'Awesome Landscape',
     description: 'A beautiful landscape picture I found during a hike.',
     mindNote: 'Could be a good wallpaper for my desktop.',
-    imageUrl: 'https://source.unsplash.com/600x400/?landscape,nature,mountains',
+    imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't4', name: 'inspiration' }, {id: 't-nature', name: 'nature'}],
     zoneId: '1',
     createdAt: new Date().toISOString(),
@@ -46,7 +46,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://www.instagram.com/reel/Cabcdefg/',
     title: 'Cool Instagram Reel',
     description: 'A very cool reel I saw about travel hacks.',
-    imageUrl: 'https://source.unsplash.com/400x700/?social,mobile,travel',
+    imageUrl: 'https://placehold.co/400x700.png',
     tags: [{ id: 't-social', name: 'social media'}, { id: 't-fun', name: 'fun'}, {id: 't-travel', name: 'travel'}],
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
@@ -59,6 +59,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://threads.net/@username/post/12345',
     title: 'Interesting Threads Post on AI Ethics',
     description: 'Some thoughts on the future of AI and ethical considerations.',
+    imageUrl: 'https://placehold.co/600x400.png', // Added placeholder for Threads
     tags: [{ id: 't-social', name: 'social media'}, { id: 't-discussion', name: 'discussion'}, {id: 't-ai', name: 'ai ethics'}],
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 0.5).toISOString(),
@@ -72,7 +73,7 @@ let mockContentItems: ContentItem[] = [
     title: 'React GitHub Repository',
     description: 'A declarative, efficient, and flexible JavaScript library for building user interfaces.',
     mindNote: 'Check out their contribution guidelines and recent updates.',
-    imageUrl: 'https://source.unsplash.com/600x400/?code,github,software',
+    imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't-code', name: 'code' }, { id: 't-js', name: 'javascript' }],
     zoneId: '1',
     createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
@@ -82,9 +83,10 @@ let mockContentItems: ContentItem[] = [
   {
     id: '7',
     type: 'link',
-    url: 'https://twitter.com/elonmusk/status/1234567890',
+    url: 'https://x.com/elonmusk/status/1234567890', // Keep using x.com for twitter
     title: 'Elon Musk Tweet about Space',
     description: 'A tweet from Elon Musk regarding SpaceX.',
+    imageUrl: 'https://placehold.co/600x400.png', // Added placeholder for Tweet
     tags: [{ id: 't-social', name: 'social media' }, {id: 't-space', name: 'space'}],
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 0.2).toISOString(),
@@ -97,7 +99,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://medium.com/some-article-on-ux',
     title: 'An interesting article on UX Design Trends',
     description: 'Insights on a trending topic in user experience for 2024.',
-    imageUrl: 'https://source.unsplash.com/600x400/?design,ux,article',
+    imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't-reading', name: 'reading' }, { id: 't-design', name: 'UX design'}],
     zoneId: '2',
     createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
@@ -121,7 +123,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://dribbble.com/shots/popular/animation',
     title: 'Dribbble Animation Inspiration',
     description: 'Popular animations on Dribbble for UI ideas.',
-    imageUrl: 'https://source.unsplash.com/600x400/?animation,design,ui',
+    imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't-design', name: 'design' }, { id: 't4', name: 'inspiration' }, {id: 't-animation', name: 'animation'}],
     zoneId: '1',
     createdAt: new Date(Date.now() - 86400000 * 6).toISOString(),
@@ -144,7 +146,7 @@ let mockContentItems: ContentItem[] = [
     title: 'Tokyo Street Scene',
     description: 'A vibrant street in Tokyo at night.',
     mindNote: 'Love the neon lights here.',
-    imageUrl: 'https://source.unsplash.com/600x400/?tokyo,city,night',
+    imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't-travel', name: 'travel' }, { id: 't-city', name: 'cityscape' }],
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 1.5).toISOString(),
@@ -155,7 +157,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://www.bonappetit.com/recipe/pasta-aglio-e-olio',
     title: 'Simple Pasta Aglio e Olio Recipe',
     description: 'A quick and delicious garlic and oil pasta.',
-    imageUrl: 'https://source.unsplash.com/600x400/?pasta,food,recipe',
+    imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't-recipe', name: 'recipe' }, { id: 't-cooking', name: 'cooking' }],
     zoneId: '2',
     createdAt: new Date(Date.now() - 86400000 * 0.8).toISOString(),
@@ -179,7 +181,7 @@ let mockContentItems: ContentItem[] = [
     url: 'https://www.theverge.com/tech',
     title: 'The Verge - Tech News',
     description: 'Latest technology news, reviews, and analysis.',
-    imageUrl: 'https://source.unsplash.com/600x400/?technology,news,gadgets',
+    imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't-news', name: 'news' }, { id: 't-tech', name: 'technology' }],
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 2.5).toISOString(),
@@ -192,12 +194,117 @@ let mockContentItems: ContentItem[] = [
     url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     title: 'Important Tech Presentation (Music Video)',
     description: 'A must-watch presentation on new web technologies and classic tunes.',
-    imageUrl: 'https://source.unsplash.com/600x400/?youtube,presentation,music',
+    imageUrl: 'https://placehold.co/600x400.png',
     tags: [{ id: 't-video', name: 'video' }, { id: 't-tech', name: 'technology presentation' }, {id: 't-music', name: 'music'}],
     zoneId: '1',
     createdAt: new Date(Date.now() - 86400000 * 0.7).toISOString(),
     domain: 'youtube.com',
     contentType: 'Video',
+  },
+  // Start of new diverse link items
+  {
+    id: '17',
+    type: 'link',
+    url: 'https://x.com/SpaceX/status/1700000000000000000', // Example, actual status ID is illustrative
+    title: 'SpaceX Tweet about Starship Mission',
+    description: 'Latest updates on the Starship program and upcoming test flights. Follow for more news.',
+    imageUrl: 'https://placehold.co/600x400.png',
+    tags: [{ id: 't-space', name: 'space' }, { id: 't-spacex', name: 'SpaceX'}, { id: 't-social', name: 'social media' }],
+    zoneId: '3',
+    createdAt: new Date(Date.now() - 86400000 * 0.1).toISOString(),
+    domain: 'x.com',
+    contentType: 'Tweet',
+  },
+  {
+    id: '18',
+    type: 'link',
+    url: 'https://www.instagram.com/p/Cxyz123AbcD/', // Example Instagram post URL structure
+    title: 'Amazing Bali Travel Highlights',
+    description: 'Captured the incredible sunsets and vibrant culture of Bali. A must-visit destination!',
+    imageUrl: 'https://placehold.co/600x400.png',
+    tags: [{ id: 't-travel', name: 'travel' }, { id: 't-instagram', name: 'instagram'}, { id: 't-photography', name: 'photography' }],
+    zoneId: '3',
+    createdAt: new Date(Date.now() - 86400000 * 0.9).toISOString(),
+    domain: 'instagram.com',
+    contentType: 'Instagram Post',
+  },
+  {
+    id: '19',
+    type: 'link',
+    url: 'https://open.spotify.com/track/0SiywuOBRc1A30kK3uVz0o', // Example Spotify track URL
+    title: 'Lo-fi Chill Beats for Study/Relax',
+    description: 'My go-to Spotify track for deep focus sessions or just unwinding after a long day.',
+    imageUrl: 'https://placehold.co/600x400.png',
+    tags: [{ id: 't-music', name: 'music' }, { id: 't-spotify', name: 'spotify' }, { id: 't-lofi', name: 'lo-fi' }],
+    zoneId: '2',
+    createdAt: new Date(Date.now() - 86400000 * 1.2).toISOString(),
+    domain: 'open.spotify.com',
+    contentType: 'Spotify Track',
+  },
+  {
+    id: '20',
+    type: 'link',
+    url: 'https://vimeo.com/1234567890', // Example Vimeo video URL
+    title: 'Indie Animation Short: "The Last Leaf"',
+    description: 'A beautifully animated short film with a touching story. Great for inspiration.',
+    imageUrl: 'https://placehold.co/600x400.png',
+    tags: [{ id: 't-animation', name: 'animation' }, { id: 't-vimeo', name: 'vimeo'}, { id: 't-shortfilm', name: 'short film' }],
+    zoneId: '3',
+    createdAt: new Date(Date.now() - 86400000 * 2.2).toISOString(),
+    domain: 'vimeo.com',
+    contentType: 'Vimeo Video',
+  },
+  {
+    id: '21',
+    type: 'link',
+    url: 'https://soundcloud.com/exampleartist/new-electronic-track', // Example SoundCloud URL
+    title: 'Fresh Electronic Track by ExampleArtist',
+    description: 'Check out this new upbeat electronic music piece, perfect for a workout or coding.',
+    imageUrl: 'https://placehold.co/600x400.png',
+    tags: [{ id: 't-music', name: 'music' }, { id: 't-soundcloud', name: 'soundcloud'}, { id: 't-electronic', name: 'electronic' }],
+    zoneId: '3',
+    createdAt: new Date(Date.now() - 86400000 * 0.4).toISOString(),
+    domain: 'soundcloud.com',
+    contentType: 'SoundCloud Track',
+  },
+  {
+    id: '22',
+    type: 'link',
+    url: 'https://www.figma.com/community/file/123456789/Mobile-App-UI-Kit', // Example Figma Community URL
+    title: 'Mobile App UI Kit - Figma Community',
+    description: 'A comprehensive UI kit for designing modern mobile applications. Includes various components and screens.',
+    imageUrl: 'https://placehold.co/600x400.png',
+    tags: [{ id: 't-design', name: 'design' }, { id: 't-figma', name: 'figma'}, { id: 't-ui', name: 'UI Kit' }],
+    zoneId: '1',
+    createdAt: new Date(Date.now() - 86400000 * 3.5).toISOString(),
+    domain: 'figma.com',
+    contentType: 'Figma Design',
+  },
+  {
+    id: '23',
+    type: 'link',
+    url: 'https://gist.github.com/anonymous/123abc456def789ghi', // Example GitHub Gist URL
+    title: 'Python Web Scraping Snippet - Gist',
+    description: 'A quick Python script using BeautifulSoup and Requests for web scraping tasks.',
+    imageUrl: 'https://placehold.co/600x400.png',
+    tags: [{ id: 't-code', name: 'code' }, { id: 't-python', name: 'python'}, { id: 't-gist', name: 'gist' }],
+    zoneId: '1',
+    createdAt: new Date(Date.now() - 86400000 * 1.8).toISOString(),
+    domain: 'gist.github.com',
+    contentType: 'Code Gist',
+  },
+  {
+    id: '24',
+    type: 'link',
+    url: 'https://www.tiktok.com/@tiktok/video/7000000000000000000', // Example TikTok video URL structure
+    title: 'Viral TikTok Dance Challenge',
+    description: 'The latest dance trend taking over TikTok. Fun to watch!',
+    imageUrl: 'https://placehold.co/400x700.png',
+    tags: [{ id: 't-social', name: 'social media' }, { id: 't-tiktok', name: 'tiktok'}, { id: 't-fun', name: 'fun' }],
+    zoneId: '3',
+    createdAt: new Date(Date.now() - 86400000 * 0.6).toISOString(),
+    domain: 'tiktok.com',
+    contentType: 'TikTok Video',
   }
 ];
 
@@ -268,7 +375,7 @@ export async function addContentItem(
     contentType: itemData.contentType,
     mindNote: itemData.mindNote,
     audioUrl: itemData.audioUrl,
-    imageUrl: itemData.imageUrl || (itemData.type !== 'note' && itemData.type !== 'voice' ? `https://source.unsplash.com/600x400/?${itemData.title.split(" ")[0] || 'abstract'}` : undefined)
+    imageUrl: itemData.imageUrl || (itemData.type !== 'note' && itemData.type !== 'voice' ? `https://placehold.co/600x400.png` : undefined)
   };
   mockContentItems.unshift(newItem);
   return newItem;
@@ -314,9 +421,8 @@ export async function uploadFile(file: File, path: string): Promise<string> {
     // For audio, return a generic mp3 link
     return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-Random.mp3'; // Using a more generic name
   }
-  // For images, return a dynamic Unsplash URL based on a simple keyword from filename or a default
-  const query = file.name.split('.')[0].split(' ')[0] || 'upload'; // a simple keyword
-  return `https://source.unsplash.com/600x400/?${query},abstract`;
+  // For images, return a dynamic placehold.co URL
+  return `https://placehold.co/600x400.png`;
 }
 
 // Function to get unique domains

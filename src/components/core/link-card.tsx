@@ -83,6 +83,9 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
   };
 
   const tagBaseClasses = "px-3 py-1 text-xs rounded-full font-medium";
+  const imageToDisplay = item.imageUrl || "https://placehold.co/600x400.png";
+  const imageAiHint = item.imageUrl ? item.title.split(' ').slice(0,2).join(' ') : "abstract default";
+
 
   return (
     <Card 
@@ -96,8 +99,9 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
           {hasImage ? (
             <div className="relative w-full h-56">
               <Image
-                src={item.imageUrl || "https://source.unsplash.com/600x400/?abstract"}
+                src={imageToDisplay}
                 alt={item.title}
+                data-ai-hint={imageAiHint}
                 fill
                 className="object-cover rounded-t-2xl group-hover/link:scale-105 transition-transform duration-300"
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
