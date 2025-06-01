@@ -11,6 +11,13 @@ import AddContentDialog from '@/components/core/add-content-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { getContentItems, addContentItem, deleteContentItem, getZones } from '@/services/contentService';
 
+const pageLoadingMessages = [
+  "Organizing your thoughts...",
+  "Fetching your inspirations...",
+  "Aligning your ideas...",
+  "Connecting the dots...",
+];
+
 export default function DashboardPage() {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [zones, setZones] = useState<AppZone[]>([]);
@@ -24,6 +31,17 @@ export default function DashboardPage() {
   
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const { toast } = useToast();
+
+  const [currentLoadingMessage, setCurrentLoadingMessage] = useState(
+    pageLoadingMessages[Math.floor(Math.random() * pageLoadingMessages.length)]
+  );
+
+  useEffect(() => {
+    if (isLoading) {
+      const randomIndex = Math.floor(Math.random() * pageLoadingMessages.length);
+      setCurrentLoadingMessage(pageLoadingMessages[randomIndex]);
+    }
+  }, [isLoading]);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -109,7 +127,7 @@ export default function DashboardPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Loading Your Content...</p>
+        <p className="mt-4 text-muted-foreground">{currentLoadingMessage}</p>
       </div>
     );
   }

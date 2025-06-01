@@ -11,6 +11,13 @@ import { Button } from '@/components/ui/button';
 import { LayoutGrid, LayoutList, ListFilter, FolderOpen, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+const pageLoadingMessages = [
+  "Organizing your thoughts...",
+  "Fetching your inspirations...",
+  "Aligning your ideas...",
+  "Connecting the dots...",
+];
+
 // Mock Data - This page uses its own mock data, will need to adapt ContentDetailDialog for it or ideally refactor to use contentService
 const allMockContent: ContentItem[] = [
   {
@@ -108,6 +115,17 @@ export default function CollectionPage({ params }: { params: { id: string } }) {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
+  const [currentLoadingMessage, setCurrentLoadingMessage] = useState(
+    pageLoadingMessages[Math.floor(Math.random() * pageLoadingMessages.length)]
+  );
+
+  useEffect(() => {
+    if (isLoading) {
+      const randomIndex = Math.floor(Math.random() * pageLoadingMessages.length);
+      setCurrentLoadingMessage(pageLoadingMessages[randomIndex]);
+    }
+  }, [isLoading]);
+
   // State for the ContentDetailDialog
   const [selectedItemIdForDetail, setSelectedItemIdForDetail] = useState<string | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
@@ -156,7 +174,7 @@ export default function CollectionPage({ params }: { params: { id: string } }) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Loading Collection...</p>
+        <p className="mt-4 text-muted-foreground">{currentLoadingMessage}</p>
       </div>
     );
   }
