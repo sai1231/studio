@@ -34,36 +34,8 @@ export default function AppLayout({
     setIsAddContentDialogOpen(false);
   };
 
-  const handleImageFileSelected = (file: File) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const dataUrl = reader.result as string;
-      const newImageContent: Omit<ContentItem, 'id' | 'createdAt' | 'audioUrl'> = {
-        type: 'image',
-        title: file.name.replace(/\.[^/.]+$/, "") || "Uploaded Image",
-        imageUrl: dataUrl,
-        tags: [], 
-      };
-      console.log('Direct image upload prepared:', newImageContent);
-      toast({
-        title: "Image Selected",
-        description: `"${newImageContent.title}" prepared. Adding to list not yet implemented from header.`,
-      });
-    };
-    reader.onerror = () => {
-      toast({ title: "Error Reading File", variant: "destructive" });
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleRecordVoiceClick = () => {
-    // This will eventually open a voice recording dialog/modal
-    console.log('Record Voice button clicked');
-    toast({
-      title: "Voice Recording",
-      description: "Voice recording feature coming soon!",
-    });
-  };
+  // Removed handleImageFileSelected as the button is removed from AppHeader
+  // Removed handleRecordVoiceClick as the button is removed from AppHeader
 
   return (
     <div className="flex min-h-screen w-full">
@@ -71,8 +43,7 @@ export default function AppLayout({
       <div className="flex flex-col flex-1 md:ml-64">
         <AppHeader
           onAddContentClick={() => setIsAddContentDialogOpen(true)}
-          onImageFileSelected={handleImageFileSelected}
-          onRecordVoiceClick={handleRecordVoiceClick} // Pass the new handler
+          // Removed onImageFileSelected and onRecordVoiceClick props
         />
         <main className="flex-1 p-4 md:p-6 lg:p-8 bg-background overflow-auto">
           {children}
