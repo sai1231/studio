@@ -282,7 +282,7 @@ export default function ContentDetailPage() {
 
       <Card className="shadow-xl overflow-hidden"> {/* Added overflow-hidden for rounded corners on children */}
         <div className={cn(
-          showTwoColumnLayout ? "md:grid md:grid-cols-[minmax(0,_2fr)_minmax(0,_3fr)]" : ""
+          showTwoColumnLayout ? "md:grid md:grid-cols-[minmax(0,_7fr)_minmax(0,_3fr)]" : ""
         )}>
           {/* Left Column: Image (conditional for two-column layout) */}
           {showTwoColumnLayout && item.imageUrl && (
