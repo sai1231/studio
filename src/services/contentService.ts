@@ -11,30 +11,30 @@ let mockContentItems: ContentItem[] = [
     title: 'Next.js Docs',
     description: 'The React Framework for the Web - Documentation.',
     mindNote: 'Remember to check the latest ISR strategies.',
-    imageUrl: 'https://placehold.co/600x400.png',
+    imageUrl: 'https://source.unsplash.com/600x400/?technology,code,web',
     tags: [{ id: 't2', name: 'nextjs' }, { id: 't1', name: 'productivity' }],
     zoneId: '1', 
     createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), 
     domain: 'nextjs.org',
-    contentType: 'Article',
+    contentType: 'Documentation',
   },
   {
     id: '2',
     type: 'note',
     title: 'My Shopping List',
-    description: 'Milk, Eggs, Bread, Coffee',
+    description: 'Milk, Eggs, Bread, Coffee, Avocado, Chicken Breast',
     tags: [{ id: 't-personal', name: 'personal' }, { id: 't-todos', name: 'todos' }],
     zoneId: '2', 
     createdAt: new Date(Date.now() - 86400000 * 1).toISOString(), 
-    contentType: 'Note',
+    contentType: 'List',
   },
   {
     id: '3',
     type: 'image',
     title: 'Awesome Landscape',
-    description: 'A beautiful landscape picture I found.',
-    mindNote: 'Could be a good wallpaper.',
-    imageUrl: 'https://placehold.co/600x400.png',
+    description: 'A beautiful landscape picture I found during a hike.',
+    mindNote: 'Could be a good wallpaper for my desktop.',
+    imageUrl: 'https://source.unsplash.com/600x400/?landscape,nature,mountains',
     tags: [{ id: 't4', name: 'inspiration' }, {id: 't-nature', name: 'nature'}],
     zoneId: '1', 
     createdAt: new Date().toISOString(),
@@ -44,9 +44,9 @@ let mockContentItems: ContentItem[] = [
     type: 'link',
     url: 'https://www.instagram.com/reel/Cabcdefg/',
     title: 'Cool Instagram Reel',
-    description: 'A very cool reel I saw.',
-    imageUrl: 'https://placehold.co/400x700.png',
-    tags: [{ id: 't-social', name: 'social media'}, { id: 't-fun', name: 'fun'}],
+    description: 'A very cool reel I saw about travel hacks.',
+    imageUrl: 'https://source.unsplash.com/400x700/?social,mobile,travel',
+    tags: [{ id: 't-social', name: 'social media'}, { id: 't-fun', name: 'fun'}, {id: 't-travel', name: 'travel'}],
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
     domain: 'instagram.com',
@@ -56,9 +56,9 @@ let mockContentItems: ContentItem[] = [
     id: '5',
     type: 'link',
     url: 'https://threads.net/@username/post/12345',
-    title: 'Interesting Threads Post',
-    description: 'Some thoughts on a topic.',
-    tags: [{ id: 't-social', name: 'social media'}, { id: 't-discussion', name: 'discussion'}],
+    title: 'Interesting Threads Post on AI Ethics',
+    description: 'Some thoughts on the future of AI and ethical considerations.',
+    tags: [{ id: 't-social', name: 'social media'}, { id: 't-discussion', name: 'discussion'}, {id: 't-ai', name: 'ai ethics'}],
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 0.5).toISOString(),
     domain: 'threads.net',
@@ -70,7 +70,8 @@ let mockContentItems: ContentItem[] = [
     url: 'https://github.com/facebook/react',
     title: 'React GitHub Repository',
     description: 'A declarative, efficient, and flexible JavaScript library for building user interfaces.',
-    mindNote: 'Check out their contribution guidelines.',
+    mindNote: 'Check out their contribution guidelines and recent updates.',
+    imageUrl: 'https://source.unsplash.com/600x400/?code,github,software',
     tags: [{ id: 't-code', name: 'code' }, { id: 't-js', name: 'javascript' }],
     zoneId: '1',
     createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
@@ -81,22 +82,23 @@ let mockContentItems: ContentItem[] = [
     id: '7',
     type: 'link',
     url: 'https://twitter.com/elonmusk/status/1234567890',
-    title: 'Elon Musk Tweet',
-    description: 'A tweet from Elon Musk.',
-    tags: [{ id: 't-social', name: 'social media' }],
+    title: 'Elon Musk Tweet about Space',
+    description: 'A tweet from Elon Musk regarding SpaceX.',
+    tags: [{ id: 't-social', name: 'social media' }, {id: 't-space', name: 'space'}],
     zoneId: '3',
     createdAt: new Date(Date.now() - 86400000 * 0.2).toISOString(),
-    domain: 'twitter.com',
+    domain: 'x.com',
     contentType: 'Tweet',
   },
   {
     id: '8',
     type: 'link',
-    url: 'https://medium.com/some-article',
-    title: 'An interesting article on Medium',
-    description: 'Insights on a trending topic.',
-    tags: [{ id: 't-reading', name: 'reading' }],
-    zoneId: '2',
+    url: 'https://medium.com/some-article-on-ux',
+    title: 'An interesting article on UX Design Trends',
+    description: 'Insights on a trending topic in user experience for 2024.',
+    imageUrl: 'https://source.unsplash.com/600x400/?design,ux,article',
+    tags: [{ id: 't-reading', name: 'reading' }, { id: 't-design', name: 'UX design'}],
+    zoneId: '2', 
     createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
     domain: 'medium.com',
     contentType: 'Article', 
@@ -104,20 +106,91 @@ let mockContentItems: ContentItem[] = [
   {
     id: '9',
     type: 'voice',
-    title: 'Quick Voice Memo',
-    description: 'Reminder for upcoming meeting and agenda points.', // Voice items can have descriptions
-    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', // Placeholder audio
+    title: 'Quick Voice Memo - Project Update',
+    description: 'Reminder for upcoming meeting and agenda points for Project Phoenix.',
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', 
     tags: [{ id: 't-work', name: 'work' }, { id: 't-reminder', name: 'reminder' }],
     zoneId: '1',
     createdAt: new Date(Date.now() - 86400000 * 0.1).toISOString(),
     contentType: 'Voice Note',
+  },
+  {
+    id: '10',
+    type: 'link',
+    url: 'https://dribbble.com/shots/popular/animation',
+    title: 'Dribbble Animation Inspiration',
+    description: 'Popular animations on Dribbble for UI ideas.',
+    imageUrl: 'https://source.unsplash.com/600x400/?animation,design,ui',
+    tags: [{ id: 't-design', name: 'design' }, { id: 't4', name: 'inspiration' }, {id: 't-animation', name: 'animation'}],
+    zoneId: '1',
+    createdAt: new Date(Date.now() - 86400000 * 6).toISOString(),
+    domain: 'dribbble.com',
+    contentType: 'Inspiration',
+  },
+  {
+    id: '11',
+    type: 'note',
+    title: 'Book Summary: Atomic Habits',
+    description: 'Key takeaways: Small changes lead to remarkable results. Focus on systems, not goals. Identity-based habits are crucial.',
+    tags: [{ id: 't-books', name: 'books' }, { id: 't-selfhelp', name: 'self-improvement' }],
+    zoneId: '2',
+    createdAt: new Date(Date.now() - 86400000 * 7).toISOString(),
+    contentType: 'Summary',
+  },
+  {
+    id: '12',
+    type: 'image',
+    title: 'Tokyo Street Scene',
+    description: 'A vibrant street in Tokyo at night.',
+    mindNote: 'Love the neon lights here.',
+    imageUrl: 'https://source.unsplash.com/600x400/?tokyo,city,night',
+    tags: [{ id: 't-travel', name: 'travel' }, { id: 't-city', name: 'cityscape' }],
+    zoneId: '3',
+    createdAt: new Date(Date.now() - 86400000 * 1.5).toISOString(),
+  },
+  {
+    id: '13',
+    type: 'link',
+    url: 'https://www.bonappetit.com/recipe/pasta-aglio-e-olio',
+    title: 'Simple Pasta Aglio e Olio Recipe',
+    description: 'A quick and delicious garlic and oil pasta.',
+    imageUrl: 'https://source.unsplash.com/600x400/?pasta,food,recipe',
+    tags: [{ id: 't-recipe', name: 'recipe' }, { id: 't-cooking', name: 'cooking' }],
+    zoneId: '2',
+    createdAt: new Date(Date.now() - 86400000 * 0.8).toISOString(),
+    domain: 'bonappetit.com',
+    contentType: 'Recipe',
+  },
+  {
+    id: '14',
+    type: 'voice',
+    title: 'Idea for Klipped App',
+    description: 'Think about adding AI-powered summarization for long articles.',
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
+    tags: [{ id: 't-appdev', name: 'app development' }, { id: 't-ideas', name: 'ideas' }],
+    zoneId: '1',
+    createdAt: new Date(Date.now() - 86400000 * 0.3).toISOString(),
+    contentType: 'Idea',
+  },
+  {
+    id: '15',
+    type: 'link',
+    url: 'https://www.theverge.com/tech',
+    title: 'The Verge - Tech News',
+    description: 'Latest technology news, reviews, and analysis.',
+    imageUrl: 'https://source.unsplash.com/600x400/?technology,news,gadgets',
+    tags: [{ id: 't-news', name: 'news' }, { id: 't-tech', name: 'technology' }],
+    zoneId: '3',
+    createdAt: new Date(Date.now() - 86400000 * 2.5).toISOString(),
+    domain: 'theverge.com',
+    contentType: 'News',
   }
 ];
 
 let mockZones: Zone[] = [ 
-  { id: '1', name: 'Work Projects' },
-  { id: '2', name: 'Personal Errands' },
-  { id: '3', name: 'Social Finds' },
+  { id: '1', name: 'Work & Learning' },
+  { id: '2', name: 'Personal & Home' },
+  { id: '3', name: 'Interests & Media' },
 ];
 
 // Function to get all content items
@@ -220,11 +293,12 @@ export async function updateContentItem(
 export async function uploadFile(file: File, path: string): Promise<string> {
   console.log(`Mock uploading file ${file.name} to ${path}`);
   await new Promise(resolve => setTimeout(resolve, 200)); 
-  // For testing audio, if an audio file is "uploaded", return a generic audio URL
+  
   if (file.type.startsWith('audio/')) {
     return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3';
   }
-  return 'https://placehold.co/600x400.png'; 
+  // Return a dynamic Unsplash URL for images, potentially using a keyword if easy
+  return 'https://source.unsplash.com/600x400/?upload,abstract'; 
 }
 
 // Function to get unique domains
@@ -250,4 +324,3 @@ export async function getUniqueContentTypes(): Promise<string[]> {
   });
   return Array.from(contentTypes).sort();
 }
-
