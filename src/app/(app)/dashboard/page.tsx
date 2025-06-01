@@ -146,7 +146,7 @@ export default function DashboardPage() {
   return (
     <div className="container mx-auto py-2">
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-        <h1 className="text-3xl font-headline font-semibold text-foreground">My Content</h1>
+        <h1 className="text-3xl font-headline font-semibold text-foreground">My Thoughts</h1>
         <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" onClick={() => setViewMode('grid')} className={viewMode === 'grid' ? 'bg-accent text-accent-foreground' : ''} aria-label="Grid View">
                 <LayoutGrid className="h-4 w-4"/>
