@@ -1,9 +1,9 @@
 
 'use server';
 /**
- * @fileOverview Analyzes an image to extract dominant colors and any visible text.
+ * @fileOverview Analyzes an image to extract any visible text.
  *
- * - analyzeImageContent - A function that handles the image analysis process.
+ * - analyzeImageContent - A function that handles the image text extraction process.
  * - AnalyzeImageContentInput - The input type for the analyzeImageContent function.
  * - AnalyzeImageContentOutput - The return type for the analyzeImageContent function.
  */
@@ -21,7 +21,6 @@ const AnalyzeImageContentInputSchema = z.object({
 export type AnalyzeImageContentInput = z.infer<typeof AnalyzeImageContentInputSchema>;
 
 const AnalyzeImageContentOutputSchema = z.object({
-  dominantColors: z.array(z.string()).describe('An array of dominant color names identified in the image (e.g., "blue", "green"). Provide up to 5 colors.'),
   extractedText: z.string().describe('All text or code extracted from the image. If no text is found, return an empty string.'),
 });
 export type AnalyzeImageContentOutput = z.infer<typeof AnalyzeImageContentOutputSchema>;
@@ -34,9 +33,8 @@ const prompt = ai.definePrompt({
   name: 'analyzeImageContentPrompt',
   input: {schema: AnalyzeImageContentInputSchema},
   output: {schema: AnalyzeImageContentOutputSchema},
-  prompt: `You are an expert image analyst. Analyze the provided image.
-Identify the dominant colors present in the image. List them as an array of common color names (e.g., "blue", "red", "green", "black", "white", "yellow"). Provide up to 5 distinct colors.
-Extract all text and code visible in the image. If no text is clearly discernible, return an empty string for the extractedText field.
+  prompt: `You are an expert image analyst. Your task is to extract all text and code visible in the provided image.
+If no text is clearly discernible, return an empty string for the extractedText field.
 
 Image: {{media url=imageDataUri}}`,
 });
@@ -50,12 +48,10 @@ const analyzeImageContentFlow = ai.defineFlow(
   async input => {
     try {
       const {output} = await prompt(input);
-      // Ensure output is not null, providing default empty values if necessary.
-      return output || { dominantColors: [], extractedText: '' };
+      return output || { extractedText: '' };
     } catch (error) {
-      console.error('Error in analyzeImageContentFlow:', error);
-      // Return a default safe output if any error occurs during the prompt call or Zod parsing
-      return { dominantColors: [], extractedText: '' };
+      console.error('Error in analyzeImageContentFlow (text extraction):', error);
+      return { extractedText: '' };
     }
   }
 );

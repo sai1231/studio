@@ -1,14 +1,15 @@
 
 'use client';
 import type React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AppHeader from '@/components/core/app-header';
 import AppSidebar from '@/components/core/app-sidebar';
 import AddContentDialog from '@/components/core/add-content-dialog';
-import type { Collection, ContentItem, ContentItemFirestoreData } from '@/types';
+import type { Collection, ContentItem, ContentItemFirestoreData, Tag as AppTag } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { analyzeImageContent } from '@/ai/flows/analyze-image-content';
-import { uploadFile, addContentItem } from '@/services/contentService'; // Import Firebase services
+import { uploadFile, addContentItem } from '@/services/contentService';
+import { useImageColor } from 'use-image-color';
 
 const mockCollections: Collection[] = [
   { id: '1', name: 'Work Projects' },
@@ -16,29 +17,42 @@ const mockCollections: Collection[] = [
   { id: '3', name: 'Recipes' },
 ];
 
+interface ProcessingImageDetails {
+  file: File;
+  dataUrl: string;
+  toastId: string;
+}
+
 export default function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
-  const { toast } = useToast();
+  const { toast, dismiss, update } = useToast();
 
-  const handleAddContentFromDialog = async (newContentData: Omit<ContentItemFirestoreData, 'createdAt' | 'tags'> & { tags: ContentItem['tags']}) => {
+  const [processingImageDetails, setProcessingImageDetails] = useState<ProcessingImageDetails | null>(null);
+  const [aiExtractedText, setAiExtractedText] = useState<string | null>(null);
+  const [isAiProcessingText, setIsAiProcessingText] = useState(false);
+  
+  const { colors: extractedImageColors, loading: imageColorsLoading, error: imageColorsError } = useImageColor(
+    processingImageDetails?.dataUrl || null, 
+    { cors: true, colors: 5, format: 'hex' }
+  );
+
+  const handleAddContentFromDialog = async (newContentData: Omit<ContentItemFirestoreData, 'createdAt' | 'tags'> & { tags: AppTag[]}) => {
     const { id: toastId } = toast({
       title: "Saving Content...",
       description: "Please wait while your content is being saved.",
     });
     try {
-      // Assert that tags is of type Tag[] for Firestore data
-      const firestoreReadyTags: ContentItemFirestoreData['tags'] = newContentData.tags;
+      const firestoreReadyTags: ContentItemFirestoreData['tags'] = newContentData.tags.map(tag => ({ id: tag.id, name: tag.name }));
 
       await addContentItem({
         ...newContentData,
-        tags: firestoreReadyTags, // Use the asserted tags
-        // userId: "TODO_CURRENT_USER_ID", // TODO: Integrate Firebase Auth
+        tags: firestoreReadyTags,
       });
-      toast({
+      update({
         id: toastId,
         title: "Content Saved!",
         description: `"${newContentData.title}" (${newContentData.type}) has been saved.`,
@@ -47,7 +61,7 @@ export default function AppLayout({
       // TODO: Implement a way to refresh the dashboard list or use global state
     } catch (error) {
       console.error("Error saving content from dialog:", error);
-      toast({
+      update({
         id: toastId,
         title: "Error Saving Content",
         description: "Could not save your content. Please try again.",
@@ -57,93 +71,114 @@ export default function AppLayout({
   };
 
   const handleImageFileSelected = async (file: File) => {
-    const { id: toastId } = toast({
+    const { id: currentToastId } = toast({
       title: "Processing Image...",
       description: "Reading file and preparing for analysis.",
     });
 
+    let dataUrl: string;
     try {
-      const reader = new FileReader();
-      const dataUrl = await new Promise<string>((resolve, reject) => {
+      dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
         reader.onload = (e) => resolve(e.target?.result as string);
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
-
-      if (!dataUrl) {
-        toast({
-          id: toastId,
-          title: "Error Reading File",
-          description: "Could not read the image file.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        id: toastId,
-        title: "Analyzing Image...",
-        description: "Extracting colors and text. This may take a moment.",
-      });
-
-      let analysisResult;
-      try {
-        analysisResult = await analyzeImageContent({ imageDataUri: dataUrl });
-      } catch (error) {
-        console.error("Error analyzing image:", error);
-        toast({
-          id: toastId,
-          title: "AI Analysis Failed",
-          description: "Could not analyze the image with AI. Proceeding without extracted data.",
-          variant: "destructive",
-        });
-        // Fallback if AI analysis fails
-        analysisResult = { dominantColors: [], extractedText: "" };
-      }
-      
-      toast({
-        id: toastId,
-        title: "Uploading Image...",
-        description: "Saving your image to secure storage.",
-      });
-
-      // TODO: Determine a proper path, perhaps include userId if available
-      const imagePath = `contentImages/${Date.now()}_${file.name}`;
-      const downloadURL = await uploadFile(file, imagePath);
-
-      const newImageContent: Omit<ContentItemFirestoreData, 'createdAt'> = {
-        type: 'image',
-        title: file.name || 'Uploaded Image',
-        description: `Uploaded image: ${file.name}`,
-        imageUrl: downloadURL,
-        tags: [{id: 'upload', name: 'upload'}], // Default tag
-        collectionId: '', // TODO: Allow user to select collection for direct uploads
-        dominantColors: analysisResult.dominantColors,
-        extractedText: analysisResult.extractedText,
-        // userId: "TODO_CURRENT_USER_ID", // TODO: Integrate Firebase Auth
-      };
-      
-      await addContentItem(newImageContent);
-
-      toast({
-        id: toastId,
-        title: "Image Saved!",
-        description: `"${newImageContent.title}" uploaded and analyzed. Colors: ${newImageContent.dominantColors?.join(', ') || 'N/A'}. Text: ${newImageContent.extractedText ? 'Found' : 'None'}.`,
-      });
-       // TODO: Implement a way to refresh the dashboard list or use global state
-    } catch (error) {
-      console.error("Error processing image upload:", error);
-      toast({
-        id: toastId,
-        title: "Image Upload Failed",
-        description: "Could not upload or process your image. Please try again.",
+    } catch (readError) {
+      console.error("Error reading file:", readError);
+      update({
+        id: currentToastId,
+        title: "Error Reading File",
+        description: "Could not read the image file.",
         variant: "destructive",
       });
+      return;
+    }
+    
+    setProcessingImageDetails({ file, dataUrl, toastId: currentToastId });
+    setAiExtractedText(null);
+    setIsAiProcessingText(true);
+
+    update({
+      id: currentToastId,
+      title: "Analyzing Image...",
+      description: "Extracting text and colors. This may take a moment.",
+    });
+
+    try {
+      const analysisResult = await analyzeImageContent({ imageDataUri: dataUrl });
+      setAiExtractedText(analysisResult.extractedText);
+    } catch (error) {
+      console.error("Error analyzing image text with AI:", error);
+      setAiExtractedText(""); // Default to empty string on error
+    } finally {
+      setIsAiProcessingText(false);
     }
   };
+  
+  useEffect(() => {
+    if (processingImageDetails && !isAiProcessingText && !imageColorsLoading) {
+      const { file, dataUrl, toastId } = processingImageDetails;
+
+      const saveImage = async () => {
+        update({
+          id: toastId,
+          title: "Finalizing Image Data...",
+          description: "Preparing to upload your image.",
+        });
+
+        const finalDominantColors = imageColorsError || !extractedImageColors ? [] : extractedImageColors;
+        const finalTextToSave = aiExtractedText === null ? "" : aiExtractedText;
+
+        try {
+          update({
+            id: toastId,
+            title: "Uploading Image...",
+            description: "Saving your image to secure storage.",
+          });
+
+          const imagePath = `contentImages/${Date.now()}_${file.name}`;
+          const downloadURL = await uploadFile(file, imagePath);
+
+          const newImageContent: Omit<ContentItemFirestoreData, 'createdAt'> = {
+            type: 'image',
+            title: file.name || 'Uploaded Image',
+            description: `Uploaded image: ${file.name}`,
+            imageUrl: downloadURL,
+            tags: [{id: 'upload', name: 'upload'}], 
+            collectionId: '', // TODO: Allow user to select collection
+            dominantColors: finalDominantColors,
+            extractedText: finalTextToSave,
+          };
+          
+          await addContentItem(newImageContent);
+
+          update({
+            id: toastId,
+            title: "Image Saved!",
+            description: `"${newImageContent.title}" saved. Colors: ${finalDominantColors.join(', ') || 'N/A'}. Text: ${finalTextToSave ? 'Found' : 'None'}.`,
+          });
+          // TODO: Implement a way to refresh the dashboard list or use global state
+        } catch (error) {
+          console.error("Error processing image upload:", error);
+          update({
+            id: toastId,
+            title: "Image Upload Failed",
+            description: "Could not upload or process your image. Please try again.",
+            variant: "destructive",
+          });
+        } finally {
+          setProcessingImageDetails(null); // Reset to allow next upload
+          setAiExtractedText(null);
+        }
+      };
+
+      saveImage();
+    }
+  }, [processingImageDetails, isAiProcessingText, aiExtractedText, extractedImageColors, imageColorsLoading, imageColorsError, toast, update, dismiss]);
+
 
   const handleRecordVoiceClick = () => {
-    // TODO: Implement voice recording dialog/logic
     toast({
       title: "Voice Recording",
       description: "Voice recording feature coming soon!",
