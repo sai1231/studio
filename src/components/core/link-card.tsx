@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 
 interface ContentCardProps {
   item: ContentItem;
-  onEdit: (item: ContentItem) => void; 
+  onEdit: (item: ContentItem) => void;
   onDelete: (itemId: string) => void;
 }
 
@@ -58,14 +58,14 @@ const getTagStyles = (tagName: string): string => {
   return tagColorPalettes[index];
 };
 
-const pixabayFallbackImages = [ 
+const pixabayFallbackImages = [
   'https://cdn.pixabay.com/photo/2023/06/21/06/12/man-8078578_640.jpg',
   'https://cdn.pixabay.com/photo/2024/07/09/03/48/shiva-poster-8882318_1280.jpg',
   'https://cdn.pixabay.com/photo/2025/05/14/16/21/city-9599967_960_720.jpg',
   'https://cdn.pixabay.com/photo/2024/05/26/10/00/lighthouse-8788992_640.jpg',
   'https://cdn.pixabay.com/photo/2024/04/09/15/07/coffee-8686017_640.jpg'
 ];
-let lastUsedFallbackIndex = -1; 
+let lastUsedFallbackIndex = -1;
 const getNextFallbackImage = () => {
   lastUsedFallbackIndex = (lastUsedFallbackIndex + 1) % pixabayFallbackImages.length;
   return pixabayFallbackImages[lastUsedFallbackIndex];
@@ -78,7 +78,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
   const IconComponent = specifics.icon;
 
   const handleActionClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
   };
 
   const renderDescription = (description: string | undefined) => {
@@ -100,13 +100,13 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
 
 
   return (
-    <Card 
+    <Card
       className={cn(
         "overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group rounded-2xl break-inside-avoid mb-4 cursor-pointer"
       )}
-      onClick={() => onEdit(item)} 
+      onClick={() => onEdit(item)}
     >
-      <div className="flex flex-col flex-grow group/link"> 
+      <div className="flex flex-col flex-grow group/link">
         <div className="flex flex-col flex-grow">
           {hasImage ? (
             <div className="relative w-full h-56">
@@ -123,14 +123,16 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
 
           <CardHeader className={cn("pb-2", !hasImage ? "pt-4" : "pt-3")}>
             <div className="flex items-center gap-3 mb-2">
-              <div className={cn("p-2 rounded-full ring-2", specifics.iconRing, "bg-muted/30 dark:bg-muted/20")}>
-                <IconComponent className={cn("h-6 w-6", specifics.iconText)} />
-              </div>
+              {!hasImage && (
+                <div className={cn("p-2 rounded-full ring-2", specifics.iconRing, "bg-muted/30 dark:bg-muted/20")}>
+                  <IconComponent className={cn("h-6 w-6", specifics.iconText)} />
+                </div>
+              )}
               <CardTitle className="text-xl font-headline leading-tight group-hover/link:text-primary transition-colors">
                 {item.title}
               </CardTitle>
             </div>
-            
+
             {item.type === 'link' && item.url && (
               <CardDescription className="text-xs text-muted-foreground flex items-center pt-1">
                 <Globe className="h-3 w-3 mr-1.5 shrink-0" />
@@ -145,7 +147,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                 {renderDescription(item.description)}
               </div>
             )}
-            
+
             {item.type === 'voice' && item.audioUrl && (
               <div className="my-2 flex items-center gap-2 text-sm text-muted-foreground">
                 <PlayCircle className={cn("h-5 w-5", specifics.iconText)} />
@@ -168,13 +170,13 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
 
             {item.tags && item.tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5 pt-1">
-                {item.tags.slice(0, 3).map((tag) => ( 
+                {item.tags.slice(0, 3).map((tag) => (
                   <Badge key={tag.id} className={cn(tagBaseClasses, getTagStyles(tag.name))}>
                     {tag.name}
                   </Badge>
                 ))}
-                {item.tags.length > 3 && 
-                  <Badge 
+                {item.tags.length > 3 &&
+                  <Badge
                     className={cn(tagBaseClasses, "bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-100")}
                   >
                     +{item.tags.length - 3} more
@@ -209,13 +211,13 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={(e) => {
                     handleActionClick(e);
                     onDelete(item.id);
-                  }} 
+                  }}
                   aria-label="Forget item"
                   className={cn("h-8 w-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10", 'hover:bg-black/10 dark:hover:bg-white/10')}
                 >
