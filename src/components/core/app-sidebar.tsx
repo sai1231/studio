@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import KlippedLogo from './klipped-logo';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import type { Zone, Tag as TagType } from '@/types';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+// Avatar imports are removed as the avatar section is being removed.
 import { ThemeToggle } from './theme-toggle';
 import { Separator } from '@/components/ui/separator';
 import { getZones, getUniqueDomains, getUniqueContentTypes, getUniqueTags } from '@/services/contentService';
@@ -83,18 +83,7 @@ const AppSidebar: React.FC = () => {
           <KlippedLogo />
         </div>
 
-        <div className="px-4 py-3 border-b border-sidebar-border">
-          <div className="flex items-center space-x-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" data-ai-hint="user avatar" />
-              <AvatarFallback>U</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="text-sm font-medium text-sidebar-foreground">Samantha</p>
-              <p className="text-xs text-sidebar-foreground/70">samantha@email.com</p>
-            </div>
-          </div>
-        </div>
+        {/* User profile section removed from here */}
 
         <ScrollArea className="flex-1 py-2 px-4">
           <nav className="grid items-start gap-1 text-sm font-medium">
@@ -236,3 +225,5 @@ const AppSidebar: React.FC = () => {
 };
 
 export default AppSidebar;
+
+    
