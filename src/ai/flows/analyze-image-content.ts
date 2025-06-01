@@ -1,9 +1,9 @@
 
 'use server';
 /**
- * @fileOverview Analyzes an image to extract any visible text.
+ * @fileOverview Analyzes an image to extract dominant colors and any visible text.
  *
- * - analyzeImageContent - A function that handles the image text extraction process.
+ * - analyzeImageContent - A function that handles the image analysis process.
  * - AnalyzeImageContentInput - The input type for the analyzeImageContent function.
  * - AnalyzeImageContentOutput - The return type for the analyzeImageContent function.
  */
@@ -21,6 +21,7 @@ const AnalyzeImageContentInputSchema = z.object({
 export type AnalyzeImageContentInput = z.infer<typeof AnalyzeImageContentInputSchema>;
 
 const AnalyzeImageContentOutputSchema = z.object({
+  dominantColors: z.array(z.string()).describe('An array of dominant color hex codes or common color names extracted from the image. If no distinct colors are found, return an empty array.'),
   extractedText: z.string().describe('All text or code extracted from the image. If no text is found, return an empty string.'),
 });
 export type AnalyzeImageContentOutput = z.infer<typeof AnalyzeImageContentOutputSchema>;
@@ -33,8 +34,9 @@ const prompt = ai.definePrompt({
   name: 'analyzeImageContentPrompt',
   input: {schema: AnalyzeImageContentInputSchema},
   output: {schema: AnalyzeImageContentOutputSchema},
-  prompt: `You are an expert image analyst. Your task is to extract all text and code visible in the provided image.
+  prompt: `You are an expert image analyst. Your task is to extract dominant colors (as an array of hex codes or common color names, e.g., ["#FF0000", "blue", "#0000FF"]) and all text/code visible in the provided image.
 If no text is clearly discernible, return an empty string for the extractedText field.
+If no distinct colors can be identified, return an empty array for the dominantColors field.
 
 Image: {{media url=imageDataUri}}`,
 });
@@ -48,10 +50,11 @@ const analyzeImageContentFlow = ai.defineFlow(
   async input => {
     try {
       const {output} = await prompt(input);
-      return output || { extractedText: '' };
+      return output || { dominantColors: [], extractedText: '' };
     } catch (error) {
-      console.error('Error in analyzeImageContentFlow (text extraction):', error);
-      return { extractedText: '' };
+      console.error('Error in analyzeImageContentFlow (color/text extraction):', error);
+      // Return a default valid output structure in case of any error
+      return { dominantColors: [], extractedText: '' };
     }
   }
 );
