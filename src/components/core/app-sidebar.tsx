@@ -214,16 +214,7 @@ const AppSidebar: React.FC = () => {
             </Link>
           </nav>
         </ScrollArea>
-        <Separator className="bg-sidebar-border my-2" />
-        <div className="p-4">
-          <Link
-            href="/dashboard-experiment"
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary aria-[current=page]:text-sidebar-primary-foreground"
-            >
-            <Layers className="h-4 w-4" /> 
-            Dashboard Experiment
-          </Link>
-        </div>
+        
         <div className="p-4">
             <ThemeToggle />
         </div>
