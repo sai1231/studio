@@ -2,7 +2,7 @@
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import ContentCard from '@/components/core/link-card';
+import ContentCardExperiment from '@/components/core/link-card-experiment'; // Changed import
 import ContentDetailDialog from '@/components/core/ContentDetailDialog';
 import type { ContentItem, Zone as AppZone, Tag as AppTag } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,7 @@ const pageLoadingMessages = [
 
 const ALL_FILTER_VALUE = "__ALL__";
 
-export default function DashboardExperimentPage() { // Renamed component
+export default function DashboardExperimentPage() { 
   const [allContentItems, setAllContentItems] = useState<ContentItem[]>([]);
   const [displayedContentItems, setDisplayedContentItems] = useState<ContentItem[]>([]);
   
@@ -72,7 +72,7 @@ export default function DashboardExperimentPage() { // Renamed component
         getUniqueTags(),
       ]);
       setAllContentItems(items);
-      setDisplayedContentItems(items); // Initially display all items
+      setDisplayedContentItems(items); 
       setZones(fetchedZones);
       setAvailableContentTypes(uniqueContentTypes);
       setAvailableDomains(uniqueDomains);
@@ -90,11 +90,9 @@ export default function DashboardExperimentPage() { // Renamed component
     fetchData();
   }, [fetchData]);
 
-  // Filtering logic
   useEffect(() => {
     let filtered = [...allContentItems];
 
-    // Search term filter
     if (searchTerm.trim()) {
       const lowerSearchTerm = searchTerm.toLowerCase();
       filtered = filtered.filter(item =>
@@ -103,17 +101,14 @@ export default function DashboardExperimentPage() { // Renamed component
       );
     }
 
-    // Content type filter
     if (selectedContentType !== ALL_FILTER_VALUE) {
       filtered = filtered.filter(item => item.contentType === selectedContentType);
     }
 
-    // Domain filter
     if (selectedDomain !== ALL_FILTER_VALUE) {
       filtered = filtered.filter(item => item.domain === selectedDomain);
     }
     
-    // Tag filter (item must have ALL selected tags)
     if (selectedTagIds.length > 0) {
       filtered = filtered.filter(item => {
         const itemTagIds = item.tags.map(tag => tag.id);
@@ -160,7 +155,6 @@ export default function DashboardExperimentPage() { // Renamed component
     setAllContentItems(prevItems => 
       prevItems.map(item => item.id === updatedItem.id ? updatedItem : item)
     );
-    // No need to call fetchData, filtering useEffect will handle display update
     toast({ title: "Item Updated", description: `"${updatedItem.title}" has been updated.`});
   };
 
@@ -171,7 +165,6 @@ export default function DashboardExperimentPage() { // Renamed component
     try {
       await deleteContentItem(itemId);
       toast({id: toastId, title: "Content Deleted", description: "The item has been removed.", variant: "default"});
-      // No explicit fetchData(), filtering useEffect handles the display update of allContentItems
     } catch (e) {
       console.error("Error deleting content:", e);
       toast({id: toastId, title: "Error Deleting", description: "Could not delete item. Restoring.", variant: "destructive"});
@@ -340,7 +333,7 @@ export default function DashboardExperimentPage() { // Renamed component
       ) : (
         <div className={'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
           {displayedContentItems.map(item => (
-            <ContentCard
+            <ContentCardExperiment // Changed component
               key={item.id}
               item={item}
               onEdit={handleOpenDetailDialog}
@@ -369,5 +362,3 @@ export default function DashboardExperimentPage() { // Renamed component
     </div>
   );
 }
-
-    
