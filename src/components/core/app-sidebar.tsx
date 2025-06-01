@@ -6,7 +6,7 @@ import { Home, Tag, Settings, LogOut, Users, ChevronDown, Plus, Globe, Clipboard
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import KlippedLogo from './klipped-logo';
+import MatiLogo from './klipped-logo'; // Changed from KlippedLogo
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import type { Zone, Tag as TagType } from '@/types';
 import { ThemeToggle } from './theme-toggle';
@@ -79,7 +79,7 @@ const AppSidebar: React.FC = () => {
     <aside className="hidden border-r bg-sidebar text-sidebar-foreground md:block w-64 fixed top-0 left-0 h-full z-20">
       <div className="flex h-full max-h-screen flex-col">
         <div className="flex h-16 items-center border-b border-sidebar-border px-6">
-          <KlippedLogo />
+          <MatiLogo /> {/* Changed from KlippedLogo */}
         </div>
 
         <ScrollArea className="flex-1 py-2 px-4">

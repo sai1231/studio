@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -48,7 +49,7 @@ export function LoginForm() {
     <Card className="shadow-xl">
       <CardHeader>
         <CardTitle className="text-2xl font-headline">Welcome Back!</CardTitle>
-        <CardDescription>Enter your credentials to access Klipped.</CardDescription>
+        <CardDescription>Enter your credentials to access Mati.</CardDescription> {/* Changed Klipped to Mati */}
       </CardHeader>
       <CardContent>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

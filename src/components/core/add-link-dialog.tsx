@@ -110,7 +110,7 @@ const AddLinkDialog: React.FC<AddLinkDialogProps> = ({ open, onOpenChange, zones
         <DialogHeader>
           <DialogTitle className="font-headline">Add New Link</DialogTitle>
           <DialogDescription>
-            Save a new link to your Klipped zone. Fill in the details below. {/* Renamed collection to zone */}
+            Save a new link to your Mati zone. Fill in the details below. {/* Renamed collection to zone, Klipped to Mati */}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex-grow overflow-y-auto pr-2 space-y-4 py-4">

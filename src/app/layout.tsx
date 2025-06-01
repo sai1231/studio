@@ -5,8 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/core/theme-provider";
 
 export const metadata: Metadata = {
-  title: 'Klipped - Save and Organize Links',
-  description: 'Your personal space to save, tag, and rediscover web links effortlessly.',
+  title: 'Mati - Save and Organize Your Thoughts', // Changed Klipped to Mati
+  description: 'Your personal space to save, tag, and rediscover web links, notes, and ideas effortlessly.', // Changed Klipped to Mati and updated description
 };
 
 export default function RootLayout({

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -53,7 +54,7 @@ export function SignupForm() {
     <Card className="shadow-xl">
       <CardHeader>
         <CardTitle className="text-2xl font-headline">Create an Account</CardTitle>
-        <CardDescription>Join Klipped today to start organizing your digital world.</CardDescription>
+        <CardDescription>Join Mati today to start organizing your digital world.</CardDescription> {/* Changed Klipped to Mati */}
       </CardHeader>
       <CardContent>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

@@ -21,7 +21,7 @@ export default function SettingsPage() {
               Appearance
             </CardTitle>
             <CardDescription>
-              Customize the look and feel of your Klipped experience.
+              Customize the look and feel of your Mati experience. {/* Changed Klipped to Mati */}
             </CardDescription>
           </CardHeader>
           <CardContent>
