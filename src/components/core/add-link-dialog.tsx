@@ -21,10 +21,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { X, Lightbulb, Loader2, Sparkles } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import type { Collection, LinkItem, Tag } from '@/types';
-import { suggestTags, type SuggestTagsInput } from '@/ai/flows/suggest-tags';
-import { analyzeLinkSentiment, type AnalyzeLinkSentimentInput } from '@/ai/flows/analyze-sentiment';
+// AI-related imports removed
+// import { suggestTags, type SuggestTagsInput } from '@/ai/flows/suggest-tags';
+// import { analyzeLinkSentiment, type AnalyzeLinkSentimentInput } from '@/ai/flows/analyze-sentiment';
 import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
@@ -41,8 +42,8 @@ export interface AddLinkDialogOpenChange {
 
 interface AddLinkDialogProps extends AddLinkDialogOpenChange {
   collections: Collection[];
-  onLinkAdd: (newLink: Omit<LinkItem, 'id' | 'createdAt' | 'imageUrl'>) => void; // Simplified for now
-  children?: React.ReactNode; // To allow custom trigger
+  onLinkAdd: (newLink: Omit<LinkItem, 'id' | 'createdAt' | 'imageUrl'>) => void;
+  children?: React.ReactNode;
 }
 
 const PLACEHOLDER_NONE_COLLECTION_VALUE = "__none_collection__";
@@ -50,9 +51,10 @@ const PLACEHOLDER_NONE_COLLECTION_VALUE = "__none_collection__";
 const AddLinkDialog: React.FC<AddLinkDialogProps> = ({ open, onOpenChange, collections, onLinkAdd, children }) => {
   const [currentTags, setCurrentTags] = useState<Tag[]>([]);
   const [tagInput, setTagInput] = useState('');
-  const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
-  const [isSuggesting, setIsSuggesting] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  // AI-related state removed
+  // const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
+  // const [isSuggesting, setIsSuggesting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false); // Renamed from isAnalyzing for clarity
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -61,19 +63,19 @@ const AddLinkDialog: React.FC<AddLinkDialogProps> = ({ open, onOpenChange, colle
       url: '',
       title: '',
       description: '',
-      collectionId: '', // Default to empty string, meaning no collection
+      collectionId: '',
     },
   });
 
-  const watchedUrl = form.watch('url');
-  const watchedTitle = form.watch('title');
+  // const watchedUrl = form.watch('url'); // No longer needed for AI suggestions
+  // const watchedTitle = form.watch('title'); // No longer needed for AI suggestions
   const watchedCollectionId = form.watch('collectionId');
 
   useEffect(() => {
     if (open) {
-      form.reset(); // This sets collectionId to its default ('')
+      form.reset();
       setCurrentTags([]);
-      setSuggestedTags([]);
+      // setSuggestedTags([]); // AI state reset removed
       setTagInput('');
     }
   }, [open, form]);
@@ -100,50 +102,27 @@ const AddLinkDialog: React.FC<AddLinkDialogProps> = ({ open, onOpenChange, colle
     setCurrentTags(currentTags.filter(tag => tag.id !== tagToRemove.id));
   };
 
-  const addSuggestedTag = (tagName: string) => {
-    if (!currentTags.find(tag => tag.name.toLowerCase() === tagName.toLowerCase())) {
-      setCurrentTags([...currentTags, { id: Date.now().toString(), name: tagName }]);
-    }
-    setSuggestedTags(suggestedTags.filter(st => st.toLowerCase() !== tagName.toLowerCase()));
-  };
+  // addSuggestedTag removed as AI suggestions are removed
+
+  // handleSuggestTags removed as AI suggestions are removed
   
-  const handleSuggestTags = async () => {
-    if (!watchedUrl || !watchedTitle) {
-      toast({ title: "URL and Title needed", description: "Please enter a URL and Title to suggest tags.", variant: "destructive" });
-      return;
-    }
-    setIsSuggesting(true);
-    try {
-      const aiInput: SuggestTagsInput = { url: watchedUrl, title: watchedTitle, content: watchedTitle };
-      const result = await suggestTags(aiInput);
-      setSuggestedTags(result.tags.filter(st => !currentTags.some(ct => ct.name.toLowerCase() === st.toLowerCase())));
-      if (result.tags.length > 0) {
-        toast({ title: "Tags Suggested!", description: "AI has suggested some tags for your link." });
-      } else {
-        toast({ title: "No new tags suggested.", description: "AI couldn't find new relevant tags." });
-      }
-    } catch (error) {
-      console.error("Error suggesting tags:", error);
-      toast({ title: "Error", description: "Could not suggest tags at this time.", variant: "destructive" });
-    }
-    setIsSuggesting(false);
-  };
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsAnalyzing(true);
-    let sentimentData;
-    try {
-        const sentimentInput: AnalyzeLinkSentimentInput = { url: values.url, content: values.title + (values.description || '') };
-        const sentimentResult = await analyzeLinkSentiment(sentimentInput);
-        sentimentData = { label: sentimentResult.sentiment.toLowerCase() as 'positive' | 'negative' | 'neutral', score: sentimentResult.score };
-        toast({ title: "Sentiment Analyzed", description: `Link sentiment: ${sentimentData.label}` });
-    } catch (error) {
-        console.error("Error analyzing sentiment:", error);
-        toast({ title: "Sentiment Analysis Failed", description: "Could not analyze link sentiment.", variant: "destructive" });
-    }
-    setIsAnalyzing(false);
-
-    onLinkAdd({ ...values, tags: currentTags, sentiment: sentimentData });
+    setIsSaving(true);
+    // Sentiment analysis removed
+    // let sentimentData;
+    // try {
+    //     const sentimentInput: AnalyzeLinkSentimentInput = { url: values.url, content: values.title + (values.description || '') };
+    //     const sentimentResult = await analyzeLinkSentiment(sentimentInput);
+    //     sentimentData = { label: sentimentResult.sentiment.toLowerCase() as 'positive' | 'negative' | 'neutral', score: sentimentResult.score };
+    //     toast({ title: "Sentiment Analyzed", description: `Link sentiment: ${sentimentData.label}` });
+    // } catch (error) {
+    //     console.error("Error analyzing sentiment:", error);
+    //     toast({ title: "Sentiment Analysis Failed", description: "Could not analyze link sentiment.", variant: "destructive" });
+    // }
+    
+    // Pass data without sentiment
+    onLinkAdd({ ...values, tags: currentTags });
+    setIsSaving(false); 
     if (onOpenChange) onOpenChange(false); // Close dialog
   }
 
@@ -185,7 +164,7 @@ const AddLinkDialog: React.FC<AddLinkDialogProps> = ({ open, onOpenChange, colle
                   form.setValue('collectionId', selectedValue, { shouldTouch: true });
                 }
               }}
-              value={watchedCollectionId || ''} // Use empty string for Select's value to show placeholder
+              value={watchedCollectionId || ''}
             >
               <SelectTrigger className="w-full focus:ring-accent">
                 <SelectValue placeholder="Select a collection" />
@@ -206,16 +185,13 @@ const AddLinkDialog: React.FC<AddLinkDialogProps> = ({ open, onOpenChange, colle
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <Label htmlFor="tags" className="font-medium">Tags</Label>
-              <Button type="button" variant="outline" size="sm" onClick={handleSuggestTags} disabled={isSuggesting || !watchedUrl || !watchedTitle}>
-                {isSuggesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4 text-primary" />}
-                Suggest Tags
-              </Button>
+              {/* Suggest Tags button removed */}
             </div>
             <div className="flex flex-wrap gap-2 mb-2">
               {currentTags.map(tag => (
                 <Badge key={tag.id} variant="default" className="bg-primary text-primary-foreground">
                   {tag.name}
-                  <button onClick={() => removeTag(tag)} className="ml-1.5 focus:outline-none">
+                  <button type="button" onClick={() => removeTag(tag)} className="ml-1.5 focus:outline-none">
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
@@ -229,30 +205,14 @@ const AddLinkDialog: React.FC<AddLinkDialogProps> = ({ open, onOpenChange, colle
               placeholder="Add tags (press Enter or ,)"
               className="focus-visible:ring-accent"
             />
-             {suggestedTags.length > 0 && (
-              <div className="mt-2 space-y-1">
-                <p className="text-xs text-muted-foreground flex items-center"><Lightbulb className="h-3 w-3 mr-1 text-yellow-400"/>Suggested tags:</p>
-                <div className="flex flex-wrap gap-1">
-                  {suggestedTags.map(tag => (
-                    <Badge
-                      key={tag}
-                      variant="outline"
-                      onClick={() => addSuggestedTag(tag)}
-                      className="cursor-pointer hover:bg-accent/20"
-                    >
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
+             {/* Suggested tags display removed */}
           </div>
         </form>
         <DialogFooter className="pt-4 border-t">
           <Button type="button" variant="outline" onClick={() => onOpenChange && onOpenChange(false)}>Cancel</Button>
-          <Button type="submit" onClick={form.handleSubmit(onSubmit)} disabled={isAnalyzing || isSuggesting} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-            {isAnalyzing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isAnalyzing ? 'Analyzing...' : 'Add Link'}
+          <Button type="submit" onClick={form.handleSubmit(onSubmit)} disabled={isSaving} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSaving ? 'Saving...' : 'Add Link'}
           </Button>
         </DialogFooter>
       </DialogContent>
