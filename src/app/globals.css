@@ -9,7 +9,7 @@ body {
 
 @layer base {
   :root {
-    --background: 0 0% 98%; /* Off-white / Very light gray */
+    --background: 0 0% 96%; /* Slightly more distinct light gray for main background */
     --foreground: 220 20% 10%; /* Dark cool gray for text */
     --card: 0 0% 100%; /* White */
     --card-foreground: 220 20% 10%;
