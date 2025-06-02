@@ -50,7 +50,8 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
       tempDiv.innerHTML = htmlString;
       return tempDiv.textContent || tempDiv.innerText || '';
     }
-    return htmlString.replace(/<[^>]+>/g, '');
+    // Fallback for server-side or environments without DOM
+    return htmlString.replace(/<[^>]+>/g, ''); 
   };
 
   const plainDescription = getPlainTextDescription(item.description);
@@ -58,12 +59,12 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
   return (
     <Card
       className={cn(
-        "overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col group rounded-3xl p-3 break-inside-avoid mb-4"
+        "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col group rounded-3xl p-2 break-inside-avoid mb-4"
       )}
     >
       <div className="flex flex-col flex-grow cursor-pointer" onClick={() => onEdit(item)}>
         {hasImage && (
-          <div className="relative w-full mb-1 rounded-xl overflow-hidden aspect-square"> {/* Changed aspect ratio here */}
+          <div className="relative w-full mb-1 rounded-xl overflow-hidden aspect-square">
             <Image
               src={item.imageUrl!}
               alt={item.title}
@@ -71,19 +72,13 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-300"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.display = 'none';
-                // Optionally, re-render with icon if image fails
-                // This would require state and is more complex.
-                // For now, just hide broken image, icon logic below handles !hasImage
-              }}
             />
           </div>
         )}
 
-        <div className={cn("flex flex-col flex-grow", hasImage ? "pt-2" : "pt-0")}> {/* Adjusted padding if image exists */}
+        <div className={cn("flex flex-col flex-grow", hasImage ? "pt-1" : "pt-0")}>
           <div className="flex items-start gap-2">
-            {!hasImage && ( // Show icon only if no image
+            {!hasImage && (
               React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-1", specifics.iconText) })
             )}
             <h3 className="text-lg font-semibold leading-tight group-hover:text-primary transition-colors break-words">
@@ -92,13 +87,13 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
           </div>
 
           {plainDescription && (
-            <p className={cn("mt-1 text-sm text-muted-foreground break-words line-clamp-2", !hasImage && "pl-7")}> {/* Indent if icon is shown */}
+            <p className={cn("mt-1 text-sm text-muted-foreground break-words line-clamp-2", !hasImage && "pl-7")}>
               {plainDescription}
             </p>
           )}
 
           {item.type === 'voice' && item.audioUrl && !plainDescription && !hasImage && (
-              <div className={cn("mt-1 flex items-center gap-2 text-sm text-muted-foreground", !hasImage && "pl-7")}> {/* Indent if icon is shown */}
+              <div className={cn("mt-1 flex items-center gap-2 text-sm text-muted-foreground", !hasImage && "pl-7")}>
                 <PlayCircle className={cn("h-5 w-5", getTypeSpecifics(item).iconText)} />
                 <span>Voice recording</span>
               </div>
@@ -106,8 +101,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         </div>
       </div>
 
-      {/* Footer for domain and action icons - always visible */}
-      <div className="mt-auto pt-3 flex items-center justify-between">
+      <div className="mt-auto pt-2 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
           {item.domain && (
             <>
