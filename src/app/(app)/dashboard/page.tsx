@@ -39,7 +39,7 @@ interface TodoDashboardCardProps {
 const TodoDashboardCard: React.FC<TodoDashboardCardProps> = ({ todos, onToggleStatus, isLoading, onEditTodo }) => {
   if (isLoading) {
     return (
-      <Card className="mb-6 shadow-lg">
+      <Card className="mb-4 shadow-lg break-inside-avoid">
         <CardHeader>
           <CardTitle className="text-xl font-headline flex items-center">
             <ListChecks className="h-6 w-6 mr-2 text-primary" /> My TODOs
@@ -63,7 +63,7 @@ const TodoDashboardCard: React.FC<TodoDashboardCardProps> = ({ todos, onToggleSt
 
   if (todos.length === 0) {
     return (
-      <Card className="mb-6 shadow-lg">
+      <Card className="mb-4 shadow-lg break-inside-avoid">
         <CardHeader>
           <CardTitle className="text-xl font-headline flex items-center">
             <ListChecks className="h-6 w-6 mr-2 text-primary" /> My TODOs
@@ -82,7 +82,7 @@ const TodoDashboardCard: React.FC<TodoDashboardCardProps> = ({ todos, onToggleSt
   }
 
   return (
-    <Card className="mb-6 shadow-lg">
+    <Card className="mb-4 shadow-lg break-inside-avoid">
       <CardHeader>
         <CardTitle className="text-xl font-headline flex items-center">
           <ListChecks className="h-6 w-6 mr-2 text-primary" /> My TODOs
@@ -108,7 +108,7 @@ const TodoDashboardCard: React.FC<TodoDashboardCardProps> = ({ todos, onToggleSt
                   todo.status === 'completed' && "line-through text-muted-foreground hover:text-muted-foreground/80"
                 )}
                 onClick={(e) => {
-                  e.preventDefault(); // Prevent checkbox toggle when clicking label for edit
+                  e.preventDefault(); 
                   onEditTodo(todo);
                 }}
               >
@@ -137,7 +137,7 @@ const TodoDashboardCard: React.FC<TodoDashboardCardProps> = ({ todos, onToggleSt
 
 export default function DashboardPage() {
   const [allContentItems, setAllContentItems] = useState<ContentItem[]>([]);
-  const [displayedContentItems, setDisplayedContentItems] = useState<ContentItem[]>([]); // For non-TODO items grid
+  const [displayedContentItems, setDisplayedContentItems] = useState<ContentItem[]>([]); 
   
   const [zones, setZones] = useState<AppZone[]>([]);
   const [availableContentTypes, setAvailableContentTypes] = useState<string[]>([]);
@@ -219,9 +219,9 @@ export default function DashboardPage() {
         if (a.status === 'pending' && b.status === 'completed') return -1;
         if (a.status === 'completed' && b.status === 'pending') return 1;
         if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        if (a.dueDate && !b.dueDate) return -1; // Sort items with due dates before those without
+        if (a.dueDate && !b.dueDate) return -1; 
         if (!a.dueDate && b.dueDate) return 1;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(); // Fallback to creation date
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(); 
       });
   }, [allContentItems]);
 
@@ -230,7 +230,7 @@ export default function DashboardPage() {
   }, [allContentItems]);
 
   useEffect(() => {
-    let filtered = [...otherItems]; // Apply filters only to non-TODO items
+    let filtered = [...otherItems]; 
 
     if (appliedSearchTerm.trim()) {
       const lowerSearchTerm = appliedSearchTerm.toLowerCase();
@@ -369,13 +369,13 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Error updating TODO status from dashboard:', error);
       toast({ title: "Error", description: "Could not update TODO status.", variant: "destructive" });
-      setAllContentItems(originalTodos); // Revert on error
+      setAllContentItems(originalTodos); 
     } finally {
       setIsUpdatingTodoStatus(null);
     }
   };
   
-  if (isLoading && allContentItems.length === 0) { // Show main loader only on initial full load
+  if (isLoading && allContentItems.length === 0) { 
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -494,45 +494,68 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <TodoDashboardCard
-        todos={todoItems}
-        onToggleStatus={handleToggleTodoStatus}
-        isLoading={isLoading && allContentItems.length === 0}
-        onEditTodo={handleOpenDetailDialog}
-      />
-
-      {displayedContentItems.length === 0 && !isLoading ? (
-        <div className="text-center py-12">
-          <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h2 className="text-xl font-medium text-muted-foreground">
-            {activeFilterCount > 0 
-              ? "Hmm… no memories match your filters." 
-              : (todoItems.length > 0 ? "No other memories found yet." : "No content saved yet.")}
-          </h2>
-          <p className="text-muted-foreground mt-2">
-            {activeFilterCount > 0 
-              ? (<>Try easing up on those filters, or <Button variant="link" onClick={handleClearAndApplyFilters} className="p-0 h-auto text-primary inline">clear them</Button> to see all your memories.</>)
-              : (todoItems.length > 0 ? "Save some new links, notes, or images!" : "Start by adding your first item!")}
-          </p>
-          { (allContentItems.length === 0 && activeFilterCount === 0 && !isLoading) &&
-             <Button onClick={() => { setIsAddContentDialogOpen(true);}} className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Add Your First Item
-            </Button>
-          }
+      {isLoading && allContentItems.length > 0 ? ( // Show a smaller loading indicator if there's already content (e.g. during filter change)
+        <div className="flex justify-center py-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      ) : !isLoading ? (
-        <div className={'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
-          {displayedContentItems.map(item => (
-            <ContentCard
-              key={item.id}
-              item={item}
-              onEdit={handleOpenDetailDialog}
-              onDelete={handleDeleteContent}
-            />
-          ))}
-        </div>
-      ) : null } {/* Don't render grid if isLoading, main loader handles this */}
+      ) : (
+        <>
+          {(displayedContentItems.length === 0 && !isLoading && todoItems.length === 0) ? (
+            <div className="text-center py-12">
+              <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h2 className="text-xl font-medium text-muted-foreground">
+                {activeFilterCount > 0 
+                  ? "Hmm… no memories match your filters." 
+                  : "No content saved yet."}
+              </h2>
+              <p className="text-muted-foreground mt-2">
+                {activeFilterCount > 0 
+                  ? (<>Try easing up on those filters, or <Button variant="link" onClick={handleClearAndApplyFilters} className="p-0 h-auto text-primary inline">clear them</Button> to see all your memories.</>)
+                  : "Start by adding your first item!"}
+              </p>
+              { (allContentItems.length === 0 && activeFilterCount === 0 && !isLoading) &&
+                 <Button onClick={() => { setIsAddContentDialogOpen(true);}} className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Add Your First Item
+                </Button>
+              }
+            </div>
+          ) : (
+             <div className={'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
+                <TodoDashboardCard
+                  todos={todoItems}
+                  onToggleStatus={handleToggleTodoStatus}
+                  isLoading={isLoading && allContentItems.length === 0} 
+                  onEditTodo={handleOpenDetailDialog}
+                />
+                {displayedContentItems.map(item => (
+                  <ContentCard
+                    key={item.id}
+                    item={item}
+                    onEdit={handleOpenDetailDialog}
+                    onDelete={handleDeleteContent}
+                  />
+                ))}
+             </div>
+          )}
+          {displayedContentItems.length === 0 && todoItems.length > 0 && !isLoading && activeFilterCount === 0 && (
+            <div className="text-center py-12 mt-[-2rem]"> {/* Adjust margin if TodoCard has content */}
+              <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h2 className="text-xl font-medium text-muted-foreground">No other memories found yet.</h2>
+              <p className="text-muted-foreground mt-2">Save some new links, notes, or images!</p>
+            </div>
+          )}
+           {displayedContentItems.length === 0 && todoItems.length > 0 && !isLoading && activeFilterCount > 0 && (
+            <div className="text-center py-12 mt-[-2rem]">
+              <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h2 className="text-xl font-medium text-muted-foreground">Hmm… no memories match your filters.</h2>
+              <p className="text-muted-foreground mt-2">
+                Try easing up on those filters, or <Button variant="link" onClick={handleClearAndApplyFilters} className="p-0 h-auto text-primary inline">clear them</Button> to see all your memories.
+              </p>
+            </div>
+          )}
+        </>
+      )}
       
       <AddContentDialog
         open={isAddContentDialogOpen}
