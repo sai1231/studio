@@ -15,7 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, FileText, ImageUp, Mic, UploadCloud, FileUp, ListChecks } from 'lucide-react';
+import { Plus, FileText, ImageUp, Mic, UploadCloud, FileUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function AppLayout({
@@ -24,7 +24,6 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
-  const [addDialogMode, setAddDialogMode] = useState<ContentItemType | 'link/note'>('link/note');
   const [zones, setZones] = useState<Zone[]>([]);
   const { toast } = useToast();
   const imageUploadInputRef = useRef<HTMLInputElement>(null);
@@ -404,7 +403,6 @@ export default function AppLayout({
         onOpenChange={setIsAddContentDialogOpen}
         zones={zones}
         onContentAdd={handleAddContentFromDialog}
-        initialMode={addDialogMode}
       />
 
       <DropdownMenu>
@@ -418,13 +416,9 @@ export default function AppLayout({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" side="top" sideOffset={16} className="w-56 mb-1">
-          <DropdownMenuItem onClick={() => { setAddDialogMode('link/note'); setIsAddContentDialogOpen(true); }} className="cursor-pointer">
+          <DropdownMenuItem onClick={() => setIsAddContentDialogOpen(true)} className="cursor-pointer">
             <FileText className="mr-2 h-4 w-4" />
             <span>Add Link / Note</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => { setAddDialogMode('todo'); setIsAddContentDialogOpen(true); }} className="cursor-pointer">
-            <ListChecks className="mr-2 h-4 w-4" />
-            <span>Add TODO</span>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleUploadImageClick} className="cursor-pointer">
             <ImageUp className="mr-2 h-4 w-4" />
