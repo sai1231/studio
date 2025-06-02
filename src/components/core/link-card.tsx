@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Landmark, PlayCircle } from 'lucide-react';
+import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Landmark, PlayCircle, Layers } from 'lucide-react';
 import type { ContentItem, ContentItemType } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -35,7 +35,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
   const specifics = getTypeSpecifics(item.type);
 
   const handleActionClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
   };
 
   const getPlainTextDescription = (htmlString: string | undefined): string => {
@@ -45,85 +45,36 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
       tempDiv.innerHTML = htmlString;
       return tempDiv.textContent || tempDiv.innerText || '';
     }
-    return htmlString; 
+    // Fallback for server-side or environments without DOM
+    // This is a simple fallback and might not cover all HTML entities perfectly.
+    // For more robust server-side stripping, a library might be needed.
+    return htmlString.replace(/<[^>]+>/g, '');
   };
-  
+
   const plainDescription = getPlainTextDescription(item.description);
 
   return (
     <Card
       className={cn(
-        "overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group rounded-3xl p-3 break-inside-avoid mb-4 relative"
+        "overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group rounded-3xl p-3 break-inside-avoid mb-4"
       )}
     >
-      <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-        {item.type === 'link' && item.url && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  asChild 
-                  onClick={handleActionClick}
-                  className="h-8 w-8 rounded-full group/linkicon"
-                >
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Open link in new tab"
-                    className="flex items-center justify-center h-full w-full rounded-full hover:bg-accent"
-                  >
-                    <ExternalLink className="h-4 w-4 text-muted-foreground group-hover/linkicon:text-primary" />
-                  </a>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent><p>Open link</p></TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => {
-                  handleActionClick(e);
-                  onDelete(item.id);
-                }}
-                aria-label="Forget item"
-                className="h-8 w-8 rounded-full hover:bg-accent group/deleteicon"
-              >
-                <Trash2 className="h-4 w-4 text-muted-foreground group-hover/deleteicon:text-destructive" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent><p>Forget</p></TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-
-      <div className="flex flex-col flex-grow group/link cursor-pointer" onClick={() => onEdit(item)}>
-        {/* Image Section: Only render if item.imageUrl is present */}
-        {item.imageUrl ? (
-          <div className="relative w-full mb-1 rounded-xl overflow-hidden aspect-[4/3]">
+      <div className="flex flex-col flex-grow cursor-pointer" onClick={() => onEdit(item)}>
+        {item.imageUrl && (
+          <div className="relative w-full mb-2 rounded-xl overflow-hidden aspect-[4/3]">
             <Image
               src={item.imageUrl}
               alt={item.title}
               data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
               fill
-              className="object-cover group-hover/link:scale-105 transition-transform duration-300"
+              className="object-cover group-hover:scale-105 transition-transform duration-300"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              // onError could be used to hide the Image component if it fails to load,
-              // but for now, next/image will handle its own broken state.
             />
           </div>
-        ) : null}
+        )}
 
-        {/* Text Content Section */}
         <div className={cn("flex flex-col flex-grow", item.imageUrl ? "pt-1" : "pt-0")}>
-          <h3 className="text-lg font-semibold leading-tight group-hover/link:text-primary transition-colors truncate">
+          <h3 className="text-lg font-semibold leading-tight group-hover:text-primary transition-colors break-words">
             {item.title || "Untitled"}
           </h3>
 
@@ -139,15 +90,68 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                 <span>Voice recording</span>
               </div>
             )}
-          
-          <div className="mt-auto pt-2 flex flex-wrap gap-x-4 gap-y-1 items-center text-xs text-muted-foreground">
-            {item.domain && (
-              <div className="flex items-center gap-1.5">
-                <Landmark className="h-3.5 w-3.5 opacity-80" />
-                <span>{item.domain}</span>
-              </div>
-            )}
-          </div>
+        </div>
+      </div>
+
+      {/* Footer for domain and action icons - always visible */}
+      <div className="mt-auto pt-2 flex items-center justify-between">
+        {/* Domain on the left */}
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+          {item.domain && (
+            <>
+              <Landmark className="h-3.5 w-3.5 opacity-80 shrink-0" />
+              <span className="truncate">{item.domain}</span>
+            </>
+          )}
+        </div>
+
+        {/* Action icons on the right */}
+        <div className="flex items-center gap-1 shrink-0">
+          {item.type === 'link' && item.url && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    asChild
+                    onClick={handleActionClick}
+                    className="h-8 w-8 rounded-full group/linkicon"
+                  >
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Open link in new tab"
+                      className="flex items-center justify-center h-full w-full rounded-full hover:bg-accent"
+                    >
+                      <ExternalLink className="h-4 w-4 text-muted-foreground group-hover/linkicon:text-primary" />
+                    </a>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Open link</p></TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    handleActionClick(e);
+                    onDelete(item.id);
+                  }}
+                  aria-label="Forget item"
+                  className="h-8 w-8 rounded-full hover:bg-accent group/deleteicon"
+                >
+                  <Trash2 className="h-4 w-4 text-muted-foreground group-hover/deleteicon:text-destructive" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p>Forget</p></TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
     </Card>
