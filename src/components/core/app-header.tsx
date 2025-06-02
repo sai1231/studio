@@ -1,6 +1,8 @@
 
 'use client';
 import type React from 'react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -16,26 +18,38 @@ import {
 import { UserCircle, Settings, LogOut } from 'lucide-react';
 import Link from 'next/link';
 
-interface AppHeaderProps {
-  onSearchChange?: (query: string) => void;
-}
+const AppHeader: React.FC = () => {
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
 
-const AppHeader: React.FC<AppHeaderProps> = ({ 
-  onSearchChange 
-}) => {
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement> | React.KeyboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-30 flex h-24 items-center gap-2 sm:gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 md:px-6 shadow-sm">
-      
-      <div className="flex-1 relative">
+      <form onSubmit={handleSearchSubmit} className="flex-1 relative">
         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
         <Input
           type="search"
-          placeholder="Search your memories" 
+          placeholder="Search all memories..."
           className="w-full rounded-lg bg-muted pl-12 pr-4 py-4 text-lg h-14 focus-visible:ring-accent"
-          onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
+          value={searchQuery}
+          onChange={handleSearchInputChange}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleSearchSubmit(e);
+            }
+          }}
         />
-      </div>
+      </form>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

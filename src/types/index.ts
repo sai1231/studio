@@ -4,13 +4,13 @@ export interface Tag {
   name: string;
 }
 
-export interface Zone { // Renamed from Collection
+export interface Zone {
   id:string;
   name: string;
-  icon?: string; // Changed from React.ElementType to string
+  icon?: string; 
 }
 
-export type ContentItemType = 'link' | 'note' | 'image' | 'todo' | 'voice';
+export type ContentItemType = 'link' | 'note' | 'image' | 'todo' | 'voice' | 'movie'; // Added 'movie'
 
 // Data structure used in the application code
 export interface ContentItem {
@@ -18,7 +18,7 @@ export interface ContentItem {
   type: ContentItemType;
   title: string;
   description?: string;
-  mindNote?: string; // Added Mind Note field
+  mindNote?: string;
   url?: string;
   imageUrl?: string;
   audioUrl?: string;
@@ -26,8 +26,18 @@ export interface ContentItem {
   zoneId?: string;
   userId?: string;
   createdAt: string; // ISO date string
-  domain?: string; // e.g., instagram.com, youtube.com
-  contentType?: string; // e.g., Reel, Post, Article, Video
+  domain?: string;
+  contentType?: string;
+  movieDetails?: MovieDetails; // Added for movie type
+}
+
+export interface MovieDetails {
+  posterPath?: string;
+  releaseYear?: string;
+  rating?: number;
+  director?: string;
+  cast?: string[];
+  genres?: string[];
 }
 
 // Specific type for Link items, if needed for type guarding
@@ -35,4 +45,3 @@ export type LinkItem = ContentItem & {
   type: 'link';
   url: string;
 };
-
