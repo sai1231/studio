@@ -15,7 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, FileText, ImageUp, Mic, UploadCloud, FileUp } from 'lucide-react';
+import { Plus, FileText, ImageUp, Mic, UploadCloud, FileUp, ListChecks } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function AppLayout({
@@ -420,6 +420,10 @@ export default function AppLayout({
             <FileText className="mr-2 h-4 w-4" />
             <span>Add Link / Note</span>
           </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setIsAddContentDialogOpen(true)} className="cursor-pointer">
+            <ListChecks className="mr-2 h-4 w-4" />
+            <span>Add Todo</span>
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={handleUploadImageClick} className="cursor-pointer">
             <ImageUp className="mr-2 h-4 w-4" />
             <span>Upload Image</span>
@@ -451,3 +455,4 @@ export default function AppLayout({
     </div>
   );
 }
+
