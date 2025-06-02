@@ -355,15 +355,14 @@ export default function DomainPage() {
         <div className="text-center py-12">
           <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h2 className="text-xl font-medium text-muted-foreground">
-             {allContentForDomain.length > 0 && activeFilterCount > 0 ? "No items match your filters." : `No items found from "${decodedDomainName}".`}
+            {allContentForDomain.length > 0 && activeFilterCount > 0 
+              ? "Hmm… it’s like déjà vu, but nothing’s here." 
+              : `No items found from "${decodedDomainName}".`}
           </h2>
           <p className="text-muted-foreground mt-2">
             {allContentForDomain.length > 0 && activeFilterCount > 0 
-              ? "Try adjusting your filters or " 
+              ? (<>Try easing up on those filters — maybe something will spark a memory, or <Button variant="link" onClick={handleClearAndApplyFilters} className="p-0 h-auto text-primary inline">clear your mind</Button> to start fresh.</>)
               : "Save content from this domain to see it here."}
-             {allContentForDomain.length > 0 && activeFilterCount > 0 && 
-              <Button variant="link" onClick={handleClearAndApplyFilters} className="p-0 h-auto text-primary">clear them</Button>
-            }
           </p>
         </div>
       ) : (
