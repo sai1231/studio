@@ -1,5 +1,5 @@
 
-import type React from 'react';
+import React from 'react'; // Added this line
 import Image from 'next/image';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,7 +38,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
   const specifics = getTypeSpecifics(item);
 
   const handleActionClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevents the onEdit of the card itself from firing
+    e.stopPropagation(); 
   };
 
   const getPlainTextDescription = (htmlString: string | undefined): string => {
@@ -48,6 +48,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
       tempDiv.innerHTML = htmlString;
       return tempDiv.textContent || tempDiv.innerText || '';
     }
+    // Basic fallback for server-side or environments without DOM
     return htmlString.replace(/<[^>]+>/g, '');
   };
 
@@ -62,7 +63,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
     >
       <div className="flex flex-col flex-grow cursor-pointer" onClick={() => onEdit(item)}>
         {hasImage && (
-          <div className="relative w-full mb-2 rounded-xl overflow-hidden aspect-[4/3]">
+          <div className="relative w-full mb-1 rounded-xl overflow-hidden aspect-[4/3]">
             <Image
               src={item.imageUrl!}
               alt={item.title}
@@ -70,7 +71,14 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-300"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              onError={(e) => (e.currentTarget.style.display = 'none')} 
+              onError={(e) => {
+                // This will hide the image if it fails to load,
+                // allowing the icon logic below to potentially take over
+                // if we decide to show an icon when image fails.
+                // For now, it just hides the broken image.
+                (e.currentTarget as HTMLImageElement).style.display = 'none';
+                // Potentially set a state here if you want to render fallback UI for broken images
+              }}
             />
           </div>
         )}
@@ -119,9 +127,9 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                   <Button
                     variant="ghost"
                     size="icon"
-                    asChild // Important for the <a> tag to inherit button styles
+                    asChild 
                     onClick={handleActionClick}
-                    className="h-8 w-8 rounded-full group/linkicon" // group for specific icon hover
+                    className="h-8 w-8 rounded-full group/linkicon" 
                   >
                     <a
                       href={item.url}
@@ -149,7 +157,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                     onDelete(item.id);
                   }}
                   aria-label="Forget item"
-                  className="h-8 w-8 rounded-full hover:bg-accent group/deleteicon" // group for specific icon hover
+                  className="h-8 w-8 rounded-full hover:bg-accent group/deleteicon" 
                 >
                   <Trash2 className="h-4 w-4 text-muted-foreground group-hover/deleteicon:text-destructive" />
                 </Button>
