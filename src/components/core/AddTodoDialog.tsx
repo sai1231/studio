@@ -16,19 +16,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, ListChecks, Loader2, AlarmClock, Checkbox as CheckboxIcon } from 'lucide-react'; // Using CheckboxIcon to avoid name clash
+import { CalendarIcon, ListChecks, Loader2, AlarmClock } from 'lucide-react';
 import type { ContentItem, Zone } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { format, isPast } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Checkbox } from '@/components/ui/checkbox'; // Shadcn Checkbox
-import { getContentItems, updateContentItem } from '@/services/contentService'; // Import getContentItems
+import { Checkbox } from '@/components/ui/checkbox';
+import { getContentItems, updateContentItem } from '@/services/contentService';
 
 interface AddTodoDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  zones: Zone[]; // Kept for default zone assignment, though not directly used in UI now
+  zones: Zone[];
   onTodoAdd: (newTodoData: Omit<ContentItem, 'id' | 'createdAt'>) => Promise<void>;
 }
 
@@ -69,13 +69,14 @@ const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange, zones
   useEffect(() => {
     if (open) {
       fetchLocalTodos();
+      // Only reset fields if not in the middle of adding, to preserve input on re-renders
       if (!isAdding) {
         setTodoTitle('');
         setSelectedDueDate(undefined);
       }
       setTimeout(() => titleInputRef.current?.focus(), 100);
     }
-  }, [open, fetchLocalTodos, isAdding]);
+  }, [open, fetchLocalTodos, isAdding]); // Added isAdding to dependencies
 
   const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
@@ -101,12 +102,13 @@ const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange, zones
 
     try {
       await onTodoAdd(newTodoData); // This calls the layout's function to save globally
-      setTodoTitle('');
-      setSelectedDueDate(undefined);
-      titleInputRef.current?.focus();
+      setTodoTitle(''); // Clear title
+      setSelectedDueDate(undefined); // Clear due date
+      titleInputRef.current?.focus(); // Refocus title input
       await fetchLocalTodos(); // Re-fetch to update the list inside the dialog
     } catch (error) {
-      // Error toast is handled by onTodoAdd in layout
+      // Error toast is (or should be) handled by the onTodoAdd function in the layout
+      console.error('Error in AddTodoDialog handleSubmit during onTodoAdd:', error);
     } finally {
       setIsAdding(false);
     }
@@ -117,7 +119,6 @@ const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange, zones
     setIsUpdatingStatus(todoId);
     const newStatus = (currentStatus === 'completed') ? 'pending' : 'completed';
 
-    // Optimistically update local state
     setDisplayedTodos(prevTodos =>
       prevTodos.map(todo =>
         todo.id === todoId ? { ...todo, status: newStatus } : todo
@@ -128,18 +129,17 @@ const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange, zones
       const updatedItem = await updateContentItem(todoId, { status: newStatus });
       if (updatedItem) {
         toast({ title: "TODO Updated", description: `"${updatedItem.title}" marked as ${newStatus}.` });
-        // Potentially re-fetch or ensure the global state (e.g., dashboard) also knows.
-        // For now, this dialog's list is updated. Dashboard will update on its own cycle or next full refresh.
+        // Optionally, call fetchLocalTodos() again if global updates might affect sort order or other properties
+        // For now, local optimistic update is primary for responsiveness.
       } else {
-        throw new Error("Update failed, item not returned");
+        throw new Error("Update failed, item not returned from service.");
       }
     } catch (error) {
       console.error('Error updating TODO status in dialog:', error);
       toast({ title: "Error", description: "Could not update TODO status.", variant: "destructive" });
-      // Revert optimistic update
       setDisplayedTodos(prevTodos =>
         prevTodos.map(todo =>
-          todo.id === todoId ? { ...todo, status: currentStatus } : todo
+          todo.id === todoId ? { ...todo, status: currentStatus } : todo // Revert
         )
       );
     } finally {
@@ -156,7 +156,7 @@ const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange, zones
             Add & Manage TODOs
           </DialogTitle>
           <DialogDescription>
-            Quickly add tasks and manage your list below.
+            Quickly add tasks below. The list will update instantly. Close when done.
           </DialogDescription>
         </DialogHeader>
 
@@ -261,5 +261,3 @@ const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange, zones
 };
 
 export default AddTodoDialog;
-
-    
