@@ -1,11 +1,12 @@
 
-import React from 'react'; // Added this line
+'use client';
+import React from 'react';
 import Image from 'next/image';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Landmark, PlayCircle, FileText, Layers } from 'lucide-react';
-import type { ContentItem, ContentItemType } from '@/types';
+import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Landmark, PlayCircle, FileText } from 'lucide-react';
+import type { ContentItem } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface ContentCardProps {
@@ -36,6 +37,7 @@ const getTypeSpecifics = (item: ContentItem) => {
 
 const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => {
   const specifics = getTypeSpecifics(item);
+  const hasImage = !!item.imageUrl;
 
   const handleActionClick = (e: React.MouseEvent) => {
     e.stopPropagation(); 
@@ -48,12 +50,10 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
       tempDiv.innerHTML = htmlString;
       return tempDiv.textContent || tempDiv.innerText || '';
     }
-    // Basic fallback for server-side or environments without DOM
     return htmlString.replace(/<[^>]+>/g, '');
   };
 
   const plainDescription = getPlainTextDescription(item.description);
-  const hasImage = !!item.imageUrl;
 
   return (
     <Card
@@ -63,7 +63,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
     >
       <div className="flex flex-col flex-grow cursor-pointer" onClick={() => onEdit(item)}>
         {hasImage && (
-          <div className="relative w-full mb-1 rounded-xl overflow-hidden aspect-[4/3]">
+          <div className="relative w-full mb-1 rounded-xl overflow-hidden aspect-square"> {/* Changed aspect ratio here */}
             <Image
               src={item.imageUrl!}
               alt={item.title}
@@ -72,20 +72,18 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
               className="object-cover group-hover:scale-105 transition-transform duration-300"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               onError={(e) => {
-                // This will hide the image if it fails to load,
-                // allowing the icon logic below to potentially take over
-                // if we decide to show an icon when image fails.
-                // For now, it just hides the broken image.
                 (e.currentTarget as HTMLImageElement).style.display = 'none';
-                // Potentially set a state here if you want to render fallback UI for broken images
+                // Optionally, re-render with icon if image fails
+                // This would require state and is more complex.
+                // For now, just hide broken image, icon logic below handles !hasImage
               }}
             />
           </div>
         )}
 
-        <div className={cn("flex flex-col flex-grow", hasImage ? "pt-1" : "pt-0")}>
+        <div className={cn("flex flex-col flex-grow", hasImage ? "pt-2" : "pt-0")}> {/* Adjusted padding if image exists */}
           <div className="flex items-start gap-2">
-            {!hasImage && (
+            {!hasImage && ( // Show icon only if no image
               React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-1", specifics.iconText) })
             )}
             <h3 className="text-lg font-semibold leading-tight group-hover:text-primary transition-colors break-words">
@@ -94,13 +92,13 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
           </div>
 
           {plainDescription && (
-            <p className="mt-1 text-sm text-muted-foreground break-words line-clamp-2">
+            <p className={cn("mt-1 text-sm text-muted-foreground break-words line-clamp-2", !hasImage && "pl-7")}> {/* Indent if icon is shown */}
               {plainDescription}
             </p>
           )}
 
           {item.type === 'voice' && item.audioUrl && !plainDescription && !hasImage && (
-              <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+              <div className={cn("mt-1 flex items-center gap-2 text-sm text-muted-foreground", !hasImage && "pl-7")}> {/* Indent if icon is shown */}
                 <PlayCircle className={cn("h-5 w-5", getTypeSpecifics(item).iconText)} />
                 <span>Voice recording</span>
               </div>
