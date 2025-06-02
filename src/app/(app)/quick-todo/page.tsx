@@ -1,0 +1,133 @@
+
+'use client';
+
+import type React from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowLeft, ListChecks, CalendarDays, Loader2 } from 'lucide-react';
+import { addContentItem, getContentItems, getZones } from '@/services/contentService';
+import type { ContentItem, Zone } from '@/types';
+import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+
+export default function QuickTodoPage() {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [newTodoText, setNewTodoText] = useState('');
+  const [todos, setTodos] = useState<ContentItem[]>([]);
+  const [zones, setZones] = useState<Zone[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAdding, setIsAdding] = useState(false);
+
+  const fetchTodosAndZones = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [allContent, fetchedZones] = await Promise.all([
+        getContentItems(),
+        getZones(),
+      ]);
+      const todoItems = allContent.filter(item => item.type === 'todo').sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setTodos(todoItems);
+      setZones(fetchedZones);
+    } catch (error) {
+      console.error('Error fetching data for quick todo page:', error);
+      toast({ title: "Error", description: "Could not load TODOs or zones.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    fetchTodosAndZones();
+  }, [fetchTodosAndZones]);
+
+  const handleAddTodo = async (e?: React.FormEvent<HTMLFormElement>) => {
+    e?.preventDefault();
+    if (!newTodoText.trim()) {
+      toast({ title: "Empty TODO", description: "Please enter some text for your TODO item.", variant: "destructive" });
+      return;
+    }
+    setIsAdding(true);
+
+    const defaultZoneId = zones.length > 0 ? zones[0].id : undefined;
+
+    const newTodoData: Omit<ContentItem, 'id' | 'createdAt'> = {
+      type: 'todo',
+      title: newTodoText.trim(),
+      tags: [],
+      zoneId: defaultZoneId,
+      contentType: 'Task',
+      description: '', // Keep description empty for quick add
+    };
+
+    try {
+      const addedItem = await addContentItem(newTodoData);
+      setTodos(prevTodos => [addedItem, ...prevTodos]);
+      setNewTodoText('');
+      toast({ title: "TODO Added", description: `"${addedItem.title}" was added.` });
+    } catch (error) {
+      console.error('Error adding TODO:', error);
+      toast({ title: "Error", description: "Could not add TODO item.", variant: "destructive" });
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  return (
+    <div className="container mx-auto py-6 max-w-2xl">
+      <Button onClick={() => router.back()} variant="outline" className="mb-6">
+        <ArrowLeft className="mr-2 h-4 w-4" /> Back
+      </Button>
+
+      <div className="flex items-center mb-6">
+        <ListChecks className="h-8 w-8 mr-3 text-primary" />
+        <h1 className="text-3xl font-headline font-semibold text-foreground">Quick TODO Entry</h1>
+      </div>
+
+      <form onSubmit={handleAddTodo} className="mb-8">
+        <div className="flex items-center gap-2">
+          <Input
+            type="text"
+            value={newTodoText}
+            onChange={(e) => setNewTodoText(e.target.value)}
+            placeholder="What needs to be done?"
+            className="flex-grow text-lg h-12 focus-visible:ring-accent"
+            disabled={isAdding}
+          />
+          <Button type="submit" size="lg" className="h-12 bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isAdding}>
+            {isAdding ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Add'}
+          </Button>
+        </div>
+      </form>
+
+      {isLoading ? (
+        <div className="flex justify-center items-center py-10">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="ml-3 text-muted-foreground">Loading TODOs...</p>
+        </div>
+      ) : todos.length === 0 ? (
+        <p className="text-center text-muted-foreground py-10">No TODOs yet. Add your first one above!</p>
+      ) : (
+        <div className="space-y-3">
+          {todos.map(todo => (
+            <Card key={todo.id} className="shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-4 flex justify-between items-center">
+                <div>
+                  <p className="font-medium text-foreground">{todo.title}</p>
+                  <div className="text-xs text-muted-foreground flex items-center mt-1">
+                    <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
+                    <span>Added: {format(new Date(todo.createdAt), 'MMM d, yyyy, h:mm a')}</span>
+                  </div>
+                </div>
+                {/* Placeholder for actions like complete/delete if needed later */}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

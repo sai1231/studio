@@ -2,6 +2,7 @@
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation'; // Added useRouter
 import AppHeader from '@/components/core/app-header';
 import AppSidebar from '@/components/core/app-sidebar';
 import AddContentDialog from '@/components/core/add-content-dialog';
@@ -26,6 +27,7 @@ export default function AppLayout({
   const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
   const [zones, setZones] = useState<Zone[]>([]);
   const { toast } = useToast();
+  const router = useRouter(); // Initialize router
   const imageUploadInputRef = useRef<HTMLInputElement>(null);
   const pdfUploadInputRef = useRef<HTMLInputElement>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -88,7 +90,7 @@ export default function AppLayout({
       });
 
       const defaultZoneId = zones.length > 0 ? zones[0].id : undefined;
-       if (!defaultZoneId && zones.length > 0) { 
+       if (!defaultZoneId && zones.length > 0) {
         console.warn("No default zone available, image might not be assigned to a zone.");
        }
 
@@ -149,7 +151,7 @@ export default function AppLayout({
         tags: [{ id: 'upload', name: 'upload' }, { id: 'pdf-upload', name: 'pdf' }],
         zoneId: defaultZoneId,
         contentType: 'PDF',
-        domain: 'klipped.internal.storage', 
+        domain: 'klipped.internal.storage',
       };
 
       await addContentItem(newPdfContent);
@@ -200,6 +202,10 @@ export default function AppLayout({
       title: "Voice Recording",
       description: "Voice recording feature coming soon!",
     });
+  };
+
+  const handleAddTodoClick = () => {
+    router.push('/quick-todo'); // Navigate to the new quick todo page
   };
 
   const isValidUrl = (string: string): boolean => {
@@ -265,7 +271,6 @@ export default function AppLayout({
   const handleDragEnter = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    // Check if the drag contains useful data types
     const types = event.dataTransfer.types;
     if (types.includes('Files') || types.includes('text/uri-list') || types.includes('text/plain')) {
         setIsDraggingOver(true);
@@ -275,7 +280,6 @@ export default function AppLayout({
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    // Ensure isDraggingOver stays true if it was set by handleDragEnter
     if (!isDraggingOver) {
         const types = event.dataTransfer.types;
         if (types.includes('Files') || types.includes('text/uri-list') || types.includes('text/plain')) {
@@ -287,7 +291,6 @@ export default function AppLayout({
   const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.stopPropagation();
-     // Check if the mouse is leaving to an internal child or truly outside the drop zone
     if (event.currentTarget.contains(event.relatedTarget as Node)) {
       return;
     }
@@ -302,9 +305,8 @@ export default function AppLayout({
     const files = event.dataTransfer.files;
     const items = event.dataTransfer.items;
 
-    // Handle Files
     if (files && files.length > 0) {
-      const file = files[0]; // Process first file
+      const file = files[0];
       if (file.type.startsWith('image/')) {
         await handleImageFileSelected(file);
         return;
@@ -320,23 +322,22 @@ export default function AppLayout({
       }
     }
 
-    // Handle DataTransferItems (preferred for web content)
     if (items && items.length > 0) {
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
         if (item.kind === 'string') {
-          if (item.type === 'text/uri-list' || item.type.includes('url')) { // More robust URL type check
+          if (item.type === 'text/uri-list' || item.type.includes('url')) {
             item.getAsString(async (url) => {
               if (isValidUrl(url)) {
                 await saveDroppedItem('link', '', { url });
-              } else { // Fallback for text if URI is not a valid URL
+              } else {
                 await saveDroppedItem('note', 'Dropped Content', url);
               }
             });
             return;
           } else if (item.type === 'text/plain') {
             item.getAsString(async (text) => {
-               if (isValidUrl(text)) { // Check if plain text is actually a URL
+               if (isValidUrl(text)) {
                 await saveDroppedItem('link', '', { url: text });
               } else {
                 await saveDroppedItem('note', `Dropped Text`, text);
@@ -348,7 +349,6 @@ export default function AppLayout({
       }
     }
 
-    // Fallback for older browsers or specific drag sources using getData
     try {
       const urlData = event.dataTransfer.getData('URL') || event.dataTransfer.getData('text/uri-list');
       if (urlData && isValidUrl(urlData)) {
@@ -358,7 +358,7 @@ export default function AppLayout({
 
       const textData = event.dataTransfer.getData('text/plain');
       if (textData) {
-        if (isValidUrl(textData)) { // Check if plain text is actually a URL
+        if (isValidUrl(textData)) {
           await saveDroppedItem('link', '', { url: textData });
         } else {
           await saveDroppedItem('note', 'Dropped Plain Text', textData);
@@ -420,7 +420,7 @@ export default function AppLayout({
             <FileText className="mr-2 h-4 w-4" />
             <span>Add Link / Note</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setIsAddContentDialogOpen(true)} className="cursor-pointer">
+          <DropdownMenuItem onClick={handleAddTodoClick} className="cursor-pointer"> {/* Updated onClick */}
             <ListChecks className="mr-2 h-4 w-4" />
             <span>Add Todo</span>
           </DropdownMenuItem>
@@ -455,4 +455,3 @@ export default function AppLayout({
     </div>
   );
 }
-
