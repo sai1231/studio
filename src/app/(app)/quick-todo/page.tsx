@@ -199,10 +199,6 @@ export default function QuickTodoPage() {
                       {todo.title}
                     </Label>
                     <div className="text-xs text-muted-foreground flex items-center mt-1 space-x-3">
-                      <div className="flex items-center">
-                        <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
-                        <span>Added: {format(new Date(todo.createdAt), 'MMM d, yy, h:mm a')}</span>
-                      </div>
                       {todo.dueDate && (
                         <div className="flex items-center">
                           <AlarmClock className="h-3.5 w-3.5 mr-1.5 text-destructive/80" />
