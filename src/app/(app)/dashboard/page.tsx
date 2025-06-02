@@ -353,15 +353,14 @@ export default function DashboardPage() {
         <div className="text-center py-12">
           <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h2 className="text-xl font-medium text-muted-foreground">
-            {allContentItems.length > 0 && activeFilterCount > 0 ? "No items match your filters." : "No content saved yet."}
+            {allContentItems.length > 0 && activeFilterCount > 0 
+              ? "Hmm… it’s like déjà vu, but nothing’s here." 
+              : "No content saved yet."}
           </h2>
           <p className="text-muted-foreground mt-2">
             {allContentItems.length > 0 && activeFilterCount > 0 
-              ? "Try adjusting your filters or " 
+              ? (<>Try easing up on those filters — maybe something will spark a memory, or <Button variant="link" onClick={handleClearAndApplyFilters} className="p-0 h-auto text-primary inline">clear your mind</Button> to start fresh.</>)
               : "Start by adding your first item!"}
-            {allContentItems.length > 0 && activeFilterCount > 0 && 
-              <Button variant="link" onClick={handleClearAndApplyFilters} className="p-0 h-auto text-primary">clear them</Button>
-            }
           </p>
           { (allContentItems.length === 0 || (allContentItems.length > 0 && activeFilterCount === 0 )) &&
              <Button onClick={() => { setIsAddContentDialogOpen(true);}} className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">
@@ -402,3 +401,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
