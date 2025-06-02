@@ -2,7 +2,7 @@
 'use client';
 
 import type React from 'react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +28,7 @@ export default function QuickTodoPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
+  const todoInputRef = useRef<HTMLInputElement>(null);
 
 
   const fetchTodosAndZones = useCallback(async () => {
@@ -68,7 +69,7 @@ export default function QuickTodoPage() {
       tags: [],
       zoneId: defaultZoneId,
       contentType: 'Task',
-      description: '', 
+      description: '',
       status: 'pending',
       dueDate: selectedDueDate ? selectedDueDate.toISOString() : undefined,
     };
@@ -79,6 +80,7 @@ export default function QuickTodoPage() {
       setNewTodoText('');
       setSelectedDueDate(undefined); // Reset due date after adding
       toast({ title: "TODO Added", description: `"${addedItem.title}" was added.` });
+      todoInputRef.current?.focus(); // Refocus input after adding
     } catch (error) {
       console.error('Error adding TODO:', error);
       toast({ title: "Error", description: "Could not add TODO item.", variant: "destructive" });
@@ -131,12 +133,14 @@ export default function QuickTodoPage() {
       <form onSubmit={handleAddTodo} className="mb-8">
         <div className="flex items-center gap-2">
           <Input
+            ref={todoInputRef}
             type="text"
             value={newTodoText}
             onChange={(e) => setNewTodoText(e.target.value)}
             placeholder="What needs to be done?"
             className="flex-grow text-lg h-12 focus-visible:ring-accent"
             disabled={isAdding}
+            autoFocus
           />
           <Popover>
             <PopoverTrigger asChild>
