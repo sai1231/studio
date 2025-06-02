@@ -2,15 +2,22 @@
 'use client';
 
 import type React from 'react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import ContentCard from '@/components/core/link-card';
 import ContentDetailDialog from '@/components/core/ContentDetailDialog';
-import type { ContentItem, Tag } from '@/types';
+import type { ContentItem, Tag as AppTag, Zone } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Tag as TagIcon, FolderOpen, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tag as TagIcon, FolderOpen, Loader2, ListFilter, Search, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getContentItems, deleteContentItem } from '@/services/contentService';
+import { getContentItems, deleteContentItem, getZones, getUniqueContentTypes, getUniqueTags } from '@/services/contentService';
+import { cn } from '@/lib/utils';
 
 const pageLoadingMessages = [
   "Gathering tagged items...",
@@ -18,18 +25,42 @@ const pageLoadingMessages = [
   "Sifting through your thoughts...",
 ];
 
+const ALL_FILTER_VALUE = "__ALL__";
+
 export default function TagPage() {
   const params = useParams() as { tagName: string } | null;
   const router = useRouter();
   const { toast } = useToast();
 
   const [decodedTagName, setDecodedTagName] = useState<string>('');
-  const [items, setItems] = useState<ContentItem[]>([]);
+  
+  const [allContentForTag, setAllContentForTag] = useState<ContentItem[]>([]);
+  const [displayedContentItems, setDisplayedContentItems] = useState<ContentItem[]>([]);
+  
   const [isLoading, setIsLoading] = useState(true);
-  const [clientLoadingMessage, setClientLoadingMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
+  const [availableZones, setAvailableZones] = useState<Zone[]>([]);
+  const [availableContentTypes, setAvailableContentTypes] = useState<string[]>([]);
+  const [otherAvailableTags, setOtherAvailableTags] = useState<AppTag[]>([]);
+
+  const [clientLoadingMessage, setClientLoadingMessage] = useState<string | null>(null);
   const [selectedItemIdForDetail, setSelectedItemIdForDetail] = useState<string | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+
+  // Applied filter states
+  const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
+  const [appliedSelectedZoneId, setAppliedSelectedZoneId] = useState<string>(ALL_FILTER_VALUE);
+  const [appliedSelectedContentType, setAppliedSelectedContentType] = useState<string>(ALL_FILTER_VALUE);
+  const [appliedSelectedAdditionalTagIds, setAppliedSelectedAdditionalTagIds] = useState<string[]>([]);
+
+  // Pending filter states
+  const [pendingSearchTerm, setPendingSearchTerm] = useState('');
+  const [pendingSelectedZoneId, setPendingSelectedZoneId] = useState<string>(ALL_FILTER_VALUE);
+  const [pendingSelectedContentType, setPendingSelectedContentType] = useState<string>(ALL_FILTER_VALUE);
+  const [pendingSelectedAdditionalTagIds, setPendingSelectedAdditionalTagIds] = useState<string[]>([]);
+  
+  const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
 
   useEffect(() => {
     if (isLoading) {
@@ -46,54 +77,93 @@ export default function TagPage() {
       } catch (e) {
         console.error("Error decoding tag name:", e);
         toast({ title: "Error", description: "Invalid tag name in URL.", variant: "destructive" });
-        setDecodedTagName(''); // Set to empty or an invalid marker
+        setError("Invalid tag name.");
+        setDecodedTagName('');
       }
     } else {
-      // Handle cases where params or params.tagName is not available
-      // This might indicate an issue if the page is not part of a dynamic route segment
-      // or if params are null initially.
       setDecodedTagName('');
-      if (typeof window !== 'undefined' && params === null) {
-          // Could redirect or show specific error if params are unexpectedly null
-          // For now, fetching will be skipped if decodedTagName is empty.
-          console.warn("TagPage: params or params.tagName is not available.");
-      }
+      setError("Tag name not provided in URL.");
     }
   }, [params, toast]);
 
-  const fetchItemsByTag = useCallback(async () => {
+  const fetchTagPageData = useCallback(async () => {
     if (!decodedTagName) {
-      setItems([]);
       setIsLoading(false);
+      setAllContentForTag([]);
+      if(!error) setError("Tag name is missing or invalid.");
       return;
     }
     setIsLoading(true);
+    setError(null);
     try {
-      const allContent = await getContentItems();
+      const [allItems, zones, contentTypes, allTags] = await Promise.all([
+        getContentItems(),
+        getZones(),
+        getUniqueContentTypes(),
+        getUniqueTags(),
+      ]);
+
       const lowerCaseTagName = decodedTagName.toLowerCase();
-      const taggedItems = allContent.filter(item =>
+      const itemsWithThisTag = allItems.filter(item =>
         item.tags.some(tag => tag.name.toLowerCase() === lowerCaseTagName)
       );
-      setItems(taggedItems);
-    } catch (error) {
-      console.error("Error fetching items for tag:", error);
+      setAllContentForTag(itemsWithThisTag);
+      
+      setAvailableZones(zones);
+      setAvailableContentTypes(contentTypes);
+      setOtherAvailableTags(allTags.filter(tag => tag.name.toLowerCase() !== lowerCaseTagName));
+
+    } catch (err) {
+      console.error("Error fetching tag page data:", err);
+      setError(`Failed to load content for tag "${decodedTagName}".`);
       toast({ title: "Error", description: `Could not load items for tag "${decodedTagName}".`, variant: "destructive" });
-      setItems([]);
     } finally {
       setIsLoading(false);
     }
-  }, [decodedTagName, toast]);
+  }, [decodedTagName, toast, error]);
 
   useEffect(() => {
-    // Only fetch if decodedTagName is set (avoids fetching for empty/invalid tags)
-    if (decodedTagName) {
-      fetchItemsByTag();
-    } else {
-      // If decodedTagName is empty (e.g., due to invalid params), clear items and stop loading.
-      setItems([]);
-      setIsLoading(false);
+    fetchTagPageData();
+  }, [fetchTagPageData]);
+  
+  useEffect(() => {
+    if (isFilterPopoverOpen) {
+      setPendingSearchTerm(appliedSearchTerm);
+      setPendingSelectedZoneId(appliedSelectedZoneId);
+      setPendingSelectedContentType(appliedSelectedContentType);
+      setPendingSelectedAdditionalTagIds([...appliedSelectedAdditionalTagIds]);
     }
-  }, [decodedTagName, fetchItemsByTag]);
+  }, [isFilterPopoverOpen, appliedSearchTerm, appliedSelectedZoneId, appliedSelectedContentType, appliedSelectedAdditionalTagIds]);
+
+  useEffect(() => {
+    let filtered = [...allContentForTag];
+
+    if (appliedSearchTerm.trim()) {
+      const lowerSearchTerm = appliedSearchTerm.toLowerCase();
+      filtered = filtered.filter(item =>
+        item.title.toLowerCase().includes(lowerSearchTerm) ||
+        (item.description && item.description.toLowerCase().includes(lowerSearchTerm))
+      );
+    }
+
+    if (appliedSelectedZoneId !== ALL_FILTER_VALUE) {
+      filtered = filtered.filter(item => item.zoneId === appliedSelectedZoneId);
+    }
+
+    if (appliedSelectedContentType !== ALL_FILTER_VALUE) {
+      filtered = filtered.filter(item => item.contentType === appliedSelectedContentType);
+    }
+    
+    if (appliedSelectedAdditionalTagIds.length > 0) {
+      filtered = filtered.filter(item => {
+        const itemTagIds = item.tags.map(tag => tag.id);
+        return appliedSelectedAdditionalTagIds.every(filterTagId => itemTagIds.includes(filterTagId));
+      });
+    }
+
+    setDisplayedContentItems(filtered);
+  }, [appliedSearchTerm, appliedSelectedZoneId, appliedSelectedContentType, appliedSelectedAdditionalTagIds, allContentForTag]);
+
 
   const handleOpenDetailDialog = (item: ContentItem) => {
     setSelectedItemIdForDetail(item.id);
@@ -105,36 +175,64 @@ export default function TagPage() {
     const stillHasTag = updatedItem.tags.some(tag => tag.name.toLowerCase() === lowerCaseTagName);
 
     if (stillHasTag) {
-      setItems(prevItems =>
+      setAllContentForTag(prevItems =>
         prevItems.map(item => item.id === updatedItem.id ? updatedItem : item)
       );
-    } else {
-      setItems(prevItems => prevItems.filter(item => item.id !== updatedItem.id));
+    } else { // Item no longer has the primary tag for this page
+      setAllContentForTag(prevItems => prevItems.filter(item => item.id !== updatedItem.id));
     }
     toast({ title: "Item Updated", description: `"${updatedItem.title}" has been updated.` });
   };
 
   const handleDeleteItem = async (itemIdToDelete: string) => {
-    const itemTitle = items.find(item => item.id === itemIdToDelete)?.title || "Item";
+    const itemTitle = allContentForTag.find(item => item.id === itemIdToDelete)?.title || "Item";
+    setAllContentForTag(prev => prev.filter(item => item.id !== itemIdToDelete));
     const { id: toastId } = toast({ title: "Deleting Item...", description: `Removing "${itemTitle}".` });
     try {
       await deleteContentItem(itemIdToDelete);
       toast({ id: toastId, title: "Item Deleted", description: `"${itemTitle}" has been removed.`, variant: "default" });
-      fetchItemsByTag(); 
     } catch (e) {
       console.error("Error deleting content:", e);
       toast({ id: toastId, title: "Error Deleting", description: `Could not delete "${itemTitle}".`, variant: "destructive" });
+      fetchTagPageData(); // Restore
     }
   };
 
-  if (isLoading && !decodedTagName) { // Initial load or invalid tag before decodedTagName is set
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Loading tag information...</p>
-      </div>
+  const handleAdditionalTagSelectionChange = (tagId: string, checked: boolean) => {
+    setPendingSelectedAdditionalTagIds(prev => 
+      checked ? [...prev, tagId] : prev.filter(id => id !== tagId)
     );
-  }
+  };
+
+  const handleApplyPendingFilters = () => {
+    setAppliedSearchTerm(pendingSearchTerm);
+    setAppliedSelectedZoneId(pendingSelectedZoneId);
+    setAppliedSelectedContentType(pendingSelectedContentType);
+    setAppliedSelectedAdditionalTagIds([...pendingSelectedAdditionalTagIds]);
+    setIsFilterPopoverOpen(false);
+  };
+
+  const handleClearAndApplyFilters = () => {
+    setPendingSearchTerm('');
+    setPendingSelectedZoneId(ALL_FILTER_VALUE);
+    setPendingSelectedContentType(ALL_FILTER_VALUE);
+    setPendingSelectedAdditionalTagIds([]);
+    
+    setAppliedSearchTerm('');
+    setAppliedSelectedZoneId(ALL_FILTER_VALUE);
+    setAppliedSelectedContentType(ALL_FILTER_VALUE);
+    setAppliedSelectedAdditionalTagIds([]);
+    setIsFilterPopoverOpen(false);
+  };
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (appliedSearchTerm.trim()) count++;
+    if (appliedSelectedZoneId !== ALL_FILTER_VALUE) count++;
+    if (appliedSelectedContentType !== ALL_FILTER_VALUE) count++;
+    if (appliedSelectedAdditionalTagIds.length > 0) count++;
+    return count;
+  }, [appliedSearchTerm, appliedSelectedZoneId, appliedSelectedContentType, appliedSelectedAdditionalTagIds]);
   
   if (isLoading) {
     return (
@@ -147,12 +245,12 @@ export default function TagPage() {
     );
   }
   
-  if (!decodedTagName && !isLoading) { // Case where tagName was invalid or not found, and not loading
+  if (error) { 
     return (
         <div className="container mx-auto py-8 text-center">
             <TagIcon className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-            <h1 className="text-2xl font-headline font-semibold text-destructive">Invalid Tag</h1>
-            <p className="text-muted-foreground mt-2">The specified tag could not be processed.</p>
+            <h1 className="text-2xl font-headline font-semibold text-destructive">{error}</h1>
+            <p className="text-muted-foreground mt-2">Please check the URL or try again.</p>
             <Button onClick={() => router.push('/dashboard')} className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">Go to Dashboard</Button>
         </div>
     );
@@ -163,23 +261,119 @@ export default function TagPage() {
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <h1 className="text-3xl font-headline font-semibold text-foreground flex items-center">
           <TagIcon className="h-7 w-7 mr-3 text-primary" />
-          Items tagged with: <span className="ml-2 font-bold text-primary">#{decodedTagName}</span>
+          Items tagged: <span className="ml-2 font-bold text-primary">#{decodedTagName}</span>
         </h1>
+         <div className="flex items-center gap-2">
+            <Popover open={isFilterPopoverOpen} onOpenChange={setIsFilterPopoverOpen}>
+                <PopoverTrigger asChild>
+                    <Button variant="outline" className="relative">
+                        <ListFilter className="h-4 w-4 mr-2"/>
+                        Filters
+                        {activeFilterCount > 0 && (
+                           <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
+                             {activeFilterCount}
+                           </span>
+                        )}
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-4 space-y-4" align="end">
+                    <div className="space-y-1">
+                        <Label htmlFor="search-filter-tag" className="text-sm font-medium">Search</Label>
+                         <div className="relative">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                                id="search-filter-tag"
+                                placeholder="Search title, description..."
+                                value={pendingSearchTerm}
+                                onChange={(e) => setPendingSearchTerm(e.target.value)}
+                                className="pl-9"
+                            />
+                        </div>
+                    </div>
+                    
+                    <div className="space-y-1">
+                        <Label htmlFor="zone-filter-tag" className="text-sm font-medium">Zone</Label>
+                        <Select value={pendingSelectedZoneId} onValueChange={setPendingSelectedZoneId}>
+                            <SelectTrigger id="zone-filter-tag">
+                                <SelectValue placeholder="All Zones" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value={ALL_FILTER_VALUE}>All Zones</SelectItem>
+                                {availableZones.map(zone => (
+                                    <SelectItem key={zone.id} value={zone.id}>{zone.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-1">
+                        <Label htmlFor="content-type-filter-tag" className="text-sm font-medium">Content Type</Label>
+                        <Select value={pendingSelectedContentType} onValueChange={setPendingSelectedContentType}>
+                            <SelectTrigger id="content-type-filter-tag">
+                                <SelectValue placeholder="All Content Types" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value={ALL_FILTER_VALUE}>All Content Types</SelectItem>
+                                {availableContentTypes.map(type => (
+                                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label className="text-sm font-medium">Additional Tags</Label>
+                        {otherAvailableTags.length > 0 ? (
+                            <ScrollArea className="h-32 rounded-md border p-2">
+                                <div className="space-y-1.5">
+                                {otherAvailableTags.map(tag => (
+                                    <div key={tag.id} className="flex items-center space-x-2">
+                                        <Checkbox 
+                                            id={`tag-tag-${tag.id}`} 
+                                            checked={pendingSelectedAdditionalTagIds.includes(tag.id)}
+                                            onCheckedChange={(checked) => handleAdditionalTagSelectionChange(tag.id, !!checked)}
+                                        />
+                                        <Label htmlFor={`tag-tag-${tag.id}`} className="text-sm font-normal cursor-pointer">{tag.name}</Label>
+                                    </div>
+                                ))}
+                                </div>
+                            </ScrollArea>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">No other tags available.</p>
+                        )}
+                    </div>
+                    <div className="flex justify-end gap-2 pt-4 border-t mt-4">
+                        <Button onClick={handleClearAndApplyFilters} variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                            <XCircle className="h-4 w-4 mr-2"/>
+                            Clear All
+                        </Button>
+                        <Button onClick={handleApplyPendingFilters} size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                            Apply Filters
+                        </Button>
+                    </div>
+                </PopoverContent>
+            </Popover>
+        </div>
       </div>
 
-      {items.length === 0 ? (
+      {displayedContentItems.length === 0 ? (
         <div className="text-center py-12">
           <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h2 className="text-xl font-medium text-muted-foreground">
-            No items found for tag "#{decodedTagName}".
+            {allContentForTag.length > 0 && activeFilterCount > 0 ? "No items match your filters." : `No items found for tag #${decodedTagName}.`}
           </h2>
           <p className="text-muted-foreground mt-2">
-            Try adding this tag to some content items.
+            {allContentForTag.length > 0 && activeFilterCount > 0 
+              ? "Try adjusting your filters or " 
+              : "Try adding this tag to some content items."}
+            {allContentForTag.length > 0 && activeFilterCount > 0 && 
+              <Button variant="link" onClick={handleClearAndApplyFilters} className="p-0 h-auto text-primary">clear them</Button>
+            }
           </p>
         </div>
       ) : (
         <div className={'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
-          {items.map(item => (
+          {displayedContentItems.map(item => (
             <ContentCard
               key={item.id}
               item={item}
@@ -203,3 +397,4 @@ export default function TagPage() {
     </div>
   );
 }
+
