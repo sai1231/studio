@@ -1,11 +1,11 @@
 
 import type React from 'react';
 import Image from 'next/image';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Layers, Landmark, PlayCircle } from 'lucide-react';
+import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Layers, Landmark, PlayCircle, Pencil } from 'lucide-react';
 import type { ContentItem, ContentItemType, Tag } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -52,7 +52,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
   const IconComponent = specifics.icon;
 
   const handleActionClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Prevents the card's onClick (onEdit) from firing
   };
 
   const renderDescription = (description: string | undefined) => {
@@ -68,18 +68,72 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
     return <div className="text-sm text-muted-foreground break-words" dangerouslySetInnerHTML={{ __html: truncatedDescription }} />;
   };
 
-  const imageToDisplay = item.imageUrl || getNextFallbackImage(); 
+  const imageToDisplay = item.imageUrl || getNextFallbackImage();
   const imageAiHint = item.imageUrl ? item.title.split(' ').slice(0,2).join(' ') : "abstract city";
 
 
   return (
     <Card
       className={cn(
-        "overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group rounded-2xl break-inside-avoid mb-4 cursor-pointer"
+        "overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group rounded-2xl break-inside-avoid mb-4 relative" // Added relative for absolute positioning of icons
       )}
-      onClick={() => onEdit(item)}
     >
-      <div className="flex flex-col flex-grow group/link">
+      <div className="absolute top-2 right-2 z-10 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        {item.type === 'link' && item.url && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" asChild onClick={handleActionClick} className={cn("h-8 w-8 rounded-full", 'bg-background/70 hover:bg-background/90 border-foreground/20 text-foreground/70 backdrop-blur-sm')}>
+                  <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Open link in new tab">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p>Open link</p></TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  handleActionClick(e); // Stop propagation to prevent card click
+                  onEdit(item); // Explicitly call onEdit
+                }}
+                aria-label="Edit item"
+                className={cn("h-8 w-8 rounded-full text-foreground/70 hover:text-primary hover:bg-primary/10 backdrop-blur-sm", 'bg-background/70 hover:bg-background/90 border-foreground/20')}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Edit</p></TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  handleActionClick(e);
+                  onDelete(item.id);
+                }}
+                aria-label="Forget item"
+                className={cn("h-8 w-8 rounded-full text-destructive/70 hover:text-destructive hover:bg-destructive/10 backdrop-blur-sm", 'bg-background/70 hover:bg-background/90 border-foreground/20')}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Forget</p></TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+
+      <div className="flex flex-col flex-grow group/link cursor-pointer" onClick={() => onEdit(item)}> {/* Moved cursor-pointer and onEdit here */}
         <div className="flex flex-col flex-grow">
           {hasImage ? (
             <div className="relative w-full h-56">
@@ -140,58 +194,13 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                 </Badge>
               )}
             </div>
-
+            {/* Tags have been removed as per previous request */}
           </CardContent>
         </div>
       </div>
-      <CardFooter className={cn("flex justify-between items-center pt-3 pb-3 px-4", 'mt-auto border-t-0')}>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {/* Placeholder for date or other small info */}
-        </div>
-        <div className="flex items-center gap-2">
-          {item.type === 'link' && item.url && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" asChild onClick={handleActionClick} className={cn("h-8 w-8", 'bg-background/30 hover:bg-background/50 border-foreground/20 text-foreground/70')}>
-                    <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Open link in new tab">
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Open link</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    handleActionClick(e);
-                    onDelete(item.id);
-                  }}
-                  aria-label="Forget item"
-                  className={cn("h-8 w-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10", 'hover:bg-black/10 dark:hover:bg-white/10')}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Forget</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      </CardFooter>
+      {/* CardFooter is removed as icons are now at the top right */}
     </Card>
   );
 };
 
 export default ContentCard;
-
-    
