@@ -50,7 +50,6 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
       tempDiv.innerHTML = htmlString;
       return tempDiv.textContent || tempDiv.innerText || '';
     }
-    // Fallback for server-side or environments without DOM
     return htmlString.replace(/<[^>]+>/g, ''); 
   };
 
@@ -62,45 +61,51 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col group rounded-3xl p-2 break-inside-avoid mb-4"
       )}
     >
-      <div className="flex flex-col flex-grow cursor-pointer" onClick={() => onEdit(item)}>
-        {hasImage && (
-          <div className="relative w-full mb-1 rounded-xl overflow-hidden aspect-square">
-            <Image
-              src={item.imageUrl!}
-              alt={item.title}
-              data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
-              fill
-              className="object-cover group-hover:scale-105 transition-transform duration-300"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            />
-          </div>
+      {hasImage && (
+        <div className="relative w-full mb-1 rounded-xl overflow-hidden aspect-square">
+          <Image
+            src={item.imageUrl!}
+            alt={item.title}
+            data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
+        </div>
+      )}
+
+      {/* Main content div */}
+      <div
+        className={cn(
+          "flex flex-col flex-grow cursor-pointer",
+          !hasImage && "pt-1" // Added conditional top padding here
+        )}
+        onClick={() => onEdit(item)}
+      >
+        <div className="flex items-start gap-2">
+          {!hasImage && (
+            React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-1", specifics.iconText) })
+          )}
+          <h3 className="text-lg font-semibold leading-tight group-hover:text-primary transition-colors break-words">
+            {item.title || "Untitled"}
+          </h3>
+        </div>
+
+        {plainDescription && (
+          <p className={cn("mt-1 text-sm text-muted-foreground break-words line-clamp-2", !hasImage && "pl-7")}>
+            {plainDescription}
+          </p>
         )}
 
-        <div className={cn("flex flex-col flex-grow", hasImage ? "pt-1" : "pt-0")}>
-          <div className="flex items-start gap-2">
-            {!hasImage && (
-              React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-1", specifics.iconText) })
-            )}
-            <h3 className="text-lg font-semibold leading-tight group-hover:text-primary transition-colors break-words">
-              {item.title || "Untitled"}
-            </h3>
-          </div>
-
-          {plainDescription && (
-            <p className={cn("mt-1 text-sm text-muted-foreground break-words line-clamp-2", !hasImage && "pl-7")}>
-              {plainDescription}
-            </p>
-          )}
-
-          {item.type === 'voice' && item.audioUrl && !plainDescription && !hasImage && (
-              <div className={cn("mt-1 flex items-center gap-2 text-sm text-muted-foreground", !hasImage && "pl-7")}>
-                <PlayCircle className={cn("h-5 w-5", getTypeSpecifics(item).iconText)} />
-                <span>Voice recording</span>
-              </div>
-          )}
-        </div>
+        {item.type === 'voice' && item.audioUrl && !plainDescription && !hasImage && (
+            <div className={cn("mt-1 flex items-center gap-2 text-sm text-muted-foreground", !hasImage && "pl-7")}>
+              <PlayCircle className={cn("h-5 w-5", getTypeSpecifics(item).iconText)} />
+              <span>Voice recording</span>
+            </div>
+        )}
       </div>
 
+      {/* Footer for domain and actions */}
       <div className="mt-auto pt-2 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
           {item.domain && (
