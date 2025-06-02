@@ -9,7 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, ListChecks, CalendarDays, Loader2 } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ArrowLeft, ListChecks, CalendarDays, Loader2, AlarmClock, CalendarIcon } from 'lucide-react';
 import { addContentItem, getContentItems, getZones, updateContentItem } from '@/services/contentService';
 import type { ContentItem, Zone } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -20,6 +22,7 @@ export default function QuickTodoPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [newTodoText, setNewTodoText] = useState('');
+  const [selectedDueDate, setSelectedDueDate] = useState<Date | undefined>(undefined);
   const [todos, setTodos] = useState<ContentItem[]>([]);
   const [zones, setZones] = useState<Zone[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,12 +70,14 @@ export default function QuickTodoPage() {
       contentType: 'Task',
       description: '', 
       status: 'pending',
+      dueDate: selectedDueDate ? selectedDueDate.toISOString() : undefined,
     };
 
     try {
       const addedItem = await addContentItem(newTodoData);
       setTodos(prevTodos => [addedItem, ...prevTodos]);
       setNewTodoText('');
+      setSelectedDueDate(undefined); // Reset due date after adding
       toast({ title: "TODO Added", description: `"${addedItem.title}" was added.` });
     } catch (error) {
       console.error('Error adding TODO:', error);
@@ -86,7 +91,6 @@ export default function QuickTodoPage() {
     setIsUpdatingStatus(todoId);
     const newStatus = (currentStatus === 'completed') ? 'pending' : 'completed';
     
-    // Optimistically update UI
     setTodos(prevTodos => 
       prevTodos.map(todo => 
         todo.id === todoId ? { ...todo, status: newStatus } : todo
@@ -96,7 +100,6 @@ export default function QuickTodoPage() {
     try {
       const updatedItem = await updateContentItem(todoId, { status: newStatus });
       if (updatedItem) {
-        // If successful, local state is already correct
         toast({ title: "TODO Updated", description: `"${updatedItem.title}" marked as ${newStatus}.` });
       } else {
         throw new Error("Update failed, item not returned");
@@ -104,7 +107,6 @@ export default function QuickTodoPage() {
     } catch (error) {
       console.error('Error updating TODO status:', error);
       toast({ title: "Error", description: "Could not update TODO status.", variant: "destructive" });
-      // Revert optimistic update if error
       setTodos(prevTodos => 
         prevTodos.map(todo => 
           todo.id === todoId ? { ...todo, status: currentStatus } : todo
@@ -136,6 +138,29 @@ export default function QuickTodoPage() {
             className="flex-grow text-lg h-12 focus-visible:ring-accent"
             disabled={isAdding}
           />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-auto h-12 justify-start text-left font-normal",
+                  !selectedDueDate && "text-muted-foreground"
+                )}
+                disabled={isAdding}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {selectedDueDate ? format(selectedDueDate, "PPP") : <span>Due date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={selectedDueDate}
+                onSelect={setSelectedDueDate}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
           <Button type="submit" size="lg" className="h-12 bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isAdding}>
             {isAdding ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Add'}
           </Button>
@@ -173,9 +198,19 @@ export default function QuickTodoPage() {
                     >
                       {todo.title}
                     </Label>
-                    <div className="text-xs text-muted-foreground flex items-center mt-1">
-                      <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
-                      <span>Added: {format(new Date(todo.createdAt), 'MMM d, yyyy, h:mm a')}</span>
+                    <div className="text-xs text-muted-foreground flex items-center mt-1 space-x-3">
+                      <div className="flex items-center">
+                        <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
+                        <span>Added: {format(new Date(todo.createdAt), 'MMM d, yy, h:mm a')}</span>
+                      </div>
+                      {todo.dueDate && (
+                        <div className="flex items-center">
+                          <AlarmClock className="h-3.5 w-3.5 mr-1.5 text-destructive/80" />
+                          <span className={cn(new Date(todo.dueDate) < new Date() && todo.status !== 'completed' ? "text-destructive font-medium" : "")}>
+                            Due: {format(new Date(todo.dueDate), 'MMM d, yy')}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

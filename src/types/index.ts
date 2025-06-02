@@ -26,6 +26,7 @@ export interface ContentItem {
   zoneId?: string;
   userId?: string;
   createdAt: string; // ISO date string
+  dueDate?: string; // ISO date string for TODO due dates
   domain?: string;
   contentType?: string;
   movieDetails?: MovieDetails; // Added for movie type
