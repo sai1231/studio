@@ -33,7 +33,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 const contentFormSchemaBase = z.object({
   url: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   title: z.string().min(1, { message: 'Title is required.' }),
-  description: z.string().min(1, { message: 'Content is required for notes. Optional for links.' }).optional(),
+  description: z.string().optional(), // Validation for description will be handled in onSubmit based on type
   zoneId: z.string().min(1, { message: 'Zone is required.' }), 
   contentType: z.string().optional(),
   domain: z.string().optional(),
@@ -47,6 +47,7 @@ export interface AddContentDialogOpenChange {
 interface AddContentDialogProps extends AddContentDialogOpenChange {
   zones: Zone[]; 
   onContentAdd: (newContent: Omit<ContentItem, 'id' | 'createdAt'>) => void;
+  initialMode?: ContentItemType | 'link/note';
   children?: React.ReactNode;
 }
 
@@ -88,7 +89,7 @@ const EditorToolbar: React.FC<{ editor: Editor | null }> = ({ editor }) => {
   );
 };
 
-const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange, zones, onContentAdd, children }) => { 
+const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange, zones, onContentAdd, initialMode = 'link/note', children }) => { 
   const [currentTags, setCurrentTags] = useState<Tag[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -117,7 +118,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       TextStyle,
       Color,
       Placeholder.configure({
-        placeholder: 'Write your content or note here...',
+        placeholder: initialMode === 'todo' ? 'Describe your task...' : 'Write your content or note here...',
       }),
     ],
     content: form.getValues('description') || '',
@@ -139,14 +140,20 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
         title: '',
         description: initialDescription,
         zoneId: zones[0]?.id || '', 
-        contentType: '',
+        contentType: initialMode === 'todo' ? 'Task' : '',
         domain: '',
       });
       setCurrentTags([]);
       setTagInput('');
       editor?.commands.setContent(initialDescription);
+      editor?.extensionManager.extensions.filter(ext => ext.name === 'placeholder').forEach(ext => {
+        ext.options.placeholder = initialMode === 'todo' ? 'Describe your task...' : 'Write your content or note here...';
+      });
+      // Re-render editor with new placeholder if needed
+      if(editor && !editor.isDestroyed) editor.view.dispatch(editor.state.tr);
+
     }
-  }, [open, form, editor, zones]); 
+  }, [open, form, editor, zones, initialMode]); 
 
   useEffect(() => {
     return () => {
@@ -158,23 +165,21 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const watchedUrl = form.watch('url');
 
   useEffect(() => {
+    if (initialMode === 'todo') {
+        form.setValue('domain', '', {shouldValidate: false, shouldDirty: false}); // Ensure domain is clear for TODO
+        return; // Skip domain extraction for TODO mode
+    }
     const isLink = !!watchedUrl && z.string().url().safeParse(watchedUrl).success;
     if (isLink) {
-      if (form.formState.errors.description?.message === 'Content is required for notes. Optional for links.') {
-        form.clearErrors('description');
-      }
       try {
         const urlObject = new URL(watchedUrl);
         const extractedDomain = urlObject.hostname.replace(/^www\./, '');
         form.setValue('domain', extractedDomain, {shouldValidate: true, shouldDirty: true});
       } catch (e) {
-        // form.setValue('domain', '', {shouldValidate: true, shouldDirty: true}); // Clear if URL becomes invalid
-      }
-    } else {
-        // If not a link or URL is cleared, clear the domain field if it was auto-populated
         // form.setValue('domain', '', {shouldValidate: true, shouldDirty: true});
+      }
     }
-  }, [watchedUrl, editor, form]);
+  }, [watchedUrl, form, initialMode]);
 
 
   const handleTagInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -201,14 +206,16 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
 
   async function onSubmit(values: z.infer<typeof contentFormSchemaBase>) {
     setIsSaving(true);
-    const finalIsLink = !!values.url && z.string().url().safeParse(values.url).success;
-    const type: ContentItemType = finalIsLink ? 'link' : 'note';
+    
+    const type: ContentItemType = initialMode === 'todo'
+      ? 'todo'
+      : (!!values.url && z.string().url().safeParse(values.url).success ? 'link' : 'note');
     
     const descriptionFromEditor = editor?.getHTML();
     let finalDescription = (descriptionFromEditor === '<p></p>' && editor?.isEmpty) ? '' : descriptionFromEditor;
 
-    if (type === 'note' && !finalDescription) {
-        form.setError('description', { type: 'manual', message: 'Content is required for notes.' });
+    if ((type === 'note' || type === 'todo') && !finalDescription) {
+        form.setError('description', { type: 'manual', message: `Content is required for ${type === 'note' ? 'notes' : 'TODOs'}.` });
         setIsSaving(false);
         return;
     }
@@ -222,9 +229,9 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       description: finalDescription,
       zoneId: values.zoneId, 
       tags: currentTags,
-      url: finalIsLink ? values.url : undefined,
-      domain: values.domain || (finalIsLink && values.url ? new URL(values.url).hostname.replace(/^www\./, '') : undefined),
-      contentType: values.contentType,
+      url: type === 'link' ? values.url : undefined,
+      domain: type === 'link' && values.url ? new URL(values.url).hostname.replace(/^www\./, '') : undefined,
+      contentType: type === 'todo' ? 'Task' : values.contentType,
     };
     
     try {
@@ -236,46 +243,58 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     }
   }
 
+  const dialogTitle = initialMode === 'todo' ? "Add New TODO" : "Add Content";
+  const dialogDescriptionText = initialMode === 'todo' 
+    ? "Write down your task. Select a zone." 
+    : "Provide a URL to save a link, or just add a title and content to save a note. Select a zone.";
+
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {children && <div onClick={(e) => e.stopPropagation()}>{children}</div>}
       <DialogContent className="sm:max-w-[625px] max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="font-headline">Add Content</DialogTitle>
+          <DialogTitle className="font-headline">{dialogTitle}</DialogTitle>
           <DialogDescription>
-            Provide a URL to save a link, or just add a title and content to save a note. Select a zone.
+            {dialogDescriptionText}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex-grow overflow-y-auto pr-2 space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="url" className="font-medium">URL (Optional for Notes)</Label>
-            <Input id="url" {...form.register('url')} placeholder="https://example.com" className="focus-visible:ring-accent"/>
-            {form.formState.errors.url && <p className="text-sm text-destructive">{form.formState.errors.url.message}</p>}
-          </div>
+          {initialMode !== 'todo' && (
+            <div className="space-y-2">
+              <Label htmlFor="url" className="font-medium">URL (Optional for Notes)</Label>
+              <Input id="url" {...form.register('url')} placeholder="https://example.com" className="focus-visible:ring-accent"/>
+              {form.formState.errors.url && <p className="text-sm text-destructive">{form.formState.errors.url.message}</p>}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="title" className="font-medium">Title</Label>
-            <Input id="title" {...form.register('title')} placeholder="Content Title" className="focus-visible:ring-accent"/>
+            <Input id="title" {...form.register('title')} placeholder={initialMode === 'todo' ? "Task Title" : "Content Title"} className="focus-visible:ring-accent"/>
             {form.formState.errors.title && <p className="text-sm text-destructive">{form.formState.errors.title.message}</p>}
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="domain" className="font-medium">Domain (auto-filled for links)</Label>
-              <Input id="domain" {...form.register('domain')} placeholder="example.com" className="focus-visible:ring-accent"/>
-              {form.formState.errors.domain && <p className="text-sm text-destructive">{form.formState.errors.domain.message}</p>}
+          {initialMode !== 'todo' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="domain" className="font-medium">Domain (auto-filled for links)</Label>
+                <Input id="domain" {...form.register('domain')} placeholder="example.com" className="focus-visible:ring-accent"/>
+                {form.formState.errors.domain && <p className="text-sm text-destructive">{form.formState.errors.domain.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contentType" className="font-medium">Content Type (e.g., Article, Video)</Label>
+                <Input id="contentType" {...form.register('contentType')} placeholder="Article, Video, Post" className="focus-visible:ring-accent"/>
+                {form.formState.errors.contentType && <p className="text-sm text-destructive">{form.formState.errors.contentType.message}</p>}
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="contentType" className="font-medium">Content Type (e.g., Article, Video)</Label>
-              <Input id="contentType" {...form.register('contentType')} placeholder="Article, Video, Post" className="focus-visible:ring-accent"/>
-              {form.formState.errors.contentType && <p className="text-sm text-destructive">{form.formState.errors.contentType.message}</p>}
-            </div>
-          </div>
+          )}
 
 
           <div className="space-y-2">
-            <Label htmlFor="description" className="font-medium">Content {!!watchedUrl ? "(Optional for links)" : "(Required for notes)"}</Label>
+            <Label htmlFor="description" className="font-medium">
+              {initialMode === 'todo' ? 'Task Details' : `Content ${!!watchedUrl && initialMode !== 'todo' ? "(Optional for links)" : "(Required for notes/TODOs)"}`}
+            </Label>
             {editor && <EditorToolbar editor={editor} />}
             <div 
               className={`rounded-md border bg-transparent focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ${editor ? ( form.formState.errors.description ? 'border-destructive focus-within:ring-destructive' : 'border-input' ) : ''} ${editor ? 'rounded-b-md rounded-t-none' : ''} `}
@@ -338,7 +357,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
           <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
           <Button type="submit" onClick={form.handleSubmit(onSubmit)} disabled={isSaving} className="bg-primary hover:bg-primary/90 text-primary-foreground">
             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isSaving ? 'Saving...' : 'Save Content'}
+            {isSaving ? 'Saving...' : (initialMode === 'todo' ? 'Add TODO' : 'Save Content')}
           </Button>
         </DialogFooter>
       </DialogContent>
