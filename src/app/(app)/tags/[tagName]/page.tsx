@@ -360,15 +360,14 @@ export default function TagPage() {
         <div className="text-center py-12">
           <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h2 className="text-xl font-medium text-muted-foreground">
-            {allContentForTag.length > 0 && activeFilterCount > 0 ? "No items match your filters." : `No items found for tag #${decodedTagName}.`}
+            {allContentForTag.length > 0 && activeFilterCount > 0 
+              ? "Hmm… it’s like déjà vu, but nothing’s here." 
+              : `No items found for tag #${decodedTagName}.`}
           </h2>
           <p className="text-muted-foreground mt-2">
             {allContentForTag.length > 0 && activeFilterCount > 0 
-              ? "Try adjusting your filters or " 
+              ? (<>Try easing up on those filters — maybe something will spark a memory, or <Button variant="link" onClick={handleClearAndApplyFilters} className="p-0 h-auto text-primary inline">clear your mind</Button> to start fresh.</>)
               : "Try adding this tag to some content items."}
-            {allContentForTag.length > 0 && activeFilterCount > 0 && 
-              <Button variant="link" onClick={handleClearAndApplyFilters} className="p-0 h-auto text-primary">clear them</Button>
-            }
           </p>
         </div>
       ) : (
@@ -398,3 +397,4 @@ export default function TagPage() {
   );
 }
 
+    
