@@ -2,13 +2,14 @@
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation'; // Added useRouter
+import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/core/app-header';
 import AppSidebar from '@/components/core/app-sidebar';
 import AddContentDialog from '@/components/core/add-content-dialog';
+import AddTodoDialog from '@/components/core/AddTodoDialog'; // Import the new dialog
 import type { Zone, ContentItem, ContentItemType } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { addContentItem, getZones, uploadFile } from '@/services/contentService';
+import { addContentItem, getZones, uploadFile, getContentItems } from '@/services/contentService'; // Added getContentItems for refresh
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -25,53 +26,61 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
+  const [isAddTodoDialogOpen, setIsAddTodoDialogOpen] = useState(false); // State for AddTodoDialog
   const [zones, setZones] = useState<Zone[]>([]);
   const { toast } = useToast();
-  const router = useRouter(); // Initialize router
+  const router = useRouter();
   const imageUploadInputRef = useRef<HTMLInputElement>(null);
   const pdfUploadInputRef = useRef<HTMLInputElement>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
 
-  const fetchZones = useCallback(async () => {
+  // Generic data fetching function, can be called to refresh data
+  const fetchData = useCallback(async () => {
     try {
       const fetchedZones = await getZones();
       setZones(fetchedZones);
+      // Potentially, also re-fetch content items if a child component needs them updated globally
+      // For dashboard, it fetches its own data, so this might primarily be for zones.
     } catch (error) {
-      console.error("Error fetching zones:", error);
-      toast({ title: "Error", description: "Could not load zones.", variant: "destructive" });
+      console.error("Error fetching initial data for layout:", error);
+      toast({ title: "Error", description: "Could not load essential data.", variant: "destructive" });
     }
   }, [toast]);
 
   useEffect(() => {
-    fetchZones();
-  }, [fetchZones]);
+    fetchData();
+  }, [fetchData]);
 
-  const handleAddContentFromDialog = async (newContentData: Omit<ContentItem, 'id' | 'createdAt'>) => {
+  const handleAddContentAndRefresh = async (newContentData: Omit<ContentItem, 'id' | 'createdAt'>) => {
     const currentToast = toast({
-      title: "Saving Content...",
-      description: "Please wait while your content is being saved.",
+      title: `Saving ${newContentData.type === 'todo' ? 'TODO' : 'Content'}...`,
+      description: "Please wait...",
     });
     try {
-      await addContentItem({
-        ...newContentData,
-      });
+      const addedItem = await addContentItem(newContentData);
       currentToast.update({
         id: currentToast.id,
-        title: "Content Saved!",
-        description: `"${newContentData.title}" (${newContentData.type}) has been saved.`,
+        title: `${newContentData.type.charAt(0).toUpperCase() + newContentData.type.slice(1)} Saved!`,
+        description: `"${addedItem.title}" has been saved.`,
       });
       setIsAddContentDialogOpen(false);
-      // Consider a global state or event bus if immediate refresh on other pages is needed
+      setIsAddTodoDialogOpen(false); // Close either dialog
+      // Potentially trigger a global refresh or rely on components to re-fetch if necessary
+      // For now, components like Dashboard fetch on their own mount/dependencies change.
+      // If an immediate re-render of a list on *this* layout or child is needed,
+      // you might need a more robust state management or event bus.
+      // However, addContentItem modifies mock data in place, so effect might be visible.
     } catch (error) {
       console.error("Error saving content from dialog:", error);
       currentToast.update({
         id: currentToast.id,
-        title: "Error Saving Content",
-        description: "Could not save your content. Please try again.",
+        title: "Error Saving",
+        description: "Could not save your item. Please try again.",
         variant: "destructive",
       });
     }
   };
+
 
   const handleImageFileSelected = async (file: File) => {
     const currentToast = toast({
@@ -104,7 +113,7 @@ export default function AppLayout({
         zoneId: defaultZoneId,
       };
 
-      await addContentItem(newImageContent);
+      await addContentItem(newImageContent); // Use the centralized add function
 
       currentToast.update({
         id: currentToast.id,
@@ -144,7 +153,7 @@ export default function AppLayout({
       }
 
       const newPdfContent: Omit<ContentItem, 'id' | 'createdAt'> = {
-        type: 'link', // PDFs are treated as links to the uploaded file
+        type: 'link', 
         title: file.name || 'Uploaded PDF',
         url: downloadURL,
         description: `Uploaded PDF: ${file.name}`,
@@ -154,7 +163,7 @@ export default function AppLayout({
         domain: 'klipped.internal.storage',
       };
 
-      await addContentItem(newPdfContent);
+      await addContentItem(newPdfContent); // Use the centralized add function
 
       currentToast.update({
         id: currentToast.id,
@@ -205,7 +214,7 @@ export default function AppLayout({
   };
 
   const handleAddTodoClick = () => {
-    router.push('/quick-todo'); // Navigate to the new quick todo page
+    setIsAddTodoDialogOpen(true); // Open the new AddTodoDialog
   };
 
   const isValidUrl = (string: string): boolean => {
@@ -249,21 +258,11 @@ export default function AppLayout({
             throw new Error("Invalid data structure for dropped item.");
         }
 
-        await addContentItem(contentData);
-        toast({
-            id: toastId.id,
-            title: `${type.charAt(0).toUpperCase() + type.slice(1)} Saved!`,
-            description: `Dropped ${type} "${contentData.title}" has been saved.`,
-        });
+        await handleAddContentAndRefresh(contentData); // Use the centralized add function
 
     } catch (error) {
         console.error(`Error saving dropped ${type}:`, error);
-        toast({
-            id: toastId.id,
-            title: `Error Saving ${type.charAt(0).toUpperCase() + type.slice(1)}`,
-            description: `Could not save the dropped ${type}.`,
-            variant: "destructive",
-        });
+        // Error toast is handled by handleAddContentAndRefresh
     }
   };
 
@@ -402,7 +401,13 @@ export default function AppLayout({
         open={isAddContentDialogOpen}
         onOpenChange={setIsAddContentDialogOpen}
         zones={zones}
-        onContentAdd={handleAddContentFromDialog}
+        onContentAdd={handleAddContentAndRefresh}
+      />
+      <AddTodoDialog
+        open={isAddTodoDialogOpen}
+        onOpenChange={setIsAddTodoDialogOpen}
+        zones={zones}
+        onTodoAdd={handleAddContentAndRefresh} // Reusing the same handler for adding and refreshing
       />
 
       <DropdownMenu>
@@ -420,7 +425,7 @@ export default function AppLayout({
             <FileText className="mr-2 h-4 w-4" />
             <span>Add Link / Note</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleAddTodoClick} className="cursor-pointer"> {/* Updated onClick */}
+          <DropdownMenuItem onClick={handleAddTodoClick} className="cursor-pointer">
             <ListChecks className="mr-2 h-4 w-4" />
             <span>Add Todo</span>
           </DropdownMenuItem>
