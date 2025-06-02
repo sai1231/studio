@@ -1,7 +1,7 @@
 
 import type React from 'react';
 import Image from 'next/image';
-import { Card } from '@/components/ui/card'; // Removed unnecessary Card sub-components
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Layers, Landmark, PlayCircle } from 'lucide-react';
@@ -50,19 +50,22 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
   const IconComponent = specifics.icon;
 
   const handleActionClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Prevent card's onClick when clicking an icon
   };
 
   // Strip HTML for card display and truncate
   const getPlainTextDescription = (htmlString: string | undefined): string => {
     if (!htmlString) return '';
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = htmlString;
-    return tempDiv.textContent || tempDiv.innerText || '';
+    // Ensure this only runs client-side or in an environment with DOM
+    if (typeof document !== 'undefined') {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = htmlString;
+      return tempDiv.textContent || tempDiv.innerText || '';
+    }
+    return htmlString; // Fallback for server-side or non-DOM environments
   };
   
   const plainDescription = getPlainTextDescription(item.description);
-
   const imageToDisplay = item.imageUrl || getNextFallbackImage();
   const imageAiHint = item.imageUrl ? item.title.split(' ').slice(0,2).join(' ') : "abstract placeholder";
 
@@ -70,10 +73,11 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
   return (
     <Card
       className={cn(
-        "overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group rounded-3xl break-inside-avoid mb-4 relative p-3" // Increased rounding and added padding
+        "overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group rounded-3xl p-3 break-inside-avoid mb-4 relative"
       )}
     >
-      <div className="absolute top-4 right-4 z-10 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+      {/* Action Icons - Moved to bottom right, appear on hover */}
+      <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
         {item.type === 'link' && item.url && (
           <TooltipProvider>
             <Tooltip>
@@ -123,11 +127,8 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
 
       <div className="flex flex-col flex-grow group/link cursor-pointer" onClick={() => onEdit(item)}>
         {/* Image or Icon Section */}
-        <div className={cn(
-            "relative w-full mb-3 rounded-xl overflow-hidden", // Consistent rounding for image/icon container
-            hasImage ? "aspect-[4/3]" : "aspect-[4/3] bg-muted flex items-center justify-center" // Maintain aspect ratio
-        )}>
-          {hasImage ? (
+        {hasImage ? (
+            <div className="relative w-full mb-2 rounded-xl overflow-hidden aspect-[4/3]">
             <Image
               src={imageToDisplay}
               alt={item.title}
@@ -136,13 +137,18 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
               className="object-cover group-hover/link:scale-105 transition-transform duration-300"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
-          ) : (
-            <IconComponent className={cn("h-16 w-16", specifics.iconText)} /> // Larger icon
-          )}
-        </div>
+          </div>
+        ) : (
+          // No image container if no image, text will flow from top
+          item.type !== 'link' && // For non-links without image, show icon placeholder if needed
+          <div className="relative w-full mb-2 rounded-xl overflow-hidden aspect-[4/3] bg-muted flex items-center justify-center">
+             <IconComponent className={cn("h-16 w-16", specifics.iconText)} />
+          </div>
+        )}
+
 
         {/* Text Content Section */}
-        <div className="flex flex-col flex-grow pt-1"> {/* Spacing adjusted by card's padding */}
+        <div className="flex flex-col flex-grow pt-1">
           <h3 className="text-lg font-semibold leading-tight group-hover/link:text-primary transition-colors truncate">
             {item.title || "Untitled"}
           </h3>
@@ -153,7 +159,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
             </p>
           )}
 
-          {item.type === 'voice' && item.audioUrl && !plainDescription && ( // Show if no other description
+          {item.type === 'voice' && item.audioUrl && !plainDescription && (
               <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                 <PlayCircle className={cn("h-5 w-5", specifics.iconText)} />
                 <span>Voice recording</span>
@@ -161,19 +167,14 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
             )}
           
           {/* Meta Information */}
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 items-center text-xs text-muted-foreground">
+          <div className="mt-auto pt-2 flex flex-wrap gap-x-4 gap-y-1 items-center text-xs text-muted-foreground">
             {item.domain && (
               <div className="flex items-center gap-1.5">
                 <Landmark className="h-3.5 w-3.5 opacity-80" />
                 <span>{item.domain}</span>
               </div>
             )}
-            {item.contentType && (
-              <div className="flex items-center gap-1.5">
-                <Layers className="h-3.5 w-3.5 opacity-80" />
-                <span>{item.contentType}</span>
-              </div>
-            )}
+            {/* Content Type Removed */}
           </div>
         </div>
       </div>
