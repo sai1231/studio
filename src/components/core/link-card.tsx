@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Layers, Landmark, PlayCircle } from 'lucide-react';
-import type { ContentItem, ContentItemType, Tag } from '@/types';
+import type { ContentItem, ContentItemType } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface ContentCardProps {
@@ -52,7 +52,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
   const IconComponent = specifics.icon;
 
   const handleActionClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevents the card's onClick (onEdit) from firing
+    e.stopPropagation(); 
   };
 
   const renderDescription = (description: string | undefined) => {
@@ -88,16 +88,16 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                   size="icon"
                   asChild
                   onClick={handleActionClick}
-                  className="h-8 w-8 rounded-full"
+                  className="h-8 w-8 rounded-full hover:bg-accent group/linkicon"
                 >
                   <a
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Open link in new tab"
-                    className="flex items-center justify-center h-full w-full rounded-full text-muted-foreground hover:bg-accent hover:text-primary"
+                    className="flex items-center justify-center h-full w-full rounded-full"
                   >
-                    <ExternalLink className="h-3.5 w-3.5" />
+                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover/linkicon:text-primary" />
                   </a>
                 </Button>
               </TooltipTrigger>
@@ -116,9 +116,9 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                   onDelete(item.id);
                 }}
                 aria-label="Forget item"
-                className="h-8 w-8 rounded-full text-muted-foreground hover:bg-accent hover:text-destructive"
+                className="h-8 w-8 rounded-full hover:bg-accent group/deleteicon"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-3.5 w-3.5 text-muted-foreground group-hover/deleteicon:text-destructive" />
               </Button>
             </TooltipTrigger>
             <TooltipContent><p>Forget</p></TooltipContent>
