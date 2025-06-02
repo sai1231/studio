@@ -38,13 +38,15 @@ const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange, zones
 
   useEffect(() => {
     if (open) {
-      setTodoTitle('');
-      setSelectedDueDate(undefined);
-      setIsAdding(false);
+      // Reset fields when dialog opens, but don't clear if it's already open and user is adding multiple items
+      if (!isAdding) {
+        setTodoTitle('');
+        setSelectedDueDate(undefined);
+      }
       // Delay focus slightly to ensure dialog is fully rendered
       setTimeout(() => titleInputRef.current?.focus(), 100);
     }
-  }, [open]);
+  }, [open, isAdding]); // Depend on isAdding to prevent reset during multi-add
 
   const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
@@ -60,8 +62,8 @@ const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange, zones
     const newTodoData: Omit<ContentItem, 'id' | 'createdAt'> = {
       type: 'todo',
       title: todoTitle.trim(),
-      description: '', // Keep description empty for quick add
-      tags: [], // No tags for quick add
+      description: '', 
+      tags: [], 
       zoneId: defaultZoneId,
       contentType: 'Task',
       status: 'pending',
@@ -70,7 +72,11 @@ const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange, zones
 
     try {
       await onTodoAdd(newTodoData);
-      onOpenChange(false); // Close dialog on success
+      // Clear fields for next entry and refocus
+      setTodoTitle('');
+      setSelectedDueDate(undefined);
+      titleInputRef.current?.focus();
+      // Dialog stays open - onOpenChange(false); // Removed to keep dialog open
     } catch (error) {
       // Error is handled by the onTodoAdd callback in the layout
     } finally {
@@ -101,6 +107,7 @@ const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange, zones
               placeholder="What needs to be done?"
               className="text-base h-11 focus-visible:ring-accent"
               disabled={isAdding}
+              autoFocus // Ensure focus on open
             />
           </div>
           <div className="space-y-2">
