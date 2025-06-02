@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Layers, Landmark, PlayCircle, Pencil } from 'lucide-react';
+import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Layers, Landmark, PlayCircle } from 'lucide-react';
 import type { ContentItem, ContentItemType, Tag } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -75,7 +75,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
   return (
     <Card
       className={cn(
-        "overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group rounded-2xl break-inside-avoid mb-4 relative" // Added relative for absolute positioning of icons
+        "overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group rounded-2xl break-inside-avoid mb-4 relative"
       )}
     >
       <div className="absolute top-2 right-2 z-10 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
@@ -100,25 +100,6 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                 variant="ghost"
                 size="icon"
                 onClick={(e) => {
-                  handleActionClick(e); // Stop propagation to prevent card click
-                  onEdit(item); // Explicitly call onEdit
-                }}
-                aria-label="Edit item"
-                className={cn("h-8 w-8 rounded-full text-foreground/70 hover:text-primary hover:bg-primary/10 backdrop-blur-sm", 'bg-background/70 hover:bg-background/90 border-foreground/20')}
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent><p>Edit</p></TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => {
                   handleActionClick(e);
                   onDelete(item.id);
                 }}
@@ -133,7 +114,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         </TooltipProvider>
       </div>
 
-      <div className="flex flex-col flex-grow group/link cursor-pointer" onClick={() => onEdit(item)}> {/* Moved cursor-pointer and onEdit here */}
+      <div className="flex flex-col flex-grow group/link cursor-pointer" onClick={() => onEdit(item)}>
         <div className="flex flex-col flex-grow">
           {hasImage ? (
             <div className="relative w-full h-56">
@@ -194,11 +175,9 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                 </Badge>
               )}
             </div>
-            {/* Tags have been removed as per previous request */}
           </CardContent>
         </div>
       </div>
-      {/* CardFooter is removed as icons are now at the top right */}
     </Card>
   );
 };
