@@ -1,8 +1,7 @@
 
 import type React from 'react';
 import Image from 'next/image';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card'; // Removed unnecessary Card sub-components
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Layers, Landmark, PlayCircle } from 'lucide-react';
@@ -45,40 +44,36 @@ const getNextFallbackImage = () => {
   return pixabayFallbackImages[lastUsedFallbackIndex];
 };
 
-
 const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => {
   const hasImage = item.imageUrl && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice' || item.type === 'movie');
   const specifics = getTypeSpecifics(item.type);
   const IconComponent = specifics.icon;
 
   const handleActionClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
   };
 
-  const renderDescription = (description: string | undefined) => {
-    if (!description) return null;
-    const truncatedDescription = description.length > 150 ? description.substring(0, 150) + '...' : description;
-    if (item.type === 'note' || item.type === 'todo') {
-      return truncatedDescription.split('\n').map((line, index) => (
-        <p key={index} className="mb-1 last:mb-0">
-          {line.startsWith('- ') || line.startsWith('* ') ? `• ${line.substring(2)}` : line}
-        </p>
-      ));
-    }
-    return <div className="text-sm text-muted-foreground break-words" dangerouslySetInnerHTML={{ __html: truncatedDescription }} />;
+  // Strip HTML for card display and truncate
+  const getPlainTextDescription = (htmlString: string | undefined): string => {
+    if (!htmlString) return '';
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlString;
+    return tempDiv.textContent || tempDiv.innerText || '';
   };
+  
+  const plainDescription = getPlainTextDescription(item.description);
 
   const imageToDisplay = item.imageUrl || getNextFallbackImage();
-  const imageAiHint = item.imageUrl ? item.title.split(' ').slice(0,2).join(' ') : "abstract city";
+  const imageAiHint = item.imageUrl ? item.title.split(' ').slice(0,2).join(' ') : "abstract placeholder";
 
 
   return (
     <Card
       className={cn(
-        "overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group rounded-2xl break-inside-avoid mb-4 relative"
+        "overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group rounded-3xl break-inside-avoid mb-4 relative p-3" // Increased rounding and added padding
       )}
     >
-      <div className="absolute top-2 right-2 z-10 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
         {item.type === 'link' && item.url && (
           <TooltipProvider>
             <Tooltip>
@@ -86,18 +81,18 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                 <Button
                   variant="ghost"
                   size="icon"
-                  asChild 
+                  asChild
                   onClick={handleActionClick}
-                  className="h-8 w-8 rounded-full"
+                  className="h-8 w-8 rounded-full group/linkicon"
                 >
                   <a
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Open link in new tab"
-                    className="flex items-center justify-center h-full w-full rounded-full hover:bg-accent group" 
+                    className="flex items-center justify-center h-full w-full rounded-full hover:bg-accent"
                   >
-                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary" />
+                    <ExternalLink className="h-4 w-4 text-muted-foreground group-hover/linkicon:text-primary" />
                   </a>
                 </Button>
               </TooltipTrigger>
@@ -118,7 +113,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                 aria-label="Forget item"
                 className="h-8 w-8 rounded-full hover:bg-accent group/deleteicon"
               >
-                <Trash2 className="h-3.5 w-3.5 text-muted-foreground group-hover/deleteicon:text-destructive" />
+                <Trash2 className="h-4 w-4 text-muted-foreground group-hover/deleteicon:text-destructive" />
               </Button>
             </TooltipTrigger>
             <TooltipContent><p>Forget</p></TooltipContent>
@@ -127,67 +122,59 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
       </div>
 
       <div className="flex flex-col flex-grow group/link cursor-pointer" onClick={() => onEdit(item)}>
-        <div className="flex flex-col flex-grow">
+        {/* Image or Icon Section */}
+        <div className={cn(
+            "relative w-full mb-3 rounded-xl overflow-hidden", // Consistent rounding for image/icon container
+            hasImage ? "aspect-[4/3]" : "aspect-[4/3] bg-muted flex items-center justify-center" // Maintain aspect ratio
+        )}>
           {hasImage ? (
-            <div className="relative w-full h-56">
-              <Image
-                src={imageToDisplay}
-                alt={item.title}
-                data-ai-hint={imageAiHint}
-                fill
-                className="object-cover rounded-t-2xl group-hover/link:scale-105 transition-transform duration-300"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              />
-            </div>
-          ) : null}
+            <Image
+              src={imageToDisplay}
+              alt={item.title}
+              data-ai-hint={imageAiHint}
+              fill
+              className="object-cover group-hover/link:scale-105 transition-transform duration-300"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            />
+          ) : (
+            <IconComponent className={cn("h-16 w-16", specifics.iconText)} /> // Larger icon
+          )}
+        </div>
 
-          <CardHeader className={cn("pb-2", !hasImage ? "pt-4" : "pt-3")}>
-            <div className="flex items-center gap-3 mb-2">
-              {!hasImage && (
-                <div className={cn("p-2 rounded-full ring-2", specifics.iconRing, "bg-muted/30 dark:bg-muted/20")}>
-                  <IconComponent className={cn("h-6 w-6", specifics.iconText)} />
-                </div>
-              )}
-              <CardTitle className="text-xl font-headline leading-tight group-hover/link:text-primary transition-colors">
-                {item.title}
-              </CardTitle>
-            </div>
+        {/* Text Content Section */}
+        <div className="flex flex-col flex-grow pt-1"> {/* Spacing adjusted by card's padding */}
+          <h3 className="text-lg font-semibold leading-tight group-hover/link:text-primary transition-colors truncate">
+            {item.title || "Untitled"}
+          </h3>
 
-            {item.type === 'link' && item.url && (
-              <CardDescription className="text-xs text-muted-foreground flex items-center pt-1">
-                <Globe className="h-3 w-3 mr-1.5 shrink-0" />
-                <span className="truncate group-hover/link:underline">{item.url}</span>
-              </CardDescription>
-            )}
-          </CardHeader>
+          {plainDescription && (
+            <p className="mt-1 text-sm text-muted-foreground break-words line-clamp-2">
+              {plainDescription}
+            </p>
+          )}
 
-          <CardContent className={cn("flex-grow space-y-3", hasImage ? "pt-0 pb-4" : "pt-2 pb-4")}>
-            {item.description && (
-              <div className={cn("text-sm mb-3 break-words", 'text-muted-foreground')}>
-                {renderDescription(item.description)}
-              </div>
-            )}
-
-            {item.type === 'voice' && item.audioUrl && (
-              <div className="my-2 flex items-center gap-2 text-sm text-muted-foreground">
+          {item.type === 'voice' && item.audioUrl && !plainDescription && ( // Show if no other description
+              <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                 <PlayCircle className={cn("h-5 w-5", specifics.iconText)} />
-                <span>Voice recording ready.</span>
+                <span>Voice recording</span>
               </div>
             )}
-
-            <div className="flex flex-wrap gap-1.5 items-center">
-              {item.domain && (
-                <Badge variant="outline" className={cn("text-xs py-0.5 px-1.5 font-normal", 'border-blue-500/30 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30')}>
-                  <Landmark className="h-3 w-3 mr-1 opacity-70" />{item.domain}
-                </Badge>
-              )}
-              {item.contentType && (
-                <Badge variant="outline" className={cn("text-xs py-0.5 px-1.5 font-normal", 'border-purple-500/30 text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30')}>
-                  <Layers className="h-3 w-3 mr-1 opacity-70" />{item.contentType}
-                </Badge>
-              )}
-            </div>
-          </CardContent>
+          
+          {/* Meta Information */}
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 items-center text-xs text-muted-foreground">
+            {item.domain && (
+              <div className="flex items-center gap-1.5">
+                <Landmark className="h-3.5 w-3.5 opacity-80" />
+                <span>{item.domain}</span>
+              </div>
+            )}
+            {item.contentType && (
+              <div className="flex items-center gap-1.5">
+                <Layers className="h-3.5 w-3.5 opacity-80" />
+                <span>{item.contentType}</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </Card>
