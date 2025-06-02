@@ -86,18 +86,18 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                 <Button
                   variant="ghost"
                   size="icon"
-                  asChild
+                  asChild 
                   onClick={handleActionClick}
-                  className="h-8 w-8 rounded-full hover:bg-accent group/linkicon"
+                  className="h-8 w-8 rounded-full"
                 >
                   <a
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Open link in new tab"
-                    className="flex items-center justify-center h-full w-full rounded-full"
+                    className="flex items-center justify-center h-full w-full rounded-full hover:bg-accent group" 
                   >
-                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover/linkicon:text-primary" />
+                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary" />
                   </a>
                 </Button>
               </TooltipTrigger>
