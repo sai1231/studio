@@ -7,16 +7,18 @@ import ContentDetailDialog from '@/components/core/ContentDetailDialog';
 import type { ContentItem, Zone as AppZone, Tag as AppTag } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { PlusCircle, ListFilter, Loader2, FolderOpen, Search, XCircle } from 'lucide-react';
+import { PlusCircle, ListFilter, Loader2, FolderOpen, Search, XCircle, ListChecks, AlarmClock, CalendarDays } from 'lucide-react';
 import AddContentDialog from '@/components/core/add-content-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { getContentItems, addContentItem, deleteContentItem, getZones, getUniqueContentTypes, getUniqueDomains, getUniqueTags } from '@/services/contentService';
+import { getContentItems, addContentItem, deleteContentItem, getZones, getUniqueContentTypes, getUniqueDomains, getUniqueTags, updateContentItem } from '@/services/contentService';
 import { cn } from '@/lib/utils';
+import { format, isPast } from 'date-fns';
 
 const pageLoadingMessages = [
   "Organizing your memories...",
@@ -27,9 +29,115 @@ const pageLoadingMessages = [
 
 const ALL_FILTER_VALUE = "__ALL__";
 
+interface TodoDashboardCardProps {
+  todos: ContentItem[];
+  onToggleStatus: (todoId: string, currentStatus: 'pending' | 'completed' | undefined) => void;
+  isLoading: boolean;
+  onEditTodo: (todo: ContentItem) => void;
+}
+
+const TodoDashboardCard: React.FC<TodoDashboardCardProps> = ({ todos, onToggleStatus, isLoading, onEditTodo }) => {
+  if (isLoading) {
+    return (
+      <Card className="mb-6 shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-xl font-headline flex items-center">
+            <ListChecks className="h-6 w-6 mr-2 text-primary" /> My TODOs
+          </CardTitle>
+          <CardDescription>Your upcoming tasks and reminders.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 animate-pulse">
+              <Checkbox disabled className="opacity-50" />
+              <div className="flex-grow space-y-1.5">
+                <div className="h-4 bg-muted rounded w-3/4"></div>
+                <div className="h-3 bg-muted rounded w-1/2"></div>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (todos.length === 0) {
+    return (
+      <Card className="mb-6 shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-xl font-headline flex items-center">
+            <ListChecks className="h-6 w-6 mr-2 text-primary" /> My TODOs
+          </CardTitle>
+          <CardDescription>Your upcoming tasks and reminders.</CardDescription>
+        </CardHeader>
+        <CardContent className="text-center py-6">
+          <ListChecks className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+          <p className="text-muted-foreground">No active TODOs. Great job, or add some new ones!</p>
+          <Button variant="link" className="mt-2" onClick={() => (window as any).openQuickTodo && (window as any).openQuickTodo()}>
+            Add a TODO
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="mb-6 shadow-lg">
+      <CardHeader>
+        <CardTitle className="text-xl font-headline flex items-center">
+          <ListChecks className="h-6 w-6 mr-2 text-primary" /> My TODOs
+        </CardTitle>
+        <CardDescription>Your upcoming tasks and reminders. Click title to edit.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2 max-h-96 overflow-y-auto pr-1 custom-scrollbar">
+        {todos.map(todo => (
+          <div key={todo.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/30 transition-colors border">
+            <Checkbox
+              id={`todo-dash-${todo.id}`}
+              checked={todo.status === 'completed'}
+              onCheckedChange={() => onToggleStatus(todo.id, todo.status)}
+              className="mt-1"
+              aria-labelledby={`todo-dash-label-${todo.id}`}
+            />
+            <div className="flex-grow">
+              <Label
+                htmlFor={`todo-dash-${todo.id}`}
+                id={`todo-dash-label-${todo.id}`}
+                className={cn(
+                  "font-medium text-foreground cursor-pointer hover:text-primary",
+                  todo.status === 'completed' && "line-through text-muted-foreground hover:text-muted-foreground/80"
+                )}
+                onClick={(e) => {
+                  e.preventDefault(); // Prevent checkbox toggle when clicking label for edit
+                  onEditTodo(todo);
+                }}
+              >
+                {todo.title}
+              </Label>
+              {todo.dueDate && (
+                <div className="text-xs text-muted-foreground flex items-center mt-0.5">
+                  <AlarmClock className={cn(
+                      "h-3.5 w-3.5 mr-1",
+                      todo.status !== 'completed' && isPast(new Date(todo.dueDate)) ? "text-destructive" : "text-muted-foreground/80"
+                    )}
+                  />
+                  <span className={cn(todo.status !== 'completed' && isPast(new Date(todo.dueDate)) ? "text-destructive font-semibold" : "")}>
+                     {format(new Date(todo.dueDate), 'MMM d, yy')}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+};
+
+
 export default function DashboardPage() {
   const [allContentItems, setAllContentItems] = useState<ContentItem[]>([]);
-  const [displayedContentItems, setDisplayedContentItems] = useState<ContentItem[]>([]);
+  const [displayedContentItems, setDisplayedContentItems] = useState<ContentItem[]>([]); // For non-TODO items grid
   
   const [zones, setZones] = useState<AppZone[]>([]);
   const [availableContentTypes, setAvailableContentTypes] = useState<string[]>([]);
@@ -37,6 +145,7 @@ export default function DashboardPage() {
   const [availableTags, setAvailableTags] = useState<AppTag[]>([]);
   
   const [isLoading, setIsLoading] = useState(true);
+  const [isUpdatingTodoStatus, setIsUpdatingTodoStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   
   const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
@@ -46,13 +155,11 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const [clientLoadingMessage, setClientLoadingMessage] = useState<string | null>(null);
 
-  // Applied filter states
   const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
   const [appliedSelectedContentType, setAppliedSelectedContentType] = useState<string>(ALL_FILTER_VALUE);
   const [appliedSelectedDomain, setAppliedSelectedDomain] = useState<string>(ALL_FILTER_VALUE);
   const [appliedSelectedTagIds, setAppliedSelectedTagIds] = useState<string[]>([]);
 
-  // Pending filter states (for popover)
   const [pendingSearchTerm, setPendingSearchTerm] = useState('');
   const [pendingSelectedContentType, setPendingSelectedContentType] = useState<string>(ALL_FILTER_VALUE);
   const [pendingSelectedDomain, setPendingSelectedDomain] = useState<string>(ALL_FILTER_VALUE);
@@ -96,22 +203,35 @@ export default function DashboardPage() {
     fetchData();
   }, [fetchData]);
 
-  // Effect to synchronize pending filters when popover opens
   useEffect(() => {
     if (isFilterPopoverOpen) {
       setPendingSearchTerm(appliedSearchTerm);
       setPendingSelectedContentType(appliedSelectedContentType);
       setPendingSelectedDomain(appliedSelectedDomain);
-      setPendingSelectedTagIds([...appliedSelectedTagIds]); // Ensure new array instance for tags
+      setPendingSelectedTagIds([...appliedSelectedTagIds]);
     }
   }, [isFilterPopoverOpen, appliedSearchTerm, appliedSelectedContentType, appliedSelectedDomain, appliedSelectedTagIds]);
 
+  const todoItems = useMemo(() => {
+    return allContentItems
+      .filter(item => item.type === 'todo')
+      .sort((a, b) => {
+        if (a.status === 'pending' && b.status === 'completed') return -1;
+        if (a.status === 'completed' && b.status === 'pending') return 1;
+        if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        if (a.dueDate && !b.dueDate) return -1; // Sort items with due dates before those without
+        if (!a.dueDate && b.dueDate) return 1;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(); // Fallback to creation date
+      });
+  }, [allContentItems]);
 
-  // Filtering logic based on APPLIED filters
+  const otherItems = useMemo(() => {
+    return allContentItems.filter(item => item.type !== 'todo');
+  }, [allContentItems]);
+
   useEffect(() => {
-    let filtered = [...allContentItems];
+    let filtered = [...otherItems]; // Apply filters only to non-TODO items
 
-    // Search term filter
     if (appliedSearchTerm.trim()) {
       const lowerSearchTerm = appliedSearchTerm.toLowerCase();
       filtered = filtered.filter(item =>
@@ -120,17 +240,14 @@ export default function DashboardPage() {
       );
     }
 
-    // Content type filter
     if (appliedSelectedContentType !== ALL_FILTER_VALUE) {
       filtered = filtered.filter(item => item.contentType === appliedSelectedContentType);
     }
 
-    // Domain filter
     if (appliedSelectedDomain !== ALL_FILTER_VALUE) {
       filtered = filtered.filter(item => item.domain === appliedSelectedDomain);
     }
     
-    // Tag filter (item must have ALL selected tags)
     if (appliedSelectedTagIds.length > 0) {
       filtered = filtered.filter(item => {
         const itemTagIds = item.tags.map(tag => tag.id);
@@ -139,7 +256,7 @@ export default function DashboardPage() {
     }
 
     setDisplayedContentItems(filtered);
-  }, [appliedSearchTerm, appliedSelectedContentType, appliedSelectedDomain, appliedSelectedTagIds, allContentItems]);
+  }, [appliedSearchTerm, appliedSelectedContentType, appliedSelectedDomain, appliedSelectedTagIds, otherItems]);
 
   const handleAddOrUpdateContentDialog = async (
     contentData: Omit<ContentItem, 'id' | 'createdAt'>
@@ -229,8 +346,36 @@ export default function DashboardPage() {
     if (appliedSelectedTagIds.length > 0) count++;
     return count;
   }, [appliedSearchTerm, appliedSelectedContentType, appliedSelectedDomain, appliedSelectedTagIds]);
+
+  const handleToggleTodoStatus = async (todoId: string, currentStatus: 'pending' | 'completed' | undefined) => {
+    if (isUpdatingTodoStatus === todoId) return;
+    setIsUpdatingTodoStatus(todoId);
+    const newStatus = (currentStatus === 'completed') ? 'pending' : 'completed';
+    
+    const originalTodos = [...allContentItems];
+    setAllContentItems(prevAllItems => 
+      prevAllItems.map(item => 
+        item.id === todoId ? { ...item, status: newStatus } : item
+      )
+    );
+
+    try {
+      const updatedItem = await updateContentItem(todoId, { status: newStatus });
+      if (updatedItem) {
+        toast({ title: "TODO Updated", description: `"${updatedItem.title}" marked as ${newStatus}.` });
+      } else {
+        throw new Error("Update failed, item not returned");
+      }
+    } catch (error) {
+      console.error('Error updating TODO status from dashboard:', error);
+      toast({ title: "Error", description: "Could not update TODO status.", variant: "destructive" });
+      setAllContentItems(originalTodos); // Revert on error
+    } finally {
+      setIsUpdatingTodoStatus(null);
+    }
+  };
   
-  if (isLoading) {
+  if (isLoading && allContentItems.length === 0) { // Show main loader only on initial full load
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -271,7 +416,7 @@ export default function DashboardPage() {
                 </PopoverTrigger>
                 <PopoverContent className="w-80 p-4 space-y-4" align="end">
                     <div className="space-y-1">
-                        <Label htmlFor="search-filter" className="text-sm font-medium">Search</Label>
+                        <Label htmlFor="search-filter" className="text-sm font-medium">Search (Memories)</Label>
                          <div className="relative">
                             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input 
@@ -285,7 +430,7 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="space-y-1">
-                        <Label htmlFor="content-type-filter" className="text-sm font-medium">Content Type</Label>
+                        <Label htmlFor="content-type-filter" className="text-sm font-medium">Content Type (Memories)</Label>
                         <Select value={pendingSelectedContentType} onValueChange={setPendingSelectedContentType}>
                             <SelectTrigger id="content-type-filter">
                                 <SelectValue placeholder="All Content Types" />
@@ -300,7 +445,7 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="space-y-1">
-                        <Label htmlFor="domain-filter" className="text-sm font-medium">Domain</Label>
+                        <Label htmlFor="domain-filter" className="text-sm font-medium">Domain (Memories)</Label>
                         <Select value={pendingSelectedDomain} onValueChange={setPendingSelectedDomain}>
                             <SelectTrigger id="domain-filter">
                                 <SelectValue placeholder="All Domains" />
@@ -315,7 +460,7 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">Tags</Label>
+                        <Label className="text-sm font-medium">Tags (Memories)</Label>
                         {availableTags.length > 0 ? (
                             <ScrollArea className="h-32 rounded-md border p-2">
                                 <div className="space-y-1.5">
@@ -349,27 +494,34 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {displayedContentItems.length === 0 ? (
+      <TodoDashboardCard
+        todos={todoItems}
+        onToggleStatus={handleToggleTodoStatus}
+        isLoading={isLoading && allContentItems.length === 0}
+        onEditTodo={handleOpenDetailDialog}
+      />
+
+      {displayedContentItems.length === 0 && !isLoading ? (
         <div className="text-center py-12">
           <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h2 className="text-xl font-medium text-muted-foreground">
-            {allContentItems.length > 0 && activeFilterCount > 0 
-              ? "Hmm… it’s like déjà vu, but nothing’s here." 
-              : "No content saved yet."}
+            {activeFilterCount > 0 
+              ? "Hmm… no memories match your filters." 
+              : (todoItems.length > 0 ? "No other memories found yet." : "No content saved yet.")}
           </h2>
           <p className="text-muted-foreground mt-2">
-            {allContentItems.length > 0 && activeFilterCount > 0 
-              ? (<>Try easing up on those filters — maybe something will spark a memory, or <Button variant="link" onClick={handleClearAndApplyFilters} className="p-0 h-auto text-primary inline">clear your mind</Button> to start fresh.</>)
-              : "Start by adding your first item!"}
+            {activeFilterCount > 0 
+              ? (<>Try easing up on those filters, or <Button variant="link" onClick={handleClearAndApplyFilters} className="p-0 h-auto text-primary inline">clear them</Button> to see all your memories.</>)
+              : (todoItems.length > 0 ? "Save some new links, notes, or images!" : "Start by adding your first item!")}
           </p>
-          { (allContentItems.length === 0 || (allContentItems.length > 0 && activeFilterCount === 0 )) &&
+          { (allContentItems.length === 0 && activeFilterCount === 0 && !isLoading) &&
              <Button onClick={() => { setIsAddContentDialogOpen(true);}} className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">
                 <PlusCircle className="h-4 w-4 mr-2" />
                 Add Your First Item
             </Button>
           }
         </div>
-      ) : (
+      ) : !isLoading ? (
         <div className={'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
           {displayedContentItems.map(item => (
             <ContentCard
@@ -380,7 +532,8 @@ export default function DashboardPage() {
             />
           ))}
         </div>
-      )}
+      ) : null } {/* Don't render grid if isLoading, main loader handles this */}
+      
       <AddContentDialog
         open={isAddContentDialogOpen}
         onOpenChange={setIsAddContentDialogOpen}
@@ -401,4 +554,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
