@@ -83,8 +83,20 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" asChild onClick={handleActionClick} className={cn("h-8 w-8 rounded-full", 'bg-background/70 hover:bg-background/90 border-foreground/20 text-foreground/70 backdrop-blur-sm')}>
-                  <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Open link in new tab">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  asChild
+                  onClick={handleActionClick}
+                  className="h-8 w-8 rounded-full"
+                >
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Open link in new tab"
+                    className="flex items-center justify-center h-full w-full rounded-full text-muted-foreground hover:bg-accent hover:text-primary"
+                  >
                     <ExternalLink className="h-3.5 w-3.5" />
                   </a>
                 </Button>
@@ -104,7 +116,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                   onDelete(item.id);
                 }}
                 aria-label="Forget item"
-                className={cn("h-8 w-8 rounded-full text-destructive/70 hover:text-destructive hover:bg-destructive/10 backdrop-blur-sm", 'bg-background/70 hover:bg-background/90 border-foreground/20')}
+                className="h-8 w-8 rounded-full text-muted-foreground hover:bg-accent hover:text-destructive"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
