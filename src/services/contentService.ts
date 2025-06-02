@@ -13,6 +13,53 @@ const pixabayImageUrls = [
 
 let mockContentItems: ContentItem[] = [
   {
+    id: 'todo-1',
+    type: 'todo',
+    title: 'Finish project proposal',
+    description: 'Draft the proposal, get feedback from Alex, and finalize the document.',
+    tags: [{id: 't-work', name: 'work'}, {id: 't-urgent', name: 'urgent'}],
+    zoneId: '1',
+    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
+    contentType: 'Task',
+    status: 'pending',
+    dueDate: new Date(Date.now() + 86400000 * 3).toISOString(), // Due in 3 days
+  },
+  {
+    id: 'todo-2',
+    type: 'todo',
+    title: 'Book dentist appointment',
+    description: '',
+    tags: [{id: 't-personal', name: 'personal'}],
+    zoneId: '2',
+    createdAt: new Date(Date.now() - 86400000 * 5).toISOString(), // 5 days ago
+    contentType: 'Task',
+    status: 'pending',
+  },
+  {
+    id: 'todo-3',
+    type: 'todo',
+    title: 'Pay electricity bill',
+    description: 'Bill due by end of week.',
+    tags: [{id: 't-finance', name: 'finance'}],
+    zoneId: '2',
+    createdAt: new Date(Date.now() - 86400000 * 1).toISOString(), // 1 day ago
+    contentType: 'Task',
+    status: 'completed',
+    dueDate: new Date(Date.now() - 86400000 * 2).toISOString(), // Was due 2 days ago
+  },
+  {
+    id: 'todo-4',
+    type: 'todo',
+    title: 'Call Mom',
+    description: 'Check in and see how she is doing.',
+    tags: [{id: 't-family', name: 'family'}],
+    zoneId: '2',
+    createdAt: new Date().toISOString(), // Today
+    contentType: 'Task',
+    status: 'pending',
+    dueDate: new Date(Date.now() - 86400000 * 1).toISOString(), // Was due yesterday
+  },
+  {
     id: 'pdf-mock-1',
     type: 'link',
     url: 'https://storage.example.com/reports/annual_company_report_2023.pdf',
@@ -546,3 +593,4 @@ export async function getUniqueTags(userId?: string): Promise<Tag[]> {
   });
   return Array.from(allTagsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
+
