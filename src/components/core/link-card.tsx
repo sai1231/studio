@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Landmark, PlayCircle, Layers } from 'lucide-react';
+import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Landmark, PlayCircle, FileText, Layers } from 'lucide-react';
 import type { ContentItem, ContentItemType } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -14,8 +14,11 @@ interface ContentCardProps {
   onDelete: (itemId: string) => void;
 }
 
-const getTypeSpecifics = (type: ContentItemType | undefined) => {
-  switch (type) {
+const getTypeSpecifics = (item: ContentItem) => {
+  if (item.type === 'link' && item.contentType === 'PDF') {
+    return { icon: FileText, color: 'red', iconRing: 'ring-red-500/30', iconText: 'text-red-600 dark:text-red-400' };
+  }
+  switch (item.type) {
     case 'link':
       return { icon: Globe, color: 'blue', iconRing: 'ring-sky-500/30', iconText: 'text-sky-600 dark:text-sky-400' };
     case 'note':
@@ -32,10 +35,10 @@ const getTypeSpecifics = (type: ContentItemType | undefined) => {
 };
 
 const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => {
-  const specifics = getTypeSpecifics(item.type);
+  const specifics = getTypeSpecifics(item);
 
   const handleActionClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Prevents the onEdit of the card itself from firing
   };
 
   const getPlainTextDescription = (htmlString: string | undefined): string => {
@@ -45,38 +48,42 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
       tempDiv.innerHTML = htmlString;
       return tempDiv.textContent || tempDiv.innerText || '';
     }
-    // Fallback for server-side or environments without DOM
-    // This is a simple fallback and might not cover all HTML entities perfectly.
-    // For more robust server-side stripping, a library might be needed.
     return htmlString.replace(/<[^>]+>/g, '');
   };
 
   const plainDescription = getPlainTextDescription(item.description);
+  const hasImage = !!item.imageUrl;
 
   return (
     <Card
       className={cn(
-        "overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group rounded-3xl p-3 break-inside-avoid mb-4"
+        "overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col group rounded-3xl p-3 break-inside-avoid mb-4"
       )}
     >
       <div className="flex flex-col flex-grow cursor-pointer" onClick={() => onEdit(item)}>
-        {item.imageUrl && (
+        {hasImage && (
           <div className="relative w-full mb-2 rounded-xl overflow-hidden aspect-[4/3]">
             <Image
-              src={item.imageUrl}
+              src={item.imageUrl!}
               alt={item.title}
               data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-300"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              onError={(e) => (e.currentTarget.style.display = 'none')} 
             />
           </div>
         )}
 
-        <div className={cn("flex flex-col flex-grow", item.imageUrl ? "pt-1" : "pt-0")}>
-          <h3 className="text-lg font-semibold leading-tight group-hover:text-primary transition-colors break-words">
-            {item.title || "Untitled"}
-          </h3>
+        <div className={cn("flex flex-col flex-grow", hasImage ? "pt-1" : "pt-0")}>
+          <div className="flex items-start gap-2">
+            {!hasImage && (
+              React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-1", specifics.iconText) })
+            )}
+            <h3 className="text-lg font-semibold leading-tight group-hover:text-primary transition-colors break-words">
+              {item.title || "Untitled"}
+            </h3>
+          </div>
 
           {plainDescription && (
             <p className="mt-1 text-sm text-muted-foreground break-words line-clamp-2">
@@ -84,18 +91,17 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
             </p>
           )}
 
-          {item.type === 'voice' && item.audioUrl && !plainDescription && (
+          {item.type === 'voice' && item.audioUrl && !plainDescription && !hasImage && (
               <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                <PlayCircle className={cn("h-5 w-5", specifics.iconText)} />
+                <PlayCircle className={cn("h-5 w-5", getTypeSpecifics(item).iconText)} />
                 <span>Voice recording</span>
               </div>
-            )}
+          )}
         </div>
       </div>
 
       {/* Footer for domain and action icons - always visible */}
-      <div className="mt-auto pt-2 flex items-center justify-between">
-        {/* Domain on the left */}
+      <div className="mt-auto pt-3 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
           {item.domain && (
             <>
@@ -105,8 +111,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
           )}
         </div>
 
-        {/* Action icons on the right */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-0.5 shrink-0">
           {item.type === 'link' && item.url && (
             <TooltipProvider>
               <Tooltip>
@@ -114,9 +119,9 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                   <Button
                     variant="ghost"
                     size="icon"
-                    asChild
+                    asChild // Important for the <a> tag to inherit button styles
                     onClick={handleActionClick}
-                    className="h-8 w-8 rounded-full group/linkicon"
+                    className="h-8 w-8 rounded-full group/linkicon" // group for specific icon hover
                   >
                     <a
                       href={item.url}
@@ -144,7 +149,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                     onDelete(item.id);
                   }}
                   aria-label="Forget item"
-                  className="h-8 w-8 rounded-full hover:bg-accent group/deleteicon"
+                  className="h-8 w-8 rounded-full hover:bg-accent group/deleteicon" // group for specific icon hover
                 >
                   <Trash2 className="h-4 w-4 text-muted-foreground group-hover/deleteicon:text-destructive" />
                 </Button>
