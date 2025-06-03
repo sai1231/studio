@@ -7,8 +7,10 @@ Mati is your personal space to save, tag, and rediscover web links, notes, and i
 
 Before you begin, ensure you have the following installed on your system:
 
-*   **Node.js**: Version 18.x or later (Node.js 20.x is recommended). You can download it from [nodejs.org](https://nodejs.org/).
-*   **npm** (Node Package Manager) or **yarn**: These usually come with Node.js. This project uses npm by default (as per `package.json` scripts).
+*   **Node.js**: Version `^18.18.0` or `^19.8.0` or `>=20.0.0`.
+    *   _You can check your Node.js version by running `node -v` in your terminal._
+    *   _If your version is lower, you'll need to update it. Using a Node Version Manager (like [nvm](https://github.com/nvm-sh/nvm) or [n](https://github.com/tj/n)) is highly recommended for managing multiple Node.js versions._
+*   **npm** (Node PackageManager) or **yarn**: These usually come with Node.js. This project uses npm by default (as per `package.json` scripts).
 
 ## Getting Started
 
@@ -45,8 +47,9 @@ This project uses an environment file to manage configuration.
     ```env
     # Example (currently no specific backend variables are strictly required for mock data mode)
     # NEXT_PUBLIC_API_URL=http://localhost:3000/api
+    # TMDB_API_KEY=your_tmdb_api_key_here # For fetching movie details
     ```
-    *Note: At present, the application uses mock data and services within `src/services/contentService.ts`, so no backend-specific environment variables are strictly required to run it with mock data. If you integrate a backend like Supabase or Appwrite, you will add their specific API keys and URLs here.*
+    *Note: At present, the application uses mock data and services within `src/services/contentService.ts`. If you integrate a backend like Supabase or Appwrite, or want to fetch real movie details, you will add their specific API keys and URLs here.*
 
 ## Running the Development Server
 
@@ -93,3 +96,4 @@ To perform a TypeScript type check:
 ```bash
 npm run typecheck
 ```
+
