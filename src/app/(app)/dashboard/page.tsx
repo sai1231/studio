@@ -2,6 +2,7 @@
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import ContentCard from '@/components/core/link-card';
 import ContentDetailDialog from '@/components/core/ContentDetailDialog';
 import type { ContentItem, Zone as AppZone, Tag as AppTag } from '@/types';
@@ -13,12 +14,14 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { PlusCircle, ListFilter, Loader2, FolderOpen, Search, XCircle, ListChecks, AlarmClock, CalendarDays } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { PlusCircle, ListFilter, Loader2, FolderOpen, Search, XCircle, ListChecks, AlarmClock, CalendarDays, ArrowUpRightSquare } from 'lucide-react';
 import AddContentDialog from '@/components/core/add-content-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { getContentItems, addContentItem, deleteContentItem, getZones, getUniqueContentTypes, getUniqueDomains, getUniqueTags, updateContentItem } from '@/services/contentService';
 import { cn } from '@/lib/utils';
 import { format, isPast } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const pageLoadingMessages = [
   "Organizing your memories...",
@@ -37,13 +40,22 @@ interface TodoDashboardCardProps {
 }
 
 const TodoDashboardCard: React.FC<TodoDashboardCardProps> = ({ todos, onToggleStatus, isLoading, onEditTodo }) => {
+  const router = useRouter();
+
+  const handleExpandTodos = () => {
+    router.push('/quick-todo');
+  };
+
   if (isLoading) {
     return (
       <Card className="mb-4 shadow-lg break-inside-avoid">
         <CardHeader>
-          <CardTitle className="text-xl font-headline flex items-center">
-            <ListChecks className="h-6 w-6 mr-2 text-primary" /> My TODOs
-          </CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-xl font-headline flex items-center">
+              <ListChecks className="h-6 w-6 mr-2 text-primary" /> My TODOs
+            </CardTitle>
+            <Skeleton className="h-8 w-8 rounded-full" />
+          </div>
           <CardDescription>Your upcoming tasks and reminders.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -65,9 +77,23 @@ const TodoDashboardCard: React.FC<TodoDashboardCardProps> = ({ todos, onToggleSt
     return (
       <Card className="mb-4 shadow-lg break-inside-avoid">
         <CardHeader>
-          <CardTitle className="text-xl font-headline flex items-center">
-            <ListChecks className="h-6 w-6 mr-2 text-primary" /> My TODOs
-          </CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-xl font-headline flex items-center">
+              <ListChecks className="h-6 w-6 mr-2 text-primary" /> My TODOs
+            </CardTitle>
+             <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                     <Button variant="ghost" size="icon" onClick={handleExpandTodos} className="text-muted-foreground hover:text-primary">
+                       <ArrowUpRightSquare className="h-5 w-5" />
+                     </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>View all TODOs</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+          </div>
           <CardDescription>Your upcoming tasks and reminders.</CardDescription>
         </CardHeader>
         <CardContent className="text-center py-6">
@@ -84,9 +110,23 @@ const TodoDashboardCard: React.FC<TodoDashboardCardProps> = ({ todos, onToggleSt
   return (
     <Card className="mb-4 shadow-lg break-inside-avoid">
       <CardHeader>
-        <CardTitle className="text-xl font-headline flex items-center">
-          <ListChecks className="h-6 w-6 mr-2 text-primary" /> My TODOs
-        </CardTitle>
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-xl font-headline flex items-center">
+            <ListChecks className="h-6 w-6 mr-2 text-primary" /> My TODOs
+          </CardTitle>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                 <Button variant="ghost" size="icon" onClick={handleExpandTodos} className="text-muted-foreground hover:text-primary">
+                   <ArrowUpRightSquare className="h-5 w-5" />
+                 </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>View all TODOs</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <CardDescription>Your upcoming tasks and reminders. Click title to edit.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2 max-h-96 overflow-y-auto pr-1 custom-scrollbar">
@@ -108,7 +148,7 @@ const TodoDashboardCard: React.FC<TodoDashboardCardProps> = ({ todos, onToggleSt
                   todo.status === 'completed' && "line-through text-muted-foreground hover:text-muted-foreground/80"
                 )}
                 onClick={(e) => {
-                  e.preventDefault(); 
+                  e.preventDefault();
                   onEditTodo(todo);
                 }}
               >
@@ -137,21 +177,21 @@ const TodoDashboardCard: React.FC<TodoDashboardCardProps> = ({ todos, onToggleSt
 
 export default function DashboardPage() {
   const [allContentItems, setAllContentItems] = useState<ContentItem[]>([]);
-  const [displayedContentItems, setDisplayedContentItems] = useState<ContentItem[]>([]); 
-  
+  const [displayedContentItems, setDisplayedContentItems] = useState<ContentItem[]>([]);
+
   const [zones, setZones] = useState<AppZone[]>([]);
   const [availableContentTypes, setAvailableContentTypes] = useState<string[]>([]);
   const [availableDomains, setAvailableDomains] = useState<string[]>([]);
   const [availableTags, setAvailableTags] = useState<AppTag[]>([]);
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdatingTodoStatus, setIsUpdatingTodoStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
   const [selectedItemIdForDetail, setSelectedItemIdForDetail] = useState<string | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
-  
+
   const { toast } = useToast();
   const [clientLoadingMessage, setClientLoadingMessage] = useState<string | null>(null);
 
@@ -164,7 +204,7 @@ export default function DashboardPage() {
   const [pendingSelectedContentType, setPendingSelectedContentType] = useState<string>(ALL_FILTER_VALUE);
   const [pendingSelectedDomain, setPendingSelectedDomain] = useState<string>(ALL_FILTER_VALUE);
   const [pendingSelectedTagIds, setPendingSelectedTagIds] = useState<string[]>([]);
-  
+
   const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
 
   useEffect(() => {
@@ -219,9 +259,9 @@ export default function DashboardPage() {
         if (a.status === 'pending' && b.status === 'completed') return -1;
         if (a.status === 'completed' && b.status === 'pending') return 1;
         if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        if (a.dueDate && !b.dueDate) return -1; 
+        if (a.dueDate && !b.dueDate) return -1;
         if (!a.dueDate && b.dueDate) return 1;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(); 
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
   }, [allContentItems]);
 
@@ -230,7 +270,7 @@ export default function DashboardPage() {
   }, [allContentItems]);
 
   useEffect(() => {
-    let filtered = [...otherItems]; 
+    let filtered = [...otherItems];
 
     if (appliedSearchTerm.trim()) {
       const lowerSearchTerm = appliedSearchTerm.toLowerCase();
@@ -247,7 +287,7 @@ export default function DashboardPage() {
     if (appliedSelectedDomain !== ALL_FILTER_VALUE) {
       filtered = filtered.filter(item => item.domain === appliedSelectedDomain);
     }
-    
+
     if (appliedSelectedTagIds.length > 0) {
       filtered = filtered.filter(item => {
         const itemTagIds = item.tags.map(tag => tag.id);
@@ -266,14 +306,14 @@ export default function DashboardPage() {
       description: "Please wait while your content is being saved.",
     });
     try {
-      await addContentItem(contentData); 
+      await addContentItem(contentData);
       toast({
         id: toastId,
         title: "Content Saved!",
         description: `"${contentData.title}" has been successfully saved.`,
       });
       setIsAddContentDialogOpen(false);
-      fetchData(); 
+      fetchData();
     } catch (error) {
       console.error("Error saving content from dialog:", error);
       toast({
@@ -291,7 +331,7 @@ export default function DashboardPage() {
   };
 
   const handleItemUpdateInDialog = (updatedItem: ContentItem) => {
-    setAllContentItems(prevItems => 
+    setAllContentItems(prevItems =>
       prevItems.map(item => item.id === updatedItem.id ? updatedItem : item)
     );
     toast({ title: "Item Updated", description: `"${updatedItem.title}" has been updated.`});
@@ -299,7 +339,7 @@ export default function DashboardPage() {
 
   const handleDeleteContent = async (itemId: string) => {
     const originalItems = [...allContentItems];
-    setAllContentItems(prevItems => prevItems.filter(item => item.id !== itemId)); 
+    setAllContentItems(prevItems => prevItems.filter(item => item.id !== itemId));
     const {id: toastId} = toast({ title: "Deleting Item...", description: "Removing content item."});
     try {
       await deleteContentItem(itemId);
@@ -307,12 +347,12 @@ export default function DashboardPage() {
     } catch (e) {
       console.error("Error deleting content:", e);
       toast({id: toastId, title: "Error Deleting", description: "Could not delete item. Restoring.", variant: "destructive"});
-      setAllContentItems(originalItems); 
+      setAllContentItems(originalItems);
     }
   };
 
   const handleTagSelectionChange = (tagId: string, checked: boolean) => {
-    setPendingSelectedTagIds(prev => 
+    setPendingSelectedTagIds(prev =>
       checked ? [...prev, tagId] : prev.filter(id => id !== tagId)
     );
   };
@@ -330,7 +370,7 @@ export default function DashboardPage() {
     setPendingSelectedContentType(ALL_FILTER_VALUE);
     setPendingSelectedDomain(ALL_FILTER_VALUE);
     setPendingSelectedTagIds([]);
-    
+
     setAppliedSearchTerm('');
     setAppliedSelectedContentType(ALL_FILTER_VALUE);
     setAppliedSelectedDomain(ALL_FILTER_VALUE);
@@ -351,10 +391,10 @@ export default function DashboardPage() {
     if (isUpdatingTodoStatus === todoId) return;
     setIsUpdatingTodoStatus(todoId);
     const newStatus = (currentStatus === 'completed') ? 'pending' : 'completed';
-    
+
     const originalTodos = [...allContentItems];
-    setAllContentItems(prevAllItems => 
-      prevAllItems.map(item => 
+    setAllContentItems(prevAllItems =>
+      prevAllItems.map(item =>
         item.id === todoId ? { ...item, status: newStatus } : item
       )
     );
@@ -369,13 +409,13 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Error updating TODO status from dashboard:', error);
       toast({ title: "Error", description: "Could not update TODO status.", variant: "destructive" });
-      setAllContentItems(originalTodos); 
+      setAllContentItems(originalTodos);
     } finally {
       setIsUpdatingTodoStatus(null);
     }
   };
-  
-  if (isLoading && allContentItems.length === 0) { 
+
+  if (isLoading && allContentItems.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -419,7 +459,7 @@ export default function DashboardPage() {
                         <Label htmlFor="search-filter" className="text-sm font-medium">Search (Memories)</Label>
                          <div className="relative">
                             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input 
+                            <Input
                                 id="search-filter"
                                 placeholder="Search title, description..."
                                 value={pendingSearchTerm}
@@ -466,8 +506,8 @@ export default function DashboardPage() {
                                 <div className="space-y-1.5">
                                 {availableTags.map(tag => (
                                     <div key={tag.id} className="flex items-center space-x-2">
-                                        <Checkbox 
-                                            id={`tag-${tag.id}`} 
+                                        <Checkbox
+                                            id={`tag-${tag.id}`}
                                             checked={pendingSelectedTagIds.includes(tag.id)}
                                             onCheckedChange={(checked) => handleTagSelectionChange(tag.id, !!checked)}
                                         />
@@ -494,7 +534,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {isLoading && allContentItems.length > 0 ? ( // Show a smaller loading indicator if there's already content (e.g. during filter change)
+      {isLoading && allContentItems.length > 0 ? (
         <div className="flex justify-center py-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -504,12 +544,12 @@ export default function DashboardPage() {
             <div className="text-center py-12">
               <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h2 className="text-xl font-medium text-muted-foreground">
-                {activeFilterCount > 0 
-                  ? "Hmm… no memories match your filters." 
+                {activeFilterCount > 0
+                  ? "Hmm… no memories match your filters."
                   : "No content saved yet."}
               </h2>
               <p className="text-muted-foreground mt-2">
-                {activeFilterCount > 0 
+                {activeFilterCount > 0
                   ? (<>Try easing up on those filters, or <Button variant="link" onClick={handleClearAndApplyFilters} className="p-0 h-auto text-primary inline">clear them</Button> to see all your memories.</>)
                   : "Start by adding your first item!"}
               </p>
@@ -525,7 +565,7 @@ export default function DashboardPage() {
                 <TodoDashboardCard
                   todos={todoItems}
                   onToggleStatus={handleToggleTodoStatus}
-                  isLoading={isLoading && allContentItems.length === 0} 
+                  isLoading={isLoading && allContentItems.length === 0}
                   onEditTodo={handleOpenDetailDialog}
                 />
                 {displayedContentItems.map(item => (
@@ -539,7 +579,7 @@ export default function DashboardPage() {
              </div>
           )}
           {displayedContentItems.length === 0 && todoItems.length > 0 && !isLoading && activeFilterCount === 0 && (
-            <div className="text-center py-12 mt-[-2rem]"> {/* Adjust margin if TodoCard has content */}
+            <div className="text-center py-12 mt-[-2rem]">
               <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h2 className="text-xl font-medium text-muted-foreground">No other memories found yet.</h2>
               <p className="text-muted-foreground mt-2">Save some new links, notes, or images!</p>
@@ -556,7 +596,7 @@ export default function DashboardPage() {
           )}
         </>
       )}
-      
+
       <AddContentDialog
         open={isAddContentDialogOpen}
         onOpenChange={setIsAddContentDialogOpen}
@@ -569,7 +609,7 @@ export default function DashboardPage() {
           open={isDetailDialogOpen}
           onOpenChange={(open) => {
             setIsDetailDialogOpen(open);
-            if (!open) setSelectedItemIdForDetail(null); 
+            if (!open) setSelectedItemIdForDetail(null);
           }}
           onItemUpdate={handleItemUpdateInDialog}
         />
