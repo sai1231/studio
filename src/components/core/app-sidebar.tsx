@@ -52,9 +52,11 @@ const AppSidebar: React.FC = () => {
         getContentItems(),
       ]);
 
-      const fetchedDomains = getUniqueDomainsFromItems(allItems);
-      const fetchedContentTypes = getUniqueContentTypesFromItems(allItems);
-      const fetchedTags = getUniqueTagsFromItems(allItems);
+      const [fetchedDomains, fetchedContentTypes, fetchedTags] = await Promise.all([
+        getUniqueDomainsFromItems(allItems),
+        getUniqueContentTypesFromItems(allItems),
+        getUniqueTagsFromItems(allItems),
+      ]);
 
       setZones(fetchedZones);
       setDomains(fetchedDomains);
@@ -247,5 +249,3 @@ const AppSidebar: React.FC = () => {
 };
 
 export default AppSidebar;
-
-    
