@@ -17,13 +17,15 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Badge } from '@/components/ui/badge';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, Check, Plus, ChevronDown, Bookmark, Briefcase, Home, Library } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import type { Zone, ContentItemType, Tag, ContentItem } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { addZone } from '@/services/contentService';
 
 const contentFormSchemaBase = z.object({
   url: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
@@ -45,12 +47,30 @@ interface AddContentDialogProps extends AddContentDialogOpenChange {
   children?: React.ReactNode;
 }
 
+const iconMap: { [key: string]: React.ElementType } = {
+  Briefcase,
+  Home,
+  Library,
+  Bookmark,
+};
+
+const getIconComponent = (iconName?: string): React.ElementType => {
+  if (iconName && iconMap[iconName]) {
+    return iconMap[iconName];
+  }
+  return Bookmark; // Default icon
+};
+
+
 const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange, zones, onContentAdd, children }) => {
   const [currentTags, setCurrentTags] = useState<Tag[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-
   const { toast } = useToast();
+
+  const [internalZones, setInternalZones] = useState<Zone[]>(zones);
+  const [isZonePopoverOpen, setIsZonePopoverOpen] = useState(false);
+  const [zoneSearchText, setZoneSearchText] = useState('');
 
   const form = useForm<z.infer<typeof contentFormSchemaBase>>({
     resolver: zodResolver(contentFormSchemaBase),
@@ -76,10 +96,33 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       });
       setCurrentTags([]);
       setTagInput('');
+      setInternalZones(zones);
     }
   }, [open, form, zones]);
 
+  useEffect(() => {
+    setInternalZones(zones);
+  }, [zones]);
+
   const watchedZoneId = form.watch('zoneId');
+
+  const handleCreateZone = async (zoneName: string) => {
+    if (!zoneName.trim() || isSaving) return;
+    setIsSaving(true);
+    try {
+      const newZone = await addZone(zoneName.trim());
+      setInternalZones(prev => [...prev, newZone]);
+      form.setValue('zoneId', newZone.id, { shouldTouch: true, shouldValidate: true });
+      toast({ title: "Zone Created", description: `Zone "${newZone.name}" created and selected.` });
+    } catch (e) {
+      console.error('Error creating zone:', e);
+      toast({ title: "Error", description: "Could not create new zone.", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+      setIsZonePopoverOpen(false);
+      setZoneSearchText('');
+    }
+  };
 
   const handleTagInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTagInput(e.target.value);
@@ -159,6 +202,13 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const dialogTitle = "Add Content";
   const dialogDescriptionText = "Provide a URL to save a link, or just add content to save a note. Select a zone.";
 
+  const selectedZone = internalZones.find(z => z.id === watchedZoneId);
+  const ZoneDisplayIcon = getIconComponent(selectedZone?.icon);
+  const zoneDisplayName = selectedZone?.name || 'Select a zone';
+  const filteredZones = zoneSearchText
+    ? internalZones.filter(z => z.name.toLowerCase().includes(zoneSearchText.toLowerCase()))
+    : internalZones;
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -174,7 +224,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex-grow overflow-y-auto pr-2 space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="url" className="font-medium">URL</Label>
-            <Input id="url" {...form.register('url')} placeholder="https://example.com (optional)" className="focus-visible:ring-accent"/>
+            <Input id="url" {...form.register('url')} placeholder="https://example.com" className="focus-visible:ring-accent"/>
             {form.formState.errors.url && <p className="text-sm text-destructive">{form.formState.errors.url.message}</p>}
           </div>
 
@@ -196,25 +246,74 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
 
           <div className="space-y-2">
             <Label htmlFor="zoneId" className="font-medium">Zone</Label>
-            <Select
-              onValueChange={(selectedValue) => {
-                form.setValue('zoneId', selectedValue, { shouldTouch: true, shouldValidate: true });
-              }}
-              value={watchedZoneId || ''}
-              defaultValue={zones[0]?.id}
-            >
-              <SelectTrigger className="w-full focus:ring-accent">
-                <SelectValue placeholder="Select a zone" />
-              </SelectTrigger>
-              <SelectContent>
-                {zones.map(zone => (
-                  <SelectItem key={zone.id} value={zone.id}>
-                    {zone.name}
-                  </SelectItem>
-                ))}
-                 {zones.length === 0 && <SelectItem value="no-zones" disabled>No zones available</SelectItem>}
-              </SelectContent>
-            </Select>
+             <Popover open={isZonePopoverOpen} onOpenChange={setIsZonePopoverOpen}>
+              <PopoverTrigger asChild>
+                  <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={isZonePopoverOpen}
+                      className={cn(
+                          "w-full justify-between text-base",
+                          !watchedZoneId && "text-muted-foreground",
+                          form.formState.errors.zoneId && "border-destructive"
+                      )}
+                  >
+                      <div className="flex items-center">
+                          <ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" />
+                          <span className="truncate">{zoneDisplayName}</span>
+                      </div>
+                      <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                  <Command>
+                      <CommandInput
+                          placeholder="Search or create zone..."
+                          value={zoneSearchText}
+                          onValueChange={setZoneSearchText}
+                      />
+                      <CommandList>
+                          <CommandEmpty>
+                              {zoneSearchText.trim() === '' ? 'No zone found.' : (
+                                  <Button
+                                      variant="ghost"
+                                      className="w-full justify-start"
+                                      onClick={() => handleCreateZone(zoneSearchText)}
+                                  >
+                                      <Plus className="mr-2 h-4 w-4" /> Create "{zoneSearchText}"
+                                  </Button>
+                              )}
+                          </CommandEmpty>
+                          <CommandGroup>
+                              {filteredZones.map((z) => {
+                                const ListItemIcon = getIconComponent(z.icon);
+                                return (
+                                  <CommandItem
+                                      key={z.id}
+                                      value={z.id}
+                                      onSelect={() => {
+                                        form.setValue('zoneId', z.id, { shouldTouch: true, shouldValidate: true });
+                                        setIsZonePopoverOpen(false);
+                                      }}
+                                  >
+                                      <Check className={cn("mr-2 h-4 w-4", watchedZoneId === z.id ? "opacity-100" : "opacity-0")} />
+                                      <ListItemIcon className="mr-2 h-4 w-4 opacity-70" />
+                                      {z.name}
+                                  </CommandItem>
+                                );
+                              })}
+                          </CommandGroup>
+                      </CommandList>
+                      {zoneSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase()) && (
+                          <CommandGroup className="border-t">
+                              <CommandItem onSelect={() => handleCreateZone(zoneSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer">
+                                  <Plus className="mr-2 h-4 w-4" /> Create "{zoneSearchText.trim()}"
+                              </CommandItem>
+                          </CommandGroup>
+                      )}
+                  </Command>
+              </PopoverContent>
+            </Popover>
             {form.formState.errors.zoneId && <p className="text-sm text-destructive">{form.formState.errors.zoneId.message}</p>}
           </div>
 
