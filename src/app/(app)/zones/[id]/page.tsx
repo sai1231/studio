@@ -2,7 +2,7 @@
 'use client';
 
 import type React from 'react';
-import { useState, useEffect, use, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import ContentCard from '@/components/core/link-card';
 import ContentDetailDialog from '@/components/core/ContentDetailDialog'; 
@@ -29,8 +29,7 @@ const pageLoadingMessages = [
 const ALL_FILTER_VALUE = "__ALL__";
 
 export default function ZonePage({ params }: { params: { id: string } }) {
-  const resolvedParams = use(params as any);
-  const zoneId = resolvedParams.id;
+  const zoneId = params.id;
   const router = useRouter();
   const { toast } = useToast();
 
