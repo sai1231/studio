@@ -223,13 +223,13 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex-grow overflow-y-auto pr-2 space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="url" className="font-medium">URL</Label>
+            <Label htmlFor="url">URL</Label>
             <Input id="url" {...form.register('url')} placeholder="https://example.com" className="focus-visible:ring-accent"/>
             {form.formState.errors.url && <p className="text-sm text-destructive">{form.formState.errors.url.message}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description" className="font-medium">
+            <Label htmlFor="description">
               Content
             </Label>
             <Textarea
@@ -245,7 +245,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="zoneId" className="font-medium">Zone</Label>
+            <Label htmlFor="zoneId">Zone</Label>
              <Popover open={isZonePopoverOpen} onOpenChange={setIsZonePopoverOpen}>
               <PopoverTrigger asChild>
                   <Button
@@ -253,7 +253,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                       role="combobox"
                       aria-expanded={isZonePopoverOpen}
                       className={cn(
-                          "w-full justify-between text-base",
+                          "w-full justify-between",
                           !watchedZoneId && "text-muted-foreground",
                           form.formState.errors.zoneId && "border-destructive"
                       )}
@@ -273,17 +273,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                           onValueChange={setZoneSearchText}
                       />
                       <CommandList>
-                          <CommandEmpty>
-                              {zoneSearchText.trim() === '' ? 'No zone found.' : (
-                                  <Button
-                                      variant="ghost"
-                                      className="w-full justify-start"
-                                      onClick={() => handleCreateZone(zoneSearchText)}
-                                  >
-                                      <Plus className="mr-2 h-4 w-4" /> Create "{zoneSearchText}"
-                                  </Button>
-                              )}
-                          </CommandEmpty>
+                          <CommandEmpty>No zone found.</CommandEmpty>
                           <CommandGroup>
                               {filteredZones.map((z) => {
                                 const ListItemIcon = getIconComponent(z.icon);
@@ -303,14 +293,14 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                                 );
                               })}
                           </CommandGroup>
+                          {zoneSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase()) && (
+                              <CommandGroup className="border-t">
+                                  <CommandItem onSelect={() => handleCreateZone(zoneSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer">
+                                      <Plus className="mr-2 h-4 w-4" /> Create "{zoneSearchText.trim()}"
+                                  </CommandItem>
+                              </CommandGroup>
+                          )}
                       </CommandList>
-                      {zoneSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase()) && (
-                          <CommandGroup className="border-t">
-                              <CommandItem onSelect={() => handleCreateZone(zoneSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer">
-                                  <Plus className="mr-2 h-4 w-4" /> Create "{zoneSearchText.trim()}"
-                              </CommandItem>
-                          </CommandGroup>
-                      )}
                   </Command>
               </PopoverContent>
             </Popover>
@@ -319,7 +309,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
 
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <Label htmlFor="tags" className="font-medium">Tags</Label>
+              <Label htmlFor="tags">Tags</Label>
             </div>
             <div className="flex flex-wrap gap-2 mb-2">
               {currentTags.map(tag => (
