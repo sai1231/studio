@@ -6,10 +6,10 @@ import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/core/app-header';
 import AppSidebar from '@/components/core/app-sidebar';
 import AddContentDialog from '@/components/core/add-content-dialog';
-import AddTodoDialog from '@/components/core/AddTodoDialog'; // Import the new dialog
+import AddTodoDialog from '@/components/core/AddTodoDialog';
 import type { Zone, ContentItem, ContentItemType } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { addContentItem, getZones, uploadFile, getContentItems } from '@/services/contentService'; // Added getContentItems for refresh
+import { addContentItem, getZones, uploadFile } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -17,80 +17,101 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, FileText, ImageUp, Mic, UploadCloud, FileUp, ListChecks } from 'lucide-react';
+import { Plus, FileText, ImageUp, Mic, UploadCloud, FileUp, ListChecks, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 
 export default function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const router = useRouter();
+
   const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
-  const [isAddTodoDialogOpen, setIsAddTodoDialogOpen] = useState(false); // State for AddTodoDialog
+  const [isAddTodoDialogOpen, setIsAddTodoDialogOpen] = useState(false);
   const [zones, setZones] = useState<Zone[]>([]);
   const { toast } = useToast();
-  const router = useRouter();
   const imageUploadInputRef = useRef<HTMLInputElement>(null);
   const pdfUploadInputRef = useRef<HTMLInputElement>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
 
-  // Generic data fetching function, can be called to refresh data
+  useEffect(() => {
+    if (!isAuthLoading && !user) {
+      router.replace('/login');
+    }
+  }, [user, isAuthLoading, router]);
+
   const fetchData = useCallback(async () => {
+    if (!user) return;
     try {
-      const fetchedZones = await getZones();
+      // TODO: Pass user.uid when service is user-aware
+      const fetchedZones = await getZones(/* user.uid */);
       setZones(fetchedZones);
     } catch (error) {
       console.error("Error fetching initial data for layout:", error);
       toast({ title: "Error", description: "Could not load essential data.", variant: "destructive" });
     }
-  }, [toast]);
+  }, [toast, user]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (user) {
+      fetchData();
+    }
+  }, [user, fetchData]);
 
   const handleAddContentAndRefresh = async (newContentData: Omit<ContentItem, 'id' | 'createdAt'>) => {
+    if (!user) {
+      toast({ title: "Not Authenticated", description: "You must be logged in to add content.", variant: "destructive" });
+      return;
+    }
+    
     const currentToast = toast({
       title: `Saving ${newContentData.type === 'todo' ? 'TODO' : 'Content'}...`,
       description: "Please wait...",
     });
+
     try {
-      const addedItem = await addContentItem(newContentData);
-      currentToast.update({
-        id: currentToast.id,
-        title: `${newContentData.type.charAt(0).toUpperCase() + newContentData.type.slice(1)} Saved!`,
-        description: `"${addedItem.title}" has been saved.`,
-      });
+      const contentWithUser = { ...newContentData, userId: user.uid };
+      const result = await addContentItem(contentWithUser);
+
+      if (result.success) {
+        currentToast.update({
+          id: currentToast.id,
+          title: `${newContentData.type.charAt(0).toUpperCase() + newContentData.type.slice(1)} Saved!`,
+          description: `"${result.itemTitle}" has been saved.`,
+        });
+      } else {
+        throw new Error(result.error || "An unknown error occurred during save.");
+      }
 
       if (newContentData.type === 'todo') {
-        // For TODOs, we do NOT close the AddTodoDialog from the layout.
         // The AddTodoDialog itself handles its state and list refresh internally.
       } else {
-        // For other content types (link/note/image etc.), close the general AddContentDialog.
         setIsAddContentDialogOpen(false);
       }
-      // A more robust solution for global state update might involve a context or Zustand/Redux
-      // if many components need to react instantly. For now, individual pages/components re-fetch.
     } catch (error) {
       console.error("Error saving content from dialog:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       currentToast.update({
         id: currentToast.id,
         title: "Error Saving",
-        description: "Could not save your item. Please try again.",
+        description: `Could not save your item: ${errorMessage}.`,
         variant: "destructive",
       });
     }
   };
 
-
   const handleImageFileSelected = async (file: File) => {
+    if (!user) return;
     const currentToast = toast({
       title: "Processing Image...",
       description: "Preparing your image.",
     });
 
     try {
-      const imagePath = `contentImages/${Date.now()}_${file.name}`;
+      const imagePath = `contentImages/${user.uid}/${Date.now()}_${file.name}`;
       const downloadURL = await uploadFile(file, imagePath);
 
       currentToast.update({
@@ -99,19 +120,13 @@ export default function AppLayout({
         description: "Adding your image to your library.",
       });
 
-      const defaultZoneId = zones.length > 0 ? zones[0].id : undefined;
-       if (!defaultZoneId && zones.length > 0) {
-        console.warn("No default zone available, image might not be assigned to a zone.");
-       }
-
-
       const newImageContent: Omit<ContentItem, 'id' | 'createdAt'> = {
         type: 'image',
         title: file.name || 'Uploaded Image',
         description: `Uploaded image: ${file.name}`,
         imageUrl: downloadURL,
         tags: [{id: 'upload', name: 'upload'}, { id: file.type.startsWith('image/') ? 'image-upload' : 'file-upload', name: file.type.startsWith('image/') ? 'image' : 'file' }],
-        zoneId: defaultZoneId,
+        zoneId: zones[0]?.id,
       };
 
       await handleAddContentAndRefresh(newImageContent);
@@ -128,13 +143,14 @@ export default function AppLayout({
   };
 
   const handlePdfFileSelected = async (file: File) => {
+    if (!user) return;
     const currentToast = toast({
       title: "Processing PDF...",
       description: "Preparing your PDF.",
     });
 
     try {
-      const pdfPath = `contentPdfs/${Date.now()}_${file.name}`;
+      const pdfPath = `contentPdfs/${user.uid}/${Date.now()}_${file.name}`;
       const downloadURL = await uploadFile(file, pdfPath);
 
       currentToast.update({
@@ -143,18 +159,13 @@ export default function AppLayout({
         description: "Adding your PDF to your library.",
       });
 
-      const defaultZoneId = zones.length > 0 ? zones[0].id : undefined;
-      if (!defaultZoneId && zones.length > 0) {
-        console.warn("No default zone available, PDF might not be assigned to a zone.");
-      }
-
       const newPdfContent: Omit<ContentItem, 'id' | 'createdAt'> = {
         type: 'link', 
         title: file.name || 'Uploaded PDF',
         url: downloadURL,
         description: `Uploaded PDF: ${file.name}`,
         tags: [{ id: 'upload', name: 'upload' }, { id: 'pdf-upload', name: 'pdf' }],
-        zoneId: defaultZoneId,
+        zoneId: zones[0]?.id,
         contentType: 'PDF',
         domain: 'klipped.internal.storage',
       };
@@ -173,199 +184,93 @@ export default function AppLayout({
   };
 
 
-  const handleUploadImageClick = () => {
-    imageUploadInputRef.current?.click();
-  };
-
-  const handleImageInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleUploadImageClick = () => imageUploadInputRef.current?.click();
+  const handleImageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
       handleImageFileSelected(file);
-      if (event.target) event.target.value = '';
+      if(e.target) e.target.value = '';
     }
   };
 
-  const handleUploadPdfClick = () => {
-    pdfUploadInputRef.current?.click();
-  };
-
-  const handlePdfInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleUploadPdfClick = () => pdfUploadInputRef.current?.click();
+  const handlePdfInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
       handlePdfFileSelected(file);
-      if (event.target) event.target.value = '';
+      if(e.target) e.target.value = '';
     }
   };
 
-  const handleRecordVoiceClick = () => {
-    toast({
-      title: "Voice Recording",
-      description: "Voice recording feature coming soon!",
-    });
-  };
+  const handleRecordVoiceClick = () => toast({ title: "Voice Recording", description: "Voice recording feature coming soon!" });
+  const handleAddTodoClick = () => setIsAddTodoDialogOpen(true);
 
-  const handleAddTodoClick = () => {
-    setIsAddTodoDialogOpen(true); // Open the new AddTodoDialog
-  };
-
-  const isValidUrl = (string: string): boolean => {
-    try {
-      new URL(string);
-      return true;
-    } catch (_) {
-      return false;
-    }
-  };
+  const isValidUrl = (s: string) => { try { new URL(s); return true; } catch (_) { return false; } };
 
   const saveDroppedItem = async (type: ContentItemType, title: string, data: string | { url?: string; description?: string } ) => {
-    const toastId = toast({ title: `Processing Dropped ${type === 'link' ? 'Link' : 'Content'}...`});
-    try {
-        const defaultZoneId = zones.length > 0 ? zones[0].id : undefined;
-        if (!defaultZoneId && zones.length > 0) { // Ensure there's a default zone if none is specified
-            toast({ id: toastId.id, title: "Error", description: `No zones available to save the ${type}. Please create a zone first.`, variant: "destructive"});
-            return;
+    const newContent: Omit<ContentItem, 'id' | 'createdAt'> = type === 'link' && typeof data === 'object' && data.url
+      ? {
+          type: 'link',
+          title: title || `Dropped Link: ${new URL(data.url).hostname}`,
+          url: data.url,
+          description: data.description || `Link dropped on ${new Date().toLocaleDateString()}`,
+          tags: [{ id: 'dnd-drop', name: 'dropped' }],
+          zoneId: zones[0]?.id,
         }
-
-        let contentData: Omit<ContentItem, 'id' | 'createdAt'>;
-
-        if (type === 'link' && typeof data === 'object' && data.url) {
-            contentData = {
-                type: 'link',
-                title: title || `Dropped Link: ${new URL(data.url).hostname}`,
-                url: data.url,
-                description: data.description || `Link dropped on ${new Date().toLocaleDateString()}`,
-                tags: [{ id: 'dnd-drop', name: 'dropped' }],
-                zoneId: defaultZoneId,
-            };
-        } else if (type === 'note' && typeof data === 'string') {
-            contentData = {
-                type: 'note',
-                title: title || `Dropped Note - ${new Date().toLocaleDateString()}`,
-                description: data,
-                tags: [{ id: 'dnd-drop', name: 'dropped' }],
-                zoneId: defaultZoneId,
-            };
-        } else {
-            throw new Error("Invalid data structure for dropped item.");
-        }
-
-        await handleAddContentAndRefresh(contentData); // This will now use the updated logic
-
-    } catch (error) {
-        console.error(`Error saving dropped ${type}:`, error);
-        // Toast for success/error is handled within handleAddContentAndRefresh
-    }
+      : {
+          type: 'note',
+          title: title || `Dropped Note - ${new Date().toLocaleDateString()}`,
+          description: data as string,
+          tags: [{ id: 'dnd-drop', name: 'dropped' }],
+          zoneId: zones[0]?.id,
+        };
+    await handleAddContentAndRefresh(newContent);
   };
 
 
-  const handleDragEnter = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const types = event.dataTransfer.types;
-    if (types.includes('Files') || types.includes('text/uri-list') || types.includes('text/plain')) {
-        setIsDraggingOver(true);
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault(); e.stopPropagation();
+    if (e.dataTransfer.types.some(t => ['Files', 'text/uri-list', 'text/plain'].includes(t))) {
+      setIsDraggingOver(true);
     }
   };
-
-  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (!isDraggingOver) {
-        const types = event.dataTransfer.types;
-        if (types.includes('Files') || types.includes('text/uri-list') || types.includes('text/plain')) {
-            setIsDraggingOver(true);
-        }
-    }
-  };
-
-  const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (event.currentTarget.contains(event.relatedTarget as Node)) {
-      return;
-    }
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); e.stopPropagation(); };
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault(); e.stopPropagation();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
     setIsDraggingOver(false);
   };
-
-  const handleDrop = async (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault(); e.stopPropagation();
     setIsDraggingOver(false);
 
-    const files = event.dataTransfer.files;
-    const items = event.dataTransfer.items;
-
+    const files = e.dataTransfer.files;
     if (files && files.length > 0) {
       const file = files[0];
-      if (file.type.startsWith('image/')) {
-        await handleImageFileSelected(file);
-        return;
-      }
-      if (file.type === 'application/pdf') {
-        await handlePdfFileSelected(file);
-        return;
-      }
-      if (file.type === 'text/plain') {
-        const text = await file.text();
-        await saveDroppedItem('note', file.name || `Dropped Text File`, text);
-        return;
-      }
+      if (file.type.startsWith('image/')) return await handleImageFileSelected(file);
+      if (file.type === 'application/pdf') return await handlePdfFileSelected(file);
+      if (file.type === 'text/plain') return await saveDroppedItem('note', file.name, await file.text());
     }
 
-    if (items && items.length > 0) {
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        if (item.kind === 'string') {
-          if (item.type === 'text/uri-list' || item.type.includes('url')) {
-            item.getAsString(async (url) => {
-              if (isValidUrl(url)) {
-                await saveDroppedItem('link', '', { url });
-              } else {
-                await saveDroppedItem('note', 'Dropped Content', url);
-              }
-            });
-            return;
-          } else if (item.type === 'text/plain') {
-            item.getAsString(async (text) => {
-               if (isValidUrl(text)) {
-                await saveDroppedItem('link', '', { url: text });
-              } else {
-                await saveDroppedItem('note', `Dropped Text`, text);
-              }
-            });
-            return;
-          }
-        }
-      }
+    const uri = e.dataTransfer.getData('text/uri-list');
+    if (uri && isValidUrl(uri)) return await saveDroppedItem('link', '', { url: uri });
+    
+    const text = e.dataTransfer.getData('text/plain');
+    if (text) {
+      if (isValidUrl(text)) return await saveDroppedItem('link', '', { url: text });
+      return await saveDroppedItem('note', 'Dropped Text', text);
     }
 
-    try {
-      const urlData = event.dataTransfer.getData('URL') || event.dataTransfer.getData('text/uri-list');
-      if (urlData && isValidUrl(urlData)) {
-        await saveDroppedItem('link', '', { url: urlData });
-        return;
-      }
-
-      const textData = event.dataTransfer.getData('text/plain');
-      if (textData) {
-        if (isValidUrl(textData)) {
-          await saveDroppedItem('link', '', { url: textData });
-        } else {
-          await saveDroppedItem('note', 'Dropped Plain Text', textData);
-        }
-        return;
-      }
-    } catch (e) {
-      console.error("Error processing getData from dataTransfer:", e);
-    }
-
-    toast({
-      title: "Drop Not Processed",
-      description: "Could not determine the type of the dropped content or content was empty.",
-      variant: "default",
-    });
+    toast({ title: "Drop Not Processed", description: "Could not handle the dropped content type.", variant: "default" });
   };
-
+  
+  if (isAuthLoading || !user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full relative">

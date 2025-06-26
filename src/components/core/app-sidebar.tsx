@@ -4,6 +4,7 @@ import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { Home, Tag, Settings, LogOut, Users, ChevronDown, Plus, Globe, ClipboardList, Bookmark, Newspaper, Film, Baseline, Github, MessageSquare, MessagesSquare, BookOpen, LucideIcon, StickyNote, Briefcase, Library, FileText, Sparkles, Layers } from 'lucide-react'; // Added Layers
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import MatiLogo from './mati-logo';
@@ -14,7 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { getZones, getUniqueDomains, getUniqueContentTypes, getUniqueTags } from '@/services/contentService';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-
+import { getAuth, signOut } from 'firebase/auth';
 
 const predefinedContentTypes: Record<string, { icon: LucideIcon, name: string }> = {
   Post: { icon: Newspaper, name: 'Post' },
@@ -41,6 +42,8 @@ const AppSidebar: React.FC = () => {
   const [contentTypes, setContentTypes] = useState<string[]>([]);
   const [actualTags, setActualTags] = useState<TagType[]>([]);
   const { toast } = useToast();
+  const router = useRouter();
+  const auth = getAuth();
 
   const fetchData = useCallback(async () => {
     try {
@@ -68,6 +71,17 @@ const AppSidebar: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
+      router.push('/login');
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast({ title: 'Logout Failed', description: 'Could not log you out. Please try again.', variant: 'destructive' });
+    }
+  };
 
   const formatDomainName = (domain: string): string => {
     const nameWithoutTld = domain.replace(/\.(com|net|org|io|dev|co|ai|app|me|xyz|info|biz|blog|tech|co\.uk|org\.uk|ac\.uk|gov\.uk)$/i, '');
@@ -219,7 +233,7 @@ const AppSidebar: React.FC = () => {
             <ThemeToggle />
         </div>
         <div className="p-4 border-t border-sidebar-border">
-           <Button variant="ghost" className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+           <Button variant="ghost" onClick={handleLogout} className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
              <LogOut className="h-4 w-4 mr-2" />
              Logout
            </Button>
@@ -230,4 +244,3 @@ const AppSidebar: React.FC = () => {
 };
 
 export default AppSidebar;
-

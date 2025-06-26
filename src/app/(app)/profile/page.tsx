@@ -2,7 +2,7 @@
 'use client';
 
 import type React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,39 +13,54 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Mail, CalendarDays, User, Loader2, Edit3, ImageUp } from 'lucide-react';
 import { format } from 'date-fns';
-
-interface UserProfile {
-  name: string;
-  email: string;
-  bio: string;
-  avatarUrl: string;
-  joinedDate: Date;
-}
-
-const mockUserProfile: UserProfile = {
-  name: 'Samantha Bee',
-  email: 'samantha@example.com',
-  bio: 'Digital enthusiast, avid reader, and professional content clipper. Always on the lookout for the next big idea or fascinating article to save and share. Exploring the web one clip at a time!',
-  avatarUrl: 'https://cdn.pixabay.com/photo/2023/06/21/06/12/man-8078578_640.jpg', 
-  joinedDate: new Date(2023, 4, 15), 
-};
+import { useAuth } from '@/context/AuthContext';
+import { updateProfile } from 'firebase/auth';
 
 export default function ProfilePage() {
   const { toast } = useToast();
-  const [profile, setProfile] = useState<UserProfile>(mockUserProfile);
-  const [editableName, setEditableName] = useState(mockUserProfile.name);
-  const [editableBio, setEditableBio] = useState(mockUserProfile.bio);
+  const { user } = useAuth();
+
+  const [displayName, setDisplayName] = useState('');
+  const [bio, setBio] = useState(''); // This would need to be stored in Firestore, not on the auth object.
   const [isSaving, setIsSaving] = useState(false);
 
+  useEffect(() => {
+    if (user) {
+      setDisplayName(user.displayName || '');
+      // Bio is not a standard Firebase Auth field.
+      // We'll keep the mock text and functionality for now.
+      // A full implementation would fetch this from a 'users' collection in Firestore.
+      setBio('Digital enthusiast, avid reader, and professional content clipper. Always on the lookout for the next big idea or fascinating article to save and share. Exploring the web one clip at a time!');
+    }
+  }, [user]);
+
   const handleSaveChanges = async () => {
+    if (!user) {
+      toast({ title: 'Not Authenticated', description: 'You must be logged in.', variant: 'destructive'});
+      return;
+    }
     setIsSaving(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setProfile(prev => ({ ...prev, name: editableName, bio: editableBio }));
-    setIsSaving(false);
-    toast({
-      title: 'Profile Updated',
-      description: 'Your profile information has been saved.',
-    });
+    try {
+      // Update Firebase Auth display name
+      await updateProfile(user, { displayName: displayName });
+      
+      // Here you would typically save other profile data (like the bio) to Firestore
+      // e.g., await updateUserProfileInFirestore(user.uid, { bio });
+      
+      toast({
+        title: 'Profile Updated',
+        description: 'Your profile information has been saved.',
+      });
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast({
+        title: 'Error',
+        description: 'Could not update your profile. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleAvatarChange = () => {
@@ -53,6 +68,17 @@ export default function ProfilePage() {
         title: "Feature Coming Soon",
         description: "Avatar uploading will be implemented in a future update.",
     });
+  }
+
+  const getInitials = (name?: string | null, email?: string | null) => {
+    if (name) return name.split(' ').map(n => n[0]).join('');
+    if (email) return email.charAt(0).toUpperCase();
+    return 'U';
+  };
+
+  if (!user) {
+    // The layout already handles redirection, this is a fallback.
+    return null; 
   }
 
   return (
@@ -64,9 +90,9 @@ export default function ProfilePage() {
           <div className="flex items-center space-x-6">
             <div className="relative group">
                 <Avatar className="h-24 w-24 border-4 border-background shadow-md">
-                    <AvatarImage src={profile.avatarUrl} alt={profile.name} data-ai-hint="user avatar large" />
+                    <AvatarImage src={user.photoURL || undefined} alt={displayName} data-ai-hint="user avatar large" />
                     <AvatarFallback className="text-3xl">
-                    {profile.name.split(' ').map(n => n[0]).join('')}
+                      {getInitials(displayName, user.email)}
                     </AvatarFallback>
                 </Avatar>
                 <Button 
@@ -80,8 +106,8 @@ export default function ProfilePage() {
                 </Button>
             </div>
             <div>
-              <CardTitle className="text-3xl font-headline text-foreground">{profile.name}</CardTitle>
-              <CardDescription className="text-base text-muted-foreground mt-1">{profile.email}</CardDescription>
+              <CardTitle className="text-3xl font-headline text-foreground">{displayName || user.email}</CardTitle>
+              <CardDescription className="text-base text-muted-foreground mt-1">{user.email}</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -90,14 +116,14 @@ export default function ProfilePage() {
           <div className="space-y-2">
             <Label htmlFor="name" className="text-base font-medium flex items-center">
                 <User className="h-5 w-5 mr-2 text-primary" />
-                Full Name
+                Display Name
             </Label>
             <Input
               id="name"
-              value={editableName}
-              onChange={(e) => setEditableName(e.target.value)}
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
               className="text-base focus-visible:ring-accent"
-              placeholder="Your full name"
+              placeholder="Your display name"
             />
           </div>
 
@@ -108,11 +134,12 @@ export default function ProfilePage() {
             </Label>
             <Textarea
               id="bio"
-              value={editableBio}
-              onChange={(e) => setEditableBio(e.target.value)}
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
               placeholder="Tell us a little about yourself..."
               className="min-h-[100px] text-base focus-visible:ring-accent"
             />
+            <p className="text-xs text-muted-foreground">Bio saving is not yet implemented.</p>
           </div>
           
           <Separator />
@@ -122,16 +149,18 @@ export default function ProfilePage() {
                 <Mail className="h-6 w-6 text-primary shrink-0" />
                 <div>
                     <p className="font-medium text-foreground">Email Address</p>
-                    <p className="text-muted-foreground">{profile.email} (Cannot be changed)</p>
+                    <p className="text-muted-foreground">{user.email} (Cannot be changed)</p>
                 </div>
             </div>
-            <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
-                <CalendarDays className="h-6 w-6 text-primary shrink-0" />
-                <div>
-                    <p className="font-medium text-foreground">Joined Mati</p> {/* Changed Klipped to Mati */}
-                    <p className="text-muted-foreground">{format(profile.joinedDate, 'MMMM d, yyyy')}</p>
-                </div>
-            </div>
+            {user.metadata.creationTime && (
+              <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
+                  <CalendarDays className="h-6 w-6 text-primary shrink-0" />
+                  <div>
+                      <p className="font-medium text-foreground">Joined Mati</p>
+                      <p className="text-muted-foreground">{format(new Date(user.metadata.creationTime), 'MMMM d, yyyy')}</p>
+                  </div>
+              </div>
+            )}
           </div>
 
         </CardContent>
