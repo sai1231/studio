@@ -1,3 +1,4 @@
+
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -222,11 +223,9 @@ export default function DashboardPage() {
         getZones(),
       ]);
 
-      const [uniqueContentTypes, uniqueDomains, uniqueTags] = await Promise.all([
-        getUniqueContentTypesFromItems(items),
-        getUniqueDomainsFromItems(items),
-        getUniqueTagsFromItems(items),
-      ]);
+      const uniqueContentTypes = getUniqueContentTypesFromItems(items);
+      const uniqueDomains = getUniqueDomainsFromItems(items);
+      const uniqueTags = getUniqueTagsFromItems(items);
 
       setAllContentItems(items);
       setZones(fetchedZones);
@@ -551,7 +550,7 @@ export default function DashboardPage() {
                     xmlns="http://www.w3.org/2000/svg"
                   >
                     <path
-                      d="M26 25C20.8 54.2 61.4 78.2 89 89"
+                      d="M89 11C65.5 17.5 28 39.5 26 89"
                       stroke="currentColor"
                       strokeWidth="2.5"
                       strokeLinecap="round"
@@ -559,8 +558,8 @@ export default function DashboardPage() {
                       strokeDasharray="4 8"
                       className="animate-pulse"
                     />
-                    <path
-                      d="M81 94L89 89L94 81"
+                     <path
+                      d="M21 81L26 89L34 87"
                       stroke="currentColor"
                       strokeWidth="2.5"
                       strokeLinecap="round"

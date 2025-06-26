@@ -101,10 +101,8 @@ export default function DomainPage() {
         getZones(),
       ]);
 
-      const [contentTypes, tags] = await Promise.all([
-        getUniqueContentTypesFromItems(allItems),
-        getUniqueTagsFromItems(allItems),
-      ]);
+      const contentTypes = getUniqueContentTypesFromItems(allItems);
+      const tags = getUniqueTagsFromItems(allItems);
 
       const lowerCaseDomainName = decodedDomainName.toLowerCase();
       const itemsFromThisDomain = allItems.filter(item =>

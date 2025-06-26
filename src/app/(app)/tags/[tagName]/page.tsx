@@ -101,10 +101,8 @@ export default function TagPage() {
         getZones(),
       ]);
 
-      const [contentTypes, allTags] = await Promise.all([
-        getUniqueContentTypesFromItems(allItems),
-        getUniqueTagsFromItems(allItems),
-      ]);
+      const contentTypes = getUniqueContentTypesFromItems(allItems);
+      const allTags = getUniqueTagsFromItems(allItems);
 
       const lowerCaseTagName = decodedTagName.toLowerCase();
       const itemsWithThisTag = allItems.filter(item =>

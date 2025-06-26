@@ -85,10 +85,8 @@ export default function ZonePage({ params }: { params: { id: string } }) {
         const itemsInThisZone = allItems.filter(item => item.zoneId === zoneId);
         setAllContentInZone(itemsInThisZone);
         
-        const [contentTypes, tags] = await Promise.all([
-          getUniqueContentTypesFromItems(itemsInThisZone),
-          getUniqueTagsFromItems(itemsInThisZone),
-        ]);
+        const contentTypes = getUniqueContentTypesFromItems(itemsInThisZone);
+        const tags = getUniqueTagsFromItems(itemsInThisZone);
         setAvailableContentTypes(contentTypes);
         setAvailableTags(tags);
 

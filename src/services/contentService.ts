@@ -1,5 +1,4 @@
 
-'use server';
 
 import { db, storage } from '@/lib/firebase';
 import {
@@ -183,7 +182,7 @@ export async function uploadFile(file: File, path: string): Promise<string> {
 
 // --- Efficient Data Extraction Functions ---
 
-export async function getUniqueDomainsFromItems(items: ContentItem[]): Promise<string[]> {
+export function getUniqueDomainsFromItems(items: ContentItem[]): string[] {
   const domains = new Set<string>();
   items.forEach(item => {
     if (item.domain) {
@@ -193,7 +192,7 @@ export async function getUniqueDomainsFromItems(items: ContentItem[]): Promise<s
   return Array.from(domains).sort();
 }
 
-export async function getUniqueContentTypesFromItems(items: ContentItem[]): Promise<string[]> {
+export function getUniqueContentTypesFromItems(items: ContentItem[]): string[] {
   const contentTypes = new Set<string>();
   items.forEach(item => {
     if (item.contentType) {
@@ -203,7 +202,7 @@ export async function getUniqueContentTypesFromItems(items: ContentItem[]): Prom
   return Array.from(contentTypes).sort();
 }
 
-export async function getUniqueTagsFromItems(items: ContentItem[]): Promise<Tag[]> {
+export function getUniqueTagsFromItems(items: ContentItem[]): Tag[] {
   const allTagsMap = new Map<string, Tag>();
   items.forEach(item => {
     (item.tags || []).forEach(tag => { 
