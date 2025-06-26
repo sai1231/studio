@@ -130,12 +130,18 @@ export default function AppLayout({
 
       await handleAddContentAndRefresh(newImageContent);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error processing image upload:", error);
+      let description = "Could not process your image. Please try again.";
+      if (error.code === 'storage/retry-limit-exceeded') {
+          description = "Connection timed out. Please ensure Firebase Storage is enabled in your project console.";
+      } else if (error.code === 'storage/unauthorized') {
+          description = "Permission denied. Please check your Firebase Storage security rules.";
+      }
       currentToast.update({
         id: currentToast.id,
         title: "Image Upload Failed",
-        description: "Could not process your image. Please try again.",
+        description: description,
         variant: "destructive",
       });
     }
@@ -171,12 +177,18 @@ export default function AppLayout({
 
       await handleAddContentAndRefresh(newPdfContent);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error processing PDF upload:", error);
+      let description = "Could not process your PDF. Please try again.";
+      if (error.code === 'storage/retry-limit-exceeded') {
+          description = "Connection timed out. Please ensure Firebase Storage is enabled in your project console.";
+      } else if (error.code === 'storage/unauthorized') {
+          description = "Permission denied. Please check your Firebase Storage security rules.";
+      }
       currentToast.update({
         id: currentToast.id,
         title: "PDF Upload Failed",
-        description: "Could not process your PDF. Please try again.",
+        description: description,
         variant: "destructive",
       });
     }
