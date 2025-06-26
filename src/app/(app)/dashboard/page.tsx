@@ -1,4 +1,3 @@
-
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -99,7 +98,7 @@ const TodoDashboardCard: React.FC<TodoDashboardCardProps> = ({ todos, onToggleSt
         <CardContent className="text-center py-6">
           <ListChecks className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
           <p className="text-muted-foreground">No active TODOs. Great job, or add some new ones!</p>
-          <Button variant="link" className="mt-2" onClick={() => (window as any).openQuickTodo && (window as any).openQuickTodo()}>
+          <Button variant="link" className="mt-2" onClick={() => router.push('/quick-todo')}>
             Add a TODO
           </Button>
         </CardContent>
