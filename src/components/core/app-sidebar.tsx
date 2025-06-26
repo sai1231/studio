@@ -12,7 +12,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import type { Zone, Tag as TagType } from '@/types';
 import { ThemeToggle } from './theme-toggle';
 import { Separator } from '@/components/ui/separator';
-import { getZones, getUniqueDomains, getUniqueContentTypes, getUniqueTags } from '@/services/contentService';
+import { getZones, getContentItems, getUniqueDomainsFromItems, getUniqueContentTypesFromItems, getUniqueTagsFromItems } from '@/services/contentService';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { getAuth, signOut } from 'firebase/auth';
@@ -47,12 +47,15 @@ const AppSidebar: React.FC = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const [fetchedZones, fetchedDomains, fetchedContentTypes, fetchedTags] = await Promise.all([
+      const [fetchedZones, allItems] = await Promise.all([
         getZones(),
-        getUniqueDomains(),
-        getUniqueContentTypes(),
-        getUniqueTags(),
+        getContentItems(),
       ]);
+
+      const fetchedDomains = getUniqueDomainsFromItems(allItems);
+      const fetchedContentTypes = getUniqueContentTypesFromItems(allItems);
+      const fetchedTags = getUniqueTagsFromItems(allItems);
+
       setZones(fetchedZones);
       setDomains(fetchedDomains);
       setActualTags(fetchedTags);
@@ -244,3 +247,5 @@ const AppSidebar: React.FC = () => {
 };
 
 export default AppSidebar;
+
+    

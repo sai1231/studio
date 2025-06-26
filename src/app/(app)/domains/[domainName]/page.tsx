@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Globe, FolderOpen, Loader2, ListFilter, Search, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getContentItems, deleteContentItem, getZones, getUniqueContentTypes, getUniqueTags } from '@/services/contentService';
+import { getContentItems, deleteContentItem, getZones, getUniqueContentTypesFromItems, getUniqueTagsFromItems } from '@/services/contentService';
 import { cn } from '@/lib/utils';
 
 const pageLoadingMessages = [
@@ -96,11 +96,14 @@ export default function DomainPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const [allItems, zones, contentTypes, tags] = await Promise.all([
+      const [allItems, zones] = await Promise.all([
         getContentItems(),
         getZones(),
-        getUniqueContentTypes(),
-        getUniqueTags(),
+      ]);
+
+      const [contentTypes, tags] = await Promise.all([
+        getUniqueContentTypesFromItems(allItems),
+        getUniqueTagsFromItems(allItems),
       ]);
 
       const lowerCaseDomainName = decodedDomainName.toLowerCase();
@@ -391,4 +394,3 @@ export default function DomainPage() {
     </div>
   );
 }
-

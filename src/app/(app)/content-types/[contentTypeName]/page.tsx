@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ClipboardList, FolderOpen, Loader2, ListFilter, Search, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getContentItems, deleteContentItem, getZones, getUniqueDomains, getUniqueTags } from '@/services/contentService';
+import { getContentItems, deleteContentItem, getZones, getUniqueDomainsFromItems, getUniqueTagsFromItems } from '@/services/contentService';
 import { cn } from '@/lib/utils';
 
 const pageLoadingMessages = [
@@ -100,11 +100,14 @@ export default function ContentTypePage() {
     setIsLoading(true);
     setError(null);
     try {
-      const [allItems, zones, domains, tags] = await Promise.all([
+      const [allItems, zones] = await Promise.all([
         getContentItems(),
         getZones(),
-        getUniqueDomains(),
-        getUniqueTags(),
+      ]);
+
+      const [domains, tags] = await Promise.all([
+        getUniqueDomainsFromItems(allItems),
+        getUniqueTagsFromItems(allItems),
       ]);
 
       const lowerCaseContentType = decodedContentTypeName.toLowerCase();
@@ -399,3 +402,4 @@ export default function ContentTypePage() {
   );
 }
 
+    

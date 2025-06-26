@@ -18,7 +18,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { PlusCircle, ListFilter, Loader2, FolderOpen, Search, XCircle, ListChecks, AlarmClock, CalendarDays, ArrowUpRightSquare } from 'lucide-react';
 import AddContentDialog from '@/components/core/add-content-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { getContentItems, addContentItem, deleteContentItem, getZones, getUniqueContentTypes, getUniqueDomains, getUniqueTags, updateContentItem } from '@/services/contentService';
+import { getContentItems, addContentItem, deleteContentItem, getZones, getUniqueContentTypesFromItems, getUniqueDomainsFromItems, getUniqueTagsFromItems, updateContentItem } from '@/services/contentService';
 import { cn } from '@/lib/utils';
 import { format, isPast } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -218,13 +218,17 @@ export default function DashboardPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const [items, fetchedZones, uniqueContentTypes, uniqueDomains, uniqueTags] = await Promise.all([
+      const [items, fetchedZones] = await Promise.all([
         getContentItems(),
         getZones(),
-        getUniqueContentTypes(),
-        getUniqueDomains(),
-        getUniqueTags(),
       ]);
+
+      const [uniqueContentTypes, uniqueDomains, uniqueTags] = await Promise.all([
+        getUniqueContentTypesFromItems(items),
+        getUniqueDomainsFromItems(items),
+        getUniqueTagsFromItems(items),
+      ]);
+
       setAllContentItems(items);
       setZones(fetchedZones);
       setAvailableContentTypes(uniqueContentTypes);

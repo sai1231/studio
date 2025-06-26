@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ListFilter, FolderOpen, Loader2, Search, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getContentItems, getZoneById, deleteContentItem, getUniqueContentTypes, getUniqueTags } from '@/services/contentService';
+import { getContentItems, getZoneById, deleteContentItem, getUniqueContentTypesFromItems, getUniqueTagsFromItems } from '@/services/contentService';
 import { cn } from '@/lib/utils';
 
 const pageLoadingMessages = [
@@ -76,11 +76,14 @@ export default function ZonePage({ params }: { params: { id: string } }) {
     setIsLoading(true);
     setError(null);
     try {
-      const [zoneDetails, allItems, contentTypes, tags] = await Promise.all([
+      const [zoneDetails, allItems] = await Promise.all([
         getZoneById(zoneId),
-        getContentItems(), // Fetch all items, then filter client-side for the zone initially
-        getUniqueContentTypes(),
-        getUniqueTags(),
+        getContentItems(),
+      ]);
+
+      const [contentTypes, tags] = await Promise.all([
+        getUniqueContentTypesFromItems(allItems),
+        getUniqueTagsFromItems(allItems),
       ]);
 
       if (zoneDetails) {
@@ -354,5 +357,3 @@ export default function ZonePage({ params }: { params: { id: string } }) {
     </div>
   );
 }
-
-    

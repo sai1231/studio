@@ -168,11 +168,11 @@ export async function uploadFile(file: File, path: string): Promise<string> {
   return downloadURL;
 }
 
-// Function to get unique domains
-export async function getUniqueDomains(): Promise<string[]> {
-  const allItems = await getContentItems();
+// --- Efficient Data Extraction Functions ---
+
+export async function getUniqueDomainsFromItems(items: ContentItem[]): Promise<string[]> {
   const domains = new Set<string>();
-  allItems.forEach(item => {
+  items.forEach(item => {
     if (item.domain) {
       domains.add(item.domain);
     }
@@ -180,11 +180,9 @@ export async function getUniqueDomains(): Promise<string[]> {
   return Array.from(domains).sort();
 }
 
-// Function to get unique content types
-export async function getUniqueContentTypes(): Promise<string[]> {
-  const allItems = await getContentItems();
+export async function getUniqueContentTypesFromItems(items: ContentItem[]): Promise<string[]> {
   const contentTypes = new Set<string>();
-  allItems.forEach(item => {
+  items.forEach(item => {
     if (item.contentType) {
       contentTypes.add(item.contentType);
     }
@@ -192,11 +190,9 @@ export async function getUniqueContentTypes(): Promise<string[]> {
   return Array.from(contentTypes).sort();
 }
 
-// Function to get all unique tags
-export async function getUniqueTags(userId?: string): Promise<Tag[]> {
-  const allItems = await getContentItems(userId);
+export async function getUniqueTagsFromItems(items: ContentItem[]): Promise<Tag[]> {
   const allTagsMap = new Map<string, Tag>();
-  allItems.forEach(item => {
+  items.forEach(item => {
     (item.tags || []).forEach(tag => { 
       if (tag && tag.name && !allTagsMap.has(tag.name.toLowerCase())) { 
         allTagsMap.set(tag.name.toLowerCase(), tag);
