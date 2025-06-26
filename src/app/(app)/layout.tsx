@@ -47,7 +47,7 @@ export default function AppLayout({
     if (!user) return;
     try {
       // TODO: Pass user.uid when service is user-aware
-      const fetchedZones = await getZones(/* user.uid */);
+      const fetchedZones = await getZones(user.uid);
       setZones(fetchedZones);
     } catch (error) {
       console.error("Error fetching initial data for layout:", error);
@@ -106,7 +106,7 @@ export default function AppLayout({
     if (!user) return;
     const currentToast = toast({
       title: "Processing Image...",
-      description: "Preparing your image.",
+      description: "Uploading to cloud storage.",
     });
 
     try {
@@ -115,8 +115,8 @@ export default function AppLayout({
 
       currentToast.update({
         id: currentToast.id,
-        title: "Saving Image...",
-        description: "Adding your image to your library.",
+        title: "Image Uploaded",
+        description: "Saving metadata to your library...",
       });
 
       const newImageContent: Omit<ContentItem, 'id' | 'createdAt'> = {
@@ -126,9 +126,18 @@ export default function AppLayout({
         imageUrl: downloadURL,
         tags: [{id: 'upload', name: 'upload'}, { id: file.type.startsWith('image/') ? 'image-upload' : 'file-upload', name: file.type.startsWith('image/') ? 'image' : 'file' }],
         zoneId: zones[0]?.id,
+        userId: user.uid,
       };
+      
+      await addContentItem(newImageContent);
 
-      await handleAddContentAndRefresh(newImageContent);
+      currentToast.update({
+        id: currentToast.id,
+        title: "Image Saved!",
+        description: `Path: ${imagePath}`,
+      });
+      
+      router.refresh();
 
     } catch (error: any) {
       console.error("Error processing image upload:", error);
@@ -151,7 +160,7 @@ export default function AppLayout({
     if (!user) return;
     const currentToast = toast({
       title: "Processing PDF...",
-      description: "Preparing your PDF.",
+      description: "Uploading to cloud storage.",
     });
 
     try {
@@ -160,8 +169,8 @@ export default function AppLayout({
 
       currentToast.update({
         id: currentToast.id,
-        title: "Saving PDF...",
-        description: "Adding your PDF to your library.",
+        title: "PDF Uploaded",
+        description: "Saving metadata to your library...",
       });
 
       const newPdfContent: Omit<ContentItem, 'id' | 'createdAt'> = {
@@ -172,10 +181,19 @@ export default function AppLayout({
         tags: [{ id: 'upload', name: 'upload' }, { id: 'pdf-upload', name: 'pdf' }],
         zoneId: zones[0]?.id,
         contentType: 'PDF',
-        domain: 'klipped.internal.storage',
+        domain: 'mati.internal.storage',
+        userId: user.uid,
       };
 
-      await handleAddContentAndRefresh(newPdfContent);
+      await addContentItem(newPdfContent);
+      
+      currentToast.update({
+        id: currentToast.id,
+        title: "PDF Saved!",
+        description: `Path: ${pdfPath}`,
+      });
+      
+      router.refresh();
 
     } catch (error: any) {
       console.error("Error processing PDF upload:", error);
