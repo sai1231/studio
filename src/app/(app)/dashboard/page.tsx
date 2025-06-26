@@ -557,12 +557,36 @@ export default function DashboardPage() {
                   ? (<>Try easing up on those filters, or <Button variant="link" onClick={handleClearAndApplyFilters} className="p-0 h-auto text-primary inline">clear them</Button> to see all your memories.</>)
                   : "Start by adding your first item!"}
               </p>
-              { (allContentItems.length === 0 && activeFilterCount === 0 && !isLoading) &&
-                 <Button onClick={() => { setIsAddContentDialogOpen(true);}} className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    Add Your First Item
-                </Button>
-              }
+              { (allContentItems.length === 0 && activeFilterCount === 0 && !isLoading) && (
+                <div className="mt-16 flex flex-col items-center justify-center relative">
+                  <svg
+                    className="w-32 h-32 text-primary/70 -rotate-12 transform"
+                    viewBox="0 0 100 100"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M25 25C45 25 85 45 85 85"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeDasharray="4 8"
+                      className="animate-pulse"
+                    />
+                    <path
+                      d="M75 85L85 85L85 75"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <p className="mt-4 text-lg font-medium text-muted-foreground animate-pulse">
+                    Click the <span className="text-primary font-semibold">+</span> button to begin!
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
              <div className={'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
