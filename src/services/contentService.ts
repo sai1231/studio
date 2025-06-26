@@ -23,35 +23,45 @@ const zonesCollection = collection(db, 'zones');
 
 // Function to get all content items
 export async function getContentItems(userId?: string): Promise<ContentItem[]> {
-  // TODO: Add where('userId', '==', userId) to the query when auth is implemented
-  const q = query(contentCollection, orderBy('createdAt', 'desc'));
-  const querySnapshot = await getDocs(q);
-  const items: ContentItem[] = [];
-  querySnapshot.forEach((doc) => {
-    const data = doc.data();
-    items.push({
-      id: doc.id,
-      ...data,
-      // Ensure createdAt is a string to match the type, Firestore Timestamps need conversion
-      createdAt: data.createdAt,
-    } as ContentItem);
-  });
-  return items;
+  try {
+    // TODO: Add where('userId', '==', userId) to the query when auth is implemented
+    const q = query(contentCollection, orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+    const items: ContentItem[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      items.push({
+        id: doc.id,
+        ...data,
+        // Ensure createdAt is a string to match the type, Firestore Timestamps need conversion
+        createdAt: data.createdAt,
+      } as ContentItem);
+    });
+    return items;
+  } catch (error) {
+    console.error("Failed to get content items from Firestore:", error);
+    throw error;
+  }
 }
 
 // Function to get a single content item by ID
 export async function getContentItemById(id: string): Promise<ContentItem | undefined> {
-  const docRef = doc(db, 'content', id);
-  const docSnap = await getDoc(docRef);
-  if (docSnap.exists()) {
-    const data = docSnap.data();
-    return {
-      id: docSnap.id,
-      ...data,
-      createdAt: data.createdAt,
-    } as ContentItem;
+  try {
+    const docRef = doc(db, 'content', id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        ...data,
+        createdAt: data.createdAt,
+      } as ContentItem;
+    }
+    return undefined;
+  } catch (error) {
+    console.error(`Failed to get content item with ID ${id} from Firestore:`, error);
+    throw error;
   }
-  return undefined;
 }
 
 // Function to add a new content item
@@ -121,7 +131,7 @@ export async function addContentItem(
     } as ContentItem;
 
   } catch (error) {
-    console.error("Error in addContentItem:", error);
+    console.error("Failed to add content item to Firestore:", error);
     throw error; // Re-throw for the caller to handle
   }
 }
@@ -131,7 +141,7 @@ export async function deleteContentItem(itemId: string): Promise<void> {
   try {
     await deleteDoc(doc(db, 'content', itemId));
   } catch(error) {
-    console.error("Error deleting content item:", error);
+    console.error(`Failed to delete content item with ID ${itemId}:`, error);
     throw error;
   }
 }
@@ -146,7 +156,7 @@ export async function updateContentItem(
     await updateDoc(docRef, updates);
     return await getContentItemById(itemId); // Fetch the updated document
   } catch(error) {
-    console.error("Error updating content item:", error);
+    console.error(`Failed to update content item with ID ${itemId}:`, error);
     throw error;
   }
 }
@@ -154,30 +164,50 @@ export async function updateContentItem(
 // --- Zone Functions ---
 
 export async function getZones(userId?: string): Promise<Zone[]> {
-  const querySnapshot = await getDocs(zonesCollection);
-  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Zone));
+  try {
+    const querySnapshot = await getDocs(zonesCollection);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Zone));
+  } catch (error) {
+    console.error("Failed to get zones from Firestore:", error);
+    throw error;
+  }
 }
 
 export async function getZoneById(id: string): Promise<Zone | undefined> {
-  const docRef = doc(db, 'zones', id);
-  const docSnap = await getDoc(docRef);
-  return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } as Zone : undefined;
+  try {
+    const docRef = doc(db, 'zones', id);
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } as Zone : undefined;
+  } catch (error) {
+    console.error(`Failed to get zone with ID ${id} from Firestore:`, error);
+    throw error;
+  }
 }
 
 export async function addZone(name: string): Promise<Zone> {
-  const newZone = { name: name.trim(), icon: 'Bookmark' }; // Default icon
-  const docRef = await addDoc(zonesCollection, newZone);
-  return { id: docRef.id, ...newZone };
+  try {
+    const newZone = { name: name.trim(), icon: 'Bookmark' }; // Default icon
+    const docRef = await addDoc(zonesCollection, newZone);
+    return { id: docRef.id, ...newZone };
+  } catch (error) {
+    console.error(`Failed to add zone "${name}" to Firestore:`, error);
+    throw error;
+  }
 }
 
 // --- Utility & File Functions ---
 
 // Function for file upload to Firebase Storage
 export async function uploadFile(file: File, path: string): Promise<string> {
-  const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, file);
-  const downloadURL = await getDownloadURL(storageRef);
-  return downloadURL;
+  try {
+    const storageRef = ref(storage, path);
+    await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(storageRef);
+    return downloadURL;
+  } catch (error) {
+    console.error(`Failed to upload file to Storage at path ${path}:`, error);
+    throw error;
+  }
 }
 
 // --- Efficient Data Extraction Functions ---
