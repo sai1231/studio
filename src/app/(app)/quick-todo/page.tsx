@@ -17,10 +17,12 @@ import type { ContentItem, Zone } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 
 export default function QuickTodoPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [newTodoText, setNewTodoText] = useState('');
   const [selectedDueDate, setSelectedDueDate] = useState<Date | undefined>(undefined);
   const [todos, setTodos] = useState<ContentItem[]>([]);
@@ -32,11 +34,12 @@ export default function QuickTodoPage() {
 
 
   const fetchTodosAndZones = useCallback(async () => {
+    if (!user) return;
     setIsLoading(true);
     try {
       const [allContent, fetchedZones] = await Promise.all([
-        getContentItems(),
-        getZones(),
+        getContentItems(user.uid),
+        getZones(user.uid),
       ]);
       const todoItems = allContent.filter(item => item.type === 'todo').sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setTodos(todoItems);
@@ -47,17 +50,23 @@ export default function QuickTodoPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, user]);
 
   useEffect(() => {
-    fetchTodosAndZones();
-  }, [fetchTodosAndZones]);
+    if (user) {
+      fetchTodosAndZones();
+    }
+  }, [user, fetchTodosAndZones]);
 
   const handleAddTodo = async (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
     if (!newTodoText.trim()) {
       toast({ title: "Empty TODO", description: "Please enter some text for your TODO item.", variant: "destructive" });
       return;
+    }
+    if (!user) {
+        toast({ title: "Not Authenticated", description: "You must be logged in to add a TODO.", variant: "destructive" });
+        return;
     }
     setIsAdding(true);
 
@@ -72,6 +81,7 @@ export default function QuickTodoPage() {
       description: '',
       status: 'pending',
       dueDate: selectedDueDate ? selectedDueDate.toISOString() : undefined,
+      userId: user.uid,
     };
 
     try {

@@ -16,6 +16,7 @@ import { getZones, getContentItems, getUniqueDomainsFromItems, getUniqueContentT
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { getAuth, signOut } from 'firebase/auth';
+import { useAuth } from '@/context/AuthContext';
 
 const predefinedContentTypes: Record<string, { icon: LucideIcon, name: string }> = {
   Post: { icon: Newspaper, name: 'Post' },
@@ -44,12 +45,14 @@ const AppSidebar: React.FC = () => {
   const { toast } = useToast();
   const router = useRouter();
   const auth = getAuth();
+  const { user } = useAuth();
 
   const fetchData = useCallback(async () => {
+    if (!user) return;
     try {
       const [fetchedZones, allItems] = await Promise.all([
-        getZones(),
-        getContentItems(),
+        getZones(user.uid),
+        getContentItems(user.uid),
       ]);
 
       const fetchedDomains = getUniqueDomainsFromItems(allItems);
@@ -69,11 +72,13 @@ const AppSidebar: React.FC = () => {
       console.error("Error fetching sidebar data:", error);
       toast({ title: "Error", description: "Could not load sidebar categories.", variant: "destructive" });
     }
-  }, [toast]);
+  }, [toast, user]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (user) {
+      fetchData();
+    }
+  }, [user, fetchData]);
 
   const handleLogout = async () => {
     try {

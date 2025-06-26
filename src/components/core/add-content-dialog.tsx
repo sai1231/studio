@@ -26,6 +26,7 @@ import type { Zone, ContentItemType, Tag, ContentItem } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { addZone } from '@/services/contentService';
+import { useAuth } from '@/context/AuthContext';
 
 const contentFormSchemaBase = z.object({
   url: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
@@ -67,6 +68,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const [tagInput, setTagInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const [internalZones, setInternalZones] = useState<Zone[]>(zones);
   const [isZonePopoverOpen, setIsZonePopoverOpen] = useState(false);
@@ -107,10 +109,10 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const watchedZoneId = form.watch('zoneId');
 
   const handleCreateZone = async (zoneName: string) => {
-    if (!zoneName.trim() || isSaving) return;
+    if (!zoneName.trim() || isSaving || !user) return;
     setIsSaving(true);
     try {
-      const newZone = await addZone(zoneName.trim());
+      const newZone = await addZone(zoneName.trim(), user.uid);
       setInternalZones(prev => [...prev, newZone]);
       form.setValue('zoneId', newZone.id, { shouldTouch: true, shouldValidate: true });
       toast({ title: "Zone Created", description: `Zone "${newZone.name}" created and selected.` });

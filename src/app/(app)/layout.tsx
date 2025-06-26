@@ -46,7 +46,6 @@ export default function AppLayout({
   const fetchData = useCallback(async () => {
     if (!user) return;
     try {
-      // TODO: Pass user.uid when service is user-aware
       const fetchedZones = await getZones(user.uid);
       setZones(fetchedZones);
     } catch (error) {
@@ -273,6 +272,11 @@ export default function AppLayout({
     e.preventDefault(); e.stopPropagation();
     setIsDraggingOver(false);
 
+    if (isAuthLoading || !user) {
+        toast({ title: "Hold on...", description: "Still getting things ready. Please try again in a moment.", variant: "default" });
+        return;
+    }
+
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
       const file = files[0];
@@ -341,6 +345,7 @@ export default function AppLayout({
             size="lg"
             className="fixed bottom-6 right-6 md:bottom-8 md:right-8 rounded-full h-16 w-16 shadow-xl z-40 bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center"
             aria-label="Add Content Menu"
+            disabled={isAuthLoading}
           >
             <Plus className="h-7 w-7" />
           </Button>

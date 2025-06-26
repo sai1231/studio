@@ -11,6 +11,7 @@ import {
   updateDoc,
   query,
   orderBy,
+  where,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { ContentItem, Zone, Tag, MovieDetails } from '@/types';
@@ -21,11 +22,14 @@ const zonesCollection = collection(db, 'zones');
 
 // --- ContentItem Functions ---
 
-// Function to get all content items
-export async function getContentItems(userId?: string): Promise<ContentItem[]> {
+// Function to get all content items for a specific user
+export async function getContentItems(userId: string): Promise<ContentItem[]> {
   try {
-    // TODO: Add where('userId', '==', userId) to the query when auth is implemented
-    const q = query(contentCollection, orderBy('createdAt', 'desc'));
+    if (!userId) {
+        console.warn("getContentItems called without a userId. Returning empty array.");
+        return [];
+    }
+    const q = query(contentCollection, where("userId", "==", userId), orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(q);
     const items: ContentItem[] = [];
     querySnapshot.forEach((doc) => {
@@ -33,7 +37,6 @@ export async function getContentItems(userId?: string): Promise<ContentItem[]> {
       items.push({
         id: doc.id,
         ...data,
-        // Ensure createdAt is a string to match the type, Firestore Timestamps need conversion
         createdAt: data.createdAt,
       } as ContentItem);
     });
@@ -69,6 +72,9 @@ export async function addContentItem(
   itemData: Omit<ContentItem, 'id' | 'createdAt'>
 ): Promise<ContentItem> {
   try {
+    if (!itemData.userId) {
+      throw new Error("User ID is required to add a content item.");
+    }
     let extractedDomain: string | undefined = itemData.domain;
     let itemType = itemData.type;
     let finalContentType = itemData.contentType;
@@ -163,9 +169,14 @@ export async function updateContentItem(
 
 // --- Zone Functions ---
 
-export async function getZones(userId?: string): Promise<Zone[]> {
+export async function getZones(userId: string): Promise<Zone[]> {
   try {
-    const querySnapshot = await getDocs(zonesCollection);
+    if (!userId) {
+        console.warn("getZones called without a userId. Returning empty array.");
+        return [];
+    }
+    const q = query(zonesCollection, where("userId", "==", userId));
+    const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Zone));
   } catch (error) {
     console.error("Failed to get zones from Firestore:", error);
@@ -184,9 +195,12 @@ export async function getZoneById(id: string): Promise<Zone | undefined> {
   }
 }
 
-export async function addZone(name: string): Promise<Zone> {
+export async function addZone(name: string, userId: string): Promise<Zone> {
   try {
-    const newZone = { name: name.trim(), icon: 'Bookmark' }; // Default icon
+    if (!userId) {
+        throw new Error("User ID is required to add a zone.");
+    }
+    const newZone = { name: name.trim(), icon: 'Bookmark', userId }; // Default icon and add userId
     const docRef = await addDoc(zonesCollection, newZone);
     return { id: docRef.id, ...newZone };
   } catch (error) {

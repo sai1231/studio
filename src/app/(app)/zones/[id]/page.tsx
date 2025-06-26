@@ -18,6 +18,7 @@ import { ListFilter, FolderOpen, Loader2, Search, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getContentItems, getZoneById, deleteContentItem, getUniqueContentTypesFromItems, getUniqueTagsFromItems } from '@/services/contentService';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 
 const pageLoadingMessages = [
   "Organizing your thoughts...",
@@ -32,6 +33,7 @@ export default function ZonePage({ params }: { params: { id: string } }) {
   const zoneId = params.id; 
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const [allContentInZone, setAllContentInZone] = useState<ContentItem[]>([]);
   const [displayedContentItems, setDisplayedContentItems] = useState<ContentItem[]>([]);
@@ -67,9 +69,9 @@ export default function ZonePage({ params }: { params: { id: string } }) {
   }, [isLoading]);
 
   const fetchZonePageData = useCallback(async () => {
-    if (!zoneId) {
+    if (!user || !zoneId) {
       setIsLoading(false);
-      setError("Zone ID is missing.");
+      setError("Zone ID is missing or user not authenticated.");
       return;
     }
     setIsLoading(true);
@@ -77,7 +79,7 @@ export default function ZonePage({ params }: { params: { id: string } }) {
     try {
       const [zoneDetails, allItems] = await Promise.all([
         getZoneById(zoneId),
-        getContentItems(),
+        getContentItems(user.uid),
       ]);
 
       if (zoneDetails) {
@@ -103,11 +105,13 @@ export default function ZonePage({ params }: { params: { id: string } }) {
     } finally {
       setIsLoading(false);
     }
-  }, [zoneId, toast]);
+  }, [zoneId, toast, user]);
 
   useEffect(() => {
-    fetchZonePageData();
-  }, [fetchZonePageData]);
+    if (user) {
+      fetchZonePageData();
+    }
+  }, [user, fetchZonePageData]);
 
   useEffect(() => {
     if (isFilterPopoverOpen) {
@@ -209,7 +213,7 @@ export default function ZonePage({ params }: { params: { id: string } }) {
     return count;
   }, [appliedSearchTerm, appliedSelectedContentType, appliedSelectedTagIds]);
 
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

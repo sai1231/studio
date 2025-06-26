@@ -21,6 +21,7 @@ import { getContentItems, deleteContentItem, getZones, getUniqueContentTypesFrom
 import { cn } from '@/lib/utils';
 import { format, isPast } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/context/AuthContext';
 
 const pageLoadingMessages = [
   "Organizing your memories...",
@@ -175,6 +176,8 @@ const TodoDashboardCard: React.FC<TodoDashboardCardProps> = ({ todos, onToggleSt
 
 
 export default function DashboardPage() {
+  const { user } = useAuth();
+
   const [allContentItems, setAllContentItems] = useState<ContentItem[]>([]);
   const [displayedContentItems, setDisplayedContentItems] = useState<ContentItem[]>([]);
 
@@ -213,12 +216,13 @@ export default function DashboardPage() {
   }, [isLoading]);
 
   const fetchData = useCallback(async () => {
+    if (!user) return;
     setIsLoading(true);
     setError(null);
     try {
       const [items, fetchedZones] = await Promise.all([
-        getContentItems(),
-        getZones(),
+        getContentItems(user.uid),
+        getZones(user.uid),
       ]);
 
       const uniqueContentTypes = getUniqueContentTypesFromItems(items);
@@ -237,11 +241,13 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, user]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (user) {
+      fetchData();
+    }
+  }, [user, fetchData]);
 
   useEffect(() => {
     if (isFilterPopoverOpen) {
@@ -529,13 +535,13 @@ export default function DashboardPage() {
               { (allContentItems.length === 0 && activeFilterCount === 0 && !isLoading) && (
                 <div className="mt-16 flex flex-col items-center justify-center relative">
                   <svg
-                    className="w-32 h-32 text-primary/70"
+                    className="w-48 h-48 text-primary/70"
                     viewBox="0 0 100 100"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
                   >
                     <path
-                      d="M89 11C65.5 17.5 28 39.5 26 89"
+                      d="M85 15 C 60 50, 40 55, 45 85"
                       stroke="currentColor"
                       strokeWidth="2.5"
                       strokeLinecap="round"
@@ -544,7 +550,7 @@ export default function DashboardPage() {
                       className="animate-pulse"
                     />
                      <path
-                      d="M21 81L26 89L34 87"
+                      d="M40 89L45 85L49 89"
                       stroke="currentColor"
                       strokeWidth="2.5"
                       strokeLinecap="round"

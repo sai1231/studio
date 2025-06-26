@@ -18,6 +18,7 @@ import { Globe, FolderOpen, Loader2, ListFilter, Search, XCircle } from 'lucide-
 import { useToast } from '@/hooks/use-toast';
 import { getContentItems, deleteContentItem, getZones, getUniqueContentTypesFromItems, getUniqueTagsFromItems } from '@/services/contentService';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 
 const pageLoadingMessages = [
   "Fetching content from this domain...",
@@ -31,6 +32,7 @@ export default function DomainPage() {
   const params = useParams() as { domainName: string } | null;
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const [decodedDomainName, setDecodedDomainName] = useState<string>('');
   
@@ -87,7 +89,7 @@ export default function DomainPage() {
   }, [params, toast]);
 
   const fetchDomainPageData = useCallback(async () => {
-    if (!decodedDomainName) {
+    if (!user || !decodedDomainName) {
       setIsLoading(false);
       setAllContentForDomain([]);
       if(!error) setError("Domain name is missing or invalid.");
@@ -97,8 +99,8 @@ export default function DomainPage() {
     setError(null);
     try {
       const [allItems, zones] = await Promise.all([
-        getContentItems(),
-        getZones(),
+        getContentItems(user.uid),
+        getZones(user.uid),
       ]);
 
       const contentTypes = getUniqueContentTypesFromItems(allItems);
@@ -121,11 +123,13 @@ export default function DomainPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [decodedDomainName, toast, error]);
+  }, [user, decodedDomainName, toast, error]);
 
   useEffect(() => {
-    fetchDomainPageData();
-  }, [fetchDomainPageData]);
+    if (user) {
+      fetchDomainPageData();
+    }
+  }, [user, fetchDomainPageData]);
 
   useEffect(() => {
     if (isFilterPopoverOpen) {
@@ -230,7 +234,7 @@ export default function DomainPage() {
     return count;
   }, [appliedSearchTerm, appliedSelectedZoneId, appliedSelectedContentType, appliedSelectedTagIds]);
 
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

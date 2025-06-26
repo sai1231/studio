@@ -21,6 +21,7 @@ import ReadableArticleView from '@/components/core/ReadableArticleView';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 
 const NO_ZONE_VALUE = "__NO_ZONE__";
 
@@ -103,6 +104,7 @@ interface ContentDetailDialogProps {
 
 export default function ContentDetailDialog({ itemId, open, onOpenChange, onItemUpdate }: ContentDetailDialogProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const [item, setItem] = useState<ContentItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -132,7 +134,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   const [isFetchingArticle, setIsFetchingArticle] = useState(false);
 
   useEffect(() => {
-    if (open && itemId) {
+    if (open && itemId && user) {
       setIsLoading(true); 
       setError(null);
       setEmbedUrl(null);
@@ -172,7 +174,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
 
       const fetchAllZonesData = async () => {
         try {
-            const fetchedZones = await getZones();
+            const fetchedZones = await getZones(user.uid);
             setAllZones(fetchedZones);
         } catch (e) {
             console.error("Failed to fetch zones for dropdown", e);
@@ -187,7 +189,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       setArticleViewData(null);
       setIsArticleViewOpen(false);
     }
-  }, [itemId, open, toast]); 
+  }, [itemId, open, toast, user]); 
 
   useEffect(() => {
     if (item) {
@@ -280,10 +282,10 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   };
 
   const handleCreateZone = async (zoneName: string) => {
-    if (!zoneName.trim()) return;
+    if (!zoneName.trim() || !user) return;
     setIsSavingField(true);
     try {
-      const newZone = await addZone(zoneName.trim());
+      const newZone = await addZone(zoneName.trim(), user.uid);
       setAllZones(prev => [...prev, newZone]); 
       if (item) {
         await handleFieldUpdate('zoneId', newZone.id);

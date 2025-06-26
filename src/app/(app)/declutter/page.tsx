@@ -13,6 +13,7 @@ import { Loader2, Check, Trash2, Sparkles, CalendarDays, Globe, StickyNote, File
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 
 const getTypeSpecifics = (type: ContentItem['type'] | undefined) => {
   switch (type) {
@@ -51,6 +52,7 @@ const initialLoadingMessages = [
 ];
 
 export default function DeclutterPage() {
+  const { user } = useAuth();
   const [itemsToDeclutter, setItemsToDeclutter] = useState<ContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -63,9 +65,10 @@ export default function DeclutterPage() {
   }, []);
 
   const fetchAndSortItems = useCallback(async () => {
+    if (!user) return;
     setIsLoading(true);
     try {
-      const allItems = await getContentItems();
+      const allItems = await getContentItems(user.uid);
       // Sort oldest first
       const sortedItems = allItems.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
       setItemsToDeclutter(sortedItems);
@@ -75,11 +78,13 @@ export default function DeclutterPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, user]);
 
   useEffect(() => {
-    fetchAndSortItems();
-  }, [fetchAndSortItems]);
+    if (user) {
+      fetchAndSortItems();
+    }
+  }, [user, fetchAndSortItems]);
 
   const currentItem = itemsToDeclutter.length > 0 ? itemsToDeclutter[0] : null;
 
@@ -113,11 +118,11 @@ export default function DeclutterPage() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-8">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-        <p className="text-lg text-muted-foreground">{clientLoadingMessage}</p>
+        <p className="text-lg text-muted-foreground">{clientLoadingMessage || 'Loading...'}</p>
       </div>
     );
   }

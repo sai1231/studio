@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { getContentItems, updateContentItem } from '@/services/contentService';
+import { useAuth } from '@/context/AuthContext';
 
 interface AddTodoDialogProps {
   open: boolean;
@@ -34,6 +35,7 @@ interface AddTodoDialogProps {
 
 const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange, zones, onTodoAdd }) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [todoTitle, setTodoTitle] = useState('');
   const [selectedDueDate, setSelectedDueDate] = useState<Date | undefined>(undefined);
   const [isAdding, setIsAdding] = useState(false);
@@ -44,9 +46,10 @@ const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange, zones
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
 
   const fetchLocalTodos = useCallback(async () => {
+    if (!user) return;
     setIsLoadingTodos(true);
     try {
-      const allContent = await getContentItems();
+      const allContent = await getContentItems(user.uid);
       const todoItems = allContent
         .filter(item => item.type === 'todo')
         .sort((a, b) => {
@@ -64,10 +67,10 @@ const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange, zones
     } finally {
       setIsLoadingTodos(false);
     }
-  }, [toast]);
+  }, [toast, user]);
 
   useEffect(() => {
-    if (open) {
+    if (open && user) {
       fetchLocalTodos();
       // Only reset fields if not in the middle of adding, to preserve input on re-renders
       if (!isAdding) {
@@ -76,7 +79,7 @@ const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange, zones
       }
       setTimeout(() => titleInputRef.current?.focus(), 100);
     }
-  }, [open, fetchLocalTodos, isAdding]); // Added isAdding to dependencies
+  }, [open, user, fetchLocalTodos, isAdding]);
 
   const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
@@ -84,6 +87,10 @@ const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange, zones
       toast({ title: "Empty TODO", description: "Please enter a title for your TODO.", variant: "destructive" });
       titleInputRef.current?.focus();
       return;
+    }
+    if (!user) {
+        toast({ title: "Not Authenticated", description: "You must be logged in.", variant: "destructive" });
+        return;
     }
     setIsAdding(true);
 
@@ -98,6 +105,7 @@ const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange, zones
       contentType: 'Task',
       status: 'pending',
       dueDate: selectedDueDate ? selectedDueDate.toISOString() : undefined,
+      userId: user.uid,
     };
 
     try {

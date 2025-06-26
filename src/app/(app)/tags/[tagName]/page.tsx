@@ -18,6 +18,7 @@ import { Tag as TagIcon, FolderOpen, Loader2, ListFilter, Search, XCircle } from
 import { useToast } from '@/hooks/use-toast';
 import { getContentItems, deleteContentItem, getZones, getUniqueContentTypesFromItems, getUniqueTagsFromItems } from '@/services/contentService';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 
 const pageLoadingMessages = [
   "Gathering tagged items...",
@@ -31,6 +32,7 @@ export default function TagPage() {
   const params = useParams() as { tagName: string } | null;
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const [decodedTagName, setDecodedTagName] = useState<string>('');
   
@@ -87,7 +89,7 @@ export default function TagPage() {
   }, [params, toast]);
 
   const fetchTagPageData = useCallback(async () => {
-    if (!decodedTagName) {
+    if (!user || !decodedTagName) {
       setIsLoading(false);
       setAllContentForTag([]);
       if(!error) setError("Tag name is missing or invalid.");
@@ -97,8 +99,8 @@ export default function TagPage() {
     setError(null);
     try {
       const [allItems, zones] = await Promise.all([
-        getContentItems(),
-        getZones(),
+        getContentItems(user.uid),
+        getZones(user.uid),
       ]);
 
       const contentTypes = getUniqueContentTypesFromItems(allItems);
@@ -121,11 +123,13 @@ export default function TagPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [decodedTagName, toast, error]);
+  }, [user, decodedTagName, toast, error]);
 
   useEffect(() => {
-    fetchTagPageData();
-  }, [fetchTagPageData]);
+    if (user) {
+      fetchTagPageData();
+    }
+  }, [user, fetchTagPageData]);
   
   useEffect(() => {
     if (isFilterPopoverOpen) {
@@ -235,7 +239,7 @@ export default function TagPage() {
     return count;
   }, [appliedSearchTerm, appliedSelectedZoneId, appliedSelectedContentType, appliedSelectedAdditionalTagIds]);
   
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

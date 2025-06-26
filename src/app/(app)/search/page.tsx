@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Search as SearchIcon, FolderOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getContentItems, deleteContentItem } from '@/services/contentService';
+import { useAuth } from '@/context/AuthContext';
 
 const pageLoadingMessages = [
   "Searching through your memories...",
@@ -22,6 +23,7 @@ function SearchResultsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
   const query = searchParams.get('q');
 
   const [allContentItems, setAllContentItems] = useState<ContentItem[]>([]);
@@ -41,7 +43,7 @@ function SearchResultsPageContent() {
   }, [isLoading]);
 
   const fetchDataAndFilter = useCallback(async () => {
-    if (!query) {
+    if (!query || !user) {
       setSearchResults([]);
       setIsLoading(false);
       return;
@@ -50,7 +52,7 @@ function SearchResultsPageContent() {
     setIsLoading(true);
     setError(null);
     try {
-      const items = await getContentItems();
+      const items = await getContentItems(user.uid);
       setAllContentItems(items); // Store all items in case detail dialog needs it or if query changes
 
       const lowerCaseQuery = query.toLowerCase();
@@ -66,11 +68,13 @@ function SearchResultsPageContent() {
     } finally {
       setIsLoading(false);
     }
-  }, [query, toast]);
+  }, [query, toast, user]);
 
   useEffect(() => {
-    fetchDataAndFilter();
-  }, [fetchDataAndFilter]);
+    if (user) {
+      fetchDataAndFilter();
+    }
+  }, [user, fetchDataAndFilter]);
 
   const handleOpenDetailDialog = (item: ContentItem) => {
     setSelectedItemIdForDetail(item.id);
@@ -116,7 +120,7 @@ function SearchResultsPageContent() {
     }
   };
   
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

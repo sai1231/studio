@@ -18,6 +18,7 @@ import { ClipboardList, FolderOpen, Loader2, ListFilter, Search, XCircle } from 
 import { useToast } from '@/hooks/use-toast';
 import { getContentItems, deleteContentItem, getZones, getUniqueDomainsFromItems, getUniqueTagsFromItems } from '@/services/contentService';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 
 const pageLoadingMessages = [
   "Categorizing your content...",
@@ -35,6 +36,7 @@ export default function ContentTypePage() {
   const params = useParams() as { contentTypeName: string } | null;
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const [decodedContentTypeName, setDecodedContentTypeName] = useState<string>('');
   
@@ -91,7 +93,7 @@ export default function ContentTypePage() {
   }, [params, toast]);
 
   const fetchContentTypePageData = useCallback(async () => {
-    if (!decodedContentTypeName) {
+    if (!user || !decodedContentTypeName) {
       setIsLoading(false);
       setAllContentForType([]);
       if(!error) setError("Content type name is missing or invalid.");
@@ -101,8 +103,8 @@ export default function ContentTypePage() {
     setError(null);
     try {
       const [allItems, zones] = await Promise.all([
-        getContentItems(),
-        getZones(),
+        getContentItems(user.uid),
+        getZones(user.uid),
       ]);
 
       const domains = getUniqueDomainsFromItems(allItems);
@@ -125,11 +127,13 @@ export default function ContentTypePage() {
     } finally {
       setIsLoading(false);
     }
-  }, [decodedContentTypeName, toast, error]);
+  }, [user, decodedContentTypeName, toast, error]);
 
   useEffect(() => {
-    fetchContentTypePageData();
-  }, [fetchContentTypePageData]);
+    if (user) {
+      fetchContentTypePageData();
+    }
+  }, [user, fetchContentTypePageData]);
 
   useEffect(() => {
     if (isFilterPopoverOpen) {
@@ -235,7 +239,7 @@ export default function ContentTypePage() {
     return count;
   }, [appliedSearchTerm, appliedSelectedZoneId, appliedSelectedDomain, appliedSelectedTagIds]);
   
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -399,5 +403,3 @@ export default function ContentTypePage() {
     </div>
   );
 }
-
-    
