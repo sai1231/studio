@@ -75,18 +75,16 @@ export async function addContentItem(
     if (!itemData.userId) {
       throw new Error("User ID is required to add a content item.");
     }
-    let extractedDomain: string | undefined = itemData.domain;
-    let itemType = itemData.type;
-    let finalContentType = itemData.contentType;
-    let finalImageUrl = itemData.imageUrl;
-    let finalDescription = itemData.description;
-    let movieDetailsData: MovieDetails | undefined = itemData.type === 'movie' ? itemData.movieDetails : undefined;
+    
+    // Create a mutable copy to work with
+    const dataToSave: { [key: string]: any } = { ...itemData };
+    dataToSave.createdAt = new Date().toISOString();
 
     // Movie details fetching logic (requires TMDB_API_KEY in .env)
-    if (itemType === 'link' && itemData.url && itemData.url.includes('imdb.com/title/') && process.env.TMDB_API_KEY) {
-      itemType = 'movie';
-      finalContentType = 'Movie';
-      const imdbId = itemData.url.split('/title/')[1].split('/')[0];
+    if (dataToSave.type === 'link' && dataToSave.url && dataToSave.url.includes('imdb.com/title/') && process.env.TMDB_API_KEY) {
+      dataToSave.type = 'movie';
+      dataToSave.contentType = 'Movie';
+      const imdbId = dataToSave.url.split('/title/')[1].split('/')[0];
       if (imdbId) {
         try {
           const tmdbResponse = await fetch(`https://api.themoviedb.org/3/find/${imdbId}?api_key=${process.env.TMDB_API_KEY}&external_source=imdb_id`);
@@ -95,9 +93,10 @@ export async function addContentItem(
             const movieId = tmdbFindData.movie_results[0].id;
             const movieDetailResponse = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${process.env.TMDB_API_KEY}&append_to_response=credits`);
             const movieData = await movieDetailResponse.json();
-            finalImageUrl = movieData.poster_path ? `https://image.tmdb.org/t/p/w500${movieData.poster_path}` : finalImageUrl;
-            finalDescription = movieData.overview || finalDescription;
-            movieDetailsData = {
+            
+            dataToSave.imageUrl = movieData.poster_path ? `https://image.tmdb.org/t/p/w500${movieData.poster_path}` : dataToSave.imageUrl;
+            dataToSave.description = movieData.overview || dataToSave.description;
+            dataToSave.movieDetails = {
               posterPath: movieData.poster_path,
               releaseYear: movieData.release_date?.split('-')[0],
               rating: movieData.vote_average ? parseFloat(movieData.vote_average.toFixed(1)) : undefined,
@@ -110,30 +109,27 @@ export async function addContentItem(
           console.error("Error fetching movie details from TMDb:", e);
         }
       }
-    } else if (itemType === 'link' && itemData.url && !extractedDomain) {
+    } else if (dataToSave.type === 'link' && dataToSave.url && !dataToSave.domain) {
       try {
-        extractedDomain = new URL(itemData.url).hostname.replace(/^www\./, '');
+        dataToSave.domain = new URL(dataToSave.url).hostname.replace(/^www\./, '');
       } catch (e) {
-        console.warn("Could not extract domain from URL:", itemData.url);
+        console.warn("Could not extract domain from URL:", dataToSave.url);
       }
     }
 
-    const newItemData = {
-      ...itemData,
-      type: itemType,
-      domain: extractedDomain,
-      contentType: finalContentType,
-      description: finalDescription,
-      imageUrl: finalImageUrl,
-      movieDetails: movieDetailsData,
-      createdAt: new Date().toISOString(),
-    };
-    
-    const docRef = await addDoc(contentCollection, newItemData);
+    // This is the key fix: remove any top-level properties that are undefined.
+    // Firestore does not allow 'undefined' as a field value.
+    Object.keys(dataToSave).forEach(key => {
+      if (dataToSave[key] === undefined) {
+        delete dataToSave[key];
+      }
+    });
+
+    const docRef = await addDoc(contentCollection, dataToSave);
 
     return {
       id: docRef.id,
-      ...newItemData
+      ...dataToSave
     } as ContentItem;
 
   } catch (error) {

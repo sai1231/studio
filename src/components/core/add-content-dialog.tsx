@@ -181,7 +181,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     }
 
 
-    const contentData: Omit<ContentItem, 'id' | 'createdAt'> = {
+    const contentData: Partial<Omit<ContentItem, 'id' | 'createdAt'>> = {
       type,
       title: generatedTitle,
       description: finalDescription,
@@ -189,11 +189,14 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       tags: currentTags,
       url: type === 'link' ? values.url : undefined,
       domain: type === 'link' && values.url ? new URL(values.url).hostname.replace(/^www\./, '') : undefined,
-      contentType: undefined, // Not collected from user
     };
+    
+    if (type === 'note') {
+      contentData.contentType = 'Note';
+    }
 
     try {
-      await onContentAdd(contentData);
+      await onContentAdd(contentData as Omit<ContentItem, 'id' | 'createdAt'>);
     } catch (error) {
       // Error is handled by the caller
     } finally {
