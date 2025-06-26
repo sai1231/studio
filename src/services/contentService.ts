@@ -58,7 +58,7 @@ export async function getContentItemById(id: string): Promise<ContentItem | unde
 // Function to add a new content item
 export async function addContentItem(
   itemData: Omit<ContentItem, 'id' | 'createdAt'>
-): Promise<{ success: boolean, itemId: string, itemTitle: string, error?: string }> {
+): Promise<ContentItem> {
   try {
     let extractedDomain: string | undefined = itemData.domain;
     let itemType = itemData.type;
@@ -114,19 +114,27 @@ export async function addContentItem(
       createdAt: new Date().toISOString(),
     };
     
-    const newDocRef = await addDoc(contentCollection, newItemData);
-    return { success: true, itemId: newDocRef.id, itemTitle: itemData.title };
+    const docRef = await addDoc(contentCollection, newItemData);
+
+    return {
+      id: docRef.id,
+      ...newItemData
+    } as ContentItem;
 
   } catch (error) {
     console.error("Error in addContentItem:", error);
-    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-    return { success: false, itemId: '', itemTitle: '', error: errorMessage };
+    throw error; // Re-throw for the caller to handle
   }
 }
 
 // Function to delete a content item
 export async function deleteContentItem(itemId: string): Promise<void> {
-  await deleteDoc(doc(db, 'content', itemId));
+  try {
+    await deleteDoc(doc(db, 'content', itemId));
+  } catch(error) {
+    console.error("Error deleting content item:", error);
+    throw error;
+  }
 }
 
 // Function to update a content item
@@ -134,9 +142,14 @@ export async function updateContentItem(
   itemId: string,
   updates: Partial<Omit<ContentItem, 'id' | 'createdAt' | 'userId'>>
 ): Promise<ContentItem | undefined> {
-  const docRef = doc(db, 'content', itemId);
-  await updateDoc(docRef, updates);
-  return await getContentItemById(itemId); // Fetch the updated document
+  try {
+    const docRef = doc(db, 'content', itemId);
+    await updateDoc(docRef, updates);
+    return await getContentItemById(itemId); // Fetch the updated document
+  } catch(error) {
+    console.error("Error updating content item:", error);
+    throw error;
+  }
 }
 
 // --- Zone Functions ---

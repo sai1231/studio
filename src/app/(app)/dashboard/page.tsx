@@ -310,14 +310,14 @@ export default function DashboardPage() {
       description: "Please wait while your content is being saved.",
     });
     try {
-      await addContentItem(contentData);
+      const addedItem = await addContentItem(contentData);
       toast({
         id: toastId,
         title: "Content Saved!",
-        description: `"${contentData.title}" has been successfully saved.`,
+        description: `"${addedItem.title}" has been successfully saved.`,
       });
       setIsAddContentDialogOpen(false);
-      fetchData();
+      fetchData(); // Refetch all data to keep everything in sync
     } catch (error) {
       console.error("Error saving content from dialog:", error);
       toast({

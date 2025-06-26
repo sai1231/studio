@@ -74,17 +74,13 @@ export default function AppLayout({
 
     try {
       const contentWithUser = { ...newContentData, userId: user.uid };
-      const result = await addContentItem(contentWithUser);
+      const addedItem = await addContentItem(contentWithUser);
 
-      if (result.success) {
-        currentToast.update({
-          id: currentToast.id,
-          title: `${newContentData.type.charAt(0).toUpperCase() + newContentData.type.slice(1)} Saved!`,
-          description: `"${result.itemTitle}" has been saved.`,
-        });
-      } else {
-        throw new Error(result.error || "An unknown error occurred during save.");
-      }
+      currentToast.update({
+        id: currentToast.id,
+        title: `${addedItem.type.charAt(0).toUpperCase() + addedItem.type.slice(1)} Saved!`,
+        description: `"${addedItem.title}" has been saved.`,
+      });
 
       if (newContentData.type === 'todo') {
         // The AddTodoDialog itself handles its state and list refresh internally.

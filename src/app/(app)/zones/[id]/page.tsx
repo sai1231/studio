@@ -29,7 +29,7 @@ const pageLoadingMessages = [
 const ALL_FILTER_VALUE = "__ALL__";
 
 export default function ZonePage({ params }: { params: { id: string } }) {
-  const zoneId = params.id;
+  const zoneId = params.id; 
   const router = useRouter();
   const { toast } = useToast();
 
@@ -80,22 +80,23 @@ export default function ZonePage({ params }: { params: { id: string } }) {
         getContentItems(),
       ]);
 
-      const [contentTypes, tags] = await Promise.all([
-        getUniqueContentTypesFromItems(allItems),
-        getUniqueTagsFromItems(allItems),
-      ]);
-
       if (zoneDetails) {
         setCurrentZone(zoneDetails);
         const itemsInThisZone = allItems.filter(item => item.zoneId === zoneId);
         setAllContentInZone(itemsInThisZone);
+        
+        const [contentTypes, tags] = await Promise.all([
+          getUniqueContentTypesFromItems(itemsInThisZone),
+          getUniqueTagsFromItems(itemsInThisZone),
+        ]);
+        setAvailableContentTypes(contentTypes);
+        setAvailableTags(tags);
+
       } else {
         setCurrentZone(null);
         setAllContentInZone([]);
         setError('Zone not found.');
       }
-      setAvailableContentTypes(contentTypes);
-      setAvailableTags(tags);
 
     } catch (err) {
       console.error("Error fetching zone page data:", err);
