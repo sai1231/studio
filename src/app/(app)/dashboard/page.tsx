@@ -305,27 +305,13 @@ export default function DashboardPage() {
   const handleAddOrUpdateContentDialog = async (
     contentData: Omit<ContentItem, 'id' | 'createdAt'>
   ) => {
-    const { id: toastId } = toast({
-      title: "Saving Content...",
-      description: "Please wait while your content is being saved.",
-    });
     try {
-      const addedItem = await addContentItem(contentData);
-      toast({
-        id: toastId,
-        title: "Content Saved!",
-        description: `"${addedItem.title}" has been successfully saved.`,
-      });
+      await addContentItem(contentData);
       setIsAddContentDialogOpen(false);
       fetchData(); // Refetch all data to keep everything in sync
     } catch (error) {
       console.error("Error saving content from dialog:", error);
-      toast({
-        id: toastId,
-        title: "Error Saving Content",
-        description: "Could not save your content. Please try again.",
-        variant: "destructive",
-      });
+      // The toast is now handled in layout, but logging here is good.
     }
   };
 
@@ -560,24 +546,24 @@ export default function DashboardPage() {
               { (allContentItems.length === 0 && activeFilterCount === 0 && !isLoading) && (
                 <div className="mt-16 flex flex-col items-center justify-center relative">
                   <svg
-                    className="w-32 h-32 text-primary/70 -rotate-12 transform"
+                    className="w-32 h-32 text-primary/70"
                     viewBox="0 0 100 100"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
                   >
                     <path
-                      d="M25 25C45 25 85 45 85 85"
+                      d="M26 25C20.8 54.2 61.4 78.2 89 89"
                       stroke="currentColor"
-                      strokeWidth="3"
+                      strokeWidth="2.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeDasharray="4 8"
                       className="animate-pulse"
                     />
                     <path
-                      d="M75 85L85 85L85 75"
+                      d="M81 94L89 89L94 81"
                       stroke="currentColor"
-                      strokeWidth="3"
+                      strokeWidth="2.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
