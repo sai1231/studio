@@ -274,17 +274,9 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                       />
                       <CommandList>
                           <CommandEmpty>
-                            {zoneSearchText.trim() === '' ? (
-                              <div className="py-6 text-center text-sm">No zone found.</div>
-                            ) : (
-                              <CommandItem
-                                  onSelect={() => handleCreateZone(zoneSearchText)}
-                                  className="text-primary hover:!bg-primary/10 cursor-pointer justify-start"
-                              >
-                                  <Plus className="mr-2 h-4 w-4" />
-                                  <span>Create "{zoneSearchText.trim()}"</span>
-                              </CommandItem>
-                            )}
+                            <div className="py-6 text-center text-sm">
+                              {zoneSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}
+                            </div>
                           </CommandEmpty>
                           <CommandGroup>
                               {filteredZones.map((z) => {
@@ -305,6 +297,17 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                                 );
                               })}
                           </CommandGroup>
+                          {zoneSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase()) && (
+                            <CommandGroup className="border-t">
+                              <CommandItem
+                                  onSelect={() => handleCreateZone(zoneSearchText)}
+                                  className="text-primary hover:!bg-primary/10 cursor-pointer justify-start"
+                              >
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  <span>Create "{zoneSearchText.trim()}"</span>
+                              </CommandItem>
+                            </CommandGroup>
+                          )}
                       </CommandList>
                   </Command>
               </PopoverContent>
