@@ -82,11 +82,14 @@ export default function AppLayout({
         description: `"${addedItem.title}" has been saved.`,
       });
 
-      if (newContentData.type === 'todo') {
-        // The AddTodoDialog itself handles its state and list refresh internally.
-      } else {
+      // For links/notes, close the dialog. For TODOs, the dialog stays open for quick entry.
+      if (newContentData.type !== 'todo') {
         setIsAddContentDialogOpen(false);
       }
+      
+      // Refresh the current route to reflect the new data without a full page reload.
+      router.refresh();
+
     } catch (error) {
       console.error("Error saving content from dialog:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";

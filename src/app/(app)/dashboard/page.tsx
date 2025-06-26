@@ -16,9 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { PlusCircle, ListFilter, Loader2, FolderOpen, Search, XCircle, ListChecks, AlarmClock, CalendarDays, ArrowUpRightSquare } from 'lucide-react';
-import AddContentDialog from '@/components/core/add-content-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { getContentItems, addContentItem, deleteContentItem, getZones, getUniqueContentTypesFromItems, getUniqueDomainsFromItems, getUniqueTagsFromItems, updateContentItem } from '@/services/contentService';
+import { getContentItems, deleteContentItem, getZones, getUniqueContentTypesFromItems, getUniqueDomainsFromItems, getUniqueTagsFromItems, updateContentItem } from '@/services/contentService';
 import { cn } from '@/lib/utils';
 import { format, isPast } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -188,7 +187,6 @@ export default function DashboardPage() {
   const [isUpdatingTodoStatus, setIsUpdatingTodoStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
   const [selectedItemIdForDetail, setSelectedItemIdForDetail] = useState<string | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
 
@@ -299,19 +297,6 @@ export default function DashboardPage() {
 
     setDisplayedContentItems(filtered);
   }, [appliedSearchTerm, appliedSelectedContentType, appliedSelectedDomain, appliedSelectedTagIds, otherItems]);
-
-  const handleAddOrUpdateContentDialog = async (
-    contentData: Omit<ContentItem, 'id' | 'createdAt'>
-  ) => {
-    try {
-      await addContentItem(contentData);
-      setIsAddContentDialogOpen(false);
-      fetchData(); // Refetch all data to keep everything in sync
-    } catch (error) {
-      console.error("Error saving content from dialog:", error);
-      // The toast is now handled in layout, but logging here is good.
-    }
-  };
 
   const handleOpenDetailDialog = (item: ContentItem) => {
     setSelectedItemIdForDetail(item.id);
@@ -609,12 +594,6 @@ export default function DashboardPage() {
         </>
       )}
 
-      <AddContentDialog
-        open={isAddContentDialogOpen}
-        onOpenChange={setIsAddContentDialogOpen}
-        zones={zones}
-        onContentAdd={handleAddOrUpdateContentDialog}
-      />
       {selectedItemIdForDetail && (
         <ContentDetailDialog
           itemId={selectedItemIdForDetail}
