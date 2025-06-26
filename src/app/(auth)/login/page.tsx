@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Sign In - Mati',
-  description: 'Sign in to your Mati account using Google.',
+  description: 'Sign in to your Mati account using email and password or Google.',
 };
 
 export default function LoginPage() {
