@@ -273,7 +273,19 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                           onValueChange={setZoneSearchText}
                       />
                       <CommandList>
-                          <CommandEmpty>No zone found.</CommandEmpty>
+                          <CommandEmpty>
+                            {zoneSearchText.trim() === '' ? (
+                              <div className="py-6 text-center text-sm">No zone found.</div>
+                            ) : (
+                              <CommandItem
+                                  onSelect={() => handleCreateZone(zoneSearchText)}
+                                  className="text-primary hover:!bg-primary/10 cursor-pointer justify-start"
+                              >
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  <span>Create "{zoneSearchText.trim()}"</span>
+                              </CommandItem>
+                            )}
+                          </CommandEmpty>
                           <CommandGroup>
                               {filteredZones.map((z) => {
                                 const ListItemIcon = getIconComponent(z.icon);
@@ -293,13 +305,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                                 );
                               })}
                           </CommandGroup>
-                          {zoneSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase()) && (
-                              <CommandGroup className="border-t">
-                                  <CommandItem onSelect={() => handleCreateZone(zoneSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer">
-                                      <Plus className="mr-2 h-4 w-4" /> Create "{zoneSearchText.trim()}"
-                                  </CommandItem>
-                              </CommandGroup>
-                          )}
                       </CommandList>
                   </Command>
               </PopoverContent>

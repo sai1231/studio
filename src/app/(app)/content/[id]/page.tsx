@@ -584,14 +584,16 @@ export default function ContentDetailPage() {
                                 />
                                 <CommandList>
                                     <CommandEmpty>
-                                    {comboboxSearchText.trim() === '' ? 'No zone found.' : (
-                                        <Button
-                                            variant="ghost"
-                                            className="w-full justify-start"
-                                            onClick={() => handleCreateZone(comboboxSearchText)}
-                                        >
-                                            <Plus className="mr-2 h-4 w-4" /> Create "{comboboxSearchText}"
-                                        </Button>
+                                    {comboboxSearchText.trim() === '' ? (
+                                      <div className="py-6 text-center text-sm">No zone found.</div>
+                                    ) : (
+                                      <CommandItem
+                                          onSelect={() => handleCreateZone(comboboxSearchText)}
+                                          className="text-primary hover:!bg-primary/10 cursor-pointer justify-start"
+                                      >
+                                          <Plus className="mr-2 h-4 w-4" />
+                                          <span>Create "{comboboxSearchText.trim()}"</span>
+                                      </CommandItem>
                                     )}
                                     </CommandEmpty>
                                     <CommandGroup>
@@ -631,13 +633,6 @@ export default function ContentDetailPage() {
                                         })}
                                     </CommandGroup>
                                 </CommandList>
-                                {comboboxSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === comboboxSearchText.trim().toLowerCase()) && (
-                                    <CommandGroup className="border-t">
-                                        <CommandItem onSelect={() => handleCreateZone(comboboxSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer">
-                                            <Plus className="mr-2 h-4 w-4" /> Create "{comboboxSearchText.trim()}"
-                                        </CommandItem>
-                                    </CommandGroup>
-                                )}
                             </Command>
                         </PopoverContent>
                     </Popover>
