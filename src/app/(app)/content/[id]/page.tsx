@@ -584,17 +584,7 @@ export default function ContentDetailPage() {
                                 />
                                 <CommandList>
                                     <CommandEmpty>
-                                    {comboboxSearchText.trim() === '' ? (
-                                      <div className="py-6 text-center text-sm">No zone found.</div>
-                                    ) : (
-                                      <CommandItem
-                                          onSelect={() => handleCreateZone(comboboxSearchText)}
-                                          className="text-primary hover:!bg-primary/10 cursor-pointer justify-start"
-                                      >
-                                          <Plus className="mr-2 h-4 w-4" />
-                                          <span>Create "{comboboxSearchText.trim()}"</span>
-                                      </CommandItem>
-                                    )}
+                                      <div className="py-6 text-center text-sm">No matching zones found.</div>
                                     </CommandEmpty>
                                     <CommandGroup>
                                         <CommandItem
@@ -632,6 +622,17 @@ export default function ContentDetailPage() {
                                           );
                                         })}
                                     </CommandGroup>
+                                    {comboboxSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === comboboxSearchText.trim().toLowerCase()) && (
+                                      <CommandGroup className="border-t">
+                                          <CommandItem
+                                            onSelect={() => handleCreateZone(comboboxSearchText)}
+                                            className="text-primary hover:!bg-primary/10 cursor-pointer"
+                                          >
+                                              <Plus className="mr-2 h-4 w-4" />
+                                              <span>Create "{comboboxSearchText.trim()}"</span>
+                                          </CommandItem>
+                                      </CommandGroup>
+                                    )}
                                 </CommandList>
                             </Command>
                         </PopoverContent>
