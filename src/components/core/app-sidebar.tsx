@@ -1,7 +1,7 @@
 
 'use client';
 import type React from 'react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Home, Tag, Settings, LogOut, Users, ChevronDown, Plus, Globe, ClipboardList, Bookmark, Newspaper, Film, Baseline, Github, MessageSquare, MessagesSquare, BookOpen, LucideIcon, StickyNote, Briefcase, Library, FileText, Sparkles, Layers } from 'lucide-react'; // Added Layers
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -12,7 +12,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import type { Zone, Tag as TagType } from '@/types';
 import { ThemeToggle } from './theme-toggle';
 import { Separator } from '@/components/ui/separator';
-import { getZones, getContentItems, getUniqueDomainsFromItems, getUniqueContentTypesFromItems, getUniqueTagsFromItems } from '@/services/contentService';
+import { getZones, subscribeToContentItems, getUniqueDomainsFromItems, getUniqueContentTypesFromItems, getUniqueTagsFromItems } from '@/services/contentService';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { getAuth, signOut } from 'firebase/auth';
@@ -47,38 +47,45 @@ const AppSidebar: React.FC = () => {
   const auth = getAuth();
   const { user } = useAuth();
 
-  const fetchData = useCallback(async () => {
-    if (!user) return;
-    try {
-      const [fetchedZones, allItems] = await Promise.all([
-        getZones(user.uid),
-        getContentItems(user.uid),
-      ]);
-
-      const fetchedDomains = getUniqueDomainsFromItems(allItems);
-      const fetchedContentTypes = getUniqueContentTypesFromItems(allItems);
-      const fetchedTags = getUniqueTagsFromItems(allItems);
-
-      setZones(fetchedZones);
-      setDomains(fetchedDomains);
-      setActualTags(fetchedTags);
-
-      const availablePredefinedTypes = fetchedContentTypes.filter(
-        type => predefinedContentTypes[type]
-      );
-      setContentTypes(availablePredefinedTypes);
-
-    } catch (error) {
-      console.error("Error fetching sidebar data:", error);
-      toast({ title: "Error", description: "Could not load sidebar categories.", variant: "destructive" });
-    }
-  }, [toast, user]);
-
   useEffect(() => {
-    if (user) {
-      fetchData();
-    }
-  }, [user, fetchData]);
+    if (!user) return;
+
+    // Fetch zones once, as they don't depend on content items directly for updates.
+    const fetchInitialZones = async () => {
+        try {
+            const fetchedZones = await getZones(user.uid);
+            setZones(fetchedZones);
+        } catch (error) {
+            console.error("Error fetching zones for sidebar:", error);
+            toast({ title: "Error", description: "Could not load zones.", variant: "destructive" });
+        }
+    };
+    fetchInitialZones();
+
+    // Subscribe to content items for real-time updates to domains, tags, and content types.
+    const unsubscribe = subscribeToContentItems(user.uid, (items, error) => {
+        if (error) {
+            console.error("Error subscribing to content items in sidebar:", error);
+            toast({ title: "Real-time Error", description: "Could not update sidebar content.", variant: "destructive" });
+            return;
+        }
+
+        const fetchedDomains = getUniqueDomainsFromItems(items);
+        const fetchedContentTypes = getUniqueContentTypesFromItems(items);
+        const fetchedTags = getUniqueTagsFromItems(items);
+        
+        setDomains(fetchedDomains);
+        setActualTags(fetchedTags);
+
+        const availablePredefinedTypes = fetchedContentTypes.filter(
+            type => predefinedContentTypes[type]
+        );
+        setContentTypes(availablePredefinedTypes);
+    });
+
+    return () => unsubscribe(); // Cleanup subscription on component unmount
+  }, [user, toast]);
+
 
   const handleLogout = async () => {
     try {
