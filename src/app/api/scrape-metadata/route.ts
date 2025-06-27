@@ -1,3 +1,4 @@
+
 import {NextRequest, NextResponse} from 'next/server';
 import {JSDOM} from 'jsdom';
 
@@ -52,10 +53,16 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    let imageUrl = doc.querySelector('meta[property="og:image"]')?.getAttribute('content');
+    if (imageUrl) {
+      imageUrl = new URL(imageUrl, url).href;
+    }
+
     return NextResponse.json({
       title,
       description,
       faviconUrl,
+      imageUrl,
     });
   } catch (error) {
     console.error('Scrape metadata API error:', error);

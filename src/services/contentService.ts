@@ -132,6 +132,9 @@ export async function addContentItem(
             if (metadata.faviconUrl) {
                 dataToSave.faviconUrl = metadata.faviconUrl;
             }
+            if (metadata.imageUrl) {
+                dataToSave.imageUrl = metadata.imageUrl;
+            }
         }
       } catch (e) {
         console.warn(`Could not fetch metadata for ${dataToSave.url}:`, e);
