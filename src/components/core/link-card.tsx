@@ -1,6 +1,6 @@
+
 'use client';
 import React from 'react';
-import Image from 'next/image';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -62,13 +62,12 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
     >
       {hasImage && (
         <div className="relative w-full mb-1 rounded-xl overflow-hidden aspect-square">
-          <Image
+          <img
             src={item.imageUrl!}
             alt={item.title}
             data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
-            fill
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="absolute h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+            loading="lazy"
           />
         </div>
       )}
