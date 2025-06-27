@@ -13,10 +13,14 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { PlusCircle, ListFilter, Loader2, FolderOpen, Search, XCircle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PlusCircle, ListFilter, Loader2, FolderOpen, Search, XCircle, ListChecks, AlarmClock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { subscribeToContentItems, deleteContentItem, getZones, getUniqueContentTypesFromItems, getUniqueDomainsFromItems, getUniqueTagsFromItems, updateContentItem } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
+import { cn } from '@/lib/utils';
+import { format, isPast } from 'date-fns';
+
 
 const pageLoadingMessages = [
   "Organizing your memories...",
@@ -26,6 +30,67 @@ const pageLoadingMessages = [
 ];
 
 const ALL_FILTER_VALUE = "__ALL__";
+
+const TodoListCard: React.FC<{
+  items: ContentItem[];
+  onToggleStatus: (itemId: string, currentStatus: 'pending' | 'completed' | undefined) => void;
+  isUpdatingStatus: string | null;
+}> = ({ items, onToggleStatus, isUpdatingStatus }) => {
+  return (
+    <Card className="mb-8 shadow-lg">
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <ListChecks className="mr-2 h-6 w-6 text-primary" />
+          My TODOs
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ScrollArea className="max-h-96 pr-3">
+          <div className="space-y-3">
+            {items.map(todo => (
+              <div key={todo.id} className="flex items-center gap-3 p-2.5 rounded-md border hover:bg-muted/50 transition-colors">
+                <Checkbox
+                  id={`dialog-todo-${todo.id}`}
+                  checked={todo.status === 'completed'}
+                  onCheckedChange={() => onToggleStatus(todo.id, todo.status)}
+                  disabled={isUpdatingStatus === todo.id}
+                  aria-labelledby={`dialog-todo-label-${todo.id}`}
+                  className="shrink-0"
+                />
+                <div className="flex-grow min-w-0">
+                  <Label
+                    htmlFor={`dialog-todo-${todo.id}`}
+                    id={`dialog-todo-label-${todo.id}`}
+                    className={cn(
+                      "font-medium text-foreground cursor-pointer break-words",
+                      todo.status === 'completed' && "line-through text-muted-foreground"
+                    )}
+                  >
+                    {todo.title}
+                  </Label>
+                  {todo.dueDate && (
+                    <div className="text-xs text-muted-foreground flex items-center mt-0.5">
+                      <AlarmClock className={cn(
+                          "h-3.5 w-3.5 mr-1",
+                          todo.status !== 'completed' && isPast(new Date(todo.dueDate)) ? "text-destructive" : "text-muted-foreground/80"
+                        )}
+                      />
+                      <span className={cn(todo.status !== 'completed' && isPast(new Date(todo.dueDate)) ? "text-destructive font-semibold" : "")}>
+                         {format(new Date(todo.dueDate), 'MMM d, yy')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {isUpdatingStatus === todo.id && <Loader2 className="h-5 w-5 animate-spin text-primary ml-auto shrink-0" />}
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      </CardContent>
+    </Card>
+  );
+};
+
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -175,8 +240,6 @@ export default function DashboardPage() {
 
     setDisplayedContentItems(filtered);
   }, [appliedSearchTerm, appliedSelectedContentType, appliedSelectedDomain, appliedSelectedTagIds, otherItems]);
-  
-  const allDisplayItems = useMemo(() => [...todoItems, ...displayedContentItems], [todoItems, displayedContentItems]);
 
   const handleOpenDetailDialog = (item: ContentItem) => {
     setSelectedItemIdForDetail(item.id);
@@ -413,8 +476,17 @@ export default function DashboardPage() {
         </div>
       ) : (
         <div>
-            <h2 className="text-2xl font-headline font-semibold text-foreground mb-4">My Memories</h2>
-            {allDisplayItems.length === 0 ? (
+            {todoItems.length > 0 && (
+              <TodoListCard
+                items={todoItems}
+                onToggleStatus={handleToggleTodoStatus}
+                isUpdatingStatus={isUpdatingTodoStatus}
+              />
+            )}
+            
+            <h2 className={cn("text-2xl font-headline font-semibold text-foreground mb-4", todoItems.length > 0 && "mt-8")}>My Memories</h2>
+
+            {displayedContentItems.length === 0 ? (
                 <div className="text-center py-16 rounded-lg bg-muted/50">
                 <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <h2 className="text-xl font-medium text-muted-foreground">
@@ -428,13 +500,12 @@ export default function DashboardPage() {
             </div>
             ) : (
             <div className={'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
-                {allDisplayItems.map(item => (
+                {displayedContentItems.map(item => (
                 <ContentCard
                     key={item.id}
                     item={item}
                     onEdit={handleOpenDetailDialog}
                     onDelete={handleDeleteContent}
-                    onToggleStatus={handleToggleTodoStatus}
                 />
                 ))}
             </div>

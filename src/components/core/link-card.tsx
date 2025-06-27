@@ -4,18 +4,14 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Landmark, PlayCircle, FileText, AlarmClock } from 'lucide-react';
+import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Landmark, PlayCircle, FileText } from 'lucide-react';
 import type { ContentItem } from '@/types';
 import { cn } from '@/lib/utils';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { format, isPast } from 'date-fns';
 
 interface ContentCardProps {
   item: ContentItem;
   onEdit: (item: ContentItem) => void;
   onDelete: (itemId: string) => void;
-  onToggleStatus?: (itemId: string, currentStatus: 'pending' | 'completed' | undefined) => void;
 }
 
 const getTypeSpecifics = (item: ContentItem) => {
@@ -38,7 +34,7 @@ const getTypeSpecifics = (item: ContentItem) => {
   }
 };
 
-const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete, onToggleStatus }) => {
+const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => {
   const specifics = getTypeSpecifics(item);
   const hasImage = !!item.imageUrl;
 
@@ -57,72 +53,6 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete, onTog
   };
 
   const plainDescription = getPlainTextDescription(item.description);
-
-  if (item.type === 'todo' && onToggleStatus) {
-    return (
-        <Card className={cn(
-            "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col group rounded-3xl p-4 break-inside-avoid mb-4",
-             item.status === 'completed' && 'opacity-70 bg-muted/50'
-        )}>
-            <div className="flex items-start gap-3 flex-grow">
-                <Checkbox
-                  id={`todo-card-${item.id}`}
-                  checked={item.status === 'completed'}
-                  onCheckedChange={() => onToggleStatus(item.id, item.status)}
-                  className="mt-1"
-                  aria-labelledby={`todo-card-label-${item.id}`}
-                  onClick={handleActionClick}
-                />
-                <div className="flex-grow">
-                  <Label
-                    htmlFor={`todo-card-${item.id}`}
-                    id={`todo-card-label-${item.id}`}
-                    className={cn(
-                      "font-semibold text-lg leading-tight group-hover:text-primary transition-colors cursor-pointer",
-                      item.status === 'completed' && "line-through text-muted-foreground hover:text-muted-foreground/80"
-                    )}
-                    onClick={() => onEdit(item)}
-                  >
-                    {item.title}
-                  </Label>
-                  {item.dueDate && (
-                    <div className="text-xs text-muted-foreground flex items-center mt-1">
-                      <AlarmClock className={cn(
-                          "h-3.5 w-3.5 mr-1",
-                          item.status !== 'completed' && isPast(new Date(item.dueDate)) ? "text-destructive" : "text-muted-foreground/80"
-                        )}
-                      />
-                      <span className={cn(item.status !== 'completed' && isPast(new Date(item.dueDate)) ? "text-destructive font-semibold" : "")}>
-                         {format(new Date(item.dueDate), 'MMM d, yy')}
-                      </span>
-                    </div>
-                  )}
-                </div>
-            </div>
-            <div className="mt-auto pt-2 flex items-center justify-end">
-                <TooltipProvider>
-                    <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                            handleActionClick(e);
-                            onDelete(item.id);
-                        }}
-                        aria-label="Forget item"
-                        className="h-8 w-8 rounded-full hover:bg-accent group/deleteicon" 
-                        >
-                        <Trash2 className="h-4 w-4 text-muted-foreground group-hover/deleteicon:text-destructive" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent><p>Forget</p></TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-            </div>
-        </Card>
-    );
-  }
 
   return (
     <Card
@@ -145,8 +75,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete, onTog
       {/* Main content div */}
       <div
         className={cn(
-          "flex flex-col flex-grow cursor-pointer",
-          !hasImage && "pt-1" // Added conditional top padding here
+          "flex flex-col flex-grow cursor-pointer p-2"
         )}
         onClick={() => onEdit(item)}
       >
@@ -178,7 +107,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete, onTog
       </div>
 
       {/* Footer for domain and actions */}
-      <div className="mt-auto pt-2 flex items-center justify-between">
+      <div className="mt-auto pt-2 flex items-center justify-between p-2">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
           {item.faviconUrl ? (
             <img src={item.faviconUrl} alt="" className="h-4 w-4 rounded-sm" />
