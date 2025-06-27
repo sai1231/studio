@@ -1,22 +1,18 @@
-
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import ContentCard from '@/components/core/link-card';
 import ContentDetailDialog from '@/components/core/ContentDetailDialog';
-import type { ContentItem, Zone as AppZone, Tag as AppTag } from '@/types';
+import type { ContentItem, Zone as AppZone } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
-import { PlusCircle, ListFilter, Loader2, FolderOpen, Search, XCircle, ListChecks, AlarmClock } from 'lucide-react';
+import { PlusCircle, Loader2, FolderOpen, ListChecks, AlarmClock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { subscribeToContentItems, deleteContentItem, getZones, getUniqueContentTypesFromItems, getUniqueDomainsFromItems, getUniqueTagsFromItems, updateContentItem } from '@/services/contentService';
+import { subscribeToContentItems, deleteContentItem, getZones, updateContentItem } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
 import { cn } from '@/lib/utils';
@@ -29,8 +25,6 @@ const pageLoadingMessages = [
   "Aligning your ideas...",
   "Connecting the dots...",
 ];
-
-const ALL_FILTER_VALUE = "__ALL__";
 
 const TodoListCard: React.FC<{
   items: ContentItem[];
@@ -105,12 +99,7 @@ export default function DashboardPage() {
   const { setIsAddTodoDialogOpen } = useDialog();
 
   const [allContentItems, setAllContentItems] = useState<ContentItem[]>([]);
-  const [displayedContentItems, setDisplayedContentItems] = useState<ContentItem[]>([]);
-
   const [zones, setZones] = useState<AppZone[]>([]);
-  const [availableContentTypes, setAvailableContentTypes] = useState<string[]>([]);
-  const [availableDomains, setAvailableDomains] = useState<string[]>([]);
-  const [availableTags, setAvailableTags] = useState<AppTag[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdatingTodoStatus, setIsUpdatingTodoStatus] = useState<string | null>(null);
@@ -122,18 +111,6 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const [clientLoadingMessage, setClientLoadingMessage] = useState<string | null>(null);
 
-  const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
-  const [appliedSelectedContentType, setAppliedSelectedContentType] = useState<string>(ALL_FILTER_VALUE);
-  const [appliedSelectedDomain, setAppliedSelectedDomain] = useState<string>(ALL_FILTER_VALUE);
-  const [appliedSelectedTagIds, setAppliedSelectedTagIds] = useState<string[]>([]);
-
-  const [pendingSearchTerm, setPendingSearchTerm] = useState('');
-  const [pendingSelectedContentType, setPendingSelectedContentType] = useState<string>(ALL_FILTER_VALUE);
-  const [pendingSelectedDomain, setPendingSelectedDomain] = useState<string>(ALL_FILTER_VALUE);
-  const [pendingSelectedTagIds, setPendingSelectedTagIds] = useState<string[]>([]);
-
-  const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
-  
   const handleAddTodoClick = () => {
     setIsAddTodoDialogOpen(true);
   };
@@ -177,14 +154,7 @@ export default function DashboardPage() {
             return;
         }
 
-        const uniqueContentTypes = getUniqueContentTypesFromItems(items);
-        const uniqueDomains = getUniqueDomainsFromItems(items);
-        const uniqueTags = getUniqueTagsFromItems(items);
-
         setAllContentItems(items);
-        setAvailableContentTypes(uniqueContentTypes);
-        setAvailableDomains(uniqueDomains);
-        setAvailableTags(uniqueTags);
         
         if (!initialDataLoaded) {
             setIsLoading(false);
@@ -196,16 +166,6 @@ export default function DashboardPage() {
       unsubscribe(); // Cleanup subscription on component unmount
     };
   }, [user, toast]);
-
-
-  useEffect(() => {
-    if (isFilterPopoverOpen) {
-      setPendingSearchTerm(appliedSearchTerm);
-      setPendingSelectedContentType(appliedSelectedContentType);
-      setPendingSelectedDomain(appliedSelectedDomain);
-      setPendingSelectedTagIds([...appliedSelectedTagIds]);
-    }
-  }, [isFilterPopoverOpen, appliedSearchTerm, appliedSelectedContentType, appliedSelectedDomain, appliedSelectedTagIds]);
 
   const todoItems = useMemo(() => {
     return allContentItems
@@ -223,35 +183,6 @@ export default function DashboardPage() {
   const otherItems = useMemo(() => {
     return allContentItems.filter(item => item.type !== 'todo');
   }, [allContentItems]);
-
-  useEffect(() => {
-    let filtered = [...otherItems];
-
-    if (appliedSearchTerm.trim()) {
-      const lowerSearchTerm = appliedSearchTerm.toLowerCase();
-      filtered = filtered.filter(item =>
-        item.title.toLowerCase().includes(lowerSearchTerm) ||
-        (item.description && item.description.toLowerCase().includes(lowerSearchTerm))
-      );
-    }
-
-    if (appliedSelectedContentType !== ALL_FILTER_VALUE) {
-      filtered = filtered.filter(item => item.contentType === appliedSelectedContentType);
-    }
-
-    if (appliedSelectedDomain !== ALL_FILTER_VALUE) {
-      filtered = filtered.filter(item => item.domain === appliedSelectedDomain);
-    }
-
-    if (appliedSelectedTagIds.length > 0) {
-      filtered = filtered.filter(item => {
-        const itemTagIds = item.tags.map(tag => tag.id);
-        return appliedSelectedTagIds.every(filterTagId => itemTagIds.includes(filterTagId));
-      });
-    }
-
-    setDisplayedContentItems(filtered);
-  }, [appliedSearchTerm, appliedSelectedContentType, appliedSelectedDomain, appliedSelectedTagIds, otherItems]);
 
   const handleOpenDetailDialog = (item: ContentItem) => {
     setSelectedItemIdForDetail(item.id);
@@ -275,42 +206,6 @@ export default function DashboardPage() {
       setAllContentItems(originalItems);
     }
   };
-
-  const handleTagSelectionChange = (tagId: string, checked: boolean) => {
-    setPendingSelectedTagIds(prev =>
-      checked ? [...prev, tagId] : prev.filter(id => id !== tagId)
-    );
-  };
-
-  const handleApplyPendingFilters = () => {
-    setAppliedSearchTerm(pendingSearchTerm);
-    setAppliedSelectedContentType(pendingSelectedContentType);
-    setAppliedSelectedDomain(pendingSelectedDomain);
-    setAppliedSelectedTagIds([...pendingSelectedTagIds]);
-    setIsFilterPopoverOpen(false);
-  };
-
-  const handleClearAndApplyFilters = () => {
-    setPendingSearchTerm('');
-    setPendingSelectedContentType(ALL_FILTER_VALUE);
-    setPendingSelectedDomain(ALL_FILTER_VALUE);
-    setPendingSelectedTagIds([]);
-
-    setAppliedSearchTerm('');
-    setAppliedSelectedContentType(ALL_FILTER_VALUE);
-    setAppliedSelectedDomain(ALL_FILTER_VALUE);
-    setAppliedSelectedTagIds([]);
-    setIsFilterPopoverOpen(false);
-  };
-
-  const activeFilterCount = useMemo(() => {
-    let count = 0;
-    if (appliedSearchTerm.trim()) count++;
-    if (appliedSelectedContentType !== ALL_FILTER_VALUE) count++;
-    if (appliedSelectedDomain !== ALL_FILTER_VALUE) count++;
-    if (appliedSelectedTagIds.length > 0) count++;
-    return count;
-  }, [appliedSearchTerm, appliedSelectedContentType, appliedSelectedDomain, appliedSelectedTagIds]);
 
   const handleToggleTodoStatus = async (todoId: string, currentStatus: 'pending' | 'completed' | undefined) => {
     if (isUpdatingTodoStatus === todoId) return;
@@ -359,97 +254,6 @@ export default function DashboardPage() {
     <div className="container mx-auto py-2">
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <h1 className="text-3xl font-headline font-semibold text-foreground">My Memories</h1>
-        <div className="flex items-center gap-2">
-            <Popover open={isFilterPopoverOpen} onOpenChange={setIsFilterPopoverOpen}>
-                <PopoverTrigger asChild>
-                    <Button variant="outline" className="relative">
-                        <ListFilter className="h-4 w-4 mr-2"/>
-                        Filters
-                        {activeFilterCount > 0 && (
-                           <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
-                             {activeFilterCount}
-                           </span>
-                        )}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 p-4 space-y-4" align="end">
-                    <div className="space-y-1">
-                        <Label htmlFor="search-filter" className="text-sm font-medium">Search (Memories)</Label>
-                         <div className="relative">
-                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                id="search-filter"
-                                placeholder="Search title, description..."
-                                value={pendingSearchTerm}
-                                onChange={(e) => setPendingSearchTerm(e.target.value)}
-                                className="pl-9"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="space-y-1">
-                        <Label htmlFor="content-type-filter" className="text-sm font-medium">Content Type (Memories)</Label>
-                        <Select value={pendingSelectedContentType} onValueChange={setPendingSelectedContentType}>
-                            <SelectTrigger id="content-type-filter">
-                                <SelectValue placeholder="All Content Types" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value={ALL_FILTER_VALUE}>All Content Types</SelectItem>
-                                {availableContentTypes.map(type => (
-                                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="space-y-1">
-                        <Label htmlFor="domain-filter" className="text-sm font-medium">Domain (Memories)</Label>
-                        <Select value={pendingSelectedDomain} onValueChange={setPendingSelectedDomain}>
-                            <SelectTrigger id="domain-filter">
-                                <SelectValue placeholder="All Domains" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value={ALL_FILTER_VALUE}>All Domains</SelectItem>
-                                {availableDomains.map(domain => (
-                                    <SelectItem key={domain} value={domain}>{domain}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label className="text-sm font-medium">Tags (Memories)</Label>
-                        {availableTags.length > 0 ? (
-                            <ScrollArea className="h-32 rounded-md border p-2">
-                                <div className="space-y-1.5">
-                                {availableTags.map(tag => (
-                                    <div key={tag.id} className="flex items-center space-x-2">
-                                        <Checkbox
-                                            id={`tag-${tag.id}`}
-                                            checked={pendingSelectedTagIds.includes(tag.id)}
-                                            onCheckedChange={(checked) => handleTagSelectionChange(tag.id, !!checked)}
-                                        />
-                                        <Label htmlFor={`tag-${tag.id}`} className="text-sm font-normal cursor-pointer">{tag.name}</Label>
-                                    </div>
-                                ))}
-                                </div>
-                            </ScrollArea>
-                        ) : (
-                            <p className="text-sm text-muted-foreground">No tags available.</p>
-                        )}
-                    </div>
-                    <div className="flex justify-end gap-2 pt-4 border-t mt-4">
-                        <Button onClick={handleClearAndApplyFilters} variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                            <XCircle className="h-4 w-4 mr-2"/>
-                            Clear All
-                        </Button>
-                        <Button onClick={handleApplyPendingFilters} size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                            Apply Filters
-                        </Button>
-                    </div>
-                </PopoverContent>
-            </Popover>
-        </div>
       </div>
 
       {(allContentItems.length === 0 && !isLoading) ? (
@@ -488,16 +292,14 @@ export default function DashboardPage() {
         </div>
       ) : (
         <div>
-          { (todoItems.length === 0 && displayedContentItems.length === 0) ? (
+          { (todoItems.length === 0 && otherItems.length === 0) ? (
             <div className="text-center py-16 rounded-lg bg-muted/50">
               <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h2 className="text-xl font-medium text-muted-foreground">
-                  {activeFilterCount > 0 ? "No memories match your filters." : "Your saved memories will appear here."}
+                  Your saved memories will appear here.
               </h2>
               <p className="text-muted-foreground mt-2">
-                  {activeFilterCount > 0 ? (
-                  <>Try easing up on those filters, or <Button variant="link" onClick={handleClearAndApplyFilters} className="p-0 h-auto text-primary inline">clear them</Button>.</>
-                  ) : "Save some new links, notes, or images!"}
+                  Save some new links, notes, or images!
               </p>
             </div>
           ) : (
@@ -510,7 +312,7 @@ export default function DashboardPage() {
                   onAddTodoClick={handleAddTodoClick}
                 />
               )}
-              {displayedContentItems.map(item => (
+              {otherItems.map(item => (
                 <ContentCard
                   key={item.id}
                   item={item}
