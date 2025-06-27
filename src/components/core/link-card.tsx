@@ -1,4 +1,3 @@
-
 'use client';
 import React from 'react';
 import Image from 'next/image';
@@ -84,7 +83,11 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
       >
         <div className="flex items-start gap-2">
           {!hasImage && (
-            React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-1", specifics.iconText) })
+            (item.type === 'link' && item.faviconUrl) ? (
+                <img src={item.faviconUrl} alt="" className="h-5 w-5 shrink-0 mt-1 rounded-sm" />
+            ) : (
+                React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-1", specifics.iconText) })
+            )
           )}
           <h3 className="text-lg font-semibold leading-tight group-hover:text-primary transition-colors break-words">
             {item.title || "Untitled"}
