@@ -117,7 +117,7 @@ export default function RecordPage() {
     if (!audioBlob || !user) return;
     setIsSaving(true);
     
-    const { id: toastId } = toast({ title: 'Saving Recording...', description: 'Please wait while we upload your voice note.' });
+    const currentToast = toast({ title: 'Saving Recording...', description: 'Please wait while we upload your voice note.' });
 
     try {
       const fileName = `voice-note-${Date.now()}.webm`;
@@ -136,7 +136,8 @@ export default function RecordPage() {
 
       await addContentItem(newContentData);
 
-      toast.update(toastId, {
+      currentToast.update({
+        id: currentToast.id,
         title: 'Recording Saved!',
         description: 'Your voice note has been added to your memories.',
         variant: 'default',
@@ -146,7 +147,8 @@ export default function RecordPage() {
 
     } catch (error) {
       console.error('Error saving recording:', error);
-      toast.update(toastId, {
+      currentToast.update({
+        id: currentToast.id,
         title: 'Save Failed',
         description: 'Could not save your recording. Please try again.',
         variant: 'destructive',
