@@ -1,5 +1,6 @@
 
 
+
 import { db, storage } from '@/lib/firebase';
 import {
   collection,
@@ -18,6 +19,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { ContentItem, Zone, Tag, MovieDetails } from '@/types';
+import { enrichContent } from '@/ai/flows/enrich-content-flow';
 
 // Firestore collection references
 const contentCollection = collection(db, 'content');
@@ -118,6 +120,10 @@ export async function addContentItem(
     const dataToSave: { [key: string]: any } = { ...itemData };
     dataToSave.createdAt = Timestamp.fromDate(new Date());
 
+    if (dataToSave.type === 'image') {
+      dataToSave.status = 'pending-analysis';
+    }
+
     if (dataToSave.type === 'link' && dataToSave.url) {
       try {
         const response = await fetch(`/api/scrape-metadata?url=${encodeURIComponent(dataToSave.url)}`);
@@ -187,6 +193,11 @@ export async function addContentItem(
     });
 
     const docRef = await addDoc(contentCollection, dataToSave);
+
+    if (dataToSave.status === 'pending-analysis') {
+      enrichContent(docRef.id);
+    }
+    
     const finalItem = {
       id: docRef.id,
       ...dataToSave,

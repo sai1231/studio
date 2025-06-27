@@ -31,7 +31,7 @@ export interface ContentItem {
   domain?: string;
   contentType?: string;
   movieDetails?: MovieDetails; // Added for movie type
-  status?: 'pending' | 'completed';
+  status?: 'pending' | 'completed' | 'pending-analysis';
 }
 
 export interface MovieDetails {
