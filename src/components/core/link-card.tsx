@@ -1,4 +1,3 @@
-
 'use client';
 import React from 'react';
 import { Card } from '@/components/ui/card';
@@ -65,7 +64,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
       {hasImage && (
         <div 
           className={cn(
-            "relative w-full rounded-xl overflow-hidden aspect-square",
+            "relative w-full rounded-xl overflow-hidden",
             item.type === 'image' ? 'cursor-pointer' : 'mb-1'
           )}
           onClick={item.type === 'image' ? () => onEdit(item) : undefined}
@@ -74,7 +73,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
             src={item.imageUrl!}
             alt={item.title}
             data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
-            className="absolute h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-300"
             loading="lazy"
           />
         </div>
