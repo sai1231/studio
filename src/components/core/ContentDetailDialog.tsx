@@ -463,25 +463,21 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                     showMediaColumn ? "md:grid md:grid-cols-[minmax(0,_3fr)_minmax(0,_2fr)] gap-6" : ""
                   )}>
                     {showMediaColumn && (
-                      <div className={cn(
-                        "relative w-full overflow-hidden rounded-xl shadow-sm",
-                        embedUrl && "aspect-video",
-                        item.imageUrl && !embedUrl && "max-h-[70vh]"
-                      )}>
+                       <div className="relative w-full overflow-hidden rounded-xl shadow-sm max-h-[70vh] flex items-center justify-center bg-black/5">
                         {embedUrl ? (
                           <iframe
                             src={embedUrl}
                             title={editableTitle || 'Embedded Content'}
-                            className="absolute top-0 left-0 w-full h-full border-0 rounded-xl"
+                            className="w-full aspect-video border-0 rounded-xl"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                             allowFullScreen
                           ></iframe>
                         ) : item.imageUrl ? (
-                          <img
+                           <img
                             src={item.imageUrl}
                             alt={editableTitle || 'Content Image'}
                             data-ai-hint={item.title || "image"}
-                            className="w-full h-full object-contain rounded-xl"
+                            className="w-auto h-auto max-w-full max-h-[70vh] object-contain rounded-xl"
                             loading="lazy"
                           />
                         ) : null}

@@ -9,7 +9,7 @@ import type { ContentItem, Tag } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Check, Trash2, Sparkles, CalendarDays, Globe, StickyNote, FileImage, ListChecks, Mic, Layers, Landmark, PlayCircle } from 'lucide-react';
+import { Loader2, Check, Trash2, Sparkles, CalendarDays, Globe, StickyNote, FileImage, ListChecks, Mic, Layers, Landmark, PlayCircle, Film } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,7 @@ const getTypeSpecifics = (type: ContentItem['type'] | undefined) => {
     case 'image': return { icon: FileImage, color: 'gray', iconRing: 'ring-gray-500/30', iconText: 'text-gray-600 dark:text-gray-400' };
     case 'todo': return { icon: ListChecks, color: 'green', iconRing: 'ring-emerald-500/30', iconText: 'text-emerald-600 dark:text-emerald-400' };
     case 'voice': return { icon: Mic, color: 'purple', iconRing: 'ring-purple-500/30', iconText: 'text-purple-600 dark:text-purple-400' };
+    case 'movie': return { icon: Film, color: 'orange', iconRing: 'ring-orange-500/30', iconText: 'text-orange-600 dark:text-orange-400' };
     default: return { icon: StickyNote, color: 'gray', iconRing: 'ring-gray-500/30', iconText: 'text-muted-foreground' };
   }
 };

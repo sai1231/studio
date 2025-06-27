@@ -201,7 +201,7 @@ export default function AppLayout({
     }
   };
 
-  const handleRecordVoiceClick = () => toast({ title: "Voice Recording", description: "Voice recording feature coming soon!" });
+  const handleRecordVoiceClick = () => router.push('/record');
   const handleAddTodoClick = () => setIsAddTodoDialogOpen(true);
 
   const isValidUrl = (s: string) => { try { new URL(s); return true; } catch (_) { return false; } };
