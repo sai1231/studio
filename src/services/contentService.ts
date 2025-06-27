@@ -149,15 +149,19 @@ export async function addContentItem(
           console.error("Error fetching movie details from TMDb:", e);
         }
       }
-    } else if (dataToSave.type === 'link' && dataToSave.url) {
-        // This is a standard link, let's categorize it with AI
-        try {
-            const categoryResponse = await categorizeLink({ url: dataToSave.url });
-            dataToSave.contentType = categoryResponse.contentType;
-        } catch (e) {
-            console.error("Error categorizing link with AI, defaulting contentType to 'Article'.", e);
-            dataToSave.contentType = 'Article'; // Fallback
+    }
+
+    // AI Categorization for links (if not already set, e.g., for PDF or Movie)
+    if (dataToSave.type === 'link' && dataToSave.url && !dataToSave.contentType) {
+      try {
+        const result = await categorizeLink({ url: dataToSave.url, title: dataToSave.title || '' });
+        if (result.contentType && result.contentType !== 'Other') {
+            dataToSave.contentType = result.contentType;
         }
+      } catch (aiError) {
+        console.warn("AI categorization failed. Proceeding without it.", aiError);
+        // Don't block the save operation if AI fails
+      }
     }
 
     if (dataToSave.type === 'link' && dataToSave.url && !dataToSave.domain) {
