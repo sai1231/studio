@@ -240,6 +240,11 @@ export default function AppLayout({
     e.preventDefault(); e.stopPropagation();
     setIsDraggingOver(false);
 
+    // Ignore drops originating from within the app
+    if (e.dataTransfer.types.includes('application/x-mati-internal')) {
+      return;
+    }
+
     if (isAuthLoading || !user) {
         toast({ title: "Hold on...", description: "Still getting things ready. Please try again in a moment.", variant: "default" });
         return;

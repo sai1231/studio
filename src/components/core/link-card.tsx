@@ -40,6 +40,10 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
   const handleActionClick = (e: React.MouseEvent) => {
     e.stopPropagation(); 
   };
+  
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('application/x-mati-internal', 'true');
+  };
 
   const getPlainTextDescription = (htmlString: string | undefined): string => {
     if (!htmlString) return '';
@@ -55,6 +59,8 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
 
   return (
     <Card
+      draggable="true"
+      onDragStart={handleDragStart}
       className={cn(
         "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 inline-flex w-full flex-col group rounded-3xl break-inside-avoid mb-4",
         item.type !== 'image' && 'cursor-pointer'

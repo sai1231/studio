@@ -32,8 +32,16 @@ const TodoListCard: React.FC<{
   isUpdatingStatus: string | null;
   onAddTodoClick: () => void;
 }> = ({ items, onToggleStatus, isUpdatingStatus, onAddTodoClick }) => {
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('application/x-mati-internal', 'true');
+  };
+
   return (
-    <Card className="break-inside-avoid mb-4 shadow-lg inline-flex flex-col w-full">
+    <Card 
+      draggable="true"
+      onDragStart={handleDragStart}
+      className="break-inside-avoid mb-4 shadow-lg inline-flex flex-col w-full"
+    >
       <CardContent className="p-0 flex-grow">
         <ScrollArea className="max-h-96 p-4 pr-1">
           <div className="space-y-3">
