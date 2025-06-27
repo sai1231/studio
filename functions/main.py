@@ -19,33 +19,49 @@ def on_content_pending_analysis(
     updates it to 'completed'.
     """
     
-    # Get the data from the document that was written to.
-    # If the document was deleted, event.data will be None.
-    if not event.data or not event.data.after:
-        print(f"Document {event.params['docId']} was deleted. Ignoring.")
+    doc_id = event.params.get("docId")
+    print(f"Function triggered for document ID: {doc_id}")
+    
+    # Ensure there's data to process.
+    if event.data is None:
+        print(f"Item {doc_id}: Event has no data. Exiting.")
         return
 
+    # A deletion event has no 'after' data.
+    if event.data.after is None:
+        print(f"Item {doc_id}: Document was deleted. No action taken.")
+        return
+        
+    # Get a reference to the document.
+    doc_ref = event.data.after.reference
+    if not doc_ref:
+        print(f"Item {doc_id}: Could not get document reference. Exiting.")
+        return
+        
     try:
+        # Get the document data as a dictionary.
         data = event.data.after.to_dict()
+        if data is None:
+            print(f"Item {doc_id}: Document data is None after to_dict(). Exiting.")
+            return
+
+        status = data.get("status")
+        
+        print(f"Item {doc_id}: Current status is '{status}'.")
+
+        # The core logic: only act on 'pending-analysis'.
+        if status == "pending-analysis":
+            print(f"Item {doc_id}: Matched 'pending-analysis'. Attempting update.")
+            try:
+                doc_ref.update({"status": "completed"})
+                print(f"Item {doc_id}: Successfully updated status to 'completed'.")
+            except Exception as e:
+                print(f"CRITICAL: Failed to update document {doc_id}. Error: {e}")
+        else:
+            print(f"Item {doc_id}: Status is not 'pending-analysis'. No action needed.")
+
     except Exception as e:
-        print(f"Could not parse document data for {event.params['docId']}: {e}")
-        return
+        # Catch any other unexpected errors during data processing.
+        print(f"CRITICAL: An unexpected error occurred for doc ID {doc_id}. Error: {e}")
 
-    doc_id = event.params["docId"]
-    status = data.get("status")
-
-    # If the status is not 'pending-analysis', there's nothing to do.
-    if status != "pending-analysis":
-        print(f"Item {doc_id}: Status is '{status}', not 'pending-analysis'. Ignoring.")
-        return
-
-    # This is our "Hello World" execution log.
-    print(f"Hello from Python! Processing item: {doc_id}")
-
-    # Update the status of the document to 'completed'.
-    try:
-        print(f"Updating item {doc_id} status to 'completed'.")
-        event.data.after.reference.update({"status": "completed"})
-        print(f"Successfully updated item {doc_id}.")
-    except Exception as e:
-        print(f"Error updating item {doc_id}: {e}")
+    
