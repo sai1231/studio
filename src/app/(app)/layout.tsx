@@ -134,7 +134,6 @@ export default function AppLayout({
         description: `Uploaded image: ${file.name}`,
         imageUrl: downloadURL,
         tags: [{id: 'upload', name: 'upload'}, { id: 'image-upload', name: 'image' }],
-        zoneId: zones[0]?.id,
         userId: user.uid,
         status: 'pending-analysis',
       } : {
@@ -143,7 +142,6 @@ export default function AppLayout({
         url: downloadURL,
         description: `Uploaded PDF: ${file.name}`,
         tags: [{ id: 'upload', name: 'upload' }, { id: 'pdf-upload', name: 'pdf' }],
-        zoneId: zones[0]?.id,
         contentType: 'PDF',
         domain: 'mati.internal.storage',
         userId: user.uid,
@@ -218,7 +216,6 @@ export default function AppLayout({
           url: data.url,
           description: data.description || `Link dropped on ${new Date().toLocaleDateString()}`,
           tags: [{ id: 'dnd-drop', name: 'dropped' }],
-          zoneId: zones[0]?.id,
           status: 'pending-analysis',
         }
       : {
@@ -226,7 +223,6 @@ export default function AppLayout({
           title: title || `Dropped Note - ${new Date().toLocaleDateString()}`,
           description: data as string,
           tags: [{ id: 'dnd-drop', name: 'dropped' }],
-          zoneId: zones[0]?.id,
         };
     await handleAddContentAndRefresh(newContent);
   };
