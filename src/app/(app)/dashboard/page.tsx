@@ -8,19 +8,14 @@ import ContentDetailDialog from '@/components/core/ContentDetailDialog';
 import type { ContentItem, Zone as AppZone, Tag as AppTag } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { PlusCircle, ListFilter, Loader2, FolderOpen, Search, XCircle, ListChecks, AlarmClock, CalendarDays, ArrowUpRightSquare, User, LayoutGrid, Tags, Bookmark } from 'lucide-react';
+import { PlusCircle, ListFilter, Loader2, FolderOpen, Search, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { subscribeToContentItems, deleteContentItem, getZones, getUniqueContentTypesFromItems, getUniqueDomainsFromItems, getUniqueTagsFromItems, updateContentItem } from '@/services/contentService';
-import { cn } from '@/lib/utils';
-import { format, isPast } from 'date-fns';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthContext';
 
 const pageLoadingMessages = [
@@ -32,190 +27,9 @@ const pageLoadingMessages = [
 
 const ALL_FILTER_VALUE = "__ALL__";
 
-interface TodoDashboardCardProps {
-  todos: ContentItem[];
-  onToggleStatus: (todoId: string, currentStatus: 'pending' | 'completed' | undefined) => void;
-  isLoading: boolean;
-  onEditTodo: (todo: ContentItem) => void;
-}
-
-const TodoDashboardCard: React.FC<TodoDashboardCardProps> = ({ todos, onToggleStatus, isLoading, onEditTodo }) => {
-  const router = useRouter();
-
-  const handleExpandTodos = () => {
-    router.push('/quick-todo');
-  };
-
-  if (isLoading) {
-    return (
-      <Card className="shadow-lg">
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-xl font-headline flex items-center">
-              <ListChecks className="h-6 w-6 mr-2 text-primary" /> My TODOs
-            </CardTitle>
-            <Skeleton className="h-8 w-8 rounded-full" />
-          </div>
-          <CardDescription>Your upcoming tasks and reminders.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 animate-pulse">
-              <Checkbox disabled className="opacity-50" />
-              <div className="flex-grow space-y-1.5">
-                <div className="h-4 bg-muted rounded w-3/4"></div>
-                <div className="h-3 bg-muted rounded w-1/2"></div>
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card className="shadow-lg">
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-xl font-headline flex items-center">
-            <ListChecks className="h-6 w-6 mr-2 text-primary" /> My TODOs
-          </CardTitle>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                 <Button variant="ghost" size="icon" onClick={handleExpandTodos} className="text-muted-foreground hover:text-primary">
-                   <ArrowUpRightSquare className="h-5 w-5" />
-                 </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>View all TODOs</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-        <CardDescription>Your upcoming tasks and reminders. Click title to edit.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {todos.length === 0 ? (
-          <div className="text-center py-6">
-            <ListChecks className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-            <p className="text-muted-foreground">No active TODOs. Great job!</p>
-            <Button variant="link" className="mt-2" onClick={() => router.push('/quick-todo')}>
-              Add a TODO
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-2 max-h-96 overflow-y-auto pr-1 custom-scrollbar">
-            {todos.map(todo => (
-              <div key={todo.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/30 transition-colors border">
-                <Checkbox
-                  id={`todo-dash-${todo.id}`}
-                  checked={todo.status === 'completed'}
-                  onCheckedChange={() => onToggleStatus(todo.id, todo.status)}
-                  className="mt-1"
-                  aria-labelledby={`todo-dash-label-${todo.id}`}
-                />
-                <div className="flex-grow">
-                  <Label
-                    htmlFor={`todo-dash-${todo.id}`}
-                    id={`todo-dash-label-${todo.id}`}
-                    className={cn(
-                      "font-medium text-foreground cursor-pointer hover:text-primary",
-                      todo.status === 'completed' && "line-through text-muted-foreground hover:text-muted-foreground/80"
-                    )}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onEditTodo(todo);
-                    }}
-                  >
-                    {todo.title}
-                  </Label>
-                  {todo.dueDate && (
-                    <div className="text-xs text-muted-foreground flex items-center mt-0.5">
-                      <AlarmClock className={cn(
-                          "h-3.5 w-3.5 mr-1",
-                          todo.status !== 'completed' && isPast(new Date(todo.dueDate)) ? "text-destructive" : "text-muted-foreground/80"
-                        )}
-                      />
-                      <span className={cn(todo.status !== 'completed' && isPast(new Date(todo.dueDate)) ? "text-destructive font-semibold" : "")}>
-                         {format(new Date(todo.dueDate), 'MMM d, yy')}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
-
-interface StatsCardProps {
-  stats: { memories: number; zones: number; tags: number };
-  userName?: string;
-  isLoading: boolean;
-}
-
-const StatsCard: React.FC<StatsCardProps> = ({ stats, userName, isLoading }) => {
-  if (isLoading) {
-    return (
-      <Card className="shadow-lg">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Skeleton className="h-8 w-8 rounded-full" />
-            <div className="space-y-1.5">
-                <Skeleton className="h-5 w-32" />
-                <Skeleton className="h-4 w-48" />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="grid grid-cols-3 gap-4 text-center">
-           {[1,2,3].map(i => (
-              <div key={i} className="flex flex-col items-center p-2 rounded-lg">
-                <Skeleton className="h-7 w-7 mb-1.5 rounded-md" />
-                <Skeleton className="h-7 w-8 mb-1 rounded-md" />
-                <Skeleton className="h-3 w-12 rounded-md" />
-              </div>
-           ))}
-        </CardContent>
-      </Card>
-    )
-  }
-  return (
-    <Card className="shadow-lg">
-      <CardHeader>
-        <CardTitle className="text-xl font-headline flex items-center">
-          <User className="h-5 w-5 mr-2 text-primary" />
-          Welcome, {userName || 'there'}!
-        </CardTitle>
-        <CardDescription>Here's a snapshot of your collection.</CardDescription>
-      </CardHeader>
-      <CardContent className="grid grid-cols-3 gap-1 text-center">
-        <div className="flex flex-col items-center p-2 rounded-lg hover:bg-muted/50 transition-colors">
-          <LayoutGrid className="h-6 w-6 mb-1 text-primary"/>
-          <p className="text-2xl font-bold">{stats.memories}</p>
-          <p className="text-xs text-muted-foreground">Memories</p>
-        </div>
-        <div className="flex flex-col items-center p-2 rounded-lg hover:bg-muted/50 transition-colors">
-          <Bookmark className="h-6 w-6 mb-1 text-primary"/>
-          <p className="text-2xl font-bold">{stats.zones}</p>
-          <p className="text-xs text-muted-foreground">Zones</p>
-        </div>
-        <div className="flex flex-col items-center p-2 rounded-lg hover:bg-muted/50 transition-colors">
-          <Tags className="h-6 w-6 mb-1 text-primary"/>
-          <p className="text-2xl font-bold">{stats.tags}</p>
-          <p className="text-xs text-muted-foreground">Tags</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-
 export default function DashboardPage() {
   const { user } = useAuth();
+  const router = useRouter();
 
   const [allContentItems, setAllContentItems] = useState<ContentItem[]>([]);
   const [displayedContentItems, setDisplayedContentItems] = useState<ContentItem[]>([]);
@@ -361,6 +175,8 @@ export default function DashboardPage() {
 
     setDisplayedContentItems(filtered);
   }, [appliedSearchTerm, appliedSelectedContentType, appliedSelectedDomain, appliedSelectedTagIds, otherItems]);
+  
+  const allDisplayItems = useMemo(() => [...todoItems, ...displayedContentItems], [todoItems, displayedContentItems]);
 
   const handleOpenDetailDialog = (item: ContentItem) => {
     setSelectedItemIdForDetail(item.id);
@@ -441,8 +257,6 @@ export default function DashboardPage() {
       setIsUpdatingTodoStatus(null);
     }
   };
-
-  const userName = user?.displayName?.split(' ')[0];
 
   if (isLoading && allContentItems.length === 0) {
     return (
@@ -598,51 +412,33 @@ export default function DashboardPage() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            <main className="lg:col-span-2 xl:col-span-3">
-              <h2 className="text-2xl font-headline font-semibold text-foreground mb-4">My Memories</h2>
-              {displayedContentItems.length === 0 ? (
-                 <div className="text-center py-16 rounded-lg bg-muted/50">
-                    <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <h2 className="text-xl font-medium text-muted-foreground">
-                      {activeFilterCount > 0 ? "No memories match your filters." : "Your saved memories will appear here."}
-                    </h2>
-                    <p className="text-muted-foreground mt-2">
-                       {activeFilterCount > 0 ? (
-                        <>Try easing up on those filters, or <Button variant="link" onClick={handleClearAndApplyFilters} className="p-0 h-auto text-primary inline">clear them</Button>.</>
-                       ) : "Save some new links, notes, or images!"}
-                    </p>
-                </div>
-              ) : (
-                <div className={'columns-1 md:columns-2 xl:columns-3 gap-4'}>
-                  {displayedContentItems.map(item => (
-                    <ContentCard
-                      key={item.id}
-                      item={item}
-                      onEdit={handleOpenDetailDialog}
-                      onDelete={handleDeleteContent}
-                    />
-                  ))}
-                </div>
-              )}
-            </main>
-            <aside className="lg:col-span-1 xl:col-span-1 space-y-6">
-                <StatsCard 
-                    stats={{
-                        memories: allContentItems.length,
-                        zones: zones.length,
-                        tags: availableTags.length,
-                    }}
-                    userName={userName}
-                    isLoading={isLoading && allContentItems.length === 0}
+        <div>
+            <h2 className="text-2xl font-headline font-semibold text-foreground mb-4">My Memories</h2>
+            {allDisplayItems.length === 0 ? (
+                <div className="text-center py-16 rounded-lg bg-muted/50">
+                <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h2 className="text-xl font-medium text-muted-foreground">
+                    {activeFilterCount > 0 ? "No memories match your filters." : "Your saved memories will appear here."}
+                </h2>
+                <p className="text-muted-foreground mt-2">
+                    {activeFilterCount > 0 ? (
+                    <>Try easing up on those filters, or <Button variant="link" onClick={handleClearAndApplyFilters} className="p-0 h-auto text-primary inline">clear them</Button>.</>
+                    ) : "Save some new links, notes, or images!"}
+                </p>
+            </div>
+            ) : (
+            <div className={'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
+                {allDisplayItems.map(item => (
+                <ContentCard
+                    key={item.id}
+                    item={item}
+                    onEdit={handleOpenDetailDialog}
+                    onDelete={handleDeleteContent}
+                    onToggleStatus={handleToggleTodoStatus}
                 />
-                <TodoDashboardCard
-                  todos={todoItems}
-                  onToggleStatus={handleToggleTodoStatus}
-                  isLoading={isLoading && allContentItems.length === 0}
-                  onEditTodo={handleOpenDetailDialog}
-                />
-            </aside>
+                ))}
+            </div>
+            )}
         </div>
       )}
 
