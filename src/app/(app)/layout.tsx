@@ -81,12 +81,10 @@ export default function AppLayout({
         description: `"${addedItem.title}" has been saved.`,
       });
 
-      // For links/notes, close the dialog. For TODOs, the dialog stays open for quick entry.
       if (newContentData.type !== 'todo') {
         setIsAddContentDialogOpen(false);
       }
       
-      // Refresh the current route to reflect the new data without a full page reload.
       router.refresh();
 
     } catch (error) {
@@ -101,78 +99,44 @@ export default function AppLayout({
     }
   };
 
-  const handleImageFileSelected = async (file: File) => {
+  const handleFileUpload = async (file: File) => {
     if (!user) return;
+
+    const isImage = file.type.startsWith('image/');
+    const isPdf = file.type === 'application/pdf';
+
+    if (!isImage && !isPdf) {
+      toast({ title: "Unsupported File", description: "You can only upload images or PDF files.", variant: "destructive" });
+      return;
+    }
+
+    const fileType = isImage ? 'Image' : 'PDF';
     const currentToast = toast({
-      title: "Processing Image...",
+      title: `Processing ${fileType}...`,
       description: "Uploading to cloud storage.",
     });
 
     try {
-      const imagePath = `contentImages/${user.uid}/${Date.now()}_${file.name}`;
-      const downloadURL = await uploadFile(file, imagePath);
+      const folder = isImage ? 'contentImages' : 'contentPdfs';
+      const path = `${folder}/${user.uid}/${Date.now()}_${file.name}`;
+
+      const downloadURL = await uploadFile(file, path);
 
       currentToast.update({
         id: currentToast.id,
-        title: "Image Uploaded",
-        description: "Saving metadata to your library...",
+        title: `${fileType} Uploaded`,
+        description: `Saving metadata to your library...`,
       });
 
-      const newImageContent: Omit<ContentItem, 'id' | 'createdAt'> = {
+      const newContentData: Omit<ContentItem, 'id' | 'createdAt'> = isImage ? {
         type: 'image',
         title: file.name || 'Uploaded Image',
         description: `Uploaded image: ${file.name}`,
         imageUrl: downloadURL,
-        tags: [{id: 'upload', name: 'upload'}, { id: file.type.startsWith('image/') ? 'image-upload' : 'file-upload', name: file.type.startsWith('image/') ? 'image' : 'file' }],
+        tags: [{id: 'upload', name: 'upload'}, { id: 'image-upload', name: 'image' }],
         zoneId: zones[0]?.id,
         userId: user.uid,
-      };
-      
-      await addContentItem(newImageContent);
-
-      currentToast.update({
-        id: currentToast.id,
-        title: "Image Saved!",
-        description: `Path: ${imagePath}`,
-      });
-      
-      router.refresh();
-
-    } catch (error: any) {
-      console.error("Error processing image upload:", error);
-      let description = error.message || "Could not process your image. Please try again.";
-      if (error.code === 'storage/retry-limit-exceeded') {
-          description = "Connection timed out. Please ensure Firebase Storage is enabled in your project console.";
-      } else if (error.code === 'storage/unauthorized') {
-          description = "Permission denied. Please check your Firebase Storage security rules.";
-      }
-      currentToast.update({
-        id: currentToast.id,
-        title: "Image Upload Failed",
-        description: description,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handlePdfFileSelected = async (file: File) => {
-    if (!user) return;
-    const currentToast = toast({
-      title: "Processing PDF...",
-      description: "Uploading to cloud storage.",
-    });
-
-    try {
-      const pdfPath = `contentPdfs/${user.uid}/${Date.now()}_${file.name}`;
-      const downloadURL = await uploadFile(file, pdfPath);
-
-      currentToast.update({
-        id: currentToast.id,
-        title: "PDF Uploaded",
-        description: "Saving metadata to your library...",
-      });
-
-      const newPdfContent: Omit<ContentItem, 'id' | 'createdAt'> = {
+      } : {
         type: 'link', 
         title: file.name || 'Uploaded PDF',
         url: downloadURL,
@@ -184,39 +148,48 @@ export default function AppLayout({
         userId: user.uid,
       };
 
-      await addContentItem(newPdfContent);
-      
+      await addContentItem(newContentData);
+
       currentToast.update({
         id: currentToast.id,
-        title: "PDF Saved!",
-        description: `Path: ${pdfPath}`,
+        title: `${fileType} Saved!`,
+        description: `Path: ${path}`,
       });
       
       router.refresh();
 
     } catch (error: any) {
-      console.error("Error processing PDF upload:", error);
-      let description = error.message || "Could not process your PDF. Please try again.";
-      if (error.code === 'storage/retry-limit-exceeded') {
-          description = "Connection timed out. Please ensure Firebase Storage is enabled in your project console.";
-      } else if (error.code === 'storage/unauthorized') {
-          description = "Permission denied. Please check your Firebase Storage security rules.";
+      console.error(`Error processing ${fileType} upload:`, error);
+      let description = error.message || `Could not process your ${fileType}. Please try again.`;
+      if (error.code) {
+        switch(error.code) {
+          case 'storage/retry-limit-exceeded':
+            description = "Connection timed out. Is Storage enabled with a Blaze plan in your project console?";
+            break;
+          case 'storage/unauthorized':
+            description = "Permission denied. Please check your Firebase Storage security rules.";
+            break;
+          case 'storage/object-not-found':
+            description = "File not found. This can happen if the upload was interrupted.";
+            break;
+          default:
+            description = `An unknown storage error occurred: ${error.code}.`;
+        }
       }
       currentToast.update({
         id: currentToast.id,
-        title: "PDF Upload Failed",
+        title: `${fileType} Upload Failed`,
         description: description,
         variant: "destructive",
       });
     }
   };
 
-
   const handleUploadImageClick = () => imageUploadInputRef.current?.click();
   const handleImageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      handleImageFileSelected(file);
+      handleFileUpload(file);
       if(e.target) e.target.value = '';
     }
   };
@@ -225,7 +198,7 @@ export default function AppLayout({
   const handlePdfInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      handlePdfFileSelected(file);
+      handleFileUpload(file);
       if(e.target) e.target.value = '';
     }
   };
@@ -255,7 +228,6 @@ export default function AppLayout({
     await handleAddContentAndRefresh(newContent);
   };
 
-
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault(); e.stopPropagation();
     if (e.dataTransfer.types.some(t => ['Files', 'text/uri-list', 'text/plain'].includes(t))) {
@@ -280,8 +252,9 @@ export default function AppLayout({
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
       const file = files[0];
-      if (file.type.startsWith('image/')) return await handleImageFileSelected(file);
-      if (file.type === 'application/pdf') return await handlePdfFileSelected(file);
+      if (file.type.startsWith('image/') || file.type === 'application/pdf') {
+        return await handleFileUpload(file);
+      }
       if (file.type === 'text/plain') return await saveDroppedItem('note', file.name, await file.text());
     }
 
