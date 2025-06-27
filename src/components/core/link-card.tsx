@@ -56,7 +56,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
   return (
     <Card
       className={cn(
-        "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col group rounded-3xl p-2 break-inside-avoid mb-4",
+        "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col group rounded-3xl break-inside-avoid mb-4",
         item.type !== 'image' && 'cursor-pointer'
       )}
       onClick={item.type !== 'image' ? () => onEdit(item) : undefined}
@@ -64,8 +64,8 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
       {hasImage && (
         <div 
           className={cn(
-            "relative w-full rounded-xl overflow-hidden",
-            item.type === 'image' ? 'cursor-pointer' : 'mb-1'
+            "relative w-full overflow-hidden",
+            item.type === 'image' ? 'cursor-pointer' : ''
           )}
           onClick={item.type === 'image' ? () => onEdit(item) : undefined}
         >
@@ -80,46 +80,42 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
       )}
 
       {item.type !== 'image' && (
-        <>
-          {/* Main content div */}
-          <div className="flex flex-col flex-grow p-2">
-            <div className="flex items-start gap-2">
+        <div className="p-4 flex flex-col flex-grow">
+          <div className="flex-grow space-y-2 mb-4">
+            <div className="flex items-start gap-3">
               {!hasImage && (
                 (item.type === 'link' && item.faviconUrl) ? (
-                    <img src={item.faviconUrl} alt="" className="h-5 w-5 shrink-0 mt-1 rounded-sm" />
+                    <img src={item.faviconUrl} alt="" className="h-5 w-5 shrink-0 mt-0.5 rounded-sm" />
                 ) : (
-                    React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-1", specifics.iconText) })
+                    React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) })
                 )
               )}
-              <h3 className="text-lg font-semibold leading-tight group-hover:text-primary transition-colors break-words">
+              <h3 className="font-semibold leading-tight group-hover:text-primary transition-colors break-words">
                 {item.title || "Untitled"}
               </h3>
             </div>
 
             {plainDescription && (
-              <p className={cn("mt-1 text-sm text-muted-foreground break-words line-clamp-2", !hasImage && "pl-7")}>
+              <p className="text-sm text-muted-foreground break-words line-clamp-3">
                 {plainDescription}
               </p>
             )}
 
             {item.type === 'voice' && item.audioUrl && !plainDescription && !hasImage && (
-                <div className={cn("mt-1 flex items-center gap-2 text-sm text-muted-foreground", !hasImage && "pl-7")}>
+                <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                   <PlayCircle className={cn("h-5 w-5", getTypeSpecifics(item).iconText)} />
                   <span>Voice recording</span>
                 </div>
             )}
           </div>
 
-          {/* Footer for domain and actions */}
-          <div className="mt-auto pt-2 flex items-center justify-between p-2">
+          <div className="mt-auto pt-3 border-t flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
-              {item.faviconUrl ? (
-                <img src={item.faviconUrl} alt="" className="h-4 w-4 rounded-sm" />
-              ) : (
-                item.domain && <Landmark className="h-3.5 w-3.5 opacity-80 shrink-0" />
-              )}
               {item.domain && (
-                <span className="truncate">{item.domain}</span>
+                <>
+                    <Landmark className="h-3.5 w-3.5 opacity-80 shrink-0" />
+                    <span className="truncate">{item.domain}</span>
+                </>
               )}
             </div>
 
@@ -171,7 +167,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
               </TooltipProvider>
             </div>
           </div>
-        </>
+        </div>
       )}
     </Card>
   );
