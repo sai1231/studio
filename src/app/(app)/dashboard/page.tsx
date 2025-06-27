@@ -17,7 +17,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { PlusCircle, ListFilter, Loader2, FolderOpen, Search, XCircle, ListChecks, AlarmClock, CalendarDays, ArrowUpRightSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getContentItems, deleteContentItem, getZones, getUniqueContentTypesFromItems, getUniqueDomainsFromItems, getUniqueTagsFromItems, updateContentItem } from '@/services/contentService';
+import { subscribeToContentItems, deleteContentItem, getZones, getUniqueContentTypesFromItems, getUniqueDomainsFromItems, getUniqueTagsFromItems, updateContentItem } from '@/services/contentService';
 import { cn } from '@/lib/utils';
 import { format, isPast } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -215,39 +215,58 @@ export default function DashboardPage() {
     }
   }, [isLoading]);
 
-  const fetchData = useCallback(async () => {
-    if (!user) return;
+  useEffect(() => {
+    if (!user) {
+        setIsLoading(false);
+        return;
+    };
+
     setIsLoading(true);
     setError(null);
-    try {
-      const [items, fetchedZones] = await Promise.all([
-        getContentItems(user.uid),
-        getZones(user.uid),
-      ]);
+    let initialDataLoaded = false;
 
-      const uniqueContentTypes = getUniqueContentTypesFromItems(items);
-      const uniqueDomains = getUniqueDomainsFromItems(items);
-      const uniqueTags = getUniqueTagsFromItems(items);
+    // Fetch zones once
+    const fetchZonesData = async () => {
+        try {
+            const fetchedZones = await getZones(user.uid);
+            setZones(fetchedZones);
+        } catch (err) {
+            console.error("Error fetching zones:", err);
+            setError("Failed to load dashboard components.");
+            toast({ title: "Error", description: "Could not fetch essential data like zones.", variant: "destructive" });
+        }
+    };
+    fetchZonesData();
 
-      setAllContentItems(items);
-      setZones(fetchedZones);
-      setAvailableContentTypes(uniqueContentTypes);
-      setAvailableDomains(uniqueDomains);
-      setAvailableTags(uniqueTags);
-    } catch (err) {
-      console.error("Error fetching data:", err);
-      setError("Failed to load content. Please try again later.");
-      toast({ title: "Error", description: "Could not fetch content.", variant: "destructive" });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast, user]);
+    // Subscribe to content items for real-time updates
+    const unsubscribe = subscribeToContentItems(user.uid, (items, err) => {
+        if (err) {
+            setError("Failed to load content. Please try refreshing the page.");
+            toast({ title: "Real-time Error", description: "Could not listen for content updates.", variant: "destructive" });
+            setIsLoading(false);
+            return;
+        }
 
-  useEffect(() => {
-    if (user) {
-      fetchData();
-    }
-  }, [user, fetchData]);
+        const uniqueContentTypes = getUniqueContentTypesFromItems(items);
+        const uniqueDomains = getUniqueDomainsFromItems(items);
+        const uniqueTags = getUniqueTagsFromItems(items);
+
+        setAllContentItems(items);
+        setAvailableContentTypes(uniqueContentTypes);
+        setAvailableDomains(uniqueDomains);
+        setAvailableTags(uniqueTags);
+        
+        if (!initialDataLoaded) {
+            setIsLoading(false);
+            initialDataLoaded = true;
+        }
+    });
+
+    return () => {
+      unsubscribe(); // Cleanup subscription on component unmount
+    };
+  }, [user, toast]);
+
 
   useEffect(() => {
     if (isFilterPopoverOpen) {
@@ -310,9 +329,11 @@ export default function DashboardPage() {
   };
 
   const handleItemUpdateInDialog = (updatedItem: ContentItem) => {
-    setAllContentItems(prevItems =>
-      prevItems.map(item => item.id === updatedItem.id ? updatedItem : item)
-    );
+    // With real-time listener, we don't need to manually update state here
+    // The onSnapshot listener will handle the update automatically.
+    // setAllContentItems(prevItems =>
+    //   prevItems.map(item => item.id === updatedItem.id ? updatedItem : item)
+    // );
     toast({ title: "Item Updated", description: `"${updatedItem.title}" has been updated.`});
   };
 
@@ -371,7 +392,7 @@ export default function DashboardPage() {
     setIsUpdatingTodoStatus(todoId);
     const newStatus = (currentStatus === 'completed') ? 'pending' : 'completed';
 
-    const originalTodos = [...allContentItems];
+    // Optimistic UI update handled by the real-time listener, but we can keep this for instant feedback.
     setAllContentItems(prevAllItems =>
       prevAllItems.map(item =>
         item.id === todoId ? { ...item, status: newStatus } : item
@@ -379,16 +400,13 @@ export default function DashboardPage() {
     );
 
     try {
-      const updatedItem = await updateContentItem(todoId, { status: newStatus });
-      if (updatedItem) {
-        toast({ title: "TODO Updated", description: `"${updatedItem.title}" marked as ${newStatus}.` });
-      } else {
-        throw new Error("Update failed, item not returned");
-      }
+      await updateContentItem(todoId, { status: newStatus });
+      // The listener will catch this change, so the toast here is for immediate user feedback.
+      // toast({ title: "TODO Updated", description: `Task marked as ${newStatus}.` });
     } catch (error) {
       console.error('Error updating TODO status from dashboard:', error);
       toast({ title: "Error", description: "Could not update TODO status.", variant: "destructive" });
-      setAllContentItems(originalTodos);
+      // The listener will eventually revert the change if the DB update fails.
     } finally {
       setIsUpdatingTodoStatus(null);
     }
@@ -411,7 +429,7 @@ export default function DashboardPage() {
         <FolderOpen className="h-16 w-16 mx-auto text-destructive mb-4" />
         <h1 className="text-2xl font-headline font-semibold">Error Loading Content</h1>
         <p className="text-muted-foreground mt-2">{error}</p>
-        <Button onClick={fetchData} className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">Try Again</Button>
+        <Button onClick={() => window.location.reload()} className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">Try Again</Button>
       </div>
     );
   }

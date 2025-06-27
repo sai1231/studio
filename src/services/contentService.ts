@@ -13,6 +13,8 @@ import {
   orderBy,
   where,
   Timestamp,
+  onSnapshot,
+  type Unsubscribe,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { ContentItem, Zone, Tag, MovieDetails } from '@/types';
@@ -35,7 +37,7 @@ export async function getContentItems(userId: string): Promise<ContentItem[]> {
     const items: ContentItem[] = [];
     querySnapshot.forEach((doc) => {
       const data = doc.data();
-      const createdAt = data.createdAt; // Firestore Timestamp or string
+      const createdAt = data.createdAt; // Firestore Timestamp
       items.push({
         id: doc.id,
         ...data,
@@ -49,6 +51,39 @@ export async function getContentItems(userId: string): Promise<ContentItem[]> {
     throw error;
   }
 }
+
+// New function for real-time updates
+export function subscribeToContentItems(
+  userId: string,
+  callback: (items: ContentItem[], error?: any) => void
+): Unsubscribe {
+  if (!userId) {
+    console.warn("subscribeToContentItems called without a userId.");
+    callback([]);
+    return () => {}; // Return a no-op unsubscribe function
+  }
+  const q = query(contentCollection, where("userId", "==", userId), orderBy('createdAt', 'desc'));
+  
+  const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const items: ContentItem[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const createdAt = data.createdAt; // Firestore Timestamp
+      items.push({
+        id: doc.id,
+        ...data,
+        createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : (createdAt || new Date().toISOString()),
+      } as ContentItem);
+    });
+    callback(items);
+  }, (error) => {
+    console.error("Failed to subscribe to content items from Firestore:", error);
+    callback([], error);
+  });
+
+  return unsubscribe;
+}
+
 
 // Function to get a single content item by ID
 export async function getContentItemById(id: string): Promise<ContentItem | undefined> {
@@ -82,7 +117,7 @@ export async function addContentItem(
     
     // Create a mutable copy to work with
     const dataToSave: { [key: string]: any } = { ...itemData };
-    dataToSave.createdAt = new Date(); // Save as a native Firestore Timestamp
+    dataToSave.createdAt = Timestamp.fromDate(new Date()); // Use Firestore Timestamp
 
     // Movie details fetching logic (requires TMDB_API_KEY in .env)
     if (dataToSave.type === 'link' && dataToSave.url && dataToSave.url.includes('imdb.com/title/') && process.env.TMDB_API_KEY) {
@@ -136,7 +171,7 @@ export async function addContentItem(
       id: docRef.id,
       ...dataToSave,
     };
-    finalItem.createdAt = (finalItem.createdAt as Date).toISOString();
+    finalItem.createdAt = (finalItem.createdAt as Timestamp).toDate().toISOString();
 
 
     return finalItem as ContentItem;
@@ -164,13 +199,23 @@ export async function updateContentItem(
 ): Promise<ContentItem | undefined> {
   try {
     const docRef = doc(db, 'content', itemId);
-    await updateDoc(docRef, updates);
+    const updateData = { ...updates };
+    // Ensure dueDate is handled correctly for Firestore
+    if (updateData.dueDate === null) {
+      // If you want to remove the due date, you might need a specific handling
+      // depending on your data model, e.g., using deleteField()
+    } else if (updateData.dueDate) {
+      updateData.dueDate = updateData.dueDate; // It should already be an ISO string
+    }
+
+    await updateDoc(docRef, updateData);
     return await getContentItemById(itemId); // Fetch the updated document
   } catch(error) {
     console.error(`Failed to update content item with ID ${itemId}:`, error);
     throw error;
   }
 }
+
 
 // --- Zone Functions ---
 
