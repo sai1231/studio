@@ -22,6 +22,7 @@ export interface ContentItem {
   url?: string;
   imageUrl?: string;
   audioUrl?: string;
+  faviconUrl?: string;
   tags: Tag[];
   zoneId?: string;
   userId?: string;
@@ -30,7 +31,7 @@ export interface ContentItem {
   domain?: string;
   contentType?: string;
   movieDetails?: MovieDetails; // Added for movie type
-  status?: 'pending' | 'completed' | 'pending-analysis'; // For TODOs and content analysis
+  status?: 'pending' | 'completed';
 }
 
 export interface MovieDetails {

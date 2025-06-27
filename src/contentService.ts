@@ -118,24 +118,9 @@ export async function addContentItem(
     const dataToSave: { [key: string]: any } = { ...itemData };
     dataToSave.createdAt = Timestamp.fromDate(new Date());
 
-    if (dataToSave.type === 'link' && dataToSave.url) {
-      try {
-        const response = await fetch(`/api/scrape-metadata?url=${encodeURIComponent(dataToSave.url)}`);
-        if (response.ok) {
-            const metadata = await response.json();
-            if (metadata.title) {
-                dataToSave.title = metadata.title;
-            }
-            if (metadata.description && !dataToSave.description) {
-                dataToSave.description = metadata.description;
-            }
-            if (metadata.faviconUrl) {
-                dataToSave.faviconUrl = metadata.faviconUrl;
-            }
-        }
-      } catch (e) {
-        console.warn(`Could not fetch metadata for ${dataToSave.url}:`, e);
-      }
+    // Set initial status for enrichment
+    if (['link', 'image'].includes(dataToSave.type)) {
+      dataToSave.status = 'pending-analysis';
     }
 
 
@@ -154,6 +139,7 @@ export async function addContentItem(
             dataToSave.contentType = 'Movie';
             dataToSave.imageUrl = movieData.poster_path ? `https://image.tmdb.org/t/p/w500${movieData.poster_path}` : dataToSave.imageUrl;
             dataToSave.description = movieData.overview || dataToSave.description;
+            dataToSave.status = 'completed'; // Movies are considered pre-enriched
             dataToSave.movieDetails = {
               posterPath: movieData.poster_path,
               releaseYear: movieData.release_date?.split('-')[0],

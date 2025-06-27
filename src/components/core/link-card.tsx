@@ -108,11 +108,13 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
       {/* Footer for domain and actions */}
       <div className="mt-auto pt-2 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+          {item.faviconUrl ? (
+            <img src={item.faviconUrl} alt="" className="h-4 w-4 rounded-sm" />
+          ) : (
+            item.domain && <Landmark className="h-3.5 w-3.5 opacity-80 shrink-0" />
+          )}
           {item.domain && (
-            <>
-              <Landmark className="h-3.5 w-3.5 opacity-80 shrink-0" />
-              <span className="truncate">{item.domain}</span>
-            </>
+            <span className="truncate">{item.domain}</span>
           )}
         </div>
 
