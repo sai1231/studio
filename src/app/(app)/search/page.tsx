@@ -10,7 +10,7 @@ import type { ContentItem } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Loader2, Search as SearchIcon, FolderOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getContentItems, deleteContentItem } from '@/services/contentService';
+import { searchContentItems, deleteContentItem } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
 
 const pageLoadingMessages = [
@@ -26,7 +26,6 @@ function SearchResultsPageContent() {
   const { user } = useAuth();
   const query = searchParams.get('q');
 
-  const [allContentItems, setAllContentItems] = useState<ContentItem[]>([]);
   const [searchResults, setSearchResults] = useState<ContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +41,7 @@ function SearchResultsPageContent() {
     }
   }, [isLoading]);
 
-  const fetchDataAndFilter = useCallback(async () => {
+  const performSearch = useCallback(async () => {
     if (!query || !user) {
       setSearchResults([]);
       setIsLoading(false);
@@ -52,15 +51,8 @@ function SearchResultsPageContent() {
     setIsLoading(true);
     setError(null);
     try {
-      const items = await getContentItems(user.uid);
-      setAllContentItems(items); // Store all items in case detail dialog needs it or if query changes
-
-      const lowerCaseQuery = query.toLowerCase();
-      const filteredItems = items.filter(item => 
-        item.title.toLowerCase().includes(lowerCaseQuery) ||
-        (item.description && item.description.toLowerCase().includes(lowerCaseQuery))
-      );
-      setSearchResults(filteredItems);
+      const results = await searchContentItems(user.uid, query);
+      setSearchResults(results);
     } catch (err) {
       console.error("Error fetching search results:", err);
       setError("Failed to load search results. Please try again.");
@@ -72,9 +64,9 @@ function SearchResultsPageContent() {
 
   useEffect(() => {
     if (user) {
-      fetchDataAndFilter();
+      performSearch();
     }
-  }, [user, fetchDataAndFilter]);
+  }, [user, performSearch]);
 
   const handleOpenDetailDialog = (item: ContentItem) => {
     setSelectedItemIdForDetail(item.id);
@@ -82,31 +74,15 @@ function SearchResultsPageContent() {
   };
 
   const handleItemUpdateInDialog = (updatedItem: ContentItem) => {
-    // Update in allContentItems
-    setAllContentItems(prevAll => 
-      prevAll.map(item => item.id === updatedItem.id ? updatedItem : item)
-    );
-    // Re-filter search results if the updated item might change its match status
-    if (query) {
-        const lowerCaseQuery = query.toLowerCase();
-        const stillMatchesSearch = updatedItem.title.toLowerCase().includes(lowerCaseQuery) ||
-                                 (updatedItem.description && updatedItem.description.toLowerCase().includes(lowerCaseQuery));
-        
-        setSearchResults(prevResults => {
-            if (stillMatchesSearch) {
-                return prevResults.map(item => item.id === updatedItem.id ? updatedItem : item);
-            } else {
-                return prevResults.filter(item => item.id !== updatedItem.id);
-            }
-        });
-    }
+    // Re-run the search to ensure the view is consistent with the latest data.
+    performSearch();
     toast({ title: "Item Updated", description: `"${updatedItem.title}" has been updated.`});
   };
 
   const handleDeleteItem = async (itemIdToDelete: string) => {
-    const itemTitle = searchResults.find(item => item.id === itemIdToDelete)?.title || allContentItems.find(item => item.id === itemIdToDelete)?.title || "Item";
+    const itemTitle = searchResults.find(item => item.id === itemIdToDelete)?.title || "Item";
     
-    setAllContentItems(prev => prev.filter(item => item.id !== itemIdToDelete));
+    // Optimistically remove the item from the UI
     setSearchResults(prev => prev.filter(item => item.id !== itemIdToDelete));
 
     const { id: toastId } = toast({ title: "Deleting Item...", description: `Removing "${itemTitle}".` });
@@ -116,7 +92,7 @@ function SearchResultsPageContent() {
     } catch (e) {
       console.error("Error deleting content:", e);
       toast({ id: toastId, title: "Error Deleting", description: `Could not delete "${itemTitle}".`, variant: "destructive" });
-      fetchDataAndFilter(); // Restore if deletion failed
+      performSearch(); // Re-run search to restore item if deletion failed
     }
   };
   
@@ -136,7 +112,7 @@ function SearchResultsPageContent() {
         <div className="container mx-auto py-8 text-center">
             <SearchIcon className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
             <h1 className="text-2xl font-headline font-semibold text-destructive">{error}</h1>
-            <Button onClick={fetchDataAndFilter} className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">Try Again</Button>
+            <Button onClick={performSearch} className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">Try Again</Button>
         </div>
     );
   }
@@ -198,9 +174,6 @@ function SearchResultsPageContent() {
 }
 
 export default function SearchPage() {
-  // Wrap with Suspense because useSearchParams() needs it for SSR components
-  // or components not part of a Client Boundary that uses it.
-  // Here, SearchResultsPageContent is a client component, but SearchPage itself might not be.
   return (
     <Suspense fallback={
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">

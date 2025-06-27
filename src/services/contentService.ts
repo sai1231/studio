@@ -19,6 +19,15 @@ import {
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { ContentItem, Zone, Tag, MovieDetails } from '@/types';
 
+// Helper function to create search keywords from text
+function tokenize(text: string): string[] {
+    if (!text) return [];
+    // Convert to lowercase, split by non-alphanumeric characters, filter out empty strings
+    const words = text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+    // Remove duplicates
+    return Array.from(new Set(words));
+}
+
 // Firestore collection references
 const contentCollection = collection(db, 'content');
 const zonesCollection = collection(db, 'zones');
@@ -108,18 +117,16 @@ export async function getContentItemById(id: string): Promise<ContentItem | unde
 
 // Function to add a new content item
 export async function addContentItem(
-  itemData: Omit<ContentItem, 'id' | 'createdAt'>
+  itemData: Omit<ContentItem, 'id' | 'createdAt' | 'searchKeywords'>
 ): Promise<ContentItem> {
   try {
     if (!itemData.userId) {
       throw new Error("User ID is required to add a content item.");
     }
     
-    // Create a mutable copy to work with
     const dataToSave: { [key: string]: any } = { ...itemData };
-    dataToSave.createdAt = Timestamp.fromDate(new Date()); // Use Firestore Timestamp
+    dataToSave.createdAt = Timestamp.fromDate(new Date());
 
-    // Movie details fetching logic (requires TMDB_API_KEY in .env)
     if (dataToSave.type === 'link' && dataToSave.url && dataToSave.url.includes('imdb.com/title/') && process.env.NEXT_PUBLIC_TMDB_API_KEY) {
       const imdbId = dataToSave.url.split('/title/')[1].split('/')[0];
       if (imdbId) {
@@ -158,8 +165,10 @@ export async function addContentItem(
       }
     }
     
-    // This is the key fix: remove any top-level properties that are undefined.
-    // Firestore does not allow 'undefined' as a field value.
+    // Generate and add search keywords
+    const searchableText = `${dataToSave.title || ''} ${dataToSave.description || ''}`;
+    dataToSave.searchKeywords = tokenize(searchableText);
+    
     Object.keys(dataToSave).forEach(key => {
       if (dataToSave[key] === undefined) {
         delete dataToSave[key];
@@ -167,20 +176,17 @@ export async function addContentItem(
     });
 
     const docRef = await addDoc(contentCollection, dataToSave);
-
-    // Create the final object to return, ensuring createdAt is a string
     const finalItem = {
       id: docRef.id,
       ...dataToSave,
     };
     finalItem.createdAt = (finalItem.createdAt as Timestamp).toDate().toISOString();
 
-
     return finalItem as ContentItem;
 
   } catch (error) {
     console.error("Failed to add content item to Firestore:", error);
-    throw error; // Re-throw for the caller to handle
+    throw error;
   }
 }
 
@@ -197,23 +203,81 @@ export async function deleteContentItem(itemId: string): Promise<void> {
 // Function to update a content item
 export async function updateContentItem(
   itemId: string,
-  updates: Partial<Omit<ContentItem, 'id' | 'createdAt' | 'userId'>>
+  updates: Partial<Omit<ContentItem, 'id' | 'createdAt' | 'userId' | 'searchKeywords'>>
 ): Promise<ContentItem | undefined> {
   try {
     const docRef = doc(db, 'content', itemId);
-    const updateData = { ...updates };
-    // Ensure dueDate is handled correctly for Firestore
+    const updateData: { [key: string]: any } = { ...updates };
+
+    // If title or description are being updated, regenerate search keywords
+    if (updates.title !== undefined || updates.description !== undefined) {
+      const currentItem = await getContentItemById(itemId);
+      if (currentItem) {
+        const newTitle = updates.title ?? currentItem.title;
+        const newDescription = updates.description ?? currentItem.description;
+        const searchableText = `${newTitle || ''} ${newDescription || ''}`;
+        updateData.searchKeywords = tokenize(searchableText);
+      }
+    }
+
     if (updateData.dueDate === null) {
-      // If you want to remove the due date, you might need a specific handling
-      // depending on your data model, e.g., using deleteField()
+      // Handle removal if needed
     } else if (updateData.dueDate) {
-      updateData.dueDate = updateData.dueDate; // It should already be an ISO string
+      updateData.dueDate = updateData.dueDate;
     }
 
     await updateDoc(docRef, updateData);
-    return await getContentItemById(itemId); // Fetch the updated document
+    return await getContentItemById(itemId);
   } catch(error) {
     console.error(`Failed to update content item with ID ${itemId}:`, error);
+    throw error;
+  }
+}
+
+// New function to perform keyword-based search
+export async function searchContentItems(userId: string, searchQuery: string): Promise<ContentItem[]> {
+  try {
+    if (!userId || !searchQuery.trim()) {
+      return [];
+    }
+
+    // Tokenize the search query. Limit to 10 terms for 'array-contains-any'
+    const queryKeywords = tokenize(searchQuery).slice(0, 10);
+    if (queryKeywords.length === 0) {
+      return [];
+    }
+
+    const q = query(
+      contentCollection,
+      where("userId", "==", userId),
+      where("searchKeywords", "array-contains-any", queryKeywords)
+    );
+
+    const querySnapshot = await getDocs(q);
+    const items: ContentItem[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      items.push({
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
+      } as ContentItem);
+    });
+
+    // Client-side sort to rank more relevant results higher
+    items.sort((a, b) => {
+        const aMatches = a.searchKeywords?.filter(k => queryKeywords.includes(k)).length || 0;
+        const bMatches = b.searchKeywords?.filter(k => queryKeywords.includes(k)).length || 0;
+        if (bMatches !== aMatches) {
+            return bMatches - aMatches; // Higher match count first
+        }
+        // Fallback to recency
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    return items;
+  } catch (error) {
+    console.error("Failed to search content items in Firestore:", error);
     throw error;
   }
 }
