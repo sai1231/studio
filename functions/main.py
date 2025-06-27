@@ -9,7 +9,7 @@ from firebase_functions import firestore_fn, options
 initialize_app()
 
 
-@firestore_fn.on_document_written("content/{docId}")
+@firestore_fn.on_document_written("content/{docId}", region="us-central1")
 def on_content_pending_analysis(
     event: firestore_fn.Event[firestore_fn.Change]
 ) -> None:
