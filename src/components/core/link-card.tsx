@@ -79,7 +79,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
             src={item.imageUrl!}
             alt={item.title}
             data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
-            className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-auto group-hover:scale-105 transition-transform duration-300"
             loading="lazy"
           />
         </div>
