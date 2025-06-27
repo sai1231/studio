@@ -20,6 +20,7 @@ import {
 import { Plus, FileText, ImageUp, Mic, UploadCloud, FileUp, ListChecks, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
+import EnvVarCheck from '@/components/core/EnvVarCheck';
 
 export default function AppLayout({
   children,
@@ -290,6 +291,7 @@ export default function AppLayout({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
+          <EnvVarCheck />
           {children}
           {isDraggingOver && (
             <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm flex flex-col items-center justify-center z-50 pointer-events-none rounded-lg border-2 border-dashed border-primary">
