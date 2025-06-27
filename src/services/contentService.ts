@@ -234,22 +234,61 @@ export async function updateContentItem(
   }
 }
 
-// Original search function that fetches all items and filters on the client
-export async function searchContentItems(userId: string, searchQuery: string): Promise<ContentItem[]> {
+export interface SearchFilters {
+  zoneId?: string | null;
+  contentType?: string | null;
+  tagNames?: string[];
+}
+
+// Updated search function that fetches all items and filters on the client with advanced criteria
+export async function searchContentItems(
+  userId: string,
+  searchQuery: string,
+  filters: SearchFilters = {}
+): Promise<ContentItem[]> {
   try {
-    if (!userId || !searchQuery.trim()) {
+    if (!userId) {
       return [];
     }
 
     const allItems = await getContentItems(userId);
     const lowerCaseQuery = searchQuery.toLowerCase();
 
-    return allItems.filter(item => {
-      const titleMatch = item.title.toLowerCase().includes(lowerCaseQuery);
-      const descriptionMatch = item.description ? item.description.toLowerCase().includes(lowerCaseQuery) : false;
-      const tagMatch = item.tags.some(tag => tag.name.toLowerCase().includes(lowerCaseQuery));
-      return titleMatch || descriptionMatch || tagMatch;
+    const filteredItems = allItems.filter(item => {
+      // Text search (if query exists)
+      if (searchQuery.trim()) {
+        const titleMatch = item.title.toLowerCase().includes(lowerCaseQuery);
+        const descriptionMatch = item.description ? item.description.toLowerCase().includes(lowerCaseQuery) : false;
+        const tagMatch = item.tags.some(tag => tag.name.toLowerCase().includes(lowerCaseQuery));
+        if (!(titleMatch || descriptionMatch || tagMatch)) {
+          return false;
+        }
+      }
+
+      // Zone filter
+      if (filters.zoneId && item.zoneId !== filters.zoneId) {
+        return false;
+      }
+      
+      // Content Type filter
+      if (filters.contentType && item.contentType !== filters.contentType) {
+        return false;
+      }
+      
+      // Tags filter (item must have ALL selected tags)
+      if (filters.tagNames && filters.tagNames.length > 0) {
+        const itemTagNames = item.tags.map(tag => tag.name.toLowerCase());
+        const filterTagNamesLower = filters.tagNames.map(t => t.toLowerCase());
+        const hasAllTags = filterTagNamesLower.every(filterTag => itemTagNames.includes(filterTag));
+        if (!hasAllTags) {
+          return false;
+        }
+      }
+
+      return true;
     });
+
+    return filteredItems;
 
   } catch (error) {
     console.error("Failed to search content items:", error);

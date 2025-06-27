@@ -2,7 +2,7 @@
 'use client';
 
 import type React from 'react';
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import ContentCard from '@/components/core/link-card';
 import ContentDetailDialog from '@/components/core/ContentDetailDialog';
@@ -24,7 +24,12 @@ function SearchResultsPageContent() {
   const router = useRouter();
   const { toast } = useToast();
   const { user } = useAuth();
-  const query = searchParams.get('q');
+  
+  const query = searchParams.get('q') || '';
+  const zoneId = searchParams.get('zone');
+  const contentType = searchParams.get('contentType');
+  const tagsParam = searchParams.get('tags');
+  const tagNames = useMemo(() => (tagsParam ? tagsParam.split(',') : []), [tagsParam]);
 
   const [searchResults, setSearchResults] = useState<ContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,16 +47,29 @@ function SearchResultsPageContent() {
   }, [isLoading]);
 
   const performSearch = useCallback(async () => {
-    if (!query || !user) {
+    if (!user) {
       setSearchResults([]);
       setIsLoading(false);
       return;
+    }
+    
+    // Don't perform search if there's no query and no filters
+    const hasQuery = query.trim().length > 0;
+    const hasFilters = !!zoneId || !!contentType || tagNames.length > 0;
+    if (!hasQuery && !hasFilters) {
+        setSearchResults([]);
+        setIsLoading(false);
+        return;
     }
 
     setIsLoading(true);
     setError(null);
     try {
-      const results = await searchContentItems(user.uid, query);
+      const results = await searchContentItems(user.uid, query, { 
+        zoneId, 
+        contentType, 
+        tagNames 
+      });
       setSearchResults(results);
     } catch (err) {
       console.error("Error fetching search results:", err);
@@ -60,7 +78,7 @@ function SearchResultsPageContent() {
     } finally {
       setIsLoading(false);
     }
-  }, [query, toast, user]);
+  }, [query, zoneId, contentType, tagNames, toast, user]);
 
   useEffect(() => {
     if (user) {
@@ -96,7 +114,9 @@ function SearchResultsPageContent() {
     }
   };
   
-  if (isLoading || !user) {
+  const hasActiveSearch = query.trim().length > 0 || !!zoneId || !!contentType || tagNames.length > 0;
+
+  if (isLoading && hasActiveSearch) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -117,33 +137,42 @@ function SearchResultsPageContent() {
     );
   }
 
-  if (!query) {
+  if (!hasActiveSearch) {
     return (
       <div className="container mx-auto py-8 text-center">
         <SearchIcon className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
         <h1 className="text-2xl font-headline font-semibold text-foreground">Search Your Memories</h1>
-        <p className="text-muted-foreground mt-2">Enter a term in the search bar above to find content.</p>
+        <p className="text-muted-foreground mt-2">Enter a term or use the advanced filters in the header to find content.</p>
       </div>
     );
   }
 
+  const hasFilters = !!zoneId || !!contentType || tagNames.length > 0;
+
   return (
     <div className="container mx-auto py-2">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-        <h1 className="text-3xl font-headline font-semibold text-foreground flex items-center">
-          <SearchIcon className="h-7 w-7 mr-3 text-primary" />
-          Search Results for: <span className="ml-2 font-bold text-primary">&quot;{query}&quot;</span>
-        </h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start mb-6 gap-4">
+        <div>
+            <h1 className="text-3xl font-headline font-semibold text-foreground flex items-center">
+              <SearchIcon className="h-7 w-7 mr-3 text-primary" />
+                {query ? (
+                    <>Search Results for: <span className="ml-2 font-bold text-primary">&quot;{query}&quot;</span></>
+                ) : (
+                    "Advanced Search Results"
+                )}
+            </h1>
+            {hasFilters && <p className="text-muted-foreground mt-1">Filters are active. Click the filter icon in the header to modify.</p>}
+        </div>
       </div>
 
       {searchResults.length === 0 ? (
         <div className="text-center py-12">
           <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h2 className="text-xl font-medium text-muted-foreground">
-            No items found matching &quot;{query}&quot;.
+            No items found matching your criteria.
           </h2>
           <p className="text-muted-foreground mt-2">
-            Try a different search term or broaden your query.
+            Try a different search term or adjust your filters.
           </p>
         </div>
       ) : (
