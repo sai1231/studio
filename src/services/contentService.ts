@@ -18,7 +18,6 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { ContentItem, Zone, Tag, MovieDetails } from '@/types';
-import { categorizeLink } from '@/ai/flows/categorize-link-flow';
 
 // Firestore collection references
 const contentCollection = collection(db, 'content');
@@ -121,19 +120,19 @@ export async function addContentItem(
     dataToSave.createdAt = Timestamp.fromDate(new Date()); // Use Firestore Timestamp
 
     // Movie details fetching logic (requires TMDB_API_KEY in .env)
-    if (dataToSave.type === 'link' && dataToSave.url && dataToSave.url.includes('imdb.com/title/') && process.env.TMDB_API_KEY) {
-      dataToSave.type = 'movie';
-      dataToSave.contentType = 'Movie';
+    if (dataToSave.type === 'link' && dataToSave.url && dataToSave.url.includes('imdb.com/title/') && process.env.NEXT_PUBLIC_TMDB_API_KEY) {
       const imdbId = dataToSave.url.split('/title/')[1].split('/')[0];
       if (imdbId) {
         try {
-          const tmdbResponse = await fetch(`https://api.themoviedb.org/3/find/${imdbId}?api_key=${process.env.TMDB_API_KEY}&external_source=imdb_id`);
+          const tmdbResponse = await fetch(`https://api.themoviedb.org/3/find/${imdbId}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&external_source=imdb_id`);
           const tmdbFindData = await tmdbResponse.json();
           if (tmdbFindData.movie_results && tmdbFindData.movie_results.length > 0) {
             const movieId = tmdbFindData.movie_results[0].id;
-            const movieDetailResponse = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${process.env.TMDB_API_KEY}&append_to_response=credits`);
+            const movieDetailResponse = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&append_to_response=credits`);
             const movieData = await movieDetailResponse.json();
             
+            dataToSave.type = 'movie';
+            dataToSave.contentType = 'Movie';
             dataToSave.imageUrl = movieData.poster_path ? `https://image.tmdb.org/t/p/w500${movieData.poster_path}` : dataToSave.imageUrl;
             dataToSave.description = movieData.overview || dataToSave.description;
             dataToSave.movieDetails = {
@@ -148,19 +147,6 @@ export async function addContentItem(
         } catch (e) {
           console.error("Error fetching movie details from TMDb:", e);
         }
-      }
-    }
-
-    // AI Categorization for links (if not already set, e.g., for PDF or Movie)
-    if (dataToSave.type === 'link' && dataToSave.url && !dataToSave.contentType) {
-      try {
-        const result = await categorizeLink({ url: dataToSave.url, title: dataToSave.title || '' });
-        if (result.contentType && result.contentType !== 'Other') {
-            dataToSave.contentType = result.contentType;
-        }
-      } catch (aiError) {
-        console.warn("AI categorization failed. Proceeding without it.", aiError);
-        // Don't block the save operation if AI fails
       }
     }
 
