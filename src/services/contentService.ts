@@ -19,15 +19,6 @@ import {
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { ContentItem, Zone, Tag, MovieDetails } from '@/types';
 
-// Helper function to create search keywords from text
-function tokenize(text: string): string[] {
-    if (!text) return [];
-    // Convert to lowercase, split by non-alphanumeric characters, filter out empty strings
-    const words = text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
-    // Remove duplicates
-    return Array.from(new Set(words));
-}
-
 // Firestore collection references
 const contentCollection = collection(db, 'content');
 const zonesCollection = collection(db, 'zones');
@@ -117,7 +108,7 @@ export async function getContentItemById(id: string): Promise<ContentItem | unde
 
 // Function to add a new content item
 export async function addContentItem(
-  itemData: Omit<ContentItem, 'id' | 'createdAt' | 'searchKeywords'>
+  itemData: Omit<ContentItem, 'id' | 'createdAt'>
 ): Promise<ContentItem> {
   try {
     if (!itemData.userId) {
@@ -165,10 +156,6 @@ export async function addContentItem(
       }
     }
     
-    // Generate and add search keywords
-    const searchableText = `${dataToSave.title || ''} ${dataToSave.description || ''}`;
-    dataToSave.searchKeywords = tokenize(searchableText);
-    
     Object.keys(dataToSave).forEach(key => {
       if (dataToSave[key] === undefined) {
         delete dataToSave[key];
@@ -203,22 +190,11 @@ export async function deleteContentItem(itemId: string): Promise<void> {
 // Function to update a content item
 export async function updateContentItem(
   itemId: string,
-  updates: Partial<Omit<ContentItem, 'id' | 'createdAt' | 'userId' | 'searchKeywords'>>
+  updates: Partial<Omit<ContentItem, 'id' | 'createdAt' | 'userId'>>
 ): Promise<ContentItem | undefined> {
   try {
     const docRef = doc(db, 'content', itemId);
     const updateData: { [key: string]: any } = { ...updates };
-
-    // If title or description are being updated, regenerate search keywords
-    if (updates.title !== undefined || updates.description !== undefined) {
-      const currentItem = await getContentItemById(itemId);
-      if (currentItem) {
-        const newTitle = updates.title ?? currentItem.title;
-        const newDescription = updates.description ?? currentItem.description;
-        const searchableText = `${newTitle || ''} ${newDescription || ''}`;
-        updateData.searchKeywords = tokenize(searchableText);
-      }
-    }
 
     if (updateData.dueDate === null) {
       // Handle removal if needed
@@ -234,50 +210,24 @@ export async function updateContentItem(
   }
 }
 
-// New function to perform keyword-based search
+// Original search function that fetches all items and filters on the client
 export async function searchContentItems(userId: string, searchQuery: string): Promise<ContentItem[]> {
   try {
     if (!userId || !searchQuery.trim()) {
       return [];
     }
 
-    // Tokenize the search query. Limit to 10 terms for 'array-contains-any'
-    const queryKeywords = tokenize(searchQuery).slice(0, 10);
-    if (queryKeywords.length === 0) {
-      return [];
-    }
+    const allItems = await getContentItems(userId);
+    const lowerCaseQuery = searchQuery.toLowerCase();
 
-    const q = query(
-      contentCollection,
-      where("userId", "==", userId),
-      where("searchKeywords", "array-contains-any", queryKeywords)
-    );
-
-    const querySnapshot = await getDocs(q);
-    const items: ContentItem[] = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      items.push({
-        id: doc.id,
-        ...data,
-        createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
-      } as ContentItem);
+    return allItems.filter(item => {
+      const titleMatch = item.title.toLowerCase().includes(lowerCaseQuery);
+      const descriptionMatch = item.description ? item.description.toLowerCase().includes(lowerCaseQuery) : false;
+      return titleMatch || descriptionMatch;
     });
 
-    // Client-side sort to rank more relevant results higher
-    items.sort((a, b) => {
-        const aMatches = a.searchKeywords?.filter(k => queryKeywords.includes(k)).length || 0;
-        const bMatches = b.searchKeywords?.filter(k => queryKeywords.includes(k)).length || 0;
-        if (bMatches !== aMatches) {
-            return bMatches - aMatches; // Higher match count first
-        }
-        // Fallback to recency
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-
-    return items;
   } catch (error) {
-    console.error("Failed to search content items in Firestore:", error);
+    console.error("Failed to search content items:", error);
     throw error;
   }
 }

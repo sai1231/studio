@@ -31,7 +31,6 @@ export interface ContentItem {
   contentType?: string;
   movieDetails?: MovieDetails; // Added for movie type
   status?: 'pending' | 'completed' | 'pending-analysis'; // For TODOs and content analysis
-  searchKeywords?: string[]; // For Firestore-based search
 }
 
 export interface MovieDetails {
