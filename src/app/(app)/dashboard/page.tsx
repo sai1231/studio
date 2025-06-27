@@ -38,13 +38,7 @@ const TodoListCard: React.FC<{
 }> = ({ items, onToggleStatus, isUpdatingStatus }) => {
   return (
     <Card className="break-inside-avoid mb-4 shadow-lg">
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <ListChecks className="mr-2 h-6 w-6 text-primary" />
-          My TODOs
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="p-4">
         <ScrollArea className="max-h-96 pr-3">
           <div className="space-y-3">
             {items.map(todo => (
