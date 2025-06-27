@@ -136,6 +136,7 @@ export default function AppLayout({
         tags: [{id: 'upload', name: 'upload'}, { id: 'image-upload', name: 'image' }],
         zoneId: zones[0]?.id,
         userId: user.uid,
+        status: 'pending-analysis',
       } : {
         type: 'link', 
         title: file.name || 'Uploaded PDF',
@@ -146,6 +147,7 @@ export default function AppLayout({
         contentType: 'PDF',
         domain: 'mati.internal.storage',
         userId: user.uid,
+        status: 'pending-analysis',
       };
 
       await addContentItem(newContentData);
@@ -217,6 +219,7 @@ export default function AppLayout({
           description: data.description || `Link dropped on ${new Date().toLocaleDateString()}`,
           tags: [{ id: 'dnd-drop', name: 'dropped' }],
           zoneId: zones[0]?.id,
+          status: 'pending-analysis',
         }
       : {
           type: 'note',

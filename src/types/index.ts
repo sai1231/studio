@@ -30,7 +30,7 @@ export interface ContentItem {
   domain?: string;
   contentType?: string;
   movieDetails?: MovieDetails; // Added for movie type
-  status?: 'pending' | 'completed'; // Added for TODO status
+  status?: 'pending' | 'completed' | 'pending-analysis'; // For TODOs and content analysis
 }
 
 export interface MovieDetails {
@@ -47,4 +47,5 @@ export type LinkItem = ContentItem & {
   type: 'link';
   url: string;
 };
+
 

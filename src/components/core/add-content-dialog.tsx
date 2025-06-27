@@ -191,6 +191,10 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       domain: type === 'link' && values.url ? new URL(values.url).hostname.replace(/^www\./, '') : undefined,
     };
     
+    if (type === 'link') {
+      contentData.status = 'pending-analysis';
+    }
+    
     if (type === 'note') {
       contentData.contentType = 'Note';
     }
