@@ -473,13 +473,12 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                             allowFullScreen
                           ></iframe>
                         ) : item.imageUrl ? (
-                          <Image
+                          <img
                             src={item.imageUrl}
                             alt={editableTitle || 'Content Image'}
                             data-ai-hint={item.title || "image"}
-                            fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            className="object-cover rounded-xl"
+                            className="absolute h-full w-full object-cover rounded-xl"
+                            loading="lazy"
                           />
                         ) : null}
                       </div>
