@@ -22,20 +22,18 @@ import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, Command
 import { Badge } from '@/components/ui/badge';
 import { X, Loader2, Check, Plus, ChevronDown, Bookmark, Briefcase, Home, Library } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-import type { Zone, ContentItemType, Tag, ContentItem } from '@/types';
+import type { Zone, ContentItem, Tag } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { addZone } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
 
-const contentFormSchemaBase = z.object({
-  url: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
-  title: z.string().optional(), // No longer required in form
-  description: z.string().optional(),
+// Simplified schema for the new single-textarea input
+const mainContentSchema = z.object({
+  mainContent: z.string().min(1, { message: 'Please enter a note or a URL.' }),
   zoneId: z.string().optional(),
-  contentType: z.string().optional(),
-  domain: z.string().optional(),
 });
+
 
 export interface AddContentDialogOpenChange {
   open?: boolean;
@@ -74,27 +72,19 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const [isZonePopoverOpen, setIsZonePopoverOpen] = useState(false);
   const [zoneSearchText, setZoneSearchText] = useState('');
 
-  const form = useForm<z.infer<typeof contentFormSchemaBase>>({
-    resolver: zodResolver(contentFormSchemaBase),
+  const form = useForm<z.infer<typeof mainContentSchema>>({
+    resolver: zodResolver(mainContentSchema),
     defaultValues: {
-      url: '',
-      title: '',
-      description: '',
+      mainContent: '',
       zoneId: '',
-      contentType: '',
-      domain: '',
     },
   });
 
   useEffect(() => {
     if (open) {
       form.reset({
-        url: '',
-        title: '',
-        description: '',
+        mainContent: '',
         zoneId: '',
-        contentType: '',
-        domain: '',
       });
       setCurrentTags([]);
       setTagInput('');
@@ -148,55 +138,56 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     setCurrentTags(currentTags.filter(tag => tag.id !== tagToRemove.id));
   };
 
-  async function onSubmit(values: z.infer<typeof contentFormSchemaBase>) {
+  // Helper to find the first valid URL in a string
+  const extractUrl = (text: string): string | null => {
+    const words = text.split(/[\s\n]+/);
+    for (const word of words) {
+        try {
+            // A simple check to see if it looks like a URL before trying new URL()
+            if (word.startsWith('http://') || word.startsWith('https://')) {
+                const url = new URL(word);
+                return url.href;
+            }
+        } catch (_) {
+            // Not a valid URL, continue
+        }
+    }
+    return null;
+  };
+
+  async function onSubmit(values: z.infer<typeof mainContentSchema>) {
     setIsSaving(true);
 
-    const type: ContentItemType = (!!values.url && z.string().url().safeParse(values.url).success ? 'link' : 'note');
-    const finalDescription = values.description || undefined;
+    const { mainContent, zoneId } = values;
+    const extractedUrl = extractUrl(mainContent);
 
-    if (type === 'note' && !finalDescription) {
-        form.setError('description', { type: 'manual', message: `Content is required for notes.` });
-        setIsSaving(false);
-        return;
-    }
+    let contentData: Partial<Omit<ContentItem, 'id' | 'createdAt'>>;
 
-    let generatedTitle = '';
-    if (type === 'link' && values.url) {
-        try {
-            generatedTitle = new URL(values.url).hostname.replace(/^www\./, '');
-        } catch(e) {
-            generatedTitle = 'Untitled Link';
-        }
-    } else if (type === 'note' && finalDescription) {
-        const textContent = finalDescription.trim();
-        generatedTitle = textContent.split(/\s+/).slice(0, 5).join(' ');
-        if (textContent.split(/\s+/).length > 5) {
-            generatedTitle += '...';
-        }
-        if (!generatedTitle) {
-            generatedTitle = 'Untitled Note';
-        }
+    if (extractedUrl) {
+      // It's a LINK
+      contentData = {
+        type: 'link',
+        url: extractedUrl,
+        mindNote: mainContent, // User's full text is saved as a Mind Note
+        zoneId: zoneId || undefined,
+        tags: currentTags,
+        domain: new URL(extractedUrl).hostname.replace(/^www\./, ''),
+        status: 'pending-analysis',
+        title: 'Analyzing Link...', // Placeholder title
+      };
     } else {
-        generatedTitle = type === 'link' ? 'Untitled Link' : 'Untitled Note';
-    }
+      // It's a NOTE
+      const textContent = mainContent.trim();
+      const generatedTitle = textContent.split(/\s+/).slice(0, 5).join(' ') + (textContent.split(/\s+/).length > 5 ? '...' : '');
 
-
-    const contentData: Partial<Omit<ContentItem, 'id' | 'createdAt'>> = {
-      type,
-      title: generatedTitle,
-      description: finalDescription,
-      zoneId: values.zoneId || undefined,
-      tags: currentTags,
-      url: type === 'link' ? values.url : undefined,
-      domain: type === 'link' && values.url ? new URL(values.url).hostname.replace(/^www\./, '') : undefined,
-    };
-    
-    if (type === 'link') {
-      contentData.status = 'pending-analysis';
-    }
-    
-    if (type === 'note') {
-      contentData.contentType = 'Note';
+      contentData = {
+        type: 'note',
+        title: generatedTitle || 'Untitled Note',
+        description: textContent,
+        zoneId: zoneId || undefined,
+        tags: currentTags,
+        contentType: 'Note',
+      };
     }
 
     try {
@@ -208,8 +199,8 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     }
   }
 
-  const dialogTitle = "Add Content";
-  const dialogDescriptionText = "Provide a URL to save a link, or just add content to save a note. Select a zone.";
+  const dialogTitle = "Add Link or Note";
+  const dialogDescriptionText = "Paste a link or just start typing to create a note. We'll figure it out.";
 
   const selectedZone = internalZones.find(z => z.id === watchedZoneId);
   const ZoneDisplayIcon = getIconComponent(selectedZone?.icon);
@@ -231,26 +222,18 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex-grow overflow-y-auto pr-2 space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="url">URL</Label>
-            <Input id="url" {...form.register('url')} placeholder="https://example.com" className="focus-visible:ring-accent"/>
-            {form.formState.errors.url && <p className="text-sm text-destructive">{form.formState.errors.url.message}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">
-              Content
-            </Label>
+           <div className="space-y-2">
+            <Label htmlFor="mainContent">Content</Label>
             <Textarea
-              id="description"
-              {...form.register('description')}
-              placeholder="Write your content or note here..."
+              id="mainContent"
+              {...form.register('mainContent')}
+              placeholder="Paste a link or write your note here..."
               className={cn(
                 "min-h-[120px] focus-visible:ring-accent",
-                form.formState.errors.description && "border-destructive focus-visible:ring-destructive"
+                form.formState.errors.mainContent && "border-destructive focus-visible:ring-destructive"
               )}
             />
-             {form.formState.errors.description && <p className="text-sm text-destructive">{form.formState.errors.description.message}</p>}
+            {form.formState.errors.mainContent && <p className="text-sm text-destructive">{form.formState.errors.mainContent.message}</p>}
           </div>
 
           <div className="space-y-2">
