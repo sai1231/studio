@@ -18,6 +18,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { ContentItem, Zone, Tag, MovieDetails } from '@/types';
+import { categorizeLink } from '@/ai/flows/categorize-link-flow';
 
 // Firestore collection references
 const contentCollection = collection(db, 'content');
@@ -148,14 +149,25 @@ export async function addContentItem(
           console.error("Error fetching movie details from TMDb:", e);
         }
       }
-    } else if (dataToSave.type === 'link' && dataToSave.url && !dataToSave.domain) {
+    } else if (dataToSave.type === 'link' && dataToSave.url) {
+        // This is a standard link, let's categorize it with AI
+        try {
+            const categoryResponse = await categorizeLink({ url: dataToSave.url });
+            dataToSave.contentType = categoryResponse.contentType;
+        } catch (e) {
+            console.error("Error categorizing link with AI, defaulting contentType to 'Article'.", e);
+            dataToSave.contentType = 'Article'; // Fallback
+        }
+    }
+
+    if (dataToSave.type === 'link' && dataToSave.url && !dataToSave.domain) {
       try {
         dataToSave.domain = new URL(dataToSave.url).hostname.replace(/^www\./, '');
       } catch (e) {
         console.warn("Could not extract domain from URL:", dataToSave.url);
       }
     }
-
+    
     // This is the key fix: remove any top-level properties that are undefined.
     // Firestore does not allow 'undefined' as a field value.
     Object.keys(dataToSave).forEach(key => {
