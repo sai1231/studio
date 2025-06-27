@@ -13,6 +13,15 @@ import { useAuth } from '@/context/AuthContext';
 import { uploadFile, addContentItem } from '@/services/contentService';
 import type { ContentItem } from '@/types';
 import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+// Extend window type for webkitSpeechRecognition
+declare global {
+  interface Window {
+    SpeechRecognition: typeof SpeechRecognition;
+    webkitSpeechRecognition: typeof SpeechRecognition;
+  }
+}
 
 export default function RecordPage() {
   const router = useRouter();
@@ -26,18 +35,21 @@ export default function RecordPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
 
+  // States for transcription
+  const [isRecognitionSupported, setIsRecognitionSupported] = useState(true);
+  const [transcript, setTranscript] = useState('');
+  const [finalTranscript, setFinalTranscript] = useState('');
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
-    const getMicPermission = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        // We don't need to do anything with the stream here, just confirm we have access.
-        // The browser will keep the permission granted for this session.
-        setHasPermission(true);
-      } catch (error) {
+    // Check for microphone permission
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(() => setHasPermission(true))
+      .catch((error) => {
         console.error('Error accessing microphone:', error);
         setHasPermission(false);
         toast({
@@ -45,24 +57,35 @@ export default function RecordPage() {
           title: 'Microphone Access Denied',
           description: 'Please enable microphone permissions in your browser settings to use this feature.',
         });
-      }
-    };
-    getMicPermission();
+      });
+
+    // Check for Speech Recognition API support
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setIsRecognitionSupported(false);
+      toast({
+        variant: 'destructive',
+        title: 'Browser Not Supported',
+        description: 'Your browser does not support Web Speech API for transcription.',
+      });
+    } else {
+      recognitionRef.current = new SpeechRecognition();
+    }
 
     return () => {
-      // Cleanup timer on unmount
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-      }
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      if (recognitionRef.current) recognitionRef.current.stop();
     };
   }, [toast]);
 
   const startRecording = async () => {
-    if (!hasPermission) {
+    if (!hasPermission || !isRecognitionSupported) {
         toast({
           variant: 'destructive',
-          title: 'No Microphone Access',
-          description: 'Cannot start recording without microphone permission.',
+          title: 'Cannot Start Recording',
+          description: !hasPermission 
+            ? 'Cannot start recording without microphone permission.'
+            : 'Transcription is not supported in this browser.',
         });
         return;
     }
@@ -70,32 +93,59 @@ export default function RecordPage() {
     setAudioBlob(null);
     setAudioUrl(null);
     audioChunksRef.current = [];
+    setTranscript('');
+    setFinalTranscript('');
 
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
         
         mediaRecorderRef.current.ondataavailable = (event) => {
-            if (event.data.size > 0) {
-                audioChunksRef.current.push(event.data);
-            }
+            if (event.data.size > 0) audioChunksRef.current.push(event.data);
         };
 
         mediaRecorderRef.current.onstop = () => {
             const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
             setAudioBlob(blob);
             setAudioUrl(URL.createObjectURL(blob));
-            // Stop the stream tracks to turn off the microphone indicator
             stream.getTracks().forEach(track => track.stop());
         };
 
         mediaRecorderRef.current.start();
-        setIsRecording(true);
         
+        // Start transcription
+        if (recognitionRef.current) {
+            const recognition = recognitionRef.current;
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            let accumulatedFinalTranscript = '';
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        accumulatedFinalTranscript += event.results[i][0].transcript + ' ';
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                setFinalTranscript(accumulatedFinalTranscript);
+                setTranscript(accumulatedFinalTranscript + interimTranscript);
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error', event.error);
+                toast({ variant: 'destructive', title: 'Transcription Error', description: `Error: ${event.error}` });
+            };
+            
+            recognition.start();
+        }
+
+        setIsRecording(true);
         setRecordingTime(0);
-        timerIntervalRef.current = setInterval(() => {
-            setRecordingTime(prevTime => prevTime + 1);
-        }, 1000);
+        timerIntervalRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
 
     } catch (error) {
         console.error('Failed to start recording:', error);
@@ -106,10 +156,11 @@ export default function RecordPage() {
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
       }
+      setIsRecording(false);
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     }
   };
 
@@ -127,7 +178,7 @@ export default function RecordPage() {
       const newContentData: Omit<ContentItem, 'id' | 'createdAt'> = {
         type: 'voice',
         title: `Voice Note - ${new Date().toLocaleString()}`,
-        description: 'A recorded voice note.',
+        description: finalTranscript.trim(),
         audioUrl: downloadURL,
         tags: [{ id: 'voice-note', name: 'voice note' }],
         userId: user.uid,
@@ -162,6 +213,8 @@ export default function RecordPage() {
     setAudioBlob(null);
     setAudioUrl(null);
     setRecordingTime(0);
+    setTranscript('');
+    setFinalTranscript('');
   };
   
   const formatTime = (seconds: number) => {
@@ -183,7 +236,7 @@ export default function RecordPage() {
             Record a Voice Note
           </CardTitle>
           <CardDescription>
-            Capture your thoughts, ideas, or reminders on the fly.
+            Capture your thoughts on the fly. We'll even transcribe it for you.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center justify-center space-y-6 min-h-[250px]">
@@ -193,6 +246,16 @@ export default function RecordPage() {
               <AlertTitle>Microphone Access Denied</AlertTitle>
               <AlertDescription>
                 Mati needs access to your microphone to record audio. Please enable it in your browser settings.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {!isRecognitionSupported && hasPermission && (
+             <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Browser Not Supported</AlertTitle>
+              <AlertDescription>
+                Live transcription is not available in your browser. You can still record audio.
               </AlertDescription>
             </Alert>
           )}
@@ -218,6 +281,11 @@ export default function RecordPage() {
                   {isRecording ? 'Click to Stop Recording' : 'Click to Start Recording'}
                 </p>
               </div>
+               {isRecording && (
+                    <div className="w-full mt-2 p-3 bg-muted/50 rounded-lg min-h-[60px] text-muted-foreground text-center">
+                        <p className="whitespace-pre-wrap">{transcript || 'Listening...'}</p>
+                    </div>
+                )}
             </>
           )}
 
@@ -225,6 +293,11 @@ export default function RecordPage() {
             <div className="w-full flex flex-col items-center space-y-4">
               <p className="font-medium text-foreground">Recording Complete! Preview below.</p>
               <audio controls src={audioUrl} className="w-full max-w-md rounded-lg" />
+              {finalTranscript && (
+                  <ScrollArea className="w-full max-w-md max-h-40 p-3 border rounded-lg bg-muted/30">
+                      <p className="text-sm text-foreground whitespace-pre-wrap">{finalTranscript.trim()}</p>
+                  </ScrollArea>
+              )}
             </div>
           )}
 
