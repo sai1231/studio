@@ -119,9 +119,11 @@ export async function addContentItem(
     const dataToSave: { [key: string]: any } = { ...itemData };
     dataToSave.createdAt = Timestamp.fromDate(new Date());
 
+    let shouldSimulateAnalysis = false;
     // Set initial status for enrichment
     if (['link', 'image'].includes(dataToSave.type)) {
       dataToSave.status = 'pending-analysis';
+      shouldSimulateAnalysis = true;
     }
 
 
@@ -141,6 +143,7 @@ export async function addContentItem(
             dataToSave.imageUrl = movieData.poster_path ? `https://image.tmdb.org/t/p/w500${movieData.poster_path}` : dataToSave.imageUrl;
             dataToSave.description = movieData.overview || dataToSave.description;
             dataToSave.status = 'completed'; // Movies are considered pre-enriched
+            shouldSimulateAnalysis = false; // It's a movie, no further analysis needed
             dataToSave.movieDetails = {
               posterPath: movieData.poster_path,
               releaseYear: movieData.release_date?.split('-')[0],
@@ -171,6 +174,17 @@ export async function addContentItem(
     });
 
     const docRef = await addDoc(contentCollection, dataToSave);
+    
+    // If the item was marked for analysis, simulate the background job.
+    if (shouldSimulateAnalysis) {
+      setTimeout(() => {
+        const itemDocRef = doc(db, 'content', docRef.id);
+        updateDoc(itemDocRef, { status: 'completed' }).catch(err => {
+            console.error("Error during simulated status update:", err);
+        });
+      }, 3000); // 3-second delay
+    }
+
     const finalItem = {
       id: docRef.id,
       ...dataToSave,
