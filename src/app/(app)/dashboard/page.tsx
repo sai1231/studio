@@ -41,7 +41,7 @@ const TodoListCard: React.FC<{
     <Card 
       draggable="true"
       onDragStart={handleDragStart}
-      className="shadow-lg flex flex-col w-full"
+      className="shadow-lg flex flex-col w-full break-inside-avoid mb-4"
     >
       <CardContent className="p-0 flex-grow">
         <ScrollArea className="max-h-96 p-4 pr-1">
@@ -312,7 +312,7 @@ export default function DashboardPage() {
               </p>
             </div>
           ) : (
-            <div className={'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-start'}>
+            <div className={'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
               {todoItems.length > 0 && (
                 <TodoListCard
                   items={todoItems}
