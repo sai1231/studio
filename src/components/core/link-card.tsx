@@ -57,11 +57,19 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
   return (
     <Card
       className={cn(
-        "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col group rounded-3xl p-2 break-inside-avoid mb-4"
+        "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col group rounded-3xl p-2 break-inside-avoid mb-4",
+        item.type !== 'image' && 'cursor-pointer'
       )}
+      onClick={item.type !== 'image' ? () => onEdit(item) : undefined}
     >
       {hasImage && (
-        <div className="relative w-full mb-1 rounded-xl overflow-hidden aspect-square">
+        <div 
+          className={cn(
+            "relative w-full rounded-xl overflow-hidden aspect-square",
+            item.type === 'image' ? 'cursor-pointer' : 'mb-1'
+          )}
+          onClick={item.type === 'image' ? () => onEdit(item) : undefined}
+        >
           <img
             src={item.imageUrl!}
             alt={item.title}
@@ -72,101 +80,100 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         </div>
       )}
 
-      {/* Main content div */}
-      <div
-        className={cn(
-          "flex flex-col flex-grow cursor-pointer p-2"
-        )}
-        onClick={() => onEdit(item)}
-      >
-        <div className="flex items-start gap-2">
-          {!hasImage && (
-            (item.type === 'link' && item.faviconUrl) ? (
-                <img src={item.faviconUrl} alt="" className="h-5 w-5 shrink-0 mt-1 rounded-sm" />
-            ) : (
-                React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-1", specifics.iconText) })
-            )
-          )}
-          <h3 className="text-lg font-semibold leading-tight group-hover:text-primary transition-colors break-words">
-            {item.title || "Untitled"}
-          </h3>
-        </div>
-
-        {plainDescription && (
-          <p className={cn("mt-1 text-sm text-muted-foreground break-words line-clamp-2", !hasImage && "pl-7")}>
-            {plainDescription}
-          </p>
-        )}
-
-        {item.type === 'voice' && item.audioUrl && !plainDescription && !hasImage && (
-            <div className={cn("mt-1 flex items-center gap-2 text-sm text-muted-foreground", !hasImage && "pl-7")}>
-              <PlayCircle className={cn("h-5 w-5", getTypeSpecifics(item).iconText)} />
-              <span>Voice recording</span>
+      {item.type !== 'image' && (
+        <>
+          {/* Main content div */}
+          <div className="flex flex-col flex-grow p-2">
+            <div className="flex items-start gap-2">
+              {!hasImage && (
+                (item.type === 'link' && item.faviconUrl) ? (
+                    <img src={item.faviconUrl} alt="" className="h-5 w-5 shrink-0 mt-1 rounded-sm" />
+                ) : (
+                    React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-1", specifics.iconText) })
+                )
+              )}
+              <h3 className="text-lg font-semibold leading-tight group-hover:text-primary transition-colors break-words">
+                {item.title || "Untitled"}
+              </h3>
             </div>
-        )}
-      </div>
 
-      {/* Footer for domain and actions */}
-      <div className="mt-auto pt-2 flex items-center justify-between p-2">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
-          {item.faviconUrl ? (
-            <img src={item.faviconUrl} alt="" className="h-4 w-4 rounded-sm" />
-          ) : (
-            item.domain && <Landmark className="h-3.5 w-3.5 opacity-80 shrink-0" />
-          )}
-          {item.domain && (
-            <span className="truncate">{item.domain}</span>
-          )}
-        </div>
+            {plainDescription && (
+              <p className={cn("mt-1 text-sm text-muted-foreground break-words line-clamp-2", !hasImage && "pl-7")}>
+                {plainDescription}
+              </p>
+            )}
 
-        <div className="flex items-center gap-0.5 shrink-0">
-          {item.type === 'link' && item.url && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    asChild 
-                    onClick={handleActionClick}
-                    className="h-8 w-8 rounded-full group/linkicon" 
-                  >
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label="Open link in new tab"
-                      className="flex items-center justify-center h-full w-full rounded-full hover:bg-accent"
+            {item.type === 'voice' && item.audioUrl && !plainDescription && !hasImage && (
+                <div className={cn("mt-1 flex items-center gap-2 text-sm text-muted-foreground", !hasImage && "pl-7")}>
+                  <PlayCircle className={cn("h-5 w-5", getTypeSpecifics(item).iconText)} />
+                  <span>Voice recording</span>
+                </div>
+            )}
+          </div>
+
+          {/* Footer for domain and actions */}
+          <div className="mt-auto pt-2 flex items-center justify-between p-2">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+              {item.faviconUrl ? (
+                <img src={item.faviconUrl} alt="" className="h-4 w-4 rounded-sm" />
+              ) : (
+                item.domain && <Landmark className="h-3.5 w-3.5 opacity-80 shrink-0" />
+              )}
+              {item.domain && (
+                <span className="truncate">{item.domain}</span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-0.5 shrink-0">
+              {item.type === 'link' && item.url && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        asChild 
+                        onClick={handleActionClick}
+                        className="h-8 w-8 rounded-full group/linkicon" 
+                      >
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="Open link in new tab"
+                          className="flex items-center justify-center h-full w-full rounded-full hover:bg-accent"
+                        >
+                          <ExternalLink className="h-4 w-4 text-muted-foreground group-hover/linkicon:text-primary" />
+                        </a>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Open link</p></TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        handleActionClick(e);
+                        onDelete(item.id);
+                      }}
+                      aria-label="Forget item"
+                      className="h-8 w-8 rounded-full hover:bg-accent group/deleteicon" 
                     >
-                      <ExternalLink className="h-4 w-4 text-muted-foreground group-hover/linkicon:text-primary" />
-                    </a>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>Open link</p></TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    handleActionClick(e);
-                    onDelete(item.id);
-                  }}
-                  aria-label="Forget item"
-                  className="h-8 w-8 rounded-full hover:bg-accent group/deleteicon" 
-                >
-                  <Trash2 className="h-4 w-4 text-muted-foreground group-hover/deleteicon:text-destructive" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent><p>Forget</p></TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      </div>
+                      <Trash2 className="h-4 w-4 text-muted-foreground group-hover/deleteicon:text-destructive" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Forget</p></TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
+        </>
+      )}
     </Card>
   );
 };
