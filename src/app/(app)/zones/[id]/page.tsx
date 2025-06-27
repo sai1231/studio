@@ -3,7 +3,7 @@
 
 import type React from 'react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import ContentCard from '@/components/core/link-card';
 import ContentDetailDialog from '@/components/core/ContentDetailDialog'; 
 import type { ContentItem, Zone, Tag as AppTag } from '@/types';
@@ -29,7 +29,8 @@ const pageLoadingMessages = [
 
 const ALL_FILTER_VALUE = "__ALL__";
 
-export default function ZonePage({ params }: { params: { id: string } }) {
+export default function ZonePage() {
+  const params = useParams() as { id: string };
   const zoneId = params.id; 
   const router = useRouter();
   const { toast } = useToast();
