@@ -346,7 +346,7 @@ export default function DashboardPage() {
   return (
     <div className="container mx-auto py-2">
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-        <h1 className="text-3xl font-headline font-semibold text-foreground">Dashboard</h1>
+        <h1 className="text-3xl font-headline font-semibold text-foreground">My Memories</h1>
         <div className="flex items-center gap-2">
             <Popover open={isFilterPopoverOpen} onOpenChange={setIsFilterPopoverOpen}>
                 <PopoverTrigger asChild>
@@ -484,8 +484,6 @@ export default function DashboardPage() {
               />
             )}
             
-            <h2 className={cn("text-2xl font-headline font-semibold text-foreground mb-4", todoItems.length > 0 && "mt-8")}>My Memories</h2>
-
             {displayedContentItems.length === 0 ? (
                 <div className="text-center py-16 rounded-lg bg-muted/50">
                 <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
