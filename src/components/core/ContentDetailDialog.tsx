@@ -463,7 +463,10 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                     showMediaColumn ? "md:grid md:grid-cols-[minmax(0,_3fr)_minmax(0,_2fr)] gap-6" : ""
                   )}>
                     {showMediaColumn && (
-                      <div className="relative w-full overflow-hidden rounded-xl shadow-sm aspect-video">
+                      <div className={cn(
+                        "relative w-full overflow-hidden rounded-xl shadow-sm",
+                        embedUrl && "aspect-video"
+                      )}>
                         {embedUrl ? (
                           <iframe
                             src={embedUrl}
@@ -477,7 +480,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                             src={item.imageUrl}
                             alt={editableTitle || 'Content Image'}
                             data-ai-hint={item.title || "image"}
-                            className="absolute h-full w-full object-cover rounded-xl"
+                            className="w-full h-auto rounded-xl"
                             loading="lazy"
                           />
                         ) : null}
