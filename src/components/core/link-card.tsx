@@ -1,3 +1,4 @@
+
 'use client';
 import React from 'react';
 import { Card } from '@/components/ui/card';
@@ -62,7 +63,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
       draggable="true"
       onDragStart={handleDragStart}
       className={cn(
-        "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 inline-flex w-full flex-col group rounded-3xl break-inside-avoid mb-4",
+        "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex w-full flex-col group rounded-3xl",
         item.type !== 'image' && 'cursor-pointer'
       )}
       onClick={item.type !== 'image' ? () => onEdit(item) : undefined}
