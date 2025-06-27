@@ -5,21 +5,35 @@ import React from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 
-const EnvVarCheck = () => {
-  const isConfigMissing = !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+const REQUIRED_ENV_VARS: { key: keyof NodeJS.ProcessEnv; name: string; purpose: string }[] = [
+  { key: 'NEXT_PUBLIC_FIREBASE_API_KEY', name: 'API Key', purpose: 'General authentication.' },
+  { key: 'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN', name: 'Auth Domain', purpose: 'User sign-in and authentication.' },
+  { key: 'NEXT_PUBLIC_FIREBASE_PROJECT_ID', name: 'Project ID', purpose: 'Connecting to your Firebase project and database.' },
+  { key: 'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET', name: 'Storage Bucket', purpose: 'Required for file and image uploads.' },
+];
 
-  if (!isConfigMissing) {
+const EnvVarCheck = () => {
+  const missingVars = REQUIRED_ENV_VARS.filter(v => !process.env[v.key]);
+
+  if (missingVars.length === 0) {
     return null;
   }
 
   return (
     <Alert variant="destructive" className="mb-6">
       <Terminal className="h-4 w-4" />
-      <AlertTitle>Action Required: Firebase Configuration Missing</AlertTitle>
+      <AlertTitle>Action Required: Firebase Configuration Incomplete</AlertTitle>
       <AlertDescription>
-        <p className="mb-2">
-          Your app cannot connect to Firebase because the necessary environment variables are missing. File uploads and data saving will fail until this is resolved.
+        <p className="mb-3">
+          Your app cannot fully connect to Firebase because some environment variables are missing. The following features will fail until this is resolved:
         </p>
+        <ul className="list-disc list-inside mb-3 space-y-1">
+            {missingVars.map(v => (
+                <li key={v.key}>
+                    <strong>Missing <code>{v.key}</code></strong>: {v.purpose}
+                </li>
+            ))}
+        </ul>
         <p className="mb-1">
           <strong>How to fix:</strong>
         </p>
@@ -28,11 +42,11 @@ const EnvVarCheck = () => {
           <li>Click the gear icon (Project settings) next to "Project Overview".</li>
           <li>Under the "General" tab, scroll down to "Your apps".</li>
           <li>Select the "Web" app (or create one if you haven't).</li>
-          <li>Find the `firebaseConfig` object and copy the values.</li>
-          <li>Paste these values into the `.env` file in your project's root directory, matching them with the `NEXT_PUBLIC_FIREBASE_*` keys.</li>
+          <li>Find the <code>firebaseConfig</code> object and copy the values.</li>
+          <li>Paste these values into the <code>.env</code> file in your project's root directory, matching them with the corresponding <code>NEXT_PUBLIC_FIREBASE_*</code> keys.</li>
         </ol>
         <p className="mt-3 text-xs">
-            After updating the `.env` file, you may need to restart the development server for the changes to take effect.
+            After updating the <code>.env</code> file, you must restart the development server for the changes to take effect.
         </p>
       </AlertDescription>
     </Alert>
