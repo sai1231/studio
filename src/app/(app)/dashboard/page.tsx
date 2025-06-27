@@ -39,7 +39,7 @@ const TodoListCard: React.FC<{
   onAddTodoClick: () => void;
 }> = ({ items, onToggleStatus, isUpdatingStatus, onAddTodoClick }) => {
   return (
-    <Card className="break-inside-avoid mb-4 shadow-lg flex flex-col">
+    <Card className="break-inside-avoid mb-4 shadow-lg inline-flex flex-col w-full">
       <CardContent className="p-0 flex-grow">
         <ScrollArea className="max-h-96 p-4 pr-1">
           <div className="space-y-3">
