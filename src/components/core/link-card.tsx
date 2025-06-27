@@ -165,14 +165,14 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                         size="icon"
                         asChild 
                         onClick={handleActionClick}
-                        className="h-8 w-8 rounded-full group/linkicon" 
+                        className="h-8 w-8 rounded-full group/linkicon hover:bg-transparent" 
                       >
                         <a
                           href={item.url}
                           target="_blank"
                           rel="noopener noreferrer"
                           aria-label="Open link in new tab"
-                          className="flex items-center justify-center h-full w-full rounded-full hover:bg-accent"
+                          className="flex items-center justify-center h-full w-full rounded-full"
                         >
                           <ExternalLink className="h-4 w-4 text-muted-foreground group-hover/linkicon:text-primary" />
                         </a>
@@ -193,7 +193,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                         onDelete(item.id);
                       }}
                       aria-label="Forget item"
-                      className="h-8 w-8 rounded-full hover:bg-accent group/deleteicon" 
+                      className="h-8 w-8 rounded-full group/deleteicon hover:bg-transparent" 
                     >
                       <Trash2 className="h-4 w-4 text-muted-foreground group-hover/deleteicon:text-destructive" />
                     </Button>
