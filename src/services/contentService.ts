@@ -12,6 +12,7 @@ import {
   query,
   orderBy,
   where,
+  Timestamp,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { ContentItem, Zone, Tag, MovieDetails } from '@/types';
@@ -34,10 +35,12 @@ export async function getContentItems(userId: string): Promise<ContentItem[]> {
     const items: ContentItem[] = [];
     querySnapshot.forEach((doc) => {
       const data = doc.data();
+      const createdAt = data.createdAt; // Firestore Timestamp or string
       items.push({
         id: doc.id,
         ...data,
-        createdAt: data.createdAt,
+        // Ensure createdAt is always a string for components
+        createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : (createdAt || new Date().toISOString()),
       } as ContentItem);
     });
     return items;
@@ -54,10 +57,11 @@ export async function getContentItemById(id: string): Promise<ContentItem | unde
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
+      const createdAt = data.createdAt;
       return {
         id: docSnap.id,
         ...data,
-        createdAt: data.createdAt,
+        createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : (createdAt || new Date().toISOString()),
       } as ContentItem;
     }
     return undefined;
@@ -78,7 +82,7 @@ export async function addContentItem(
     
     // Create a mutable copy to work with
     const dataToSave: { [key: string]: any } = { ...itemData };
-    dataToSave.createdAt = new Date().toISOString();
+    dataToSave.createdAt = new Date(); // Save as a native Firestore Timestamp
 
     // Movie details fetching logic (requires TMDB_API_KEY in .env)
     if (dataToSave.type === 'link' && dataToSave.url && dataToSave.url.includes('imdb.com/title/') && process.env.TMDB_API_KEY) {
@@ -127,10 +131,15 @@ export async function addContentItem(
 
     const docRef = await addDoc(contentCollection, dataToSave);
 
-    return {
+    // Create the final object to return, ensuring createdAt is a string
+    const finalItem = {
       id: docRef.id,
-      ...dataToSave
-    } as ContentItem;
+      ...dataToSave,
+    };
+    finalItem.createdAt = (finalItem.createdAt as Date).toISOString();
+
+
+    return finalItem as ContentItem;
 
   } catch (error) {
     console.error("Failed to add content item to Firestore:", error);
@@ -214,7 +223,7 @@ export async function uploadFile(file: File, path: string): Promise<string> {
     await uploadBytes(storageRef, file);
     const downloadURL = await getDownloadURL(storageRef);
     return downloadURL;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Failed to upload file to Storage at path ${path}:`, error);
     throw error;
   }
