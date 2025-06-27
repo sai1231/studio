@@ -37,7 +37,7 @@ const TodoListCard: React.FC<{
   isUpdatingStatus: string | null;
 }> = ({ items, onToggleStatus, isUpdatingStatus }) => {
   return (
-    <Card className="mb-8 shadow-lg">
+    <Card className="break-inside-avoid mb-4 shadow-lg">
       <CardHeader>
         <CardTitle className="flex items-center">
           <ListChecks className="mr-2 h-6 w-6 text-primary" />
@@ -476,38 +476,37 @@ export default function DashboardPage() {
         </div>
       ) : (
         <div>
-            {todoItems.length > 0 && (
-              <TodoListCard
-                items={todoItems}
-                onToggleStatus={handleToggleTodoStatus}
-                isUpdatingStatus={isUpdatingTodoStatus}
-              />
-            )}
-            
-            {displayedContentItems.length === 0 ? (
-                <div className="text-center py-16 rounded-lg bg-muted/50">
-                <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h2 className="text-xl font-medium text-muted-foreground">
-                    {activeFilterCount > 0 ? "No memories match your filters." : "Your saved memories will appear here."}
-                </h2>
-                <p className="text-muted-foreground mt-2">
-                    {activeFilterCount > 0 ? (
-                    <>Try easing up on those filters, or <Button variant="link" onClick={handleClearAndApplyFilters} className="p-0 h-auto text-primary inline">clear them</Button>.</>
-                    ) : "Save some new links, notes, or images!"}
-                </p>
+          { (todoItems.length === 0 && displayedContentItems.length === 0) ? (
+            <div className="text-center py-16 rounded-lg bg-muted/50">
+              <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h2 className="text-xl font-medium text-muted-foreground">
+                  {activeFilterCount > 0 ? "No memories match your filters." : "Your saved memories will appear here."}
+              </h2>
+              <p className="text-muted-foreground mt-2">
+                  {activeFilterCount > 0 ? (
+                  <>Try easing up on those filters, or <Button variant="link" onClick={handleClearAndApplyFilters} className="p-0 h-auto text-primary inline">clear them</Button>.</>
+                  ) : "Save some new links, notes, or images!"}
+              </p>
             </div>
-            ) : (
+          ) : (
             <div className={'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
-                {displayedContentItems.map(item => (
-                <ContentCard
-                    key={item.id}
-                    item={item}
-                    onEdit={handleOpenDetailDialog}
-                    onDelete={handleDeleteContent}
+              {todoItems.length > 0 && (
+                <TodoListCard
+                  items={todoItems}
+                  onToggleStatus={handleToggleTodoStatus}
+                  isUpdatingStatus={isUpdatingTodoStatus}
                 />
-                ))}
+              )}
+              {displayedContentItems.map(item => (
+                <ContentCard
+                  key={item.id}
+                  item={item}
+                  onEdit={handleOpenDetailDialog}
+                  onDelete={handleDeleteContent}
+                />
+              ))}
             </div>
-            )}
+          )}
         </div>
       )}
 
