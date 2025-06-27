@@ -465,7 +465,8 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                     {showMediaColumn && (
                       <div className={cn(
                         "relative w-full overflow-hidden rounded-xl shadow-sm",
-                        embedUrl && "aspect-video"
+                        embedUrl && "aspect-video",
+                        item.imageUrl && !embedUrl && "max-h-[70vh]"
                       )}>
                         {embedUrl ? (
                           <iframe
@@ -480,7 +481,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                             src={item.imageUrl}
                             alt={editableTitle || 'Content Image'}
                             data-ai-hint={item.title || "image"}
-                            className="w-full h-auto rounded-xl"
+                            className="w-full h-full object-contain rounded-xl"
                             loading="lazy"
                           />
                         ) : null}
