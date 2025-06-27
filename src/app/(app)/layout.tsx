@@ -140,7 +140,7 @@ export default function AppLayout({
 
     } catch (error: any) {
       console.error("Error processing image upload:", error);
-      let description = "Could not process your image. Please try again.";
+      let description = error.message || "Could not process your image. Please try again.";
       if (error.code === 'storage/retry-limit-exceeded') {
           description = "Connection timed out. Please ensure Firebase Storage is enabled in your project console.";
       } else if (error.code === 'storage/unauthorized') {
@@ -196,7 +196,7 @@ export default function AppLayout({
 
     } catch (error: any) {
       console.error("Error processing PDF upload:", error);
-      let description = "Could not process your PDF. Please try again.";
+      let description = error.message || "Could not process your PDF. Please try again.";
       if (error.code === 'storage/retry-limit-exceeded') {
           description = "Connection timed out. Please ensure Firebase Storage is enabled in your project console.";
       } else if (error.code === 'storage/unauthorized') {

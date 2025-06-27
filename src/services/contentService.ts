@@ -264,6 +264,9 @@ export async function addZone(name: string, userId: string): Promise<Zone> {
 // Function for file upload to Firebase Storage
 export async function uploadFile(file: File, path: string): Promise<string> {
   try {
+    if (!storage.app.options.storageBucket) {
+      throw new Error("Firebase Storage bucket is not configured. Please check NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET in your .env file.");
+    }
     const storageRef = ref(storage, path);
     await uploadBytes(storageRef, file);
     const downloadURL = await getDownloadURL(storageRef);
