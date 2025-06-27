@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { PlusCircle, ListFilter, Loader2, FolderOpen, Search, XCircle, ListChecks, AlarmClock, CalendarDays, ArrowUpRightSquare } from 'lucide-react';
+import { PlusCircle, ListFilter, Loader2, FolderOpen, Search, XCircle, ListChecks, AlarmClock, CalendarDays, ArrowUpRightSquare, User, LayoutGrid, Tags, Bookmark } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { subscribeToContentItems, deleteContentItem, getZones, getUniqueContentTypesFromItems, getUniqueDomainsFromItems, getUniqueTagsFromItems, updateContentItem } from '@/services/contentService';
 import { cn } from '@/lib/utils';
@@ -48,7 +48,7 @@ const TodoDashboardCard: React.FC<TodoDashboardCardProps> = ({ todos, onToggleSt
 
   if (isLoading) {
     return (
-      <Card className="mb-4 shadow-lg break-inside-avoid">
+      <Card className="shadow-lg">
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle className="text-xl font-headline flex items-center">
@@ -73,42 +73,8 @@ const TodoDashboardCard: React.FC<TodoDashboardCardProps> = ({ todos, onToggleSt
     );
   }
 
-  if (todos.length === 0) {
-    return (
-      <Card className="mb-4 shadow-lg break-inside-avoid">
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-xl font-headline flex items-center">
-              <ListChecks className="h-6 w-6 mr-2 text-primary" /> My TODOs
-            </CardTitle>
-             <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                     <Button variant="ghost" size="icon" onClick={handleExpandTodos} className="text-muted-foreground hover:text-primary">
-                       <ArrowUpRightSquare className="h-5 w-5" />
-                     </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>View all TODOs</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-          </div>
-          <CardDescription>Your upcoming tasks and reminders.</CardDescription>
-        </CardHeader>
-        <CardContent className="text-center py-6">
-          <ListChecks className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-          <p className="text-muted-foreground">No active TODOs. Great job, or add some new ones!</p>
-          <Button variant="link" className="mt-2" onClick={() => router.push('/quick-todo')}>
-            Add a TODO
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card className="mb-4 shadow-lg break-inside-avoid">
+    <Card className="shadow-lg">
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle className="text-xl font-headline flex items-center">
@@ -129,46 +95,119 @@ const TodoDashboardCard: React.FC<TodoDashboardCardProps> = ({ todos, onToggleSt
         </div>
         <CardDescription>Your upcoming tasks and reminders. Click title to edit.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-2 max-h-96 overflow-y-auto pr-1 custom-scrollbar">
-        {todos.map(todo => (
-          <div key={todo.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/30 transition-colors border">
-            <Checkbox
-              id={`todo-dash-${todo.id}`}
-              checked={todo.status === 'completed'}
-              onCheckedChange={() => onToggleStatus(todo.id, todo.status)}
-              className="mt-1"
-              aria-labelledby={`todo-dash-label-${todo.id}`}
-            />
-            <div className="flex-grow">
-              <Label
-                htmlFor={`todo-dash-${todo.id}`}
-                id={`todo-dash-label-${todo.id}`}
-                className={cn(
-                  "font-medium text-foreground cursor-pointer hover:text-primary",
-                  todo.status === 'completed' && "line-through text-muted-foreground hover:text-muted-foreground/80"
-                )}
-                onClick={(e) => {
-                  e.preventDefault();
-                  onEditTodo(todo);
-                }}
-              >
-                {todo.title}
-              </Label>
-              {todo.dueDate && (
-                <div className="text-xs text-muted-foreground flex items-center mt-0.5">
-                  <AlarmClock className={cn(
-                      "h-3.5 w-3.5 mr-1",
-                      todo.status !== 'completed' && isPast(new Date(todo.dueDate)) ? "text-destructive" : "text-muted-foreground/80"
+      <CardContent>
+        {todos.length === 0 ? (
+          <div className="text-center py-6">
+            <ListChecks className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+            <p className="text-muted-foreground">No active TODOs. Great job!</p>
+            <Button variant="link" className="mt-2" onClick={() => router.push('/quick-todo')}>
+              Add a TODO
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-96 overflow-y-auto pr-1 custom-scrollbar">
+            {todos.map(todo => (
+              <div key={todo.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/30 transition-colors border">
+                <Checkbox
+                  id={`todo-dash-${todo.id}`}
+                  checked={todo.status === 'completed'}
+                  onCheckedChange={() => onToggleStatus(todo.id, todo.status)}
+                  className="mt-1"
+                  aria-labelledby={`todo-dash-label-${todo.id}`}
+                />
+                <div className="flex-grow">
+                  <Label
+                    htmlFor={`todo-dash-${todo.id}`}
+                    id={`todo-dash-label-${todo.id}`}
+                    className={cn(
+                      "font-medium text-foreground cursor-pointer hover:text-primary",
+                      todo.status === 'completed' && "line-through text-muted-foreground hover:text-muted-foreground/80"
                     )}
-                  />
-                  <span className={cn(todo.status !== 'completed' && isPast(new Date(todo.dueDate)) ? "text-destructive font-semibold" : "")}>
-                     {format(new Date(todo.dueDate), 'MMM d, yy')}
-                  </span>
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onEditTodo(todo);
+                    }}
+                  >
+                    {todo.title}
+                  </Label>
+                  {todo.dueDate && (
+                    <div className="text-xs text-muted-foreground flex items-center mt-0.5">
+                      <AlarmClock className={cn(
+                          "h-3.5 w-3.5 mr-1",
+                          todo.status !== 'completed' && isPast(new Date(todo.dueDate)) ? "text-destructive" : "text-muted-foreground/80"
+                        )}
+                      />
+                      <span className={cn(todo.status !== 'completed' && isPast(new Date(todo.dueDate)) ? "text-destructive font-semibold" : "")}>
+                         {format(new Date(todo.dueDate), 'MMM d, yy')}
+                      </span>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+interface StatsCardProps {
+  stats: { memories: number; zones: number; tags: number };
+  userName?: string;
+  isLoading: boolean;
+}
+
+const StatsCard: React.FC<StatsCardProps> = ({ stats, userName, isLoading }) => {
+  if (isLoading) {
+    return (
+      <Card className="shadow-lg">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <div className="space-y-1.5">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-4 w-48" />
             </div>
           </div>
-        ))}
+        </CardHeader>
+        <CardContent className="grid grid-cols-3 gap-4 text-center">
+           {[1,2,3].map(i => (
+              <div key={i} className="flex flex-col items-center p-2 rounded-lg">
+                <Skeleton className="h-7 w-7 mb-1.5 rounded-md" />
+                <Skeleton className="h-7 w-8 mb-1 rounded-md" />
+                <Skeleton className="h-3 w-12 rounded-md" />
+              </div>
+           ))}
+        </CardContent>
+      </Card>
+    )
+  }
+  return (
+    <Card className="shadow-lg">
+      <CardHeader>
+        <CardTitle className="text-xl font-headline flex items-center">
+          <User className="h-5 w-5 mr-2 text-primary" />
+          Welcome, {userName || 'there'}!
+        </CardTitle>
+        <CardDescription>Here's a snapshot of your collection.</CardDescription>
+      </CardHeader>
+      <CardContent className="grid grid-cols-3 gap-1 text-center">
+        <div className="flex flex-col items-center p-2 rounded-lg hover:bg-muted/50 transition-colors">
+          <LayoutGrid className="h-6 w-6 mb-1 text-primary"/>
+          <p className="text-2xl font-bold">{stats.memories}</p>
+          <p className="text-xs text-muted-foreground">Memories</p>
+        </div>
+        <div className="flex flex-col items-center p-2 rounded-lg hover:bg-muted/50 transition-colors">
+          <Bookmark className="h-6 w-6 mb-1 text-primary"/>
+          <p className="text-2xl font-bold">{stats.zones}</p>
+          <p className="text-xs text-muted-foreground">Zones</p>
+        </div>
+        <div className="flex flex-col items-center p-2 rounded-lg hover:bg-muted/50 transition-colors">
+          <Tags className="h-6 w-6 mb-1 text-primary"/>
+          <p className="text-2xl font-bold">{stats.tags}</p>
+          <p className="text-xs text-muted-foreground">Tags</p>
+        </div>
       </CardContent>
     </Card>
   );
@@ -329,11 +368,6 @@ export default function DashboardPage() {
   };
 
   const handleItemUpdateInDialog = (updatedItem: ContentItem) => {
-    // With real-time listener, we don't need to manually update state here
-    // The onSnapshot listener will handle the update automatically.
-    // setAllContentItems(prevItems =>
-    //   prevItems.map(item => item.id === updatedItem.id ? updatedItem : item)
-    // );
     toast({ title: "Item Updated", description: `"${updatedItem.title}" has been updated.`});
   };
 
@@ -392,7 +426,6 @@ export default function DashboardPage() {
     setIsUpdatingTodoStatus(todoId);
     const newStatus = (currentStatus === 'completed') ? 'pending' : 'completed';
 
-    // Optimistic UI update handled by the real-time listener, but we can keep this for instant feedback.
     setAllContentItems(prevAllItems =>
       prevAllItems.map(item =>
         item.id === todoId ? { ...item, status: newStatus } : item
@@ -401,16 +434,15 @@ export default function DashboardPage() {
 
     try {
       await updateContentItem(todoId, { status: newStatus });
-      // The listener will catch this change, so the toast here is for immediate user feedback.
-      // toast({ title: "TODO Updated", description: `Task marked as ${newStatus}.` });
     } catch (error) {
       console.error('Error updating TODO status from dashboard:', error);
       toast({ title: "Error", description: "Could not update TODO status.", variant: "destructive" });
-      // The listener will eventually revert the change if the DB update fails.
     } finally {
       setIsUpdatingTodoStatus(null);
     }
   };
+
+  const userName = user?.displayName?.split(' ')[0];
 
   if (isLoading && allContentItems.length === 0) {
     return (
@@ -437,7 +469,7 @@ export default function DashboardPage() {
   return (
     <div className="container mx-auto py-2">
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-        <h1 className="text-3xl font-headline font-semibold text-foreground">My Memories</h1>
+        <h1 className="text-3xl font-headline font-semibold text-foreground">Dashboard</h1>
         <div className="flex items-center gap-2">
             <Popover open={isFilterPopoverOpen} onOpenChange={setIsFilterPopoverOpen}>
                 <PopoverTrigger asChild>
@@ -531,91 +563,87 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {isLoading && allContentItems.length > 0 ? (
-        <div className="flex justify-center py-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      {(allContentItems.length === 0 && !isLoading) ? (
+        <div className="text-center py-12">
+          <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h2 className="text-xl font-medium text-muted-foreground">No content saved yet.</h2>
+          <p className="text-muted-foreground mt-2">Start by adding your first item!</p>
+          <div className="mt-16 flex flex-col items-center justify-center relative">
+            <svg
+              className="w-48 h-48 text-primary/70"
+              viewBox="0 0 100 100"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M85 15 C 60 50, 40 55, 45 85"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeDasharray="4 8"
+                className="animate-pulse"
+              />
+               <path
+                d="M40 89L45 85L49 89"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <p className="mt-4 text-lg font-medium text-muted-foreground animate-pulse">
+              Click the <span className="text-primary font-semibold">+</span> button to begin!
+            </p>
+          </div>
         </div>
       ) : (
-        <>
-          {(displayedContentItems.length === 0 && !isLoading && todoItems.length === 0) ? (
-            <div className="text-center py-12">
-              <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h2 className="text-xl font-medium text-muted-foreground">
-                {activeFilterCount > 0
-                  ? "Hmm… no memories match your filters."
-                  : "No content saved yet."}
-              </h2>
-              <p className="text-muted-foreground mt-2">
-                {activeFilterCount > 0
-                  ? (<>Try easing up on those filters, or <Button variant="link" onClick={handleClearAndApplyFilters} className="p-0 h-auto text-primary inline">clear them</Button> to see all your memories.</>)
-                  : "Start by adding your first item!"}
-              </p>
-              { (allContentItems.length === 0 && activeFilterCount === 0 && !isLoading) && (
-                <div className="mt-16 flex flex-col items-center justify-center relative">
-                  <svg
-                    className="w-48 h-48 text-primary/70"
-                    viewBox="0 0 100 100"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M85 15 C 60 50, 40 55, 45 85"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeDasharray="4 8"
-                      className="animate-pulse"
+        <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            <main className="lg:col-span-2 xl:col-span-3">
+              <h2 className="text-2xl font-headline font-semibold text-foreground mb-4">My Memories</h2>
+              {displayedContentItems.length === 0 ? (
+                 <div className="text-center py-16 rounded-lg bg-muted/50">
+                    <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h2 className="text-xl font-medium text-muted-foreground">
+                      {activeFilterCount > 0 ? "No memories match your filters." : "Your saved memories will appear here."}
+                    </h2>
+                    <p className="text-muted-foreground mt-2">
+                       {activeFilterCount > 0 ? (
+                        <>Try easing up on those filters, or <Button variant="link" onClick={handleClearAndApplyFilters} className="p-0 h-auto text-primary inline">clear them</Button>.</>
+                       ) : "Save some new links, notes, or images!"}
+                    </p>
+                </div>
+              ) : (
+                <div className={'columns-1 md:columns-2 xl:columns-3 gap-4'}>
+                  {displayedContentItems.map(item => (
+                    <ContentCard
+                      key={item.id}
+                      item={item}
+                      onEdit={handleOpenDetailDialog}
+                      onDelete={handleDeleteContent}
                     />
-                     <path
-                      d="M40 89L45 85L49 89"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <p className="mt-4 text-lg font-medium text-muted-foreground animate-pulse">
-                    Click the <span className="text-primary font-semibold">+</span> button to begin!
-                  </p>
+                  ))}
                 </div>
               )}
-            </div>
-          ) : (
-             <div className={'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
+            </main>
+            <aside className="lg:col-span-1 xl:col-span-1 space-y-6">
+                <StatsCard 
+                    stats={{
+                        memories: allContentItems.length,
+                        zones: zones.length,
+                        tags: availableTags.length,
+                    }}
+                    userName={userName}
+                    isLoading={isLoading && allContentItems.length === 0}
+                />
                 <TodoDashboardCard
                   todos={todoItems}
                   onToggleStatus={handleToggleTodoStatus}
                   isLoading={isLoading && allContentItems.length === 0}
                   onEditTodo={handleOpenDetailDialog}
                 />
-                {displayedContentItems.map(item => (
-                  <ContentCard
-                    key={item.id}
-                    item={item}
-                    onEdit={handleOpenDetailDialog}
-                    onDelete={handleDeleteContent}
-                  />
-                ))}
-             </div>
-          )}
-          {displayedContentItems.length === 0 && todoItems.length > 0 && !isLoading && activeFilterCount === 0 && (
-            <div className="text-center py-12 mt-[-2rem]">
-              <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h2 className="text-xl font-medium text-muted-foreground">No other memories found yet.</h2>
-              <p className="text-muted-foreground mt-2">Save some new links, notes, or images!</p>
-            </div>
-          )}
-           {displayedContentItems.length === 0 && todoItems.length > 0 && !isLoading && activeFilterCount > 0 && (
-            <div className="text-center py-12 mt-[-2rem]">
-              <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h2 className="text-xl font-medium text-muted-foreground">Hmm… no memories match your filters.</h2>
-              <p className="text-muted-foreground mt-2">
-                Try easing up on those filters, or <Button variant="link" onClick={handleClearAndApplyFilters} className="p-0 h-auto text-primary inline">clear them</Button> to see all your memories.
-              </p>
-            </div>
-          )}
-        </>
+            </aside>
+        </div>
       )}
 
       {selectedItemIdForDetail && (
