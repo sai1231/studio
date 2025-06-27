@@ -82,6 +82,36 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
             className="w-full h-auto group-hover:scale-105 transition-transform duration-300"
             loading="lazy"
           />
+          {item.type === 'image' && (
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 pointer-events-none">
+                <div className="flex items-center justify-between gap-4">
+                    <h3 className="font-semibold text-white text-sm truncate pointer-events-auto">
+                        {item.title}
+                    </h3>
+                    <div className="pointer-events-auto">
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={(e) => {
+                                        handleActionClick(e);
+                                        onDelete(item.id);
+                                    }}
+                                    aria-label="Delete image"
+                                    className="h-8 w-8 rounded-full bg-black/30 text-white hover:bg-destructive hover:text-white"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Delete</p></TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
+                </div>
+            </div>
+          )}
         </div>
       )}
 
