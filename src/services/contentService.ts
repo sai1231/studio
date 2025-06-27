@@ -227,13 +227,38 @@ export async function getZones(userId: string): Promise<Zone[]> {
         console.warn("getZones called without a userId. Returning empty array.");
         return [];
     }
-    const q = query(zonesCollection, where("userId", "==", userId));
+    const q = query(zonesCollection, where("userId", "==", userId), orderBy("name", "asc"));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Zone));
   } catch (error) {
     console.error("Failed to get zones from Firestore:", error);
     throw error;
   }
+}
+
+export function subscribeToZones(
+  userId: string,
+  callback: (zones: Zone[], error?: any) => void
+): Unsubscribe {
+  if (!userId) {
+    console.warn("subscribeToZones called without a userId.");
+    callback([]);
+    return () => {}; // Return a no-op unsubscribe function
+  }
+  const q = query(zonesCollection, where("userId", "==", userId), orderBy("name", "asc"));
+  
+  const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const zones: Zone[] = [];
+    querySnapshot.forEach((doc) => {
+      zones.push({ id: doc.id, ...doc.data() } as Zone);
+    });
+    callback(zones);
+  }, (error) => {
+    console.error("Failed to subscribe to zones from Firestore:", error);
+    callback([], error);
+  });
+
+  return unsubscribe;
 }
 
 export async function getZoneById(id: string): Promise<Zone | undefined> {

@@ -12,7 +12,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import type { Zone, Tag as TagType } from '@/types';
 import { ThemeToggle } from './theme-toggle';
 import { Separator } from '@/components/ui/separator';
-import { getZones, subscribeToContentItems, getUniqueDomainsFromItems, getUniqueContentTypesFromItems, getUniqueTagsFromItems } from '@/services/contentService';
+import { subscribeToZones, subscribeToContentItems, getUniqueDomainsFromItems, getUniqueContentTypesFromItems, getUniqueTagsFromItems } from '@/services/contentService';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { getAuth, signOut } from 'firebase/auth';
@@ -50,20 +50,18 @@ const AppSidebar: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
-    // Fetch zones once, as they don't depend on content items directly for updates.
-    const fetchInitialZones = async () => {
-        try {
-            const fetchedZones = await getZones(user.uid);
-            setZones(fetchedZones);
-        } catch (error) {
-            console.error("Error fetching zones for sidebar:", error);
-            toast({ title: "Error", description: "Could not load zones.", variant: "destructive" });
-        }
-    };
-    fetchInitialZones();
+    // Subscribe to zones for real-time updates.
+    const unsubscribeZones = subscribeToZones(user.uid, (fetchedZones, error) => {
+      if (error) {
+        console.error("Error subscribing to zones in sidebar:", error);
+        toast({ title: "Real-time Error", description: "Could not update zones list.", variant: "destructive" });
+        return;
+      }
+      setZones(fetchedZones);
+    });
 
     // Subscribe to content items for real-time updates to domains, tags, and content types.
-    const unsubscribe = subscribeToContentItems(user.uid, (items, error) => {
+    const unsubscribeContent = subscribeToContentItems(user.uid, (items, error) => {
         if (error) {
             console.error("Error subscribing to content items in sidebar:", error);
             toast({ title: "Real-time Error", description: "Could not update sidebar content.", variant: "destructive" });
@@ -83,7 +81,10 @@ const AppSidebar: React.FC = () => {
         setContentTypes(availablePredefinedTypes);
     });
 
-    return () => unsubscribe(); // Cleanup subscription on component unmount
+    return () => {
+      unsubscribeZones();
+      unsubscribeContent();
+    };
   }, [user, toast]);
 
 
