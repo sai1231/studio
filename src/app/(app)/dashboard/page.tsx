@@ -13,11 +13,12 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { PlusCircle, ListFilter, Loader2, FolderOpen, Search, XCircle, ListChecks, AlarmClock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { subscribeToContentItems, deleteContentItem, getZones, getUniqueContentTypesFromItems, getUniqueDomainsFromItems, getUniqueTagsFromItems, updateContentItem } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
+import { useDialog } from '@/context/DialogContext';
 import { cn } from '@/lib/utils';
 import { format, isPast } from 'date-fns';
 
@@ -35,11 +36,12 @@ const TodoListCard: React.FC<{
   items: ContentItem[];
   onToggleStatus: (itemId: string, currentStatus: 'pending' | 'completed' | undefined) => void;
   isUpdatingStatus: string | null;
-}> = ({ items, onToggleStatus, isUpdatingStatus }) => {
+  onAddTodoClick: () => void;
+}> = ({ items, onToggleStatus, isUpdatingStatus, onAddTodoClick }) => {
   return (
-    <Card className="break-inside-avoid mb-4 shadow-lg">
-      <CardContent className="p-4">
-        <ScrollArea className="max-h-96 pr-3">
+    <Card className="break-inside-avoid mb-4 shadow-lg flex flex-col">
+      <CardContent className="p-0 flex-grow">
+        <ScrollArea className="max-h-96 p-4 pr-1">
           <div className="space-y-3">
             {items.map(todo => (
               <div key={todo.id} className="flex items-center gap-3 p-2.5 rounded-md border hover:bg-muted/50 transition-colors">
@@ -81,6 +83,17 @@ const TodoListCard: React.FC<{
           </div>
         </ScrollArea>
       </CardContent>
+       <div className="border-t p-2 flex-shrink-0">
+        <Button
+          variant="link"
+          size="sm"
+          className="w-full text-muted-foreground hover:text-primary"
+          onClick={onAddTodoClick}
+        >
+          <PlusCircle className="h-4 w-4 mr-2" />
+          Add a new TODO
+        </Button>
+      </div>
     </Card>
   );
 };
@@ -89,6 +102,7 @@ const TodoListCard: React.FC<{
 export default function DashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const { setIsAddTodoDialogOpen } = useDialog();
 
   const [allContentItems, setAllContentItems] = useState<ContentItem[]>([]);
   const [displayedContentItems, setDisplayedContentItems] = useState<ContentItem[]>([]);
@@ -119,6 +133,10 @@ export default function DashboardPage() {
   const [pendingSelectedTagIds, setPendingSelectedTagIds] = useState<string[]>([]);
 
   const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
+  
+  const handleAddTodoClick = () => {
+    setIsAddTodoDialogOpen(true);
+  };
 
   useEffect(() => {
     if (isLoading) {
@@ -489,6 +507,7 @@ export default function DashboardPage() {
                   items={todoItems}
                   onToggleStatus={handleToggleTodoStatus}
                   isUpdatingStatus={isUpdatingTodoStatus}
+                  onAddTodoClick={handleAddTodoClick}
                 />
               )}
               {displayedContentItems.map(item => (

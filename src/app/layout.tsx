@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/core/theme-provider";
 import { AuthProvider } from '@/context/AuthContext';
+import { DialogProvider } from '@/context/DialogContext';
 
 export const metadata: Metadata = {
   title: 'Mati - Save and Organize Your Thoughts', // Changed Klipped to Mati
@@ -24,15 +25,17 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col">
         <AuthProvider>
-          <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-          >
-            {children}
-            <Toaster />
-          </ThemeProvider>
+          <DialogProvider>
+            <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+            >
+              {children}
+              <Toaster />
+            </ThemeProvider>
+          </DialogProvider>
         </AuthProvider>
       </body>
     </html>

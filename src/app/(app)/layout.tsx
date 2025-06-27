@@ -20,6 +20,7 @@ import {
 import { Plus, FileText, ImageUp, Mic, UploadCloud, FileUp, ListChecks, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
+import { useDialog } from '@/context/DialogContext';
 
 export default function AppLayout({
   children,
@@ -28,9 +29,8 @@ export default function AppLayout({
 }) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
+  const { isAddContentDialogOpen, setIsAddContentDialogOpen, isAddTodoDialogOpen, setIsAddTodoDialogOpen } = useDialog();
 
-  const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
-  const [isAddTodoDialogOpen, setIsAddTodoDialogOpen] = useState(false);
   const [zones, setZones] = useState<Zone[]>([]);
   const { toast } = useToast();
   const imageUploadInputRef = useRef<HTMLInputElement>(null);
