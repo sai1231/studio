@@ -164,7 +164,35 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     let contentData: Partial<Omit<ContentItem, 'id' | 'createdAt'>>;
 
     if (extractedUrl) {
-      // It's a LINK
+      // It's a LINK, so we scrape metadata first
+      let metadata = {
+        title: '',
+        description: '',
+        faviconUrl: '',
+        imageUrl: '',
+      };
+
+      try {
+        const response = await fetch(`/api/scrape-metadata?url=${encodeURIComponent(extractedUrl)}`);
+        if (response.ok) {
+            const data = await response.json();
+            metadata.title = data.title;
+            metadata.description = data.description;
+            metadata.faviconUrl = data.faviconUrl;
+            metadata.imageUrl = data.imageUrl;
+        }
+      } catch (e) {
+        console.error("Failed to scrape metadata during content addition:", e);
+      } finally {
+        if (!metadata.title) {
+            try {
+                metadata.title = new URL(extractedUrl).hostname.replace(/^www\./, '');
+            } catch {
+                metadata.title = "Untitled Link";
+            }
+        }
+      }
+      
       contentData = {
         type: 'link',
         url: extractedUrl,
@@ -172,9 +200,13 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
         zoneId: zoneId || undefined,
         tags: currentTags,
         domain: new URL(extractedUrl).hostname.replace(/^www\./, ''),
-        status: 'pending-analysis',
-        title: 'Analyzing Link...', // Placeholder title
+        status: 'pending-analysis', // Still pending for heavier analysis
+        title: metadata.title,
+        description: metadata.description,
+        faviconUrl: metadata.faviconUrl,
+        imageUrl: metadata.imageUrl,
       };
+
     } else {
       // It's a NOTE
       const textContent = mainContent.trim();
