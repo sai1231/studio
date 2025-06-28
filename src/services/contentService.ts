@@ -119,41 +119,9 @@ export async function addContentItem(
     const dataToSave: { [key: string]: any } = { ...itemData };
     dataToSave.createdAt = Timestamp.fromDate(new Date());
 
-    // Set initial status for enrichment
-    if (['link', 'image', 'voice'].includes(dataToSave.type)) {
+    // Set initial status for enrichment for links, images, voice notes and PDFs.
+    if (['link', 'image', 'voice'].includes(dataToSave.type) || (dataToSave.type === 'link' && dataToSave.contentType === 'PDF')) {
       dataToSave.status = 'pending-analysis';
-    }
-
-
-    if (dataToSave.type === 'link' && dataToSave.url && dataToSave.url.includes('imdb.com/title/') && process.env.NEXT_PUBLIC_TMDB_API_KEY) {
-      const imdbId = dataToSave.url.split('/title/')[1].split('/')[0];
-      if (imdbId) {
-        try {
-          const tmdbResponse = await fetch(`https://api.themoviedb.org/3/find/${imdbId}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&external_source=imdb_id`);
-          const tmdbFindData = await tmdbResponse.json();
-          if (tmdbFindData.movie_results && tmdbFindData.movie_results.length > 0) {
-            const movieId = tmdbFindData.movie_results[0].id;
-            const movieDetailResponse = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&append_to_response=credits`);
-            const movieData = await movieDetailResponse.json();
-            
-            dataToSave.type = 'movie';
-            dataToSave.contentType = 'Movie';
-            dataToSave.imageUrl = movieData.poster_path ? `https://image.tmdb.org/t/p/w500${movieData.poster_path}` : dataToSave.imageUrl;
-            dataToSave.description = movieData.overview || dataToSave.description;
-            dataToSave.status = 'completed'; // Movies are considered pre-enriched
-            dataToSave.movieDetails = {
-              posterPath: movieData.poster_path,
-              releaseYear: movieData.release_date?.split('-')[0],
-              rating: movieData.vote_average ? parseFloat(movieData.vote_average.toFixed(1)) : undefined,
-              director: movieData.credits?.crew?.find((c: any) => c.job === 'Director')?.name,
-              cast: movieData.credits?.cast?.slice(0, 5).map((c: any) => c.name) || [],
-              genres: movieData.genres?.map((g: any) => g.name) || [],
-            };
-          }
-        } catch (e) {
-          console.error("Error fetching movie details from TMDb:", e);
-        }
-      }
     }
 
     if (dataToSave.type === 'link' && dataToSave.url && !dataToSave.domain) {
