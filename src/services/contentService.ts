@@ -19,6 +19,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { ContentItem, Zone, Tag, MovieDetails } from '@/types';
+import { enrichContent } from '@/ai/flows/enrich-content-flow';
 
 // Firestore collection references
 const contentCollection = collection(db, 'content');
@@ -171,6 +172,15 @@ export async function addContentItem(
     });
 
     const docRef = await addDoc(contentCollection, dataToSave);
+
+    // After successfully adding the document, trigger the enrichment flow asynchronously
+    if (dataToSave.status === 'pending-analysis') {
+      // We do not await this. Let it run in the background.
+      enrichContent(docRef.id).catch(err => {
+        console.error(`Failed to trigger enrichment for ${docRef.id}:`, err);
+      });
+    }
+
     const finalItem = {
       id: docRef.id,
       ...dataToSave,
