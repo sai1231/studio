@@ -10,6 +10,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { collection, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { addLog } from '@/services/loggingService';
 
 const contentCollectionRef = collection(db, 'content');
 
@@ -17,7 +18,7 @@ const EnrichContentInputSchema = z.string().describe("The ID of the content item
 export type EnrichContentInput = z.infer<typeof EnrichContentInputSchema>;
 
 export async function enrichContent(contentId: EnrichContentInput): Promise<void> {
-  console.log(`\n\n✅✅✅ TRIGGERING ENRICHMENT FLOW ✅✅✅ for content ID: ${contentId}\n\n`);
+  await addLog('INFO', `✅✅✅ TRIGGERING ENRICHMENT FLOW ✅✅✅ for content ID: ${contentId}`);
   await enrichContentFlow(contentId);
 }
 
@@ -28,7 +29,7 @@ const enrichContentFlow = ai.defineFlow(
     outputSchema: z.void(),
   },
   async (contentId) => {
-    console.log(`[${contentId}] ➡️ Starting enrichment process...`);
+    await addLog('INFO', `[${contentId}] ➡️ Starting enrichment process...`);
 
     const docRef = doc(contentCollectionRef, contentId);
     
@@ -36,12 +37,12 @@ const enrichContentFlow = ai.defineFlow(
       const docSnap = await getDoc(docRef);
 
       if (!docSnap.exists()) {
-        console.error(`[${contentId}] ❌ Enrichment failed: Document does not exist.`);
+        await addLog('ERROR', `[${contentId}] ❌ Enrichment failed: Document does not exist.`);
         return;
       }
       
       const contentData = docSnap.data();
-      console.log(`[${contentId}] 📄 Found document with status: ${contentData.status}`);
+      await addLog('INFO', `[${contentId}] 📄 Found document with status: ${contentData.status}`, { data: contentData });
 
       if (contentData.status === 'pending-analysis') {
         let enrichmentFailed = false;
@@ -49,7 +50,7 @@ const enrichContentFlow = ai.defineFlow(
 
         // Check if the item is an IMDb link to enrich with movie data
         if (contentData.type === 'link' && contentData.url && contentData.url.includes('imdb.com/title/') && process.env.NEXT_PUBLIC_TMDB_API_KEY) {
-          console.log(`[${contentId}] 🎬 IMDb link found. Fetching movie data...`);
+          await addLog('INFO', `[${contentId}] 🎬 IMDb link found. Fetching movie data...`);
           const imdbId = contentData.url.split('/title/')[1].split('/')[0];
           if (imdbId) {
             try {
@@ -77,20 +78,20 @@ const enrichContentFlow = ai.defineFlow(
                     genres: movieData.genres?.map((g: any) => g.name) || [],
                   },
                 };
-                console.log(`[${contentId}] 🎬✅ Successfully processed movie data.`);
+                await addLog('INFO', `[${contentId}] 🎬✅ Successfully processed movie data.`);
               } else {
-                console.log(`[${contentId}] 🎬⚠️ No movie results found on TMDb for IMDb ID ${imdbId}.`);
+                await addLog('WARN', `[${contentId}] 🎬⚠️ No movie results found on TMDb for IMDb ID ${imdbId}.`);
               }
-            } catch (e) {
+            } catch (e: any) {
               enrichmentFailed = true;
-              console.error(`[${contentId}] 🎬❌ Error fetching movie details from TMDb:`, e);
+              await addLog('ERROR', `[${contentId}] 🎬❌ Error fetching movie details from TMDb:`, { error: e.message });
             }
           }
         }
         
         // Check if the item is an image to enrich with a caption
         if (contentData.type === 'image' && contentData.imageUrl) {
-          console.log(`[${contentId}] 🖼️ Image found. Generating caption...`);
+          await addLog('INFO', `[${contentId}] 🖼️ Image found. Generating caption...`);
           try {
             const imageResponse = await fetch(contentData.imageUrl);
             if (!imageResponse.ok) {
@@ -120,46 +121,44 @@ const enrichContentFlow = ai.defineFlow(
                 ...updatePayload,
                 description: caption,
               };
-              console.log(`[${contentId}] 🖼️✅ Successfully generated caption.`);
+              await addLog('INFO', `[${contentId}] 🖼️✅ Successfully generated caption.`, { caption });
             } else {
-              console.warn(`[${contentId}] 🖼️⚠️ Gemini returned no caption.`);
+              await addLog('WARN', `[${contentId}] 🖼️⚠️ Gemini returned no caption.`);
             }
 
-          } catch (e) {
+          } catch (e: any) {
             enrichmentFailed = true;
-            console.error(`[${contentId}] 🖼️❌ Error generating caption:`, e);
+            await addLog('ERROR', `[${contentId}] 🖼️❌ Error generating caption:`, { error: e.message });
           }
         }
 
         // Check if the item is a link to enrich with a tldr caption
         if (contentData.type === 'link' && contentData.url && !contentData.url.includes('imdb.com/title/')) {
-          console.log(`[${contentId}] 🔗 Regular link found. Analysis not yet implemented. Skipping.`);
+          await addLog('INFO', `[${contentId}] 🔗 Regular link found. Analysis not yet implemented. Skipping.`);
         }
         
         if (contentData.type === 'voice') {
-          console.log(`[${contentId}] 🎙️ Voice note found. Analysis not yet implemented. Skipping.`);
+          await addLog('INFO', `[${contentId}] 🎙️ Voice note found. Analysis not yet implemented. Skipping.`);
         }
 
 
         if (enrichmentFailed) {
           updatePayload.status = 'failed-analysis';
-          console.log(`[${contentId}] ⚠️ Setting status to 'failed-analysis' due to errors.`);
+          await addLog('WARN', `[${contentId}] ⚠️ Setting status to 'failed-analysis' due to errors.`);
         }
 
         await updateDoc(docRef, updatePayload);
-        console.log(`[${contentId}] ✅ Successfully updated document with payload:`, updatePayload);
+        await addLog('INFO', `[${contentId}] ✅ Successfully updated document with payload:`, { payload: updatePayload });
 
       } else {
-         console.log(`[${contentId}] ⏭️ Skipping enrichment, status is '${contentData.status}', not 'pending-analysis'.`);
+         await addLog('INFO', `[${contentId}] ⏭️ Skipping enrichment, status is '${contentData.status}', not 'pending-analysis'.`);
       }
 
-    } catch (error) {
-      console.error(`[${contentId}] ❌ CRITICAL ERROR during enrichment flow:`, error);
+    } catch (error: any) {
+      await addLog('ERROR', `[${contentId}] ❌ CRITICAL ERROR during enrichment flow:`, { error: error.message });
       await updateDoc(docRef, {
         status: 'failed-analysis'
-      }).catch(e => console.error(`[${contentId}] ❌ Failed to update status to 'failed-analysis' after critical error`, e));
+      }).catch(e => addLog('ERROR', `[${contentId}] ❌ Failed to update status to 'failed-analysis' after critical error`, { error: (e as Error).message }));
     }
   }
 );
-
-    

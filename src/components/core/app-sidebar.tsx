@@ -2,7 +2,7 @@
 'use client';
 import type React from 'react';
 import { useState, useEffect } from 'react';
-import { Home, Tag, Settings, LogOut, Users, ChevronDown, Plus, Globe, ClipboardList, Bookmark, Newspaper, Film, Baseline, Github, MessageSquare, MessagesSquare, BookOpen, LucideIcon, StickyNote, Briefcase, Library, FileText, Sparkles, Layers } from 'lucide-react'; // Added Layers
+import { Home, Tag, Settings, LogOut, Users, ChevronDown, Plus, Globe, ClipboardList, Bookmark, Newspaper, Film, Baseline, Github, MessageSquare, MessagesSquare, BookOpen, LucideIcon, StickyNote, Briefcase, Library, FileText, Sparkles, Layers, Code, Server } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -130,7 +130,7 @@ const AppSidebar: React.FC = () => {
               Declutter
             </Link>
 
-            <Accordion type="multiple" defaultValue={['zones']} className="w-full">
+            <Accordion type="multiple" defaultValue={['zones', 'developer']} className="w-full">
               <AccordionItem value="zones" className="border-b-0">
                 <AccordionTrigger className="px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg hover:no-underline">
                   <div className="flex items-center gap-3">
@@ -230,6 +230,20 @@ const AppSidebar: React.FC = () => {
                     );
                   })}
                   {contentTypes.length === 0 && <p className="px-3 py-2 text-xs text-sidebar-foreground/60">No matching content types found.</p>}
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="developer" className="border-b-0">
+                <AccordionTrigger className="px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg hover:no-underline">
+                  <div className="flex items-center gap-3">
+                    <Code className="h-4 w-4" />
+                    Developer
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pl-4 mt-1 space-y-1">
+                  <Link href="/admin/logs" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground">
+                    <Server className="h-4 w-4 opacity-70" /> Logs
+                  </Link>
                 </AccordionContent>
               </AccordionItem>
 
