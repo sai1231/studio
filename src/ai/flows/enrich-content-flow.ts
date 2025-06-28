@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow for enriching content after it has been created.
@@ -16,7 +17,7 @@ const EnrichContentInputSchema = z.string().describe("The ID of the content item
 export type EnrichContentInput = z.infer<typeof EnrichContentInputSchema>;
 
 export async function enrichContent(contentId: EnrichContentInput): Promise<void> {
-  console.log('enrichContent function called with ID:', contentId);
+  console.log(`\n\n✅✅✅ TRIGGERING ENRICHMENT FLOW ✅✅✅ for content ID: ${contentId}\n\n`);
   await enrichContentFlow(contentId);
 }
 
@@ -27,7 +28,7 @@ const enrichContentFlow = ai.defineFlow(
     outputSchema: z.void(),
   },
   async (contentId) => {
-    console.log(`Starting enrichment for content ID: ${contentId}`);
+    console.log(`[${contentId}] ➡️ Starting enrichment process...`);
 
     const docRef = doc(contentCollectionRef, contentId);
     
@@ -35,18 +36,20 @@ const enrichContentFlow = ai.defineFlow(
       const docSnap = await getDoc(docRef);
 
       if (!docSnap.exists()) {
-        console.error(`Enrichment failed: Document with ID ${contentId} does not exist.`);
+        console.error(`[${contentId}] ❌ Enrichment failed: Document does not exist.`);
         return;
       }
       
       const contentData = docSnap.data();
+      console.log(`[${contentId}] 📄 Found document with status: ${contentData.status}`);
+
       if (contentData.status === 'pending-analysis') {
         let enrichmentFailed = false;
         let updatePayload: { [key: string]: any } = { status: 'completed' };
 
         // Check if the item is an IMDb link to enrich with movie data
         if (contentData.type === 'link' && contentData.url && contentData.url.includes('imdb.com/title/') && process.env.NEXT_PUBLIC_TMDB_API_KEY) {
-          console.log(`IMDb link found for ${contentId}. Fetching movie data...`);
+          console.log(`[${contentId}] 🎬 IMDb link found. Fetching movie data...`);
           const imdbId = contentData.url.split('/title/')[1].split('/')[0];
           if (imdbId) {
             try {
@@ -58,7 +61,6 @@ const enrichContentFlow = ai.defineFlow(
                 const movieDetailResponse = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&append_to_response=credits`);
                 const movieData = await movieDetailResponse.json();
 
-                // Prepare movie-specific updates, merging with the default 'completed' status
                 updatePayload = {
                   ...updatePayload,
                   type: 'movie',
@@ -75,115 +77,89 @@ const enrichContentFlow = ai.defineFlow(
                     genres: movieData.genres?.map((g: any) => g.name) || [],
                   },
                 };
-                console.log(`Successfully fetched and processed movie data for ${contentId}.`);
+                console.log(`[${contentId}] 🎬✅ Successfully processed movie data.`);
               } else {
-                console.log(`No movie results found on TMDb for IMDb ID ${imdbId}.`);
+                console.log(`[${contentId}] 🎬⚠️ No movie results found on TMDb for IMDb ID ${imdbId}.`);
               }
             } catch (e) {
               enrichmentFailed = true;
-              console.error(`Error fetching movie details from TMDb for ${contentId}:`, e);
-              // Do not block completion, just log the error and proceed to mark as completed.
+              console.error(`[${contentId}] 🎬❌ Error fetching movie details from TMDb:`, e);
             }
           }
         }
         
-        // Add other enrichment logic here for images, regular links, etc.
-      // Add this function inside the enrichContentFlow async function,
-// after the TMDb logic but before the final updateDoc.
+        // Check if the item is an image to enrich with a caption
+        if (contentData.type === 'image' && contentData.imageUrl) {
+          console.log(`[${contentId}] 🖼️ Image found. Generating caption...`);
+          try {
+            const imageResponse = await fetch(contentData.imageUrl);
+            if (!imageResponse.ok) {
+              throw new Error(`Failed to fetch image: ${imageResponse.status} ${imageResponse.statusText}`);
+            }
+            const imageBuffer = await imageResponse.arrayBuffer();
+            const base64Image = Buffer.from(imageBuffer).toString('base64');
+            const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg';
+            const dataUri = `data:${mimeType};base64,${base64Image}`;
 
-// Check if the item is an image to enrich with a caption
-if (contentData.type === 'image' && contentData.imageUrl) {
-  console.log(`Image found for ${contentId}. Generating caption...`);
-  try {
-    // Fetch the image
-    const imageResponse = await fetch(contentData.imageUrl);
-    if (!imageResponse.ok) {
-      throw new Error(`Failed to fetch image: ${imageResponse.status} ${imageResponse.statusText}`);
-    }
-    const imageBuffer = await imageResponse.arrayBuffer();
-    const base64Image = Buffer.from(imageBuffer).toString('base64');
-    const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg';
-    const dataUri = `data:${mimeType};base64,${base64Image}`;
+            const { text } = await ai.generate({
+              model: 'googleai/gemini-pro-vision',
+              prompt: `Provide a one-sentence descriptive caption for this image.`,
+              history: [{
+                parts: [{
+                  media: {
+                    url: dataUri,
+                  }
+                }]
+              }],
+            });
 
-    // Call Moondream API
-    const moondreamResponse = await fetch('https://api.moondream.ai/v1/caption', {
-      method: 'POST',
-headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${process.env.MOONDREAM_API_KEY}`,
-                // Add any necessary API key header here if required by Moondream API
-              },
-      body: JSON.stringify({
-        image_url: dataUri,
-        length: 'normal', // Or 'short'
-      }),
-      signal: AbortSignal.timeout(15000), // 15-second timeout
-    });
+            const caption = text;
 
-    if (!moondreamResponse.ok) {
-      const errorBody = await moondreamResponse.text();
-      throw new Error(`Moondream API request failed: ${moondreamResponse.status} ${moondreamResponse.statusText} - ${errorBody}`);
-    }
+            if (caption) {
+              updatePayload = {
+                ...updatePayload,
+                description: caption,
+              };
+              console.log(`[${contentId}] 🖼️✅ Successfully generated caption.`);
+            } else {
+              console.warn(`[${contentId}] 🖼️⚠️ Gemini returned no caption.`);
+            }
 
-    const moondreamData = await moondreamResponse.json();
-    const caption = moondreamData.caption;
+          } catch (e) {
+            enrichmentFailed = true;
+            console.error(`[${contentId}] 🖼️❌ Error generating caption:`, e);
+          }
+        }
 
-    if (caption) {
-       // Update description for images
-      updatePayload = {
-        ...updatePayload,
-        description: caption,
-      };
-      console.log(`Successfully generated caption for ${contentId}.`);
-    } else {
-       console.warn(`Moondream API returned no caption for ${contentId}.`);
-    }
+        // Check if the item is a link to enrich with a tldr caption
+        if (contentData.type === 'link' && contentData.url && !contentData.url.includes('imdb.com/title/')) {
+          console.log(`[${contentId}] 🔗 Regular link found. Analysis not yet implemented. Skipping.`);
+        }
+        
+        if (contentData.type === 'voice') {
+          console.log(`[${contentId}] 🎙️ Voice note found. Analysis not yet implemented. Skipping.`);
+        }
 
-  } catch (e) {
-    enrichmentFailed = true;
-    console.error(`Error generating caption for ${contentId}:`, e);
-    // Do not block completion, just log the error and proceed to mark as completed.
-  }
-}
 
-// Check if the item is a link to enrich with a tldr caption
-if (contentData.type === 'link' && contentData.url && !contentData.url.includes('imdb.com/title/')) {
-   console.log(`Regular link found for ${contentId}. Generating tldr caption...`);
-   try {
-    // You would likely need a different approach or API here to summarize a link's content.
-    // The Moondream API is for image captioning.
-    // For now, I will add a placeholder or simply rely on other enrichment if available.
-    console.log(`Link summarization not yet implemented for ${contentId}. Skipping.`);
-    // Example placeholder if you want to add a default tldr for non-IMDb links
-    // updatePayload = {
-    //   ...updatePayload,
-    //   tldr: "Link analysis pending.",
-    // };
-
-  } catch (e) {
-    enrichmentFailed = true;
-    console.error(`Error generating tldr for ${contentId}:`, e);
-    // Do not block completion, just log the error and proceed to mark as completed.
-  }
-}
-
-        // Check if any enrichment failed and set status accordingly before updating
         if (enrichmentFailed) {
           updatePayload.status = 'failed-analysis';
+          console.log(`[${contentId}] ⚠️ Setting status to 'failed-analysis' due to errors.`);
         }
+
         await updateDoc(docRef, updatePayload);
-        console.log(`Successfully enriched content ID: ${contentId}, payload:`, updatePayload);
+        console.log(`[${contentId}] ✅ Successfully updated document with payload:`, updatePayload);
 
       } else {
-         console.log(`Skipping enrichment for content ID: ${contentId}, status is not 'pending-analysis'.`);
+         console.log(`[${contentId}] ⏭️ Skipping enrichment, status is '${contentData.status}', not 'pending-analysis'.`);
       }
 
     } catch (error) {
-      console.error(`Error during enrichment for content ID ${contentId}:`, error);
-      // Optionally update status to 'failed-analysis'
+      console.error(`[${contentId}] ❌ CRITICAL ERROR during enrichment flow:`, error);
       await updateDoc(docRef, {
         status: 'failed-analysis'
-      }).catch(e => console.error(`Failed to update status to failed-analysis for ${contentId}`, e));
+      }).catch(e => console.error(`[${contentId}] ❌ Failed to update status to 'failed-analysis' after critical error`, e));
     }
   }
 );
+
+    
