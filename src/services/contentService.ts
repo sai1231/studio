@@ -1,6 +1,5 @@
 
 
-
 import { db, storage } from '@/lib/firebase';
 import {
   collection,
@@ -121,7 +120,7 @@ export async function addContentItem(
     dataToSave.createdAt = Timestamp.fromDate(new Date());
 
     // Set initial status for enrichment
-    if (['link', 'image'].includes(dataToSave.type)) {
+    if (['link', 'image', 'voice'].includes(dataToSave.type)) {
       dataToSave.status = 'pending-analysis';
     }
 
