@@ -27,17 +27,6 @@ const pageLoadingMessages = [
   "Connecting the dots...",
 ];
 
-const contentFilters = [
-  { name: 'Reels', icon: Clapperboard, contentType: 'Reel' },
-  { name: 'Posts', icon: MessagesSquare, contentType: 'Post' },
-  { name: 'Images', icon: FileImage, contentType: 'Image' },
-  { name: 'Web Pages', icon: Globe, contentType: 'Web Page' },
-  { name: 'Articles', icon: BookOpen, contentType: 'Article' },
-  { name: 'Notes', icon: StickyNote, contentType: 'Note' },
-  { name: 'Repositories', icon: Github, contentType: 'Repository' },
-  { name: 'Snippets', icon: FileText, contentType: 'Snippet' },
-];
-
 const TodoListCard: React.FC<{
   items: ContentItem[];
   onToggleStatus: (itemId: string, currentStatus: 'pending' | 'completed' | undefined) => void;
@@ -128,8 +117,6 @@ export default function DashboardPage() {
   const [selectedItemIdForDetail, setSelectedItemIdForDetail] = useState<string | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   
-  const [selectedContentType, setSelectedContentType] = useState<string | null>(null);
-
   const { toast } = useToast();
   const [clientLoadingMessage, setClientLoadingMessage] = useState<string | null>(null);
 
@@ -203,14 +190,8 @@ export default function DashboardPage() {
   }, [allContentItems]);
 
   const displayedItems = useMemo(() => {
-    let filteredItems = allContentItems.filter(item => item.type !== 'todo');
-    
-    if (selectedContentType) {
-        filteredItems = filteredItems.filter(item => item.contentType === selectedContentType);
-    }
-    
-    return filteredItems;
-  }, [allContentItems, selectedContentType]);
+    return allContentItems.filter(item => item.type !== 'todo');
+  }, [allContentItems]);
 
   const handleOpenDetailDialog = (item: ContentItem) => {
     setSelectedItemIdForDetail(item.id);
@@ -255,11 +236,6 @@ export default function DashboardPage() {
       setIsUpdatingTodoStatus(null);
     }
   };
-  
-  const handleContentTypeFilterClick = (contentType: string) => {
-    setSelectedContentType(prev => prev === contentType ? null : contentType);
-  };
-
 
   if (isLoading && allContentItems.length === 0) {
     return (
@@ -285,23 +261,6 @@ export default function DashboardPage() {
 
   return (
     <div className="container mx-auto py-2">
-      <div className="mb-8">
-        <div className="flex flex-wrap gap-2">
-          {contentFilters.map(filter => (
-            <Button
-              key={filter.name}
-              variant={selectedContentType === filter.contentType ? 'default' : 'secondary'}
-              onClick={() => handleContentTypeFilterClick(filter.contentType)}
-              className="rounded-full"
-            >
-              <filter.icon className="mr-2 h-4 w-4" />
-              {filter.name}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-
       {(allContentItems.length === 0 && !isLoading) ? (
         <div className="text-center py-12">
           <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
