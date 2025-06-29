@@ -1,4 +1,3 @@
-
 'use client';
 import React from 'react';
 import { Card } from '@/components/ui/card';
@@ -148,7 +147,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
           {statusBadge}
           <div className="flex-grow mb-4 relative p-6">
             <span className="absolute -top-2 left-0 text-7xl text-muted-foreground/20 font-serif leading-none">“</span>
-            <p className="text-base text-foreground break-words line-clamp-6">
+            <p className="text-base text-foreground line-clamp-6">
               {plainDescription}
             </p>
             <span className="absolute -bottom-8 right-0 text-7xl text-muted-foreground/20 font-serif leading-none">”</span>
@@ -166,7 +165,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
               ) : !hasImage ? (
                 React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) })
               ) : null}
-              <h3 className="font-semibold leading-tight group-hover:text-primary transition-colors break-words">
+              <h3 className="font-semibold leading-tight group-hover:text-primary transition-colors truncate">
                 {item.title || "Untitled"}
               </h3>
             </div>
@@ -192,6 +191,24 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                     <span className="truncate">{item.domain}</span>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {item.type === 'image' && (
+         <div className="p-4 flex flex-col flex-grow relative">
+          {!hasImage && statusBadge}
+          <div className="flex-grow space-y-2">
+            <div className="flex items-start gap-3">
+              {(item.type === 'link' && item.faviconUrl) || (item.type === 'image' && item.faviconUrl) ? (
+                <img src={item.faviconUrl!} alt="" className="h-5 w-5 shrink-0 mt-0.5 rounded-sm" />
+              ) : !hasImage ? (
+                React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) })
+              ) : null}
+              <h3 className="font-semibold leading-tight group-hover:text-primary transition-colors truncate">
+                {item.title || "Untitled"}
+              </h3>
             </div>
           </div>
         </div>
