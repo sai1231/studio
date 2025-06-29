@@ -1,4 +1,3 @@
-
 'use client';
 import React from 'react';
 import { Card } from '@/components/ui/card';
@@ -75,98 +74,9 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         {statusText}
     </Badge>
   ) : null;
-
-  return (
-    <Card
-      draggable="true"
-      onDragStart={handleDragStart}
-      className={cn(
-        "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex w-full flex-col group rounded-3xl break-inside-avoid mb-4",
-        item.type !== 'image' && 'cursor-pointer'
-      )}
-      onClick={item.type !== 'image' ? () => onEdit(item) : undefined}
-    >
-      {hasImage && (
-        <div 
-          className={cn(
-            "relative w-full overflow-hidden",
-            item.type === 'image' ? 'cursor-pointer' : ''
-          )}
-          onClick={item.type === 'image' ? () => onEdit(item) : undefined}
-        >
-          {statusBadge}
-          <img
-            src={item.imageUrl!}
-            alt={item.title}
-            data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
-            className="w-full h-auto group-hover:scale-105 transition-transform duration-300"
-            loading="lazy"
-          />
-          {item.type === 'image' && (
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 pointer-events-none">
-                <div className="flex items-center justify-between gap-4">
-                    <h3 className="font-semibold text-white text-sm truncate pointer-events-auto">
-                        {item.title}
-                    </h3>
-                    <div className="pointer-events-auto">
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={(e) => {
-                                        handleActionClick(e);
-                                        onDelete(item.id);
-                                    }}
-                                    aria-label="Delete image"
-                                    className="h-8 w-8 rounded-full bg-black/30 text-white hover:bg-destructive hover:text-white"
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                                </TooltipTrigger>
-                                <TooltipContent><p>Delete</p></TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    </div>
-                </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {item.type !== 'image' && (
-        <div className="p-4 flex flex-col flex-grow relative">
-          {statusBadge}
-          <div className="flex-grow space-y-2 mb-4">
-            <div className="flex items-start gap-3">
-              {!hasImage && (
-                (item.type === 'link' && item.faviconUrl) ? (
-                    <img src={item.faviconUrl} alt="" className="h-5 w-5 shrink-0 mt-0.5 rounded-sm" />
-                ) : (
-                    React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) })
-                )
-              )}
-              <h3 className="font-semibold leading-tight group-hover:text-primary transition-colors break-words">
-                {item.title || "Untitled"}
-              </h3>
-            </div>
-
-            {plainDescription && (
-              <p className="text-sm text-muted-foreground break-words line-clamp-3">
-                {plainDescription}
-              </p>
-            )}
-
-            {item.type === 'voice' && item.audioUrl && !plainDescription && !hasImage && (
-                <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                  <PlayCircle className={cn("h-5 w-5", getTypeSpecifics(item).iconText)} />
-                  <span>Voice recording</span>
-                </div>
-            )}
-          </div>
-
-          <div className="mt-auto pt-3 border-t flex items-center justify-between">
+  
+  const CardFooterContent = (
+      <div className="mt-auto pt-3 border-t flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
               {item.domain && (
                 <>
@@ -177,7 +87,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
             </div>
 
             <div className="flex items-center gap-0.5 shrink-0">
-              {item.type === 'link' && item.url && (
+              {(item.type === 'link' || item.type === 'movie') && item.url && (
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -223,7 +133,109 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                 </Tooltip>
               </TooltipProvider>
             </div>
+      </div>
+  );
+
+  return (
+    <Card
+      draggable="true"
+      onDragStart={handleDragStart}
+      className={cn(
+        "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex w-full flex-col group rounded-3xl break-inside-avoid mb-4",
+        "cursor-pointer"
+      )}
+      onClick={() => onEdit(item)}
+    >
+      {hasImage && item.type !== 'note' && (
+        <div 
+          className="relative w-full overflow-hidden"
+        >
+          {statusBadge}
+          <img
+            src={item.imageUrl!}
+            alt={item.title}
+            data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
+            className="w-full h-auto group-hover:scale-105 transition-transform duration-300"
+            loading="lazy"
+          />
+          {item.type === 'image' && (
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 pointer-events-none">
+                <div className="flex items-center justify-between gap-4">
+                    <h3 className="font-semibold text-white text-sm truncate pointer-events-auto">
+                        {item.title}
+                    </h3>
+                    <div className="pointer-events-auto">
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={(e) => {
+                                        handleActionClick(e);
+                                        onDelete(item.id);
+                                    }}
+                                    aria-label="Delete image"
+                                    className="h-8 w-8 rounded-full bg-black/30 text-white hover:bg-destructive hover:text-white"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Delete</p></TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
+                </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {item.type === 'note' ? (
+        <div className="p-4 flex flex-col flex-grow relative">
+          {statusBadge}
+          <div className="flex-grow mb-4 relative p-6">
+            <span className="absolute -top-2 left-0 text-7xl text-muted-foreground/20 font-serif leading-none">“</span>
+            <p className="text-base text-foreground break-words italic">
+              {plainDescription}
+            </p>
+            <span className="absolute -bottom-8 right-0 text-7xl text-muted-foreground/20 font-serif leading-none">”</span>
           </div>
+          {CardFooterContent}
+        </div>
+      ) : item.type === 'image' ? (
+          null
+      ) : (
+        <div className="p-4 flex flex-col flex-grow relative">
+          {statusBadge}
+          <div className="flex-grow space-y-2 mb-4">
+            <div className="flex items-start gap-3">
+              {!hasImage && (
+                (item.type === 'link' && item.faviconUrl) ? (
+                    <img src={item.faviconUrl} alt="" className="h-5 w-5 shrink-0 mt-0.5 rounded-sm" />
+                ) : (
+                    React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) })
+                )
+              )}
+              <h3 className="font-semibold leading-tight group-hover:text-primary transition-colors break-words">
+                {item.title || "Untitled"}
+              </h3>
+            </div>
+
+            {plainDescription && (
+              <p className="text-sm text-muted-foreground break-words line-clamp-3">
+                {plainDescription}
+              </p>
+            )}
+
+            {item.type === 'voice' && item.audioUrl && !plainDescription && !hasImage && (
+                <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                  <PlayCircle className={cn("h-5 w-5", getTypeSpecifics(item).iconText)} />
+                  <span>Voice recording</span>
+                </div>
+            )}
+          </div>
+          {CardFooterContent}
         </div>
       )}
     </Card>
