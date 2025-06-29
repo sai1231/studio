@@ -1,5 +1,6 @@
 
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/core/theme-provider";
@@ -37,6 +38,9 @@ export default function RootLayout({
             </ThemeProvider>
           </DialogProvider>
         </AuthProvider>
+        {/* Scripts for oEmbed providers like Twitter and Instagram */}
+        <Script src="https://platform.twitter.com/widgets.js" strategy="lazyOnload" charset="utf-8" />
+        <Script src="https://www.instagram.com/embed.js" strategy="lazyOnload" />
       </body>
     </html>
   );
