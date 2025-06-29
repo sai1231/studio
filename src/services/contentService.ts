@@ -120,7 +120,7 @@ export async function addContentItem(
     dataToSave.createdAt = Timestamp.fromDate(new Date());
 
     // Set initial status for enrichment for links, images, voice notes and PDFs.
-    if (['link', 'image', 'voice'].includes(dataToSave.type) || (dataToSave.type === 'link' && dataToSave.contentType === 'PDF')) {
+    if (['link', 'image', 'voice', 'note'].includes(dataToSave.type) || (dataToSave.type === 'link' && dataToSave.contentType === 'PDF')) {
       dataToSave.status = 'pending-analysis';
     }
 

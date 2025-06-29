@@ -6,9 +6,11 @@
  * - enrichContent - A function that takes a content ID, fetches the content,
  *   and updates its status to 'completed'. This simulates a background job.
  */
+import { retext } from 'retext';
+import retextPos from 'retext-pos';
+import retextKeywords from 'retext-keywords';
+import { toString } from 'nlcst-to-string';
 import { ai } from '@/ai/genkit';
-import { generateCaptionFromImage } from '@/ai/moondream';
-import { extractTagsFromText } from '@/ai/tag-extraction';
 import { z } from 'zod';
 import { collection, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -20,6 +22,7 @@ const EnrichContentInputSchema = z.string().describe("The ID of the content item
 export type EnrichContentInput = z.infer<typeof EnrichContentInputSchema>;
 
 export async function enrichContent(contentId: EnrichContentInput): Promise<void> {
+  await addLog('INFO', `✅✅✅ TRIGGERING ENRICHMENT FLOW ✅✅✅ for content ID: ${contentId}`);
   await enrichContentFlow(contentId);
 }
 
@@ -30,6 +33,7 @@ const enrichContentFlow = ai.defineFlow(
     outputSchema: z.void(),
   },
   async (contentId) => {
+    await addLog('INFO', `[${contentId}] ➡️ Starting enrichment process...`);
 
     const docRef = doc(contentCollectionRef, contentId);
 
@@ -37,10 +41,12 @@ const enrichContentFlow = ai.defineFlow(
       const docSnap = await getDoc(docRef);
 
       if (!docSnap.exists()) {
+        await addLog('ERROR', `[${contentId}] ❌ Enrichment failed: Document does not exist.`);
         return;
       }
 
       const contentData = docSnap.data();
+      await addLog('INFO', `[${contentId}] 📄 Found document with status: ${contentData.status}`, { data: contentData });
 
       if (contentData.status === 'pending-analysis') {
         let enrichmentFailed = false;
@@ -48,6 +54,7 @@ const enrichContentFlow = ai.defineFlow(
 
         // Check if the item is an IMDb link to enrich with movie data
         if (contentData.type === 'link' && contentData.url && contentData.url.includes('imdb.com/title/') && process.env.NEXT_PUBLIC_TMDB_API_KEY) {
+          await addLog('INFO', `[${contentId}] 🎬 IMDb link found. Fetching movie data...`);
           const imdbId = contentData.url.split('/title/')[1].split('/')[0];
           if (imdbId) {
             try {
@@ -90,20 +97,61 @@ const enrichContentFlow = ai.defineFlow(
         if ((contentData.type === 'image' || contentData.type === 'link') && contentData.imageUrl) {
           await addLog('INFO', `[${contentId}] 🖼️ Image found. Generating caption...`);
           try {
-            const caption = await generateCaptionFromImage(contentData.imageUrl);
+            const imageResponse = await fetch(contentData.imageUrl);
+            if (!imageResponse.ok) {
+              throw new Error(`Failed to fetch image: ${imageResponse.status} ${imageResponse.statusText}`);
+            }
+            const imageBuffer = await imageResponse.arrayBuffer();
+            const base64Image = Buffer.from(imageBuffer).toString('base64');
+            const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg';
+            const dataUri = `data:${mimeType};base64,${base64Image}`;
+
+            // Call Moondream API
+
+            const moondreamResponse = await fetch('https://api.moondream.ai/v1/caption', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Moondream-Auth': `${process.env.MOONDREAM_API_KEY}`,
+                // Add any necessary API key header here if required by Moondream API
+              },
+              body: JSON.stringify({
+                image_url: dataUri,
+                length: 'normal', // Or 'short'
+              }),
+              signal: AbortSignal.timeout(15000), // 15-second timeout
+            });
+
+            if (!moondreamResponse.ok) {
+              const errorBody = await moondreamResponse.text();
+              throw new Error(`Moondream API request failed: ${moondreamResponse.status} ${moondreamResponse.statusText} - ${errorBody}`);
+            }
+
+            const moondreamData = await moondreamResponse.json();
+            const caption = moondreamData.caption;
+
 
             if (caption) {
-              updatePayload.description = (contentData.description || '') + (contentData.description ? '\\n' : '') + caption;
+              if (contentData.type === 'image') {
+                updatePayload = {
+                  ...updatePayload,
+                  description: caption,
+                };
+              } else if (contentData.type === 'link') {
+                updatePayload = {
+                  ...updatePayload,
+                  description: (contentData.description || '') + '\n' + caption,
+                };
+              }
 
               await addLog('INFO', `[${contentId}] 🖼️✅ Successfully generated caption.`, { caption });
             } else {
-              await addLog('WARN', `[${contentId}] 🖼️⚠️ Moondream returned no caption.`);
+              await addLog('WARN', `[${contentId}] 🖼️⚠️ Gemini returned no caption.`);
             }
 
           } catch (e: any) {
             enrichmentFailed = true;
-            // Log error but don't fail the entire enrichment if captioning fails
-            await addLog('WARN', `[${contentId}] 🖼️❌ Error generating caption:`, { error: e.message });
+            await addLog('ERROR', `[${contentId}] 🖼️❌ Error generating caption:`, { error: e.message });
           }
         }
 
@@ -115,9 +163,38 @@ const enrichContentFlow = ai.defineFlow(
           await addLog('INFO', `[${contentId}] 📝 Extracting keywords and key phrases...`);
 
           try {
-            const formattedTags = await extractTagsFromText(descriptionToAnalyze);
+            const file = await retext()
+              .use(retextPos)
+              .use(retextKeywords)
+              .process(descriptionToAnalyze);
 
+ 
+            const sortedKeywords = [...file.data.keywords]
+              .sort((a, b) => b.score - a.score)
+              .slice(0, 5);
 
+            const sortedKeyphrases = [...file.data.keyphrases]
+              .sort((a, b) => b.score - a.score)
+              .slice(0, 5);
+
+            // Extract text from keywords and keyphrases
+            const keywordTexts = sortedKeywords.map(kw =>
+              toString(kw.matches[0].node).toLowerCase()
+            );
+
+            const keyphraseTexts = sortedKeyphrases.map(ph =>
+              ph.matches[0].nodes.map(n => toString(n)).join('').toLowerCase()
+            );
+
+            // Combine and remove duplicates
+            const allTags = [...keywordTexts, ...keyphraseTexts];
+            const uniqueTags = [...new Set(allTags)];
+
+            // Format for your needs
+            const formattedTags = uniqueTags.map((tag) => ({
+              id: tag,
+              name: tag
+            }));
             if (formattedTags.length > 0) {
               updatePayload = {
                 ...updatePayload,
@@ -129,8 +206,7 @@ const enrichContentFlow = ai.defineFlow(
             }
 
           } catch (e: any) {
-            // Log error but don't fail the entire enrichment if tag extraction fails
-            // enrichmentFailed = true; // Decided not to fail the whole process for failed tag extraction
+            enrichmentFailed = true;
             await addLog('ERROR', `[${contentId}] 📝❌ Error during keyword extraction:`, { error: e.message });
           }
         } else {
