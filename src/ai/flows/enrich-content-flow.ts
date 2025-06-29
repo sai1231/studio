@@ -106,6 +106,25 @@ const enrichContentFlow = ai.defineFlow(
             await addLog('WARN', `[${contentId}] 🖼️❌ Error generating caption:`, { error: e.message });
           }
         }
+        
+        // Generate title from transcription for voice notes
+        if (contentData.type === 'voice') {
+          await addLog('INFO', `[${contentId}] 🎙️ Voice note found. Generating title from transcript...`);
+          if (contentData.description && typeof contentData.description === 'string' && contentData.description.trim() !== '') {
+              const words = contentData.description.trim().split(/\s+/);
+              const title = words.slice(0, 7).join(' ');
+              const finalTitle = words.length > 7 ? `${title}...` : title;
+              
+              if (finalTitle) {
+                  updatePayload.title = finalTitle;
+                  await addLog('INFO', `[${contentId}] 🎙️✅ Successfully generated title: "${finalTitle}"`);
+              } else {
+                  await addLog('WARN', `[${contentId}] 🎙️⚠️ Transcript was empty, could not generate title.`);
+              }
+          } else {
+              await addLog('WARN', `[${contentId}] 🎙️⚠️ No transcript found in description, cannot generate title.`);
+          }
+        }
 
 
         // Keyword and Key Phrase Extraction
@@ -136,21 +155,6 @@ const enrichContentFlow = ai.defineFlow(
         } else {
           await addLog('INFO', `[${contentId}] 📝ℹ️ Skipping keyword extraction: description is empty or not a string.`);
         }
-
-        // Check if the item is a link to enrich with a tldr caption (This section remains as is, as keyword extraction is now separate)
-        // if (contentData.type === 'link' && contentData.url && !contentData.url.includes('imdb.com/title/')) {
-        //   await addLog('INFO', `[${contentId}] 🔗 Regular link found. Analysis not yet implemented. Skipping.`);
-        // }
-
-        // if (contentData.type === 'voice') {
-        // await addLog('INFO', `[${contentId}] 🎙️ Voice note found. Analysis not yet implemented. Skipping.`);
-        // }
-
-
-        if (contentData.type === 'voice') {
-          await addLog('INFO', `[${contentId}] 🎙️ Voice note found. Analysis not yet implemented. Skipping.`);
-        }
-
 
         if (enrichmentFailed) {
           updatePayload.status = 'failed-analysis';

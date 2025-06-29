@@ -199,7 +199,7 @@ const RecordVoiceDialog: React.FC<RecordVoiceDialogProps> = ({ open, onOpenChang
 
       const newContentData: Omit<ContentItem, 'id' | 'createdAt'> = {
         type: 'voice',
-        title: `Voice Note - ${new Date().toLocaleString()}`,
+        title: 'New Recording',
         description: finalTranscript.trim(),
         audioUrl: downloadURL,
         tags: [{ id: 'voice-note', name: 'voice note' }],
