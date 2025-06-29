@@ -15,6 +15,18 @@ interface ContentCardProps {
   onDelete: (itemId: string) => void;
 }
 
+const SpotifyIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+      role="img"
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="currentColor"
+      {...props}
+    >
+      <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zM8.22 16.24c-.3.18-.66.2-1.02-.02-.44-.28-.7-.76-.42-1.2.28-.44.76-.7 1.2-.42.36.22 4.4 2.7 4.4 2.7s-.32.18-.5.28c-.18.1-.9.56-2.66-1.34zm6.2-1.64c-.36.22-1.2.28-1.62.06-.42-.22-2.4-1.5-4.26-2.6-1.82-1.08-1.94-1.18-1.94-1.18s.22-.36.42-.5c.2-.14.36-.22.36-.22s3.22 1.94 5.62 3.26c.44.24.6.76.36 1.2zm1.12-2.6c-.42.28-1.42.36-1.92.06-.5-.3-3.02-1.86-5.18-3.2s-2.1-1.3-2.1-1.3s.22-.38.44-.56c.22-.18.4-.28.4-.28s3.58 2.22 6.06 3.58c2.44 1.34 2.62 1.48 2.62 1.48s-.16.42-.42.72z" />
+    </svg>
+);
+
 const getTypeSpecifics = (item: ContentItem) => {
   if (item.type === 'link' && item.contentType === 'PDF') {
     return { icon: FileText, color: 'red', iconRing: 'ring-red-500/30', iconText: 'text-red-600 dark:text-red-400' };
@@ -42,6 +54,8 @@ const domainIconMap: { [key: string]: React.ElementType } = {
   'youtube.com': Youtube,
   'x.com': Twitter,
   'twitter.com': Twitter,
+  'open.spotify.com': SpotifyIcon,
+  'spotify.com': SpotifyIcon,
 };
 
 const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => {
@@ -151,8 +165,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         </TooltipProvider>
       </div>
 
-      {/* Image for IMAGE type */}
-      {item.type === 'image' && hasImage && (
+      {item.type === 'image' && hasImage ? (
         <div className="relative w-full overflow-hidden">
             <img
               src={item.imageUrl!}
@@ -162,10 +175,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
               loading="lazy"
             />
         </div>
-      )}
-
-      {/* Special layout for NOTE type */}
-      {item.type === 'note' && (
+      ) : item.type === 'note' ? (
         <div className="p-4 flex flex-col flex-grow relative">
           <div className="flex-grow mb-4 relative p-6">
             <span className="absolute -top-2 left-0 text-7xl text-muted-foreground/20 font-serif leading-none">“</span>
@@ -175,10 +185,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
             <span className="absolute -bottom-8 right-0 text-7xl text-muted-foreground/20 font-serif leading-none">”</span>
           </div>
         </div>
-      )}
-      
-      {/* Layout for all other types (link, movie, voice, todo) */}
-      {item.type !== 'note' && item.type !== 'image' && (
+      ) : (
         <>
           {hasImage && (
             <div 
@@ -195,12 +202,10 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
           )}
           <div className="p-4 flex flex-col flex-grow relative">
             <div className="flex-grow space-y-2 mb-4">
-              <div className="flex items-start gap-3">
+              <h3 className="font-semibold leading-tight group-hover:text-primary transition-colors flex items-start gap-3">
                 {TitleIcon}
-                <h3 className="font-semibold leading-tight group-hover:text-primary transition-colors truncate">
-                  {displayTitle}
-                </h3>
-              </div>
+                <span className="truncate">{displayTitle}</span>
+              </h3>
 
               {plainDescription && (
                 <p className="text-sm text-muted-foreground break-words line-clamp-3">
@@ -215,16 +220,14 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                   </div>
               )}
             </div>
-            <div className="mt-auto pt-3 flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
-                {item.domain && (
-                  <>
-                      <Landmark className="h-3.5 w-3.5 opacity-80 shrink-0" />
-                      <span className="truncate">{item.domain}</span>
-                  </>
-                )}
+            {item.domain && (
+              <div className="mt-auto pt-3 flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+                  <Landmark className="h-3.5 w-3.5 opacity-80 shrink-0" />
+                  <span className="truncate">{item.domain}</span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </>
       )}

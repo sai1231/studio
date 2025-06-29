@@ -52,6 +52,8 @@ const knownProviders: { [domain: string]: string } = {
     'twitter.com': 'https://publish.twitter.com/oembed',
     'soundcloud.com': 'https://soundcloud.com/oembed',
     'flickr.com': 'https://www.flickr.com/services/oembed/',
+    'open.spotify.com': 'https://open.spotify.com/oembed',
+    'spotify.com': 'https://open.spotify.com/oembed',
 };
 
 export async function GET(request: NextRequest) {
