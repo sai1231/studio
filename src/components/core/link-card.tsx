@@ -1,3 +1,4 @@
+
 'use client';
 import React from 'react';
 import { Card } from '@/components/ui/card';
@@ -196,7 +197,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
           {statusBadge}
           <div className="flex-grow mb-4 relative p-6">
             <span className="absolute -top-2 left-0 text-7xl text-muted-foreground/20 font-serif leading-none">“</span>
-            <p className="text-base text-foreground break-words italic">
+            <p className="text-base text-foreground break-words line-clamp-6">
               {plainDescription}
             </p>
             <span className="absolute -bottom-8 right-0 text-7xl text-muted-foreground/20 font-serif leading-none">”</span>
