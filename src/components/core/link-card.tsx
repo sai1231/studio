@@ -1,3 +1,4 @@
+
 'use client';
 import React from 'react';
 import { Card } from '@/components/ui/card';
@@ -7,6 +8,7 @@ import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, La
 import type { ContentItem } from '@/types';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { format, isSameYear, parseISO } from 'date-fns';
 
 interface ContentCardProps {
   item: ContentItem;
@@ -75,6 +77,24 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
     </Badge>
   ) : null;
   
+  const displayTitle = React.useMemo(() => {
+    if (item.type === 'voice') {
+      try {
+        const createdAtDate = parseISO(item.createdAt);
+        // Check if the date is in the current year
+        const formatString = isSameYear(new Date(), createdAtDate)
+          ? 'MMM d, h:mm a'
+          : 'MMM d, yyyy, h:mm a';
+        return format(createdAtDate, formatString);
+      } catch (e) {
+        console.error("Failed to parse date for voice note title:", e);
+        // Fallback to the stored title if date parsing fails
+        return item.title || "Voice Note";
+      }
+    }
+    return item.title || "Untitled";
+  }, [item]);
+
   return (
     <Card
       draggable="true"
@@ -127,7 +147,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         </TooltipProvider>
       </div>
 
-      {hasImage && item.type !== 'note' && (
+      {hasImage && item.type !== 'note' && item.type !== 'image' && (
         <div 
           className="relative w-full overflow-hidden"
         >
@@ -139,6 +159,19 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
             className="w-full h-auto group-hover:scale-105 transition-transform duration-300"
             loading="lazy"
           />
+        </div>
+      )}
+
+      {hasImage && item.type === 'image' && (
+         <div className="relative w-full overflow-hidden">
+            {statusBadge}
+            <img
+              src={item.imageUrl!}
+              alt={item.title}
+              data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
+              className="w-full h-auto group-hover:scale-105 transition-transform duration-300"
+              loading="lazy"
+            />
         </div>
       )}
 
@@ -166,7 +199,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                 React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) })
               ) : null}
               <h3 className="font-semibold leading-tight group-hover:text-primary transition-colors truncate">
-                {item.title || "Untitled"}
+                {displayTitle}
               </h3>
             </div>
 
