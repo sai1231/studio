@@ -7,11 +7,12 @@ import ContentCard from '@/components/core/link-card';
 import ContentDetailDialog from '@/components/core/ContentDetailDialog';
 import type { ContentItem, Zone as AppZone } from '@/types';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
-import { PlusCircle, Loader2, FolderOpen, ListChecks, AlarmClock } from 'lucide-react';
+import { PlusCircle, Loader2, FolderOpen, ListChecks, AlarmClock, Search, Clapperboard, MessagesSquare, FileImage, Globe, BookOpen, StickyNote, Github, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { subscribeToContentItems, deleteContentItem, getZones, updateContentItem } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
@@ -25,6 +26,17 @@ const pageLoadingMessages = [
   "Fetching your inspirations...",
   "Aligning your ideas...",
   "Connecting the dots...",
+];
+
+const contentFilters = [
+  { name: 'Reels', icon: Clapperboard, contentType: 'Reel' },
+  { name: 'Posts', icon: MessagesSquare, contentType: 'Post' },
+  { name: 'Images', icon: FileImage, contentType: 'Image' },
+  { name: 'Web Pages', icon: Globe, contentType: 'Web Page' },
+  { name: 'Articles', icon: BookOpen, contentType: 'Article' },
+  { name: 'Notes', icon: StickyNote, contentType: 'Note' },
+  { name: 'Repositories', icon: Github, contentType: 'Repository' },
+  { name: 'Snippets', icon: FileText, contentType: 'Snippet' },
 ];
 
 const TodoListCard: React.FC<{
@@ -116,6 +128,9 @@ export default function DashboardPage() {
 
   const [selectedItemIdForDetail, setSelectedItemIdForDetail] = useState<string | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedContentType, setSelectedContentType] = useState<string | null>(null);
 
   const { toast } = useToast();
   const [clientLoadingMessage, setClientLoadingMessage] = useState<string | null>(null);
@@ -189,9 +204,24 @@ export default function DashboardPage() {
       });
   }, [allContentItems]);
 
-  const otherItems = useMemo(() => {
-    return allContentItems.filter(item => item.type !== 'todo');
-  }, [allContentItems]);
+  const displayedItems = useMemo(() => {
+    let filteredItems = allContentItems.filter(item => item.type !== 'todo');
+    
+    if (selectedContentType) {
+        filteredItems = filteredItems.filter(item => item.contentType === selectedContentType);
+    }
+
+    if (searchQuery.trim() !== '') {
+        const lowerCaseQuery = searchQuery.toLowerCase();
+        filteredItems = filteredItems.filter(item =>
+            item.title.toLowerCase().includes(lowerCaseQuery) ||
+            (item.description && item.description.toLowerCase().includes(lowerCaseQuery)) ||
+            (item.tags && item.tags.some(tag => tag.name.toLowerCase().includes(lowerCaseQuery)))
+        );
+    }
+    
+    return filteredItems;
+  }, [allContentItems, searchQuery, selectedContentType]);
 
   const handleOpenDetailDialog = (item: ContentItem) => {
     setSelectedItemIdForDetail(item.id);
@@ -236,6 +266,11 @@ export default function DashboardPage() {
       setIsUpdatingTodoStatus(null);
     }
   };
+  
+  const handleContentTypeFilterClick = (contentType: string) => {
+    setSelectedContentType(prev => prev === contentType ? null : contentType);
+  };
+
 
   if (isLoading && allContentItems.length === 0) {
     return (
@@ -261,9 +296,32 @@ export default function DashboardPage() {
 
   return (
     <div className="container mx-auto py-2">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-        <h1 className="text-3xl font-headline font-semibold text-foreground">My Memories</h1>
+      <div className="mb-8">
+        <div className="relative">
+          <Input
+              type="text"
+              placeholder="Search my mind..."
+              className="w-full border-0 border-b bg-transparent p-0 pl-10 text-3xl h-16 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-primary placeholder:text-muted-foreground/60 placeholder:italic"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <Search className="absolute left-0 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground" />
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {contentFilters.map(filter => (
+            <Button
+              key={filter.name}
+              variant={selectedContentType === filter.contentType ? 'default' : 'secondary'}
+              onClick={() => handleContentTypeFilterClick(filter.contentType)}
+              className="rounded-full"
+            >
+              <filter.icon className="mr-2 h-4 w-4" />
+              {filter.name}
+            </Button>
+          ))}
+        </div>
       </div>
+
 
       {(allContentItems.length === 0 && !isLoading) ? (
         <div className="text-center py-12">
@@ -301,7 +359,7 @@ export default function DashboardPage() {
         </div>
       ) : (
         <div>
-          { (todoItems.length === 0 && otherItems.length === 0) ? (
+          { (todoItems.length === 0 && displayedItems.length === 0) ? (
             <div className="text-center py-16 rounded-lg bg-muted/50">
               <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h2 className="text-xl font-medium text-muted-foreground">
@@ -321,7 +379,7 @@ export default function DashboardPage() {
                   onAddTodoClick={handleAddTodoClick}
                 />
               )}
-              {otherItems.map(item => (
+              {displayedItems.map(item => (
                 <ContentCard
                   key={item.id}
                   item={item}
