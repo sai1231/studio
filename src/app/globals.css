@@ -133,4 +133,25 @@ body {
   .dark .ProseMirror a {
     @apply text-primary;
   }
+
+  /* oEmbed container styles */
+  .oembed-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .oembed-container iframe,
+  .oembed-container > * {
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
+    display: block;
+  }
+  
+  .twitter-embed-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
 }

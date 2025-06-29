@@ -25,6 +25,16 @@ import { useAuth } from '@/context/AuthContext';
 
 const NO_ZONE_VALUE = "__NO_ZONE__";
 
+declare global {
+  interface Window {
+    twttr?: {
+      widgets: {
+        load: (element?: HTMLElement) => void;
+      };
+    };
+  }
+}
+
 const iconMap: { [key: string]: React.ElementType } = {
   Briefcase,
   Home,
@@ -66,26 +76,6 @@ const getTagStyles = (tagName: string): string => {
   return tagColorPalettes[index];
 };
 
-const getEmbedUrl = (url: string | undefined): string | null => {
-  if (!url) return null;
-  try {
-    const urlObj = new URL(url);
-    if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
-      let videoId = urlObj.searchParams.get('v');
-      if (urlObj.hostname.includes('youtu.be')) {
-        videoId = urlObj.pathname.substring(1);
-      }
-      if (videoId) {
-        return `https://www.youtube.com/embed/${videoId}`;
-      }
-    }
-  } catch (e) {
-    console.warn("Could not parse URL for embed:", url, e);
-    return null;
-  }
-  return null;
-};
-
 const loadingMessages = [
   "Organizing your thoughts...",
   "Fetching your inspirations...",
@@ -109,7 +99,6 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   const [item, setItem] = useState<ContentItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [embedUrl, setEmbedUrl] = useState<string | null>(null);
   const [currentLoadingMessage, setCurrentLoadingMessage] = useState(loadingMessages[0]);
 
   const [editableTitle, setEditableTitle] = useState('');
@@ -133,11 +122,15 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   const [articleViewData, setArticleViewData] = useState<{ title: string; content: string } | null>(null);
   const [isFetchingArticle, setIsFetchingArticle] = useState(false);
 
+  // oEmbed state
+  const [oembedHtml, setOembedHtml] = useState<string | null>(null);
+  const [isFetchingOembed, setIsFetchingOembed] = useState(false);
+
+
   useEffect(() => {
     if (open && itemId && user) {
       setIsLoading(true); 
       setError(null);
-      setEmbedUrl(null);
       setItem(null);
       setEditableTitle('');
       setEditableDescription('');
@@ -146,6 +139,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       setEditableTags([]);
       setArticleViewData(null);
       setIsArticleViewOpen(false);
+      setOembedHtml(null);
       
       const randomIndex = Math.floor(Math.random() * loadingMessages.length);
       setCurrentLoadingMessage(loadingMessages[randomIndex]);
@@ -156,7 +150,21 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
           if (fetchedItem) {
             setItem(fetchedItem);
             if (fetchedItem.type === 'link' && fetchedItem.url) {
-              setEmbedUrl(getEmbedUrl(fetchedItem.url));
+                setIsFetchingOembed(true);
+                setOembedHtml(null);
+                try {
+                    const oembedRes = await fetch(`/api/oembed?url=${encodeURIComponent(fetchedItem.url)}`);
+                    if (oembedRes.ok) {
+                        const oembedData = await oembedRes.json();
+                        if (oembedData.html) {
+                            setOembedHtml(oembedData.html);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch oEmbed data", e);
+                } finally {
+                    setIsFetchingOembed(false);
+                }
             }
           } else {
             setError('Content item not found.');
@@ -185,9 +193,9 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       setItem(null);
       setIsLoading(true); 
       setError(null);
-      setEmbedUrl(null);
       setArticleViewData(null);
       setIsArticleViewOpen(false);
+      setOembedHtml(null);
     }
   }, [itemId, open, toast, user]); 
 
@@ -201,6 +209,13 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
     }
   }, [item]);
 
+  useEffect(() => {
+    if (oembedHtml && (oembedHtml.includes('twitter-tweet') || oembedHtml.includes('instagram-media'))) {
+        if (window.twttr) {
+            window.twttr.widgets.load();
+        }
+    }
+  }, [oembedHtml]);
 
   useEffect(() => {
     if (isAddingTag && newTagInputRef.current) {
@@ -449,7 +464,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
               (() => { 
                 const isDescriptionReadOnly = (item.type === 'link' && item.contentType !== 'Article' && item.type !== 'movie') || item.type === 'image' || item.type === 'voice';
                 const showMindNote = item.type === 'link' || item.type === 'image' || item.type === 'voice' || item.type === 'movie';
-                const showMediaColumn = embedUrl || (item.imageUrl && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice' || item.type === 'movie'));
+                const showMediaColumn = isFetchingOembed || oembedHtml || (item.imageUrl && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice' || item.type === 'movie'));
                 const filteredZones = comboboxSearchText
                   ? allZones.filter(z => z.name.toLowerCase().includes(comboboxSearchText.toLowerCase()))
                   : allZones;
@@ -464,14 +479,12 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                   )}>
                     {showMediaColumn && (
                        <div className="relative w-full overflow-hidden rounded-xl shadow-sm max-h-[70vh] flex items-center justify-center bg-black/5">
-                        {embedUrl ? (
-                          <iframe
-                            src={embedUrl}
-                            title={editableTitle || 'Embedded Content'}
-                            className="w-full aspect-video border-0 rounded-xl"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            allowFullScreen
-                          ></iframe>
+                        {isFetchingOembed ? (
+                          <div className="w-full aspect-video flex items-center justify-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                          </div>
+                        ) : oembedHtml ? (
+                          <div className="oembed-container w-full" dangerouslySetInnerHTML={{ __html: oembedHtml }} />
                         ) : item.imageUrl ? (
                            <img
                             src={item.imageUrl}

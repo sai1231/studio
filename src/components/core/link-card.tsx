@@ -1,9 +1,10 @@
+
 'use client';
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Landmark, PlayCircle, FileText, Film } from 'lucide-react';
+import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Landmark, PlayCircle, FileText, Film, Github, Youtube, Twitter } from 'lucide-react';
 import type { ContentItem } from '@/types';
 import { cn } from '@/lib/utils';
 import { format, isSameYear, parseISO } from 'date-fns';
@@ -36,6 +37,13 @@ const getTypeSpecifics = (item: ContentItem) => {
   }
 };
 
+const domainIconMap: { [key: string]: React.ElementType } = {
+  'github.com': Github,
+  'youtube.com': Youtube,
+  'x.com': Twitter,
+  'twitter.com': Twitter,
+};
+
 const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => {
   const specifics = getTypeSpecifics(item);
   const hasImage = !!item.imageUrl;
@@ -64,19 +72,32 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
     if (item.type === 'voice') {
       try {
         const createdAtDate = parseISO(item.createdAt);
-        // Check if the date is in the current year
         const formatString = isSameYear(new Date(), createdAtDate)
           ? 'MMM d, h:mm a'
           : 'MMM d, yyyy, h:mm a';
         return format(createdAtDate, formatString);
       } catch (e) {
         console.error("Failed to parse date for voice note title:", e);
-        // Fallback to the stored title if date parsing fails
         return item.title || "Voice Note";
       }
     }
     return item.title || "Untitled";
   }, [item]);
+
+  const TitleIcon = React.useMemo(() => {
+    if (item.type !== 'link') {
+      if (hasImage) return null;
+      return React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) });
+    }
+    const DomainIcon = item.domain ? domainIconMap[item.domain] : null;
+    if (DomainIcon) {
+      return <DomainIcon className="h-5 w-5 shrink-0 mt-0.5 text-foreground" />;
+    }
+    if (item.faviconUrl) {
+      return <img src={item.faviconUrl} alt="" className="h-5 w-5 shrink-0 mt-0.5 rounded-sm" />;
+    }
+    return React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) });
+  }, [item, specifics, hasImage]);
 
   return (
     <Card
@@ -130,7 +151,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         </TooltipProvider>
       </div>
 
-      {hasImage && item.type !== 'note' && item.type !== 'image' && (
+      {hasImage && item.type !== 'note' && (
         <div 
           className="relative w-full overflow-hidden"
         >
@@ -144,7 +165,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         </div>
       )}
 
-      {hasImage && item.type === 'image' && (
+      {item.type === 'image' && hasImage && (
          <div className="relative w-full overflow-hidden">
             <img
               src={item.imageUrl!}
@@ -172,11 +193,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         <div className="p-4 flex flex-col flex-grow relative">
           <div className="flex-grow space-y-2 mb-4">
             <div className="flex items-start gap-3">
-              {(item.type === 'link' && item.faviconUrl) ? (
-                <img src={item.faviconUrl} alt="" className="h-5 w-5 shrink-0 mt-0.5 rounded-sm" />
-              ) : !hasImage ? (
-                React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) })
-              ) : null}
+              {TitleIcon}
               <h3 className="font-semibold leading-tight group-hover:text-primary transition-colors truncate">
                 {displayTitle}
               </h3>
