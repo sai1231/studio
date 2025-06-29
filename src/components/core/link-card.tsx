@@ -86,15 +86,15 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
 
   const TitleIcon = React.useMemo(() => {
     if (item.type !== 'link') {
-      if (hasImage) return null;
-      return React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) });
+        if (hasImage) return null;
+        return React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) });
     }
     const DomainIcon = item.domain ? domainIconMap[item.domain] : null;
     if (DomainIcon) {
-      return <DomainIcon className="h-5 w-5 shrink-0 mt-0.5 text-foreground" />;
+        return <DomainIcon className="h-5 w-5 shrink-0 mt-0.5 text-foreground" />;
     }
     if (item.faviconUrl) {
-      return <img src={item.faviconUrl} alt="" className="h-5 w-5 shrink-0 mt-0.5 rounded-sm" />;
+        return <img src={item.faviconUrl} alt="" className="h-5 w-5 shrink-0 mt-0.5 rounded-sm" />;
     }
     return React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) });
   }, [item, specifics, hasImage]);
@@ -151,22 +151,9 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         </TooltipProvider>
       </div>
 
-      {hasImage && item.type !== 'note' && (
-        <div 
-          className="relative w-full overflow-hidden"
-        >
-          <img
-            src={item.imageUrl!}
-            alt={item.title}
-            data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
-            className="w-full h-auto group-hover:scale-105 transition-transform duration-300"
-            loading="lazy"
-          />
-        </div>
-      )}
-
+      {/* Image for IMAGE type */}
       {item.type === 'image' && hasImage && (
-         <div className="relative w-full overflow-hidden">
+        <div className="relative w-full overflow-hidden">
             <img
               src={item.imageUrl!}
               alt={item.title}
@@ -177,6 +164,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         </div>
       )}
 
+      {/* Special layout for NOTE type */}
       {item.type === 'note' && (
         <div className="p-4 flex flex-col flex-grow relative">
           <div className="flex-grow mb-4 relative p-6">
@@ -189,40 +177,56 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         </div>
       )}
       
+      {/* Layout for all other types (link, movie, voice, todo) */}
       {item.type !== 'note' && item.type !== 'image' && (
-        <div className="p-4 flex flex-col flex-grow relative">
-          <div className="flex-grow space-y-2 mb-4">
-            <div className="flex items-start gap-3">
-              {TitleIcon}
-              <h3 className="font-semibold leading-tight group-hover:text-primary transition-colors truncate">
-                {displayTitle}
-              </h3>
+        <>
+          {hasImage && (
+            <div 
+              className="relative w-full overflow-hidden"
+            >
+              <img
+                src={item.imageUrl!}
+                alt={item.title}
+                data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
+                className="w-full h-auto group-hover:scale-105 transition-transform duration-300"
+                loading="lazy"
+              />
             </div>
+          )}
+          <div className="p-4 flex flex-col flex-grow relative">
+            <div className="flex-grow space-y-2 mb-4">
+              <div className="flex items-start gap-3">
+                {TitleIcon}
+                <h3 className="font-semibold leading-tight group-hover:text-primary transition-colors truncate">
+                  {displayTitle}
+                </h3>
+              </div>
 
-            {plainDescription && (
-              <p className="text-sm text-muted-foreground break-words line-clamp-3">
-                {plainDescription}
-              </p>
-            )}
+              {plainDescription && (
+                <p className="text-sm text-muted-foreground break-words line-clamp-3">
+                  {plainDescription}
+                </p>
+              )}
 
-            {item.type === 'voice' && item.audioUrl && !plainDescription && !hasImage && (
-                <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                  <PlayCircle className={cn("h-5 w-5", getTypeSpecifics(item).iconText)} />
-                  <span>Voice recording</span>
-                </div>
-            )}
-          </div>
-           <div className="mt-auto pt-3 flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
-              {item.domain && (
-                <>
-                    <Landmark className="h-3.5 w-3.5 opacity-80 shrink-0" />
-                    <span className="truncate">{item.domain}</span>
-                </>
+              {item.type === 'voice' && item.audioUrl && !plainDescription && !hasImage && (
+                  <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                    <PlayCircle className={cn("h-5 w-5", getTypeSpecifics(item).iconText)} />
+                    <span>Voice recording</span>
+                  </div>
               )}
             </div>
+            <div className="mt-auto pt-3 flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+                {item.domain && (
+                  <>
+                      <Landmark className="h-3.5 w-3.5 opacity-80 shrink-0" />
+                      <span className="truncate">{item.domain}</span>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
     </Card>
