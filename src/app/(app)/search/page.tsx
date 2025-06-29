@@ -6,11 +6,16 @@ import { useState, useEffect, useCallback, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import ContentCard from '@/components/core/link-card';
 import ContentDetailDialog from '@/components/core/ContentDetailDialog';
-import type { ContentItem } from '@/types';
+import type { ContentItem, Zone } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Loader2, Search as SearchIcon, FolderOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { searchContentItems, deleteContentItem } from '@/services/contentService';
+import {
+  getContentItems,
+  deleteContentItem,
+  getZones,
+  getUniqueContentTypesFromItems,
+} from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
 
 const pageLoadingMessages = [
@@ -26,12 +31,13 @@ function SearchResultsPageContent() {
   const { user } = useAuth();
   
   const query = searchParams.get('q') || '';
-  const zoneId = searchParams.get('zone');
+  const zoneId = searchParams.get('zoneId');
   const contentType = searchParams.get('contentType');
-  const tagsParam = searchParams.get('tags');
-  const tagNames = useMemo(() => (tagsParam ? tagsParam.split(',') : []), [tagsParam]);
 
+  const [allItems, setAllItems] = useState<ContentItem[]>([]);
+  const [availableZones, setAvailableZones] = useState<Zone[]>([]);
   const [searchResults, setSearchResults] = useState<ContentItem[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -46,45 +52,71 @@ function SearchResultsPageContent() {
     }
   }, [isLoading]);
 
-  const performSearch = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     if (!user) {
-      setSearchResults([]);
       setIsLoading(false);
       return;
     }
     
-    // Don't perform search if there's no query and no filters
-    const hasQuery = query.trim().length > 0;
-    const hasFilters = !!zoneId || !!contentType || tagNames.length > 0;
-    if (!hasQuery && !hasFilters) {
-        setSearchResults([]);
-        setIsLoading(false);
-        return;
-    }
-
     setIsLoading(true);
     setError(null);
     try {
-      const results = await searchContentItems(user.uid, query, { 
-        zoneId, 
-        contentType, 
-        tagNames 
-      });
-      setSearchResults(results);
+      const [items, zones] = await Promise.all([
+        getContentItems(user.uid),
+        getZones(user.uid)
+      ]);
+      setAllItems(items);
+      setAvailableZones(zones);
     } catch (err) {
-      console.error("Error fetching search results:", err);
-      setError("Failed to load search results. Please try again.");
-      toast({ title: "Error", description: "Could not fetch search results.", variant: "destructive" });
+      console.error("Error fetching search data:", err);
+      setError("Failed to load search data. Please try again.");
+      toast({ title: "Error", description: "Could not fetch data for search page.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
-  }, [query, zoneId, contentType, tagNames, toast, user]);
+  }, [user, toast]);
 
   useEffect(() => {
-    if (user) {
-      performSearch();
+    fetchData();
+  }, [fetchData]);
+
+  const availableContentTypes = useMemo(() => getUniqueContentTypesFromItems(allItems), [allItems]);
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    let filtered = [...allItems];
+    
+    if (query.trim()) {
+      const lowerCaseQuery = query.toLowerCase();
+      filtered = filtered.filter(item => 
+        item.title.toLowerCase().includes(lowerCaseQuery) ||
+        (item.description && item.description.toLowerCase().includes(lowerCaseQuery)) ||
+        item.tags.some(tag => tag.name.toLowerCase().includes(lowerCaseQuery))
+      );
     }
-  }, [user, performSearch]);
+
+    if (zoneId) {
+      filtered = filtered.filter(item => item.zoneId === zoneId);
+    }
+
+    if (contentType) {
+      filtered = filtered.filter(item => item.contentType === contentType);
+    }
+    
+    setSearchResults(filtered);
+
+  }, [allItems, query, zoneId, contentType, isLoading]);
+
+  const handleFilterChange = (filterType: 'zoneId' | 'contentType', value: string | null) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value) {
+      params.set(filterType, value);
+    } else {
+      params.delete(filterType);
+    }
+    router.push(`/search?${params.toString()}`);
+  };
 
   const handleOpenDetailDialog = (item: ContentItem) => {
     setSelectedItemIdForDetail(item.id);
@@ -92,17 +124,13 @@ function SearchResultsPageContent() {
   };
 
   const handleItemUpdateInDialog = (updatedItem: ContentItem) => {
-    // Re-run the search to ensure the view is consistent with the latest data.
-    performSearch();
+    fetchData();
     toast({ title: "Item Updated", description: `"${updatedItem.title}" has been updated.`});
   };
 
   const handleDeleteItem = async (itemIdToDelete: string) => {
     const itemTitle = searchResults.find(item => item.id === itemIdToDelete)?.title || "Item";
-    
-    // Optimistically remove the item from the UI
-    setSearchResults(prev => prev.filter(item => item.id !== itemIdToDelete));
-
+    setAllItems(prev => prev.filter(item => item.id !== itemIdToDelete));
     const { id: toastId } = toast({ title: "Deleting Item...", description: `Removing "${itemTitle}".` });
     try {
       await deleteContentItem(itemIdToDelete);
@@ -110,83 +138,111 @@ function SearchResultsPageContent() {
     } catch (e) {
       console.error("Error deleting content:", e);
       toast({ id: toastId, title: "Error Deleting", description: `Could not delete "${itemTitle}".`, variant: "destructive" });
-      performSearch(); // Re-run search to restore item if deletion failed
+      fetchData();
     }
   };
   
-  const hasActiveSearch = query.trim().length > 0 || !!zoneId || !!contentType || tagNames.length > 0;
-
-  if (isLoading && hasActiveSearch) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">
-          {clientLoadingMessage || pageLoadingMessages[0]}
-        </p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-        <div className="container mx-auto py-8 text-center">
-            <SearchIcon className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-            <h1 className="text-2xl font-headline font-semibold text-destructive">{error}</h1>
-            <Button onClick={performSearch} className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">Try Again</Button>
-        </div>
-    );
-  }
-
-  if (!hasActiveSearch) {
-    return (
-      <div className="container mx-auto py-8 text-center">
-        <SearchIcon className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-        <h1 className="text-2xl font-headline font-semibold text-foreground">Search Your Memories</h1>
-        <p className="text-muted-foreground mt-2">Enter a term or use the advanced filters in the header to find content.</p>
-      </div>
-    );
-  }
-
-  const hasFilters = !!zoneId || !!contentType || tagNames.length > 0;
+  const hasActiveSearch = query.trim().length > 0 || !!zoneId || !!contentType;
 
   return (
     <div className="container mx-auto py-2">
-      <div className="flex flex-col sm:flex-row justify-between items-start mb-6 gap-4">
-        <div>
+      <div className="flex flex-col md:flex-row gap-8">
+        <aside className="w-full md:w-60 lg:w-72 flex-shrink-0">
+          <h2 className="text-lg font-semibold mb-4 px-1">Filter Results</h2>
+          <div className="space-y-6">
+            <div>
+              <h3 className="font-medium mb-2 px-1">Zones</h3>
+              <div className="space-y-1">
+                <Button 
+                  variant={!zoneId ? 'secondary' : 'ghost'} 
+                  className="w-full justify-start text-left h-auto py-2 px-3"
+                  onClick={() => handleFilterChange('zoneId', null)}
+                >
+                  All Zones
+                </Button>
+                {availableZones.map(zone => (
+                  <Button 
+                    key={zone.id}
+                    variant={zoneId === zone.id ? 'secondary' : 'ghost'}
+                    className="w-full justify-start text-left h-auto py-2 px-3"
+                    onClick={() => handleFilterChange('zoneId', zone.id)}
+                  >
+                    {zone.name}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h3 className="font-medium mb-2 px-1">Content Types</h3>
+              <div className="space-y-1">
+                <Button 
+                  variant={!contentType ? 'secondary' : 'ghost'} 
+                  className="w-full justify-start text-left h-auto py-2 px-3"
+                  onClick={() => handleFilterChange('contentType', null)}
+                >
+                  All Types
+                </Button>
+                {availableContentTypes.map(type => (
+                  <Button 
+                    key={type}
+                    variant={contentType === type ? 'secondary' : 'ghost'}
+                    className="w-full justify-start text-left h-auto py-2 px-3"
+                    onClick={() => handleFilterChange('contentType', type)}
+                  >
+                    {type}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <main className="flex-1 min-w-0">
+          <div className="mb-6">
             <h1 className="text-3xl font-headline font-semibold text-foreground flex items-center">
               <SearchIcon className="h-7 w-7 mr-3 text-primary" />
-                {query ? (
-                    <>Search Results for: <span className="ml-2 font-bold text-primary">&quot;{query}&quot;</span></>
-                ) : (
-                    "Advanced Search Results"
-                )}
+              {hasActiveSearch ? "Search Results" : "Explore All Content"}
             </h1>
-            {hasFilters && <p className="text-muted-foreground mt-1">Filters are active. Click the filter icon in the header to modify.</p>}
-        </div>
+            {query && <p className="text-muted-foreground mt-1">Showing results for: <span className="font-semibold text-foreground">&quot;{query}&quot;</span></p>}
+          </div>
+
+          {isLoading ? (
+             <div className="flex flex-col items-center justify-center min-h-[calc(100vh-20rem)]">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              <p className="mt-4 text-muted-foreground">
+                {clientLoadingMessage}
+              </p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <FolderOpen className="h-12 w-12 mx-auto text-destructive mb-4" />
+              <h2 className="text-xl font-medium text-destructive">{error}</h2>
+            </div>
+          ) : searchResults.length === 0 ? (
+            <div className="text-center py-12">
+              <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h2 className="text-xl font-medium text-muted-foreground">
+                No items found.
+              </h2>
+              <p className="text-muted-foreground mt-2">
+                Try a different search or filter combination.
+              </p>
+            </div>
+          ) : (
+             <div className={'columns-1 md:columns-2 lg:columns-2 xl:columns-3 gap-4'}>
+              {searchResults.map(item => (
+                <ContentCard
+                  key={item.id}
+                  item={item}
+                  onEdit={handleOpenDetailDialog}
+                  onDelete={handleDeleteItem}
+                />
+              ))}
+            </div>
+          )}
+        </main>
       </div>
 
-      {searchResults.length === 0 ? (
-        <div className="text-center py-12">
-          <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h2 className="text-xl font-medium text-muted-foreground">
-            No items found matching your criteria.
-          </h2>
-          <p className="text-muted-foreground mt-2">
-            Try a different search term or adjust your filters.
-          </p>
-        </div>
-      ) : (
-        <div className={'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
-          {searchResults.map(item => (
-            <ContentCard
-              key={item.id}
-              item={item}
-              onEdit={handleOpenDetailDialog}
-              onDelete={handleDeleteItem}
-            />
-          ))}
-        </div>
-      )}
       {selectedItemIdForDetail && (
         <ContentDetailDialog
           itemId={selectedItemIdForDetail}

@@ -44,7 +44,7 @@ const AppHeader: React.FC = () => {
   const [availableTags, setAvailableTags] = useState<AppTag[]>([]);
 
   const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
-  const [pendingZone, setPendingZone] = useState(searchParams.get('zone') || ALL_FILTER_VALUE);
+  const [pendingZoneId, setPendingZoneId] = useState(searchParams.get('zoneId') || ALL_FILTER_VALUE);
   const [pendingContentType, setPendingContentType] = useState(searchParams.get('contentType') || ALL_FILTER_VALUE);
   const [pendingTags, setPendingTags] = useState(searchParams.get('tags')?.split(',') || []);
   
@@ -70,7 +70,7 @@ const AppHeader: React.FC = () => {
 
   useEffect(() => {
     if (isFilterPopoverOpen) {
-      setPendingZone(searchParams.get('zone') || ALL_FILTER_VALUE);
+      setPendingZoneId(searchParams.get('zoneId') || ALL_FILTER_VALUE);
       setPendingContentType(searchParams.get('contentType') || ALL_FILTER_VALUE);
       setPendingTags(searchParams.get('tags')?.split(',').filter(Boolean) || []);
     }
@@ -80,10 +80,10 @@ const AppHeader: React.FC = () => {
     setSearchQuery(searchParams.get('q') || '');
   }, [searchParams]);
 
-  const executeSearch = (filters: { zone?: string; contentType?: string; tags?: string[] }) => {
+  const executeSearch = (filters: { zoneId?: string; contentType?: string; tags?: string[] }) => {
     const params = new URLSearchParams();
     if (searchQuery.trim()) params.set('q', searchQuery.trim());
-    if (filters.zone && filters.zone !== ALL_FILTER_VALUE) params.set('zone', filters.zone);
+    if (filters.zoneId && filters.zoneId !== ALL_FILTER_VALUE) params.set('zoneId', filters.zoneId);
     if (filters.contentType && filters.contentType !== ALL_FILTER_VALUE) params.set('contentType', filters.contentType);
     if (filters.tags && filters.tags.length > 0) params.set('tags', filters.tags.join(','));
     
@@ -93,18 +93,18 @@ const AppHeader: React.FC = () => {
   
   const handleSearchFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const currentZone = searchParams.get('zone') || undefined;
+    const currentZoneId = searchParams.get('zoneId') || undefined;
     const currentContentType = searchParams.get('contentType') || undefined;
     const currentTags = searchParams.get('tags')?.split(',') || undefined;
-    executeSearch({ zone: currentZone, contentType: currentContentType, tags: currentTags });
+    executeSearch({ zoneId: currentZoneId, contentType: currentContentType, tags: currentTags });
   };
   
   const handleApplyFilters = () => {
-    executeSearch({ zone: pendingZone, contentType: pendingContentType, tags: pendingTags });
+    executeSearch({ zoneId: pendingZoneId, contentType: pendingContentType, tags: pendingTags });
   };
 
   const handleClearFilters = () => {
-    setPendingZone(ALL_FILTER_VALUE);
+    setPendingZoneId(ALL_FILTER_VALUE);
     setPendingContentType(ALL_FILTER_VALUE);
     setPendingTags([]);
     executeSearch({});
@@ -118,7 +118,7 @@ const AppHeader: React.FC = () => {
   
   const activeFilterCount = useMemo(() => {
     let count = 0;
-    if (searchParams.get('zone')) count++;
+    if (searchParams.get('zoneId')) count++;
     if (searchParams.get('contentType')) count++;
     if (searchParams.get('tags')) count++;
     return count;
@@ -168,7 +168,7 @@ const AppHeader: React.FC = () => {
           <PopoverContent className="w-80 p-4 space-y-4" align="end">
               <div className="space-y-1">
                   <Label htmlFor="zone-filter-header" className="text-sm font-medium">Zone</Label>
-                  <Select value={pendingZone} onValueChange={setPendingZone}>
+                  <Select value={pendingZoneId} onValueChange={setPendingZoneId}>
                       <SelectTrigger id="zone-filter-header">
                           <SelectValue placeholder="All Zones" />
                       </SelectTrigger>
