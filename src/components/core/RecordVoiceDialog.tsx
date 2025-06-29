@@ -13,6 +13,7 @@ import { uploadFile } from '@/services/contentService';
 import type { ContentItem } from '@/types';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { format } from 'date-fns';
 
 declare global {
   interface Window {
@@ -199,7 +200,7 @@ const RecordVoiceDialog: React.FC<RecordVoiceDialogProps> = ({ open, onOpenChang
 
       const newContentData: Omit<ContentItem, 'id' | 'createdAt'> = {
         type: 'voice',
-        title: 'New Recording',
+        title: format(new Date(), 'MMM d, yyyy h:mm a'),
         description: finalTranscript.trim(),
         audioUrl: downloadURL,
         tags: [{ id: 'voice-note', name: 'voice note' }],

@@ -107,25 +107,6 @@ const enrichContentFlow = ai.defineFlow(
           }
         }
         
-        // Generate title from transcription for voice notes
-        if (contentData.type === 'voice') {
-          await addLog('INFO', `[${contentId}] 🎙️ Voice note found. Generating title from transcript...`);
-          if (contentData.description && typeof contentData.description === 'string' && contentData.description.trim() !== '') {
-              const words = contentData.description.trim().split(/\s+/);
-              const title = words.slice(0, 7).join(' ');
-              const finalTitle = words.length > 7 ? `${title}...` : title;
-              
-              if (finalTitle) {
-                  updatePayload.title = finalTitle;
-                  await addLog('INFO', `[${contentId}] 🎙️✅ Successfully generated title: "${finalTitle}"`);
-              } else {
-                  await addLog('WARN', `[${contentId}] 🎙️⚠️ Transcript was empty, could not generate title.`);
-              }
-          } else {
-              await addLog('WARN', `[${contentId}] 🎙️⚠️ No transcript found in description, cannot generate title.`);
-          }
-        }
-
 
         // Keyword and Key Phrase Extraction
         const descriptionToAnalyze = updatePayload.description || contentData.description;
