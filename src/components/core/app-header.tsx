@@ -1,8 +1,9 @@
 
 'use client';
 import type React from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { UserCircle, Settings, LogOut } from 'lucide-react';
+import { UserCircle, Settings, LogOut, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -13,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { getAuth, signOut } from 'firebase/auth';
@@ -23,6 +25,15 @@ const AppHeader: React.FC = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const auth = getAuth();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery(''); // Clear search after submit
+    }
+  };
   
   const handleLogout = async () => {
     try {
@@ -42,7 +53,18 @@ const AppHeader: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 md:px-6">
-      <div className="flex-1" />
+      <div className="flex-1">
+        <form onSubmit={handleSearchSubmit} className="relative w-full max-w-md">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+                type="search"
+                placeholder="Search my mind..."
+                className="w-full rounded-lg bg-muted pl-9"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+            />
+        </form>
+      </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">

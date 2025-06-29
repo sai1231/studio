@@ -7,12 +7,11 @@ import ContentCard from '@/components/core/link-card';
 import ContentDetailDialog from '@/components/core/ContentDetailDialog';
 import type { ContentItem, Zone as AppZone } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
-import { PlusCircle, Loader2, FolderOpen, ListChecks, AlarmClock, Search, Clapperboard, MessagesSquare, FileImage, Globe, BookOpen, StickyNote, Github, FileText } from 'lucide-react';
+import { PlusCircle, Loader2, FolderOpen, ListChecks, AlarmClock, Clapperboard, MessagesSquare, FileImage, Globe, BookOpen, StickyNote, Github, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { subscribeToContentItems, deleteContentItem, getZones, updateContentItem } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
@@ -129,7 +128,6 @@ export default function DashboardPage() {
   const [selectedItemIdForDetail, setSelectedItemIdForDetail] = useState<string | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedContentType, setSelectedContentType] = useState<string | null>(null);
 
   const { toast } = useToast();
@@ -210,18 +208,9 @@ export default function DashboardPage() {
     if (selectedContentType) {
         filteredItems = filteredItems.filter(item => item.contentType === selectedContentType);
     }
-
-    if (searchQuery.trim() !== '') {
-        const lowerCaseQuery = searchQuery.toLowerCase();
-        filteredItems = filteredItems.filter(item =>
-            item.title.toLowerCase().includes(lowerCaseQuery) ||
-            (item.description && item.description.toLowerCase().includes(lowerCaseQuery)) ||
-            (item.tags && item.tags.some(tag => tag.name.toLowerCase().includes(lowerCaseQuery)))
-        );
-    }
     
     return filteredItems;
-  }, [allContentItems, searchQuery, selectedContentType]);
+  }, [allContentItems, selectedContentType]);
 
   const handleOpenDetailDialog = (item: ContentItem) => {
     setSelectedItemIdForDetail(item.id);
@@ -297,17 +286,7 @@ export default function DashboardPage() {
   return (
     <div className="container mx-auto py-2">
       <div className="mb-8">
-        <div className="relative">
-          <Input
-              type="text"
-              placeholder="Search my mind..."
-              className="w-full border-0 border-b bg-transparent p-0 pl-10 text-3xl h-16 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-primary placeholder:text-muted-foreground/60 placeholder:italic"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <Search className="absolute left-0 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground" />
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
           {contentFilters.map(filter => (
             <Button
               key={filter.name}
