@@ -1,4 +1,4 @@
-
+bil
 # Mati - Save and Organize Your Thoughts
 
 Mati is your personal space to save, tag, and rediscover web links, notes, and ideas effortlessly. This is a monorepo containing the Next.js web application and the upcoming React Native mobile app.
