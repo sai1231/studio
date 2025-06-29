@@ -2,6 +2,19 @@
 import {NextRequest, NextResponse} from 'next/server';
 import {JSDOM} from 'jsdom';
 
+const knownOembedProviders: { [domain: string]: string } = {
+    'youtube.com': 'https://www.youtube.com/oembed',
+    'youtu.be': 'https://www.youtube.com/oembed',
+    'vimeo.com': 'https://vimeo.com/api/oembed.json',
+    'x.com': 'https://publish.twitter.com/oembed',
+    'twitter.com': 'https://publish.twitter.com/oembed',
+    'soundcloud.com': 'https://soundcloud.com/oembed',
+    'flickr.com': 'https://www.flickr.com/services/oembed/',
+    'open.spotify.com': 'https://open.spotify.com/oembed',
+    'spotify.com': 'https://open.spotify.com/oembed',
+};
+
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const url = searchParams.get('url');
@@ -10,6 +23,46 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({error: 'URL parameter is required'}, {status: 400});
   }
 
+  // --- Start of new logic ---
+  // First, try getting metadata from oEmbed for known providers
+  try {
+    const urlObj = new URL(url);
+    let endpointUrl: string | null = null;
+    
+    for (const domain in knownOembedProviders) {
+        if (urlObj.hostname.includes(domain)) {
+            endpointUrl = knownOembedProviders[domain];
+            break;
+        }
+    }
+
+    if (endpointUrl) {
+      const oembedRequestUrl = new URL(endpointUrl);
+      oembedRequestUrl.searchParams.set('url', url);
+      oembedRequestUrl.searchParams.set('format', 'json');
+      
+      const oembedResponse = await fetch(oembedRequestUrl.toString(), {
+          signal: AbortSignal.timeout(5000),
+      });
+
+      if (oembedResponse.ok) {
+        const data = await oembedResponse.json();
+        if (data.title) {
+           return NextResponse.json({
+              title: data.title,
+              description: data.author_name || '', // Use author_name as description
+              faviconUrl: null, // oEmbed doesn't provide favicons
+              imageUrl: data.thumbnail_url || null,
+            });
+        }
+      }
+    }
+  } catch (e) {
+    console.warn(`oEmbed metadata pre-fetch failed for ${url}, falling back to scraping.`, e);
+  }
+  // --- End of new logic, fallback to old logic below ---
+
+  // Fallback to HTML scraping if oEmbed fails or is not available
   try {
     const response = await fetch(url, {
       headers: {
