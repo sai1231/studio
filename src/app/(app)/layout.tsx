@@ -7,6 +7,7 @@ import AppHeader from '@/components/core/app-header';
 import AppSidebar from '@/components/core/app-sidebar';
 import AddContentDialog from '@/components/core/add-content-dialog';
 import AddTodoDialog from '@/components/core/AddTodoDialog';
+import RecordVoiceDialog from '@/components/core/RecordVoiceDialog';
 import type { Zone, ContentItem, ContentItemType } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { addContentItem, getZones, uploadFile } from '@/services/contentService';
@@ -29,7 +30,14 @@ export default function AppLayout({
 }) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
-  const { isAddContentDialogOpen, setIsAddContentDialogOpen, isAddTodoDialogOpen, setIsAddTodoDialogOpen } = useDialog();
+  const { 
+    isAddContentDialogOpen, 
+    setIsAddContentDialogOpen, 
+    isAddTodoDialogOpen, 
+    setIsAddTodoDialogOpen,
+    isRecordVoiceDialogOpen,
+    setIsRecordVoiceDialogOpen
+  } = useDialog();
 
   const [zones, setZones] = useState<Zone[]>([]);
   const { toast } = useToast();
@@ -201,7 +209,7 @@ export default function AppLayout({
     }
   };
 
-  const handleRecordVoiceClick = () => router.push('/record');
+  const handleRecordVoiceClick = () => setIsRecordVoiceDialogOpen(true);
   const handleAddTodoClick = () => setIsAddTodoDialogOpen(true);
 
   const isValidUrl = (s: string) => { try { new URL(s); return true; } catch (_) { return false; } };
@@ -311,6 +319,11 @@ export default function AppLayout({
         onOpenChange={setIsAddTodoDialogOpen}
         zones={zones}
         onTodoAdd={handleAddContentAndRefresh} 
+      />
+      <RecordVoiceDialog
+        open={isRecordVoiceDialogOpen}
+        onOpenChange={setIsRecordVoiceDialogOpen}
+        onRecordingSave={handleAddContentAndRefresh}
       />
 
       <DropdownMenu>

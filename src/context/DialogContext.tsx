@@ -7,6 +7,8 @@ interface DialogContextType {
   setIsAddContentDialogOpen: (open: boolean) => void;
   isAddTodoDialogOpen: boolean;
   setIsAddTodoDialogOpen: (open: boolean) => void;
+  isRecordVoiceDialogOpen: boolean;
+  setIsRecordVoiceDialogOpen: (open: boolean) => void;
 }
 
 const DialogContext = createContext<DialogContextType | undefined>(undefined);
@@ -14,9 +16,10 @@ const DialogContext = createContext<DialogContextType | undefined>(undefined);
 export const DialogProvider = ({ children }: { children: ReactNode }) => {
   const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
   const [isAddTodoDialogOpen, setIsAddTodoDialogOpen] = useState(false);
+  const [isRecordVoiceDialogOpen, setIsRecordVoiceDialogOpen] = useState(false);
 
   return (
-    <DialogContext.Provider value={{ isAddContentDialogOpen, setIsAddContentDialogOpen, isAddTodoDialogOpen, setIsAddTodoDialogOpen }}>
+    <DialogContext.Provider value={{ isAddContentDialogOpen, setIsAddContentDialogOpen, isAddTodoDialogOpen, setIsAddTodoDialogOpen, isRecordVoiceDialogOpen, setIsRecordVoiceDialogOpen }}>
       {children}
     </DialogContext.Provider>
   );
