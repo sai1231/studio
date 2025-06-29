@@ -154,4 +154,14 @@ body {
     display: flex;
     justify-content: center;
   }
+
+  .instagram-embed-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+  .instagram-media {
+    margin: 0 auto !important; /* Center the instagram embed */
+    min-width: 326px !important;
+  }
 }

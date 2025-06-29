@@ -32,6 +32,11 @@ declare global {
         load: (element?: HTMLElement) => void;
       };
     };
+    instgrm?: {
+      Embeds: {
+        process: () => void;
+      };
+    };
   }
 }
 
@@ -210,10 +215,13 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   }, [item]);
 
   useEffect(() => {
-    if (oembedHtml && (oembedHtml.includes('twitter-tweet') || oembedHtml.includes('instagram-media'))) {
-        if (window.twttr) {
-            window.twttr.widgets.load();
-        }
+    if (oembedHtml) {
+      if (oembedHtml.includes('twitter-tweet') && window.twttr) {
+        window.twttr.widgets.load();
+      }
+      if (oembedHtml.includes('instagram-media') && window.instgrm) {
+        window.instgrm.Embeds.process();
+      }
     }
   }, [oembedHtml]);
 
