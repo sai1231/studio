@@ -1,7 +1,12 @@
 
 # Mati - Save and Organize Your Thoughts
 
-Mati is your personal space to save, tag, and rediscover web links, notes, and ideas effortlessly. This is a Next.js project bootstrapped with `create-next-app` and enhanced with Firebase Studio.
+Mati is your personal space to save, tag, and rediscover web links, notes, and ideas effortlessly. This is a monorepo containing the Next.js web application and the upcoming React Native mobile app.
+
+## Project Structure
+
+- `/src`: Contains the source code for the Next.js web application.
+- `/mobile`: Contains the placeholder and (eventually) the source code for the React Native mobile app.
 
 ## Prerequisites
 
@@ -14,64 +19,34 @@ Before you begin, ensure you have the following installed on your system:
 
 ## Getting Started
 
-1.  **Clone the Repository** (if you haven't already):
-    ```bash
-    git clone <repository-url>
-    cd <repository-name>
-    ```
-    (If you are already working within Firebase Studio, you can skip this step as the files are already present.)
+### Web Application
 
-2.  **Navigate to the Project Directory**:
+1.  **Navigate to the Project Directory**:
     If you cloned the repository, you should already be in the project directory. If you downloaded the source code, navigate to its root folder.
 
-## Installation
-
-Install the project dependencies using npm (or yarn if you prefer):
-
-```bash
-npm install
-```
-
-Alternatively, if you use yarn:
-
-```bash
-yarn install
-```
-
-## Environment Variables
-
-This project uses an environment file to manage configuration.
-
-1.  Create a new file named `.env` in the root of your project directory.
-2.  Copy the contents of `.env.example` (if one exists) or add necessary environment variables. For this project, the `.env` file can initially be empty or include variables like:
-    ```env
-    # Example (currently no specific backend variables are strictly required for mock data mode)
-    # NEXT_PUBLIC_API_URL=http://localhost:3000/api
-    # TMDB_API_KEY=your_tmdb_api_key_here # For fetching movie details
+2.  **Installation**:
+    Install the project dependencies using npm (or yarn if you prefer):
+    ```bash
+    npm install
     ```
-    *Note: At present, the application uses mock data and services within `src/services/contentService.ts`. If you integrate a backend like Supabase or Appwrite, or want to fetch real movie details, you will add their specific API keys and URLs here.*
 
-## Running the Development Server
+3.  **Environment Variables**:
+    This project uses an environment file to manage configuration. Create a new file named `.env` in the root of your project directory and add the necessary Firebase credentials.
 
-To start the Next.js development server, run the following command:
+4.  **Running the Development Server**:
+    To start the Next.js development server, run the following command:
+    ```bash
+    npm run dev
+    ```
+    The application will be accessible at [http://localhost:9002](http://localhost:9002).
 
-```bash
-npm run dev
-```
+### Mobile Application
 
-This will start the application in development mode, typically on port `9002` (as specified in `package.json` `scripts.dev`). The `--turbopack` flag is used for faster development builds.
-
-## Accessing the Application
-
-Once the development server is running, you can access the application in your web browser at:
-
-[http://localhost:9002](http://localhost:9002)
-
-You should see the Mati application interface. The console in your terminal will show output from the Next.js server, including any build information or errors.
+To get started with the mobile app, please see the instructions in the `mobile/README.md` file.
 
 ## Building for Production
 
-To create an optimized production build, run:
+To create an optimized production build of the web app, run:
 
 ```bash
 npm run build
@@ -96,4 +71,3 @@ To perform a TypeScript type check:
 ```bash
 npm run typecheck
 ```
-
