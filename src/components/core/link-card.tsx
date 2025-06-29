@@ -211,13 +211,11 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
           {statusBadge}
           <div className="flex-grow space-y-2 mb-4">
             <div className="flex items-start gap-3">
-              {!hasImage && (
-                (item.type === 'link' && item.faviconUrl) ? (
-                    <img src={item.faviconUrl} alt="" className="h-5 w-5 shrink-0 mt-0.5 rounded-sm" />
-                ) : (
-                    React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) })
-                )
-              )}
+              {(item.type === 'link' && item.faviconUrl) ? (
+                <img src={item.faviconUrl} alt="" className="h-5 w-5 shrink-0 mt-0.5 rounded-sm" />
+              ) : !hasImage ? (
+                React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) })
+              ) : null}
               <h3 className="font-semibold leading-tight group-hover:text-primary transition-colors break-words">
                 {item.title || "Untitled"}
               </h3>
