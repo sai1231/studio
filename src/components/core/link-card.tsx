@@ -76,77 +76,58 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
     </Badge>
   ) : null;
   
-  const CardFooterContent = (
-      <div className="mt-auto pt-3 border-t flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
-              {item.domain && (
-                <>
-                    <Landmark className="h-3.5 w-3.5 opacity-80 shrink-0" />
-                    <span className="truncate">{item.domain}</span>
-                </>
-              )}
-            </div>
-
-            <div className="flex items-center gap-0.5 shrink-0">
-              {(item.type === 'link' || item.type === 'movie') && item.url && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        asChild 
-                        onClick={handleActionClick}
-                        className="h-8 w-8 rounded-full group/linkicon hover:bg-transparent" 
-                      >
-                        <a
-                          href={item.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label="Open link in new tab"
-                          className="flex items-center justify-center h-full w-full rounded-full"
-                        >
-                          <ExternalLink className="h-4 w-4 text-muted-foreground group-hover/linkicon:text-primary" />
-                        </a>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent><p>Open link</p></TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        handleActionClick(e);
-                        onDelete(item.id);
-                      }}
-                      aria-label="Forget item"
-                      className="h-8 w-8 rounded-full group/deleteicon hover:bg-transparent" 
-                    >
-                      <Trash2 className="h-4 w-4 text-muted-foreground group-hover/deleteicon:text-destructive" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent><p>Forget</p></TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-      </div>
-  );
-
   return (
     <Card
       draggable="true"
       onDragStart={handleDragStart}
       className={cn(
         "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex w-full flex-col group rounded-3xl break-inside-avoid mb-4",
-        "cursor-pointer"
+        "cursor-pointer relative"
       )}
       onClick={() => onEdit(item)}
     >
+      <div className="absolute bottom-3 right-3 z-20 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        {(item.type === 'link' || item.type === 'movie') && item.url && (
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            asChild 
+                            onClick={handleActionClick}
+                            className="h-8 w-8 rounded-full bg-background/70 backdrop-blur-sm text-card-foreground hover:bg-primary hover:text-primary-foreground" 
+                        >
+                            <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Open link in new tab" className="flex items-center justify-center h-full w-full rounded-full">
+                                <ExternalLink className="h-4 w-4" />
+                            </a>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Open link</p></TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        )}
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                            handleActionClick(e);
+                            onDelete(item.id);
+                        }}
+                        aria-label="Forget item"
+                        className="h-8 w-8 rounded-full bg-background/70 backdrop-blur-sm text-card-foreground hover:bg-destructive hover:text-white"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Forget</p></TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+      </div>
+
       {hasImage && item.type !== 'note' && (
         <div 
           className="relative w-full overflow-hidden"
@@ -159,40 +140,10 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
             className="w-full h-auto group-hover:scale-105 transition-transform duration-300"
             loading="lazy"
           />
-          {item.type === 'image' && (
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 pointer-events-none">
-                <div className="flex items-center justify-between gap-4">
-                    <h3 className="font-semibold text-white text-sm truncate pointer-events-auto">
-                        {item.title}
-                    </h3>
-                    <div className="pointer-events-auto">
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={(e) => {
-                                        handleActionClick(e);
-                                        onDelete(item.id);
-                                    }}
-                                    aria-label="Delete image"
-                                    className="h-8 w-8 rounded-full bg-black/30 text-white hover:bg-destructive hover:text-white"
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                                </TooltipTrigger>
-                                <TooltipContent><p>Delete</p></TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    </div>
-                </div>
-            </div>
-          )}
         </div>
       )}
 
-      {item.type === 'note' ? (
+      {item.type === 'note' && (
         <div className="p-4 flex flex-col flex-grow relative">
           {statusBadge}
           <div className="flex-grow mb-4 relative p-6">
@@ -202,13 +153,12 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
             </p>
             <span className="absolute -bottom-8 right-0 text-7xl text-muted-foreground/20 font-serif leading-none">”</span>
           </div>
-          {CardFooterContent}
         </div>
-      ) : item.type === 'image' ? (
-          null
-      ) : (
+      )}
+      
+      {item.type !== 'note' && item.type !== 'image' && (
         <div className="p-4 flex flex-col flex-grow relative">
-          {statusBadge}
+          {!hasImage && statusBadge}
           <div className="flex-grow space-y-2 mb-4">
             <div className="flex items-start gap-3">
               {(item.type === 'link' && item.faviconUrl) ? (
@@ -234,9 +184,19 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                 </div>
             )}
           </div>
-          {CardFooterContent}
+           <div className="mt-auto pt-3 flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+              {item.domain && (
+                <>
+                    <Landmark className="h-3.5 w-3.5 opacity-80 shrink-0" />
+                    <span className="truncate">{item.domain}</span>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       )}
+
     </Card>
   );
 };
