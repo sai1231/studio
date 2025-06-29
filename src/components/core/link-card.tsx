@@ -196,24 +196,6 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         </div>
       )}
 
-      {item.type === 'image' && (
-         <div className="p-4 flex flex-col flex-grow relative">
-          {!hasImage && statusBadge}
-          <div className="flex-grow space-y-2">
-            <div className="flex items-start gap-3">
-              {(item.type === 'link' && item.faviconUrl) || (item.type === 'image' && item.faviconUrl) ? (
-                <img src={item.faviconUrl!} alt="" className="h-5 w-5 shrink-0 mt-0.5 rounded-sm" />
-              ) : !hasImage ? (
-                React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) })
-              ) : null}
-              <h3 className="font-semibold leading-tight group-hover:text-primary transition-colors truncate">
-                {item.title || "Untitled"}
-              </h3>
-            </div>
-          </div>
-        </div>
-      )}
-
     </Card>
   );
 };
