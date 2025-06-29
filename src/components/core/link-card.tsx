@@ -1,4 +1,3 @@
-
 'use client';
 import React from 'react';
 import { Card } from '@/components/ui/card';
@@ -7,7 +6,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Landmark, PlayCircle, FileText, Film } from 'lucide-react';
 import type { ContentItem } from '@/types';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
 import { format, isSameYear, parseISO } from 'date-fns';
 
 interface ContentCardProps {
@@ -62,21 +60,6 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
 
   const plainDescription = getPlainTextDescription(item.description);
 
-  const showStatusBadge = item.status === 'pending-analysis' || item.status === 'completed';
-  const statusText = item.status === 'pending-analysis' ? 'Analyzing...' : item.status;
-
-  const statusBadge = showStatusBadge ? (
-    <Badge
-      variant="outline"
-      className={cn("absolute z-10 top-3 right-3 text-xs",
-          item.status === 'completed' && 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
-          item.status === 'pending-analysis' && 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/50 dark:text-yellow-400 dark:border-yellow-800'
-      )}
-    >
-        {statusText}
-    </Badge>
-  ) : null;
-  
   const displayTitle = React.useMemo(() => {
     if (item.type === 'voice') {
       try {
@@ -151,7 +134,6 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         <div 
           className="relative w-full overflow-hidden"
         >
-          {statusBadge}
           <img
             src={item.imageUrl!}
             alt={item.title}
@@ -164,7 +146,6 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
 
       {hasImage && item.type === 'image' && (
          <div className="relative w-full overflow-hidden">
-            {statusBadge}
             <img
               src={item.imageUrl!}
               alt={item.title}
@@ -177,7 +158,6 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
 
       {item.type === 'note' && (
         <div className="p-4 flex flex-col flex-grow relative">
-          {statusBadge}
           <div className="flex-grow mb-4 relative p-6">
             <span className="absolute -top-2 left-0 text-7xl text-muted-foreground/20 font-serif leading-none">“</span>
             <p className="text-base text-foreground line-clamp-6">
@@ -190,7 +170,6 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
       
       {item.type !== 'note' && item.type !== 'image' && (
         <div className="p-4 flex flex-col flex-grow relative">
-          {!hasImage && statusBadge}
           <div className="flex-grow space-y-2 mb-4">
             <div className="flex items-start gap-3">
               {(item.type === 'link' && item.faviconUrl) ? (
