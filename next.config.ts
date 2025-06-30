@@ -35,18 +35,6 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
-      {
-        protocol: 'https',
-        hostname: 'static-production.npmjs.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'developer.mozilla.org',
-        port: '',
-        pathname: '/**',
-      }
     ],
   },
 };

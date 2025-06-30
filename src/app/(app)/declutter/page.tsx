@@ -3,7 +3,6 @@
 
 import React from 'react';
 import { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
 import { getContentItems, deleteContentItem } from '@/services/contentService';
 import type { ContentItem, Tag } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -157,13 +156,11 @@ export default function DeclutterPage() {
           <CardHeader className="pb-3">
             {currentItem.imageUrl && (
               <div className="relative w-full h-56 mb-3 rounded-lg overflow-hidden">
-                <Image
+                <img
                   src={currentItem.imageUrl}
                   alt={currentItem.title}
                   data-ai-hint={currentItem.title.split(' ').slice(0,2).join(' ') || "item image"}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  className="object-cover w-full h-full"
                 />
               </div>
             )}
@@ -253,5 +250,3 @@ export default function DeclutterPage() {
     </div>
   );
 }
-
-    
