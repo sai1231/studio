@@ -9,7 +9,7 @@ import type { ContentItem, Tag } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Check, Trash2, Sparkles, CalendarDays, Globe, StickyNote, FileImage, ListChecks, Mic, Layers, Landmark, PlayCircle, Film } from 'lucide-react';
+import { Loader2, Check, Trash2, Sparkles, CalendarDays, Globe, StickyNote, FileImage, Mic, Layers, Landmark, PlayCircle, Film } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -20,7 +20,6 @@ const getTypeSpecifics = (type: ContentItem['type'] | undefined) => {
     case 'link': return { icon: Globe, color: 'blue', iconRing: 'ring-sky-500/30', iconText: 'text-sky-600 dark:text-sky-400' };
     case 'note': return { icon: StickyNote, color: 'yellow', iconRing: 'ring-yellow-500/30', iconText: 'text-yellow-600 dark:text-yellow-400' };
     case 'image': return { icon: FileImage, color: 'gray', iconRing: 'ring-gray-500/30', iconText: 'text-gray-600 dark:text-gray-400' };
-    case 'todo': return { icon: ListChecks, color: 'green', iconRing: 'ring-emerald-500/30', iconText: 'text-emerald-600 dark:text-emerald-400' };
     case 'voice': return { icon: Mic, color: 'purple', iconRing: 'ring-purple-500/30', iconText: 'text-purple-600 dark:text-purple-400' };
     case 'movie': return { icon: Film, color: 'orange', iconRing: 'ring-orange-500/30', iconText: 'text-orange-600 dark:text-orange-400' };
     default: return { icon: StickyNote, color: 'gray', iconRing: 'ring-gray-500/30', iconText: 'text-muted-foreground' };
@@ -55,6 +54,7 @@ const initialLoadingMessages = [
 export default function DeclutterPage() {
   const { user } = useAuth();
   const [itemsToDeclutter, setItemsToDeclutter] = useState<ContentItem[]>([]);
+  const [initialItemCount, setInitialItemCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
@@ -70,9 +70,10 @@ export default function DeclutterPage() {
     setIsLoading(true);
     try {
       const allItems = await getContentItems(user.uid);
-      // Sort oldest first
-      const sortedItems = allItems.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      const nonTodoItems = allItems.filter(item => item.type !== 'todo');
+      const sortedItems = nonTodoItems.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
       setItemsToDeclutter(sortedItems);
+      setInitialItemCount(sortedItems.length);
     } catch (error) {
       console.error("Error fetching items for declutter:", error);
       toast({ title: "Error", description: "Could not load items to declutter.", variant: "destructive" });
@@ -88,6 +89,7 @@ export default function DeclutterPage() {
   }, [user, fetchAndSortItems]);
 
   const currentItem = itemsToDeclutter.length > 0 ? itemsToDeclutter[0] : null;
+  const currentItemIndex = initialItemCount - itemsToDeclutter.length + 1;
 
   const handleNextItem = () => {
     setItemsToDeclutter(prev => prev.slice(1));
@@ -98,7 +100,6 @@ export default function DeclutterPage() {
     if (!currentItem) return;
     setIsProcessing(true);
     toast({ title: "Item Kept", description: `"${currentItem.title}" will remain in your collection.`});
-    // Simulate a small delay for visual feedback if needed, then proceed
     setTimeout(() => {
         handleNextItem();
     }, 200); 
@@ -134,7 +135,15 @@ export default function DeclutterPage() {
         <Sparkles className="h-8 w-8 mr-3 text-primary" />
         Declutter Old Memories
       </div>
-      <p className="text-muted-foreground mb-8 text-center">Review your oldest items one by one. Decide what to keep or delete.</p>
+      <p className="text-muted-foreground mb-4 text-center">Review your oldest items one by one. Decide what to keep or delete.</p>
+      
+      {initialItemCount > 0 && !isLoading && (
+        <div className="mb-4">
+          <Badge variant="outline" className="text-sm font-medium">
+            {currentItemIndex} / {initialItemCount}
+          </Badge>
+        </div>
+      )}
 
       {isProcessing && currentItem && (
          <div className="w-full h-[450px] flex flex-col items-center justify-center bg-background rounded-xl shadow-2xl p-6 my-6">
@@ -207,7 +216,6 @@ export default function DeclutterPage() {
             )}
           </CardContent>
           <CardFooter className="pt-4">
-            {/* Footer can be empty or show some other small info if needed */}
           </CardFooter>
         </Card>
       )}
@@ -245,3 +253,5 @@ export default function DeclutterPage() {
     </div>
   );
 }
+
+    
