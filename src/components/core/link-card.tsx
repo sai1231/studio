@@ -129,7 +129,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
       draggable="true"
       onDragStart={handleDragStart}
       className={cn(
-        "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex w-full flex-col group rounded-3xl break-inside-avoid mb-4",
+        "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex w-full flex-col group rounded-2xl break-inside-avoid mb-4",
         "cursor-pointer relative"
       )}
       onClick={() => onEdit(item)}
