@@ -1,31 +1,48 @@
-import getColors from 'get-image-colors';
+'use server';
+
+import { ai } from '@/ai/genkit';
+import { z } from 'zod';
+
+const ColorPaletteInputSchema = z.object({
+  imageUrl: z.string().describe('The public URL of the image to analyze.'),
+});
+
+const ColorPaletteOutputSchema = z.object({
+  colors: z.array(z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Must be a valid hex color code'))
+          .length(5, 'Must return exactly 5 colors.')
+          .describe('An array of 5 dominant hex color codes from the image.'),
+});
+
+const colorPalettePrompt = ai.definePrompt({
+  name: 'colorPalettePrompt',
+  input: { schema: ColorPaletteInputSchema },
+  output: { schema: ColorPaletteOutputSchema },
+  prompt: `Analyze the following image and identify the 5 most dominant colors. Return them as an array of hex color codes.
+
+Image: {{media url=imageUrl}}`,
+});
+
+function hexToRgb(hex: string): [number, number, number] {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? [
+        parseInt(result[1], 16),
+        parseInt(result[2], 16),
+        parseInt(result[3], 16),
+      ]
+    : [0, 0, 0];
+}
 
 export async function fetchImageColors(imageUrl: string): Promise<number[][]> {
   try {
-    // Fetch the image data
-    const response = await fetch(imageUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+    const { output } = await colorPalettePrompt({ imageUrl });
+    if (output?.colors) {
+      return output.colors.map(hexToRgb);
     }
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const mimeType = response.headers.get('content-type');
-
-    if (!mimeType) {
-      throw new Error('Could not determine image MIME type.');
-    }
-
-    // Extract colors
-    const colors = await getColors(buffer, {
-      count: 8,
-      type: mimeType,
-    });
-    
-    // Convert the color objects to the required RGB array format
-    return colors.map(color => color.rgb());
-
+    // Return an empty array or throw an error if no colors are found
+    return [];
   } catch (error) {
-    console.error(`Error fetching color palette for ${imageUrl}:`, error);
-    throw error; // Re-throw the error for further handling
+    console.error(`Error fetching AI-generated color palette for ${imageUrl}:`, error);
+    throw error; // Re-throw the error for the calling flow to handle
   }
 }
