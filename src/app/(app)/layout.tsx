@@ -141,15 +141,15 @@ export default function AppLayout({
       try {
         const folder = isImage ? 'contentImages' : 'contentPdfs';
         const path = `${folder}/${user.uid}/${Date.now()}_${file.name}`;
-        await uploadFile(file, path);
+        const uploadedFileUrl = await uploadFile(file, path);
 
         const contentData = isImage
           ? {
-              type: 'image', title: file.name, imagePath: path,
+              type: 'image', title: file.name, imageUrl: uploadedFileUrl,
               tags: [{id: 'dnd-drop', name: 'dropped'}], status: 'pending-analysis',
             } as Omit<ContentItem, 'id' | 'createdAt'>
           : {
-              type: 'link', title: file.name, url: path, contentType: 'PDF', imagePath: path,
+              type: 'link', title: file.name, url: uploadedFileUrl, contentType: 'PDF',
               domain: 'mati.internal.storage', tags: [{id: 'dnd-drop', name: 'dropped'}],
               status: 'pending-analysis',
             } as Omit<ContentItem, 'id' | 'createdAt'>;

@@ -197,13 +197,13 @@ const RecordVoiceDialog: React.FC<RecordVoiceDialogProps> = ({ open, onOpenChang
     try {
       const fileName = `voice-note-${Date.now()}.webm`;
       const filePath = `voiceRecordings/${user.uid}/${fileName}`;
-      const storagePath = await uploadFile(new File([audioBlob], fileName), filePath);
+      const downloadUrl = await uploadFile(new File([audioBlob], fileName), filePath);
 
       const newContentData: Omit<ContentItem, 'id' | 'createdAt'> = {
         type: 'voice',
         title: format(new Date(), 'MMM d, yyyy h:mm a'),
         description: finalTranscript.trim(),
-        audioPath: storagePath,
+        audioUrl: downloadUrl,
         tags: [{ id: 'voice-note', name: 'voice note' }],
         contentType: 'Voice Recording',
         status: 'pending-analysis'

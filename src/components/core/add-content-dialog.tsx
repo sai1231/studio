@@ -76,7 +76,9 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const [isZonePopoverOpen, setIsZonePopoverOpen] = useState(false);
   const [zoneSearchText, setZoneSearchText] = useState('');
 
-  const [uploadedFile, setUploadedFile] = useState<{ path: string; name: string; type: 'image' | 'pdf' } | null>(null);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
+  const [uploadedFileInfo, setUploadedFileInfo] = useState<{name: string, type: 'image' | 'pdf'} | null>(null);
+
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -97,7 +99,8 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       setCurrentTags([]);
       setTagInput('');
       setInternalZones(zones);
-      setUploadedFile(null);
+      setUploadedFileUrl(null);
+      setUploadedFileInfo(null);
       setIsUploading(false);
       setIsDragging(false);
     }
@@ -128,7 +131,8 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
 
     const fileTypeForUpload = isImage ? 'image' : 'pdf';
     setIsUploading(true);
-    setUploadedFile(null);
+    setUploadedFileUrl(null);
+    setUploadedFileInfo(null);
     form.clearErrors('mainContent');
 
     const currentToast = toast({
@@ -139,11 +143,13 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     try {
       const folder = isImage ? 'contentImages' : 'contentPdfs';
       const path = `${folder}/${user.uid}/${Date.now()}_${file.name}`;
-      const storagePath = await uploadFile(file, path);
+      const downloadUrl = await uploadFile(file, path);
 
       currentToast.update({ id: currentToast.id, title: "Upload Complete", description: "Add details and save.", variant: "default" });
 
-      setUploadedFile({ path: storagePath, name: file.name, type: fileTypeForUpload });
+      setUploadedFileUrl(downloadUrl);
+      setUploadedFileInfo({ name: file.name, type: fileTypeForUpload });
+
     } catch (error: any) {
       currentToast.update({ id: currentToast.id, title: "Upload Failed", description: error.message || 'Could not upload file.', variant: "destructive" });
     } finally {
@@ -165,8 +171,11 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     if (file) handleFileSelected(file);
     if (e.target) e.target.value = ''; // Reset file input
   };
-  const handleUploadAreaClick = () => { if (!isUploading && !uploadedFile) fileInputRef.current?.click(); };
-  const clearUploadedFile = () => { setUploadedFile(null); };
+  const handleUploadAreaClick = () => { if (!isUploading && !uploadedFileUrl) fileInputRef.current?.click(); };
+  const clearUploadedFile = () => { 
+    setUploadedFileUrl(null);
+    setUploadedFileInfo(null);
+  };
 
   const handleCreateZone = async (zoneName: string) => {
     if (!zoneName.trim() || isSaving || !user) return;
@@ -214,7 +223,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     setIsSaving(true);
     const { mainContent, zoneId } = values;
 
-    if (!uploadedFile && !mainContent.trim()) {
+    if (!uploadedFileUrl && !mainContent.trim()) {
         form.setError("mainContent", { type: "manual", message: "Please drop a file or enter a link/note." });
         setIsSaving(false);
         return;
@@ -224,17 +233,16 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
 
     let contentData: Partial<Omit<ContentItem, 'id' | 'createdAt'>>;
 
-    if (uploadedFile) {
+    if (uploadedFileUrl && uploadedFileInfo) {
         const mindNoteFromInput = mainContent.trim() ? mainContent.trim() : undefined;
-        contentData = uploadedFile.type === 'image'
+        contentData = uploadedFileInfo.type === 'image'
         ? {
-            type: 'image', title: uploadedFile.name, imagePath: uploadedFile.path,
+            type: 'image', title: uploadedFileInfo.name, imageUrl: uploadedFileUrl,
             mindNote: mindNoteFromInput,
             tags: [{id: 'upload', name: 'upload'}, ...currentTags], zoneId: zoneId || undefined, status: 'pending-analysis',
           }
         : {
-            type: 'link', title: uploadedFile.name, url: uploadedFile.path, contentType: 'PDF', // Using URL for path here for PDF viewing
-            imagePath: uploadedFile.path, // Store path for secure access later if needed
+            type: 'link', title: uploadedFileInfo.name, url: uploadedFileUrl, contentType: 'PDF',
             mindNote: mindNoteFromInput,
             domain: 'mati.internal.storage', tags: [{ id: 'upload', name: 'upload' }, ...currentTags],
             zoneId: zoneId || undefined, status: 'pending-analysis',
@@ -281,7 +289,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const ZoneDisplayIcon = getIconComponent(selectedZone?.icon);
   const zoneDisplayName = selectedZone?.name || 'Select a zone';
   const filteredZones = zoneSearchText ? internalZones.filter(z => z.name.toLowerCase().includes(zoneSearchText.toLowerCase())) : internalZones;
-  const isSubmitDisabled = isSaving || isUploading || (!uploadedFile && !watchedMainContent.trim());
+  const isSubmitDisabled = isSaving || isUploading || (!uploadedFileUrl && !watchedMainContent.trim());
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -312,7 +320,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
               <div 
                 className={cn("relative flex flex-col items-center justify-center p-4 rounded-lg border-2 border-dashed transition-colors h-full min-h-[110px]", 
                   isDragging ? "border-primary bg-primary/10" : "border-border hover:border-primary/50",
-                  isUploading || uploadedFile ? "cursor-default" : "cursor-pointer"
+                  isUploading || uploadedFileUrl ? "cursor-default" : "cursor-pointer"
                 )}
                 onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}
                 onClick={handleUploadAreaClick}
@@ -322,16 +330,16 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <p className="mt-2 text-sm text-muted-foreground">Uploading...</p>
                   </div>
-                ) : uploadedFile ? (
+                ) : uploadedFileInfo ? (
                   <div className="flex items-center gap-3 w-full">
-                      {uploadedFile.type === 'image' ? (
+                      {uploadedFileInfo.type === 'image' ? (
                           <ImageIcon className="h-8 w-8 text-primary shrink-0" />
                       ) : (
                           <FileIcon className="h-8 w-8 text-primary shrink-0" />
                       )}
                       <div className="text-left flex-grow truncate">
-                          <p className="font-medium truncate text-sm">{uploadedFile.name}</p>
-                          <p className="text-xs text-muted-foreground">{uploadedFile.type === 'image' ? 'Image ready' : 'PDF ready'}</p>
+                          <p className="font-medium truncate text-sm">{uploadedFileInfo.name}</p>
+                          <p className="text-xs text-muted-foreground">{uploadedFileInfo.type === 'image' ? 'Image ready' : 'PDF ready'}</p>
                       </div>
                       <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={clearUploadedFile}><X className="h-4 w-4" /></Button>
                   </div>

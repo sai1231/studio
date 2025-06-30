@@ -327,7 +327,7 @@ export async function addZone(name: string, userId: string): Promise<Zone> {
 
 // --- Utility & File Functions ---
 
-// Function for file upload to Firebase Storage, returns the storage path
+// Function for file upload to Firebase Storage, returns the public download URL
 export async function uploadFile(file: File, path: string): Promise<string> {
   try {
     if (!storage.app.options.storageBucket) {
@@ -335,7 +335,8 @@ export async function uploadFile(file: File, path: string): Promise<string> {
     }
     const storageRef = ref(storage, path);
     await uploadBytes(storageRef, file);
-    return path; // Return the path, not the download URL
+    const downloadUrl = await getDownloadURL(storageRef);
+    return downloadUrl;
   } catch (error: any) {
     console.error(`Failed to upload file to Storage at path ${path}:`, error);
     throw error;

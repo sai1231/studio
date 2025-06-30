@@ -12,7 +12,6 @@ import { extractTagsFromText } from '@/ai/tag-extraction';
 import { z } from 'zod';
 import { collection, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { adminStorage } from '@/lib/firebase-admin'; // Use admin storage
 import { addLog } from '@/services/loggingService';
 
 const contentCollectionRef = collection(db, 'content');
@@ -42,8 +41,7 @@ const enrichContentFlow = ai.defineFlow(
       }
 
       const contentData = docSnap.data();
-      await addLog('INFO', `YRDY`);
-
+      
       if (contentData.status === 'pending-analysis') {
         let enrichmentFailed = false;
         let updatePayload: { [key: string]: any } = { status: 'completed' };
@@ -88,32 +86,11 @@ const enrichContentFlow = ai.defineFlow(
           }
         }
         
-        // Determine the URL to process for image captioning
-        let imageUrlToProcess: string | null = null;
-        if (contentData.imagePath) {
-          try {
-            // Use Admin SDK to get a short-lived signed URL for the private file
-            const [signedUrl] = await adminStorage
-              .bucket()
-              .file(contentData.imagePath)
-              .getSignedUrl({
-                action: 'read',
-                expires: Date.now() + 5 * 60 * 1000, // URL is valid for 5 minutes
-              });
-            imageUrlToProcess = signedUrl;
-            
-          } catch(e: any) {
-            await addLog('ERROR', `[${contentId}] 🖼️❌ Could not get signed URL for imagePath: ${contentData.imagePath}`, { error: (e as Error).message });
-          }
-        } else if (contentData.imageUrl) {
-          imageUrlToProcess = contentData.imageUrl;
-        }
-
         // Check if the item is an image to enrich with a caption
-        if ((contentData.type === 'image' || contentData.type === 'link') && imageUrlToProcess) {
+        if ((contentData.type === 'image' || contentData.type === 'link') && contentData.imageUrl) {
           await addLog('INFO', `[${contentId}] 🖼️ Image found. Generating caption...`);
           try {
-            const caption = await generateCaptionFromImage(imageUrlToProcess);
+            const caption = await generateCaptionFromImage(contentData.imageUrl);
 
             if (caption) {
               updatePayload.description = (contentData.description || '') + (contentData.description ? '\\n' : '') + caption;

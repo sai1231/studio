@@ -22,7 +22,6 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
-import { useStorageUrl } from '@/hooks/useStorageUrl';
 
 const NO_ZONE_VALUE = "__NO_ZONE__";
 
@@ -132,12 +131,6 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   const [oembedHtml, setOembedHtml] = useState<string | null>(null);
   const [isFetchingOembed, setIsFetchingOembed] = useState(false);
   const [imageError, setImageError] = useState(false);
-
-  const { url: secureImageUrl } = useStorageUrl(item?.imagePath);
-  const { url: secureAudioUrl } = useStorageUrl(item?.audioPath);
-  
-  const displayImageUrl = secureImageUrl || item?.imageUrl;
-  const displayAudioUrl = secureAudioUrl || item?.audioUrl;
 
   useEffect(() => {
     if (open && itemId && user) {
@@ -480,7 +473,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
               (() => { 
                 const isDescriptionReadOnly = (item.type === 'link' && item.contentType !== 'Article' && item.type !== 'movie') || item.type === 'image' || item.type === 'voice';
                 const showMindNote = item.type === 'link' || item.type === 'image' || item.type === 'voice' || item.type === 'movie';
-                const showMediaColumn = isFetchingOembed || oembedHtml || (displayImageUrl && !imageError && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice' || item.type === 'movie')) || (item.type === 'link' && item.contentType === 'PDF');
+                const showMediaColumn = isFetchingOembed || oembedHtml || (item.imageUrl && !imageError && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice' || item.type === 'movie')) || (item.type === 'link' && item.contentType === 'PDF');
                 const filteredZones = comboboxSearchText
                   ? allZones.filter(z => z.name.toLowerCase().includes(comboboxSearchText.toLowerCase()))
                   : allZones;
@@ -501,9 +494,9 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                           </div>
                         ) : oembedHtml ? (
                           <div className="oembed-container w-full" dangerouslySetInnerHTML={{ __html: oembedHtml }} />
-                        ) : displayImageUrl && !imageError ? (
+                        ) : item.imageUrl && !imageError ? (
                            <img
-                            src={displayImageUrl}
+                            src={item.imageUrl}
                             alt={editableTitle || 'Content Image'}
                             data-ai-hint={item.title || "image"}
                             className="w-auto h-auto max-w-full max-h-[70vh] object-contain rounded-xl"
@@ -613,9 +606,9 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                             </div>
                         )}
 
-                        {item.type === 'voice' && displayAudioUrl && (
+                        {item.type === 'voice' && item.audioUrl && (
                             <div className="mt-1">
-                            <audio controls src={displayAudioUrl} className="w-full">
+                            <audio controls src={item.audioUrl} className="w-full">
                                 Your browser does not support the audio element.
                             </audio>
                             </div>
