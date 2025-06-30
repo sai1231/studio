@@ -187,13 +187,13 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
             />
         </div>
       ) : item.type === 'note' ? (
-        <div className="p-4 flex flex-col flex-grow relative">
-          <div className="flex-grow mb-4 relative p-6">
+        <div className="p-4 flex flex-col relative">
+          <div className="relative p-6">
             <span className="absolute -top-2 left-0 text-7xl text-muted-foreground/20 font-serif leading-none">“</span>
             <p className="text-base text-foreground line-clamp-6">
               {plainDescription}
             </p>
-            <span className="absolute -bottom-8 right-0 text-7xl text-muted-foreground/20 font-serif leading-none">”</span>
+            <span className="absolute -bottom-2 right-0 text-7xl text-muted-foreground/20 font-serif leading-none">”</span>
           </div>
         </div>
       ) : item.contentType === 'PDF' && item.type === 'link' ? (
