@@ -232,7 +232,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   }
 
   const dialogTitle = "Add Link or Note";
-  const dialogDescriptionText = "Paste a link or just start typing to create a note. We'll figure it out.";
+  const dialogDescriptionText = "Paste a link or just start typing. We'll figure it out and enrich it with metadata.";
 
   const selectedZone = internalZones.find(z => z.id === watchedZoneId);
   const ZoneDisplayIcon = getIconComponent(selectedZone?.icon);
@@ -253,123 +253,131 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex-grow overflow-y-auto pr-2 space-y-4 py-4">
-           <div className="space-y-2">
-            <Label htmlFor="mainContent">Content</Label>
-            <Textarea
-              id="mainContent"
-              {...form.register('mainContent')}
-              placeholder="Paste a link or write your note here..."
-              className={cn(
-                "min-h-[120px] focus-visible:ring-accent",
-                form.formState.errors.mainContent && "border-destructive focus-visible:ring-destructive"
-              )}
-            />
-            {form.formState.errors.mainContent && <p className="text-sm text-destructive">{form.formState.errors.mainContent.message}</p>}
-          </div>
+        <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form" className="flex-grow flex flex-col overflow-hidden">
+          <div className="flex-grow overflow-y-auto pr-4 pl-1 space-y-6 py-4">
 
-          <div className="space-y-2">
-            <Label htmlFor="zoneId">Zone</Label>
-             <Popover open={isZonePopoverOpen} onOpenChange={setIsZonePopoverOpen}>
-              <PopoverTrigger asChild>
-                  <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={isZonePopoverOpen}
-                      className={cn(
-                          "w-full justify-between",
-                          !watchedZoneId && "text-muted-foreground",
-                          form.formState.errors.zoneId && "border-destructive"
-                      )}
-                  >
-                      <div className="flex items-center">
-                          <ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" />
-                          <span className="truncate">{zoneDisplayName}</span>
-                      </div>
-                      <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                  <Command>
-                      <CommandInput
-                          placeholder="Search or create zone..."
-                          value={zoneSearchText}
-                          onValueChange={setZoneSearchText}
-                      />
-                      <CommandList>
-                          <CommandEmpty>
-                            <div className="py-6 text-center text-sm">
-                              {zoneSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}
-                            </div>
-                          </CommandEmpty>
-                          <CommandGroup>
-                              {filteredZones.map((z) => {
-                                const ListItemIcon = getIconComponent(z.icon);
-                                return (
-                                  <CommandItem
-                                      key={z.id}
-                                      value={z.id}
-                                      onSelect={() => {
-                                        form.setValue('zoneId', z.id, { shouldTouch: true, shouldValidate: true });
-                                        setIsZonePopoverOpen(false);
-                                      }}
-                                  >
-                                      <Check className={cn("mr-2 h-4 w-4", watchedZoneId === z.id ? "opacity-100" : "opacity-0")} />
-                                      <ListItemIcon className="mr-2 h-4 w-4 opacity-70" />
-                                      {z.name}
-                                  </CommandItem>
-                                );
-                              })}
-                          </CommandGroup>
-                          {zoneSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase()) && (
-                            <CommandGroup className="border-t">
-                              <CommandItem
-                                  onSelect={() => handleCreateZone(zoneSearchText)}
-                                  className="text-primary hover:!bg-primary/10 cursor-pointer justify-start"
-                              >
-                                  <Plus className="mr-2 h-4 w-4" />
-                                  <span>Create "{zoneSearchText.trim()}"</span>
-                              </CommandItem>
-                            </CommandGroup>
+            {/* Main content area */}
+            <div className="space-y-2">
+              <Label htmlFor="mainContent" className="text-base font-medium">Content</Label>
+              <Textarea
+                id="mainContent"
+                {...form.register('mainContent')}
+                placeholder="Paste a URL or write your note here..."
+                className={cn(
+                  "min-h-[140px] text-base focus-visible:ring-accent",
+                  form.formState.errors.mainContent && "border-destructive focus-visible:ring-destructive"
+                )}
+              />
+              {form.formState.errors.mainContent && <p className="text-sm text-destructive">{form.formState.errors.mainContent.message}</p>}
+            </div>
+
+            {/* Organization area */}
+            <div className="space-y-4 rounded-lg border bg-muted/50 p-4">
+              <h3 className="text-lg font-semibold text-foreground">Organization</h3>
+              <div className="space-y-2">
+                <Label htmlFor="zoneId">Zone</Label>
+                 <Popover open={isZonePopoverOpen} onOpenChange={setIsZonePopoverOpen}>
+                  <PopoverTrigger asChild>
+                      <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={isZonePopoverOpen}
+                          className={cn(
+                              "w-full justify-between bg-background",
+                              !watchedZoneId && "text-muted-foreground",
+                              form.formState.errors.zoneId && "border-destructive"
                           )}
-                      </CommandList>
-                  </Command>
-              </PopoverContent>
-            </Popover>
-            {form.formState.errors.zoneId && <p className="text-sm text-destructive">{form.formState.errors.zoneId.message}</p>}
-          </div>
+                      >
+                          <div className="flex items-center">
+                              <ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" />
+                              <span className="truncate">{zoneDisplayName}</span>
+                          </div>
+                          <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                      <Command>
+                          <CommandInput
+                              placeholder="Search or create zone..."
+                              value={zoneSearchText}
+                              onValueChange={setZoneSearchText}
+                          />
+                          <CommandList>
+                              <CommandEmpty>
+                                <div className="py-6 text-center text-sm">
+                                  {zoneSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}
+                                </div>
+                              </CommandEmpty>
+                              <CommandGroup>
+                                  {filteredZones.map((z) => {
+                                    const ListItemIcon = getIconComponent(z.icon);
+                                    return (
+                                      <CommandItem
+                                          key={z.id}
+                                          value={z.id}
+                                          onSelect={() => {
+                                            form.setValue('zoneId', z.id, { shouldTouch: true, shouldValidate: true });
+                                            setIsZonePopoverOpen(false);
+                                          }}
+                                      >
+                                          <Check className={cn("mr-2 h-4 w-4", watchedZoneId === z.id ? "opacity-100" : "opacity-0")} />
+                                          <ListItemIcon className="mr-2 h-4 w-4 opacity-70" />
+                                          {z.name}
+                                      </CommandItem>
+                                    );
+                                  })}
+                              </CommandGroup>
+                              {zoneSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase()) && (
+                                <CommandGroup className="border-t">
+                                  <CommandItem
+                                      onSelect={() => handleCreateZone(zoneSearchText)}
+                                      className="text-primary hover:!bg-primary/10 cursor-pointer justify-start"
+                                  >
+                                      <Plus className="mr-2 h-4 w-4" />
+                                      <span>Create "{zoneSearchText.trim()}"</span>
+                                  </CommandItem>
+                                </CommandGroup>
+                              )}
+                          </CommandList>
+                      </Command>
+                  </PopoverContent>
+                </Popover>
+                {form.formState.errors.zoneId && <p className="text-sm text-destructive">{form.formState.errors.zoneId.message}</p>}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="tags">Tags</Label>
+                <div className="flex flex-wrap gap-2">
+                  {currentTags.map(tag => (
+                    <Badge key={tag.id} variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">
+                      {tag.name}
+                      <button type="button" onClick={() => removeTag(tag)} className="ml-1.5 focus:outline-none rounded-full hover:bg-destructive/20 p-0.5">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+                <Input
+                  id="tags"
+                  value={tagInput}
+                  onChange={handleTagInputChange}
+                  onKeyDown={handleTagInputKeyDown}
+                  placeholder="Add tags (press Enter or ,)"
+                  className="focus-visible:ring-accent bg-background"
+                />
+              </div>
+            </div>
 
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <Label htmlFor="tags">Tags</Label>
-            </div>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {currentTags.map(tag => (
-                <Badge key={tag.id} variant="default" className="bg-primary text-primary-foreground">
-                  {tag.name}
-                  <button type="button" onClick={() => removeTag(tag)} className="ml-1.5 focus:outline-none">
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))}
-            </div>
-            <Input
-              id="tags"
-              value={tagInput}
-              onChange={handleTagInputChange}
-              onKeyDown={handleTagInputKeyDown}
-              placeholder="Add tags (press Enter or ,)"
-              className="focus-visible:ring-accent"
-            />
           </div>
+          
+          <DialogFooter className="pt-4 border-t mt-auto flex-shrink-0">
+            <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
+            <Button type="submit" form="add-content-form" disabled={isSaving} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSaving ? 'Saving...' : 'Save Content'}
+            </Button>
+          </DialogFooter>
         </form>
-        <DialogFooter className="pt-4 border-t">
-          <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
-          <Button type="submit" onClick={form.handleSubmit(onSubmit)} disabled={isSaving} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isSaving ? 'Saving...' : 'Save Content'}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
