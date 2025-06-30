@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A flow for enriching content after it has been created.
@@ -11,8 +10,9 @@ import { generateCaptionFromImage } from '@/ai/moondream';
 import { extractTagsFromText } from '@/ai/tag-extraction';
 import { z } from 'zod';
 import { collection, doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebase';
 import { addLog } from '@/services/loggingService';
+import { getDownloadURL, ref } from 'firebase/storage';
 
 const contentCollectionRef = collection(db, 'content');
 
@@ -41,6 +41,7 @@ const enrichContentFlow = ai.defineFlow(
       }
 
       const contentData = docSnap.data();
+      await addLog('INFO', `YRDY`);
 
       if (contentData.status === 'pending-analysis') {
         let enrichmentFailed = false;
@@ -85,12 +86,25 @@ const enrichContentFlow = ai.defineFlow(
             }
           }
         }
+        
+        // Determine the URL to process for image captioning
+        let imageUrlToProcess: string | null = null;
+        if (contentData.imagePath) {
+
+          try {
+            imageUrlToProcess = await getDownloadURL(ref(storage, contentData.imagePath));
+          } catch(e: any) {
+            await addLog('ERROR', `[${contentId}] 🖼️❌ Could not get download URL for imagePath: ${contentData.imagePath}`, { error: (e as Error).message });
+          }
+        } else if (contentData.imageUrl) {
+          imageUrlToProcess = contentData.imageUrl;
+        }
 
         // Check if the item is an image to enrich with a caption
-        if ((contentData.type === 'image' || contentData.type === 'link') && contentData.imageUrl) {
+        if ((contentData.type === 'image' || contentData.type === 'link') && imageUrlToProcess) {
           await addLog('INFO', `[${contentId}] 🖼️ Image found. Generating caption...`);
           try {
-            const caption = await generateCaptionFromImage(contentData.imageUrl);
+            const caption = await generateCaptionFromImage(imageUrlToProcess);
 
             if (caption) {
               updatePayload.description = (contentData.description || '') + (contentData.description ? '\\n' : '') + caption;
