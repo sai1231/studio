@@ -34,7 +34,9 @@
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
     "firebase": "^11.9.0",
-    "lucide-react-native": "^0.395.0"
+    "lucide-react-native": "^0.395.0",
+    "expo-auth-session": "~5.9.0",
+    "expo-crypto": "~13.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
