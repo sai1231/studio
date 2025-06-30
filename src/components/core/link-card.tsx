@@ -1,6 +1,6 @@
 
 'use client';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -59,6 +59,12 @@ const domainIconMap: { [key: string]: React.ElementType } = {
 };
 
 const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => {
+  const [faviconError, setFaviconError] = useState(false);
+  
+  useEffect(() => {
+    setFaviconError(false);
+  }, [item.id]);
+
   const specifics = getTypeSpecifics(item);
   const hasImage = !!item.imageUrl;
 
@@ -107,11 +113,16 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
     if (DomainIcon) {
         return <DomainIcon className="h-5 w-5 shrink-0 mt-0.5 text-foreground" />;
     }
-    if (item.faviconUrl) {
-        return <img src={item.faviconUrl} alt="" className="h-5 w-5 shrink-0 mt-0.5 rounded-sm" />;
+    if (item.faviconUrl && !faviconError) {
+        return <img 
+            src={item.faviconUrl} 
+            alt="" 
+            className="h-5 w-5 shrink-0 mt-0.5 rounded-sm" 
+            onError={() => setFaviconError(true)}
+        />;
     }
     return React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) });
-  }, [item, specifics, hasImage]);
+  }, [item, specifics, hasImage, faviconError]);
 
   return (
     <Card
