@@ -357,7 +357,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
             
             <div className="space-y-4 rounded-lg border bg-muted/50 p-4">
               <div className="space-y-2">
-                <Label htmlFor="zoneId">Zone (Optional)</Label>
+                <Label htmlFor="zoneId">Zone</Label>
                  <Popover open={isZonePopoverOpen} onOpenChange={setIsZonePopoverOpen}>
                   <PopoverTrigger asChild>
                       <Button variant="outline" role="combobox" aria-expanded={isZonePopoverOpen}
@@ -399,7 +399,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                 {form.formState.errors.zoneId && <p className="text-sm text-destructive">{form.formState.errors.zoneId.message}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tags">Tags (Optional)</Label>
+                <Label htmlFor="tags">Tags</Label>
                 <div className="flex flex-wrap gap-2">
                   {currentTags.map(tag => (
                     <Badge key={tag.id} variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">
