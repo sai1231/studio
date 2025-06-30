@@ -1,4 +1,3 @@
-
 'use client';
 import type React from 'react';
 import { useState } from 'react';
@@ -58,7 +57,7 @@ const AppHeader: React.FC = () => {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
                 type="search"
-                placeholder="Search my mind..."
+                placeholder="Search my memories..."
                 className="w-full rounded-lg bg-muted pl-9"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
