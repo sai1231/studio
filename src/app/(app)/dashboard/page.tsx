@@ -91,7 +91,7 @@ const TodoListCard: React.FC<{
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10 ml-auto shrink-0"
+                          className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-card-foreground hover:bg-primary hover:text-primary-foreground ml-auto shrink-0"
                           onClick={(e) => {
                             e.stopPropagation(); // prevent card's onEdit from firing
                             onDeleteItem(todo.id);
