@@ -95,8 +95,8 @@ const AppSidebar: React.FC = () => {
         const panelBody = (
             <>
                 <div className="text-lg font-semibold p-4 border-b text-popover-foreground flex-shrink-0">{label}</div>
-                <ScrollArea className="flex-1 p-2 min-h-0">
-                    {content}
+                <ScrollArea className="flex-1 min-h-0">
+                    <div className="p-2">{content}</div>
                 </ScrollArea>
             </>
         );
