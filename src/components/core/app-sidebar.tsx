@@ -1,4 +1,3 @@
-
 'use client';
 import type React from 'react';
 import { useState, useEffect } from 'react';
@@ -137,7 +136,7 @@ const AppSidebar: React.FC = () => {
 
         <ScrollArea className="flex-1 py-2 px-2">
           <nav className="flex flex-col items-center gap-2 text-sm font-medium">
-            <SidebarLink href="/dashboard" icon={Home}>Dashboard</SidebarLink>
+            <SidebarLink href="/dashboard" icon={Home}>Home</SidebarLink>
             <SidebarLink href="/declutter" icon={Sparkles}>Declutter</SidebarLink>
             
             <SidebarFlyout label="Zones" trigger={<Bookmark className="h-5 w-5" />}>
