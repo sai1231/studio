@@ -30,7 +30,8 @@ export default function AppLayout({
     isAddTodoDialogOpen, 
     setIsAddTodoDialogOpen,
     isRecordVoiceDialogOpen,
-    setIsRecordVoiceDialogOpen
+    setIsRecordVoiceDialogOpen,
+    setDroppedFile,
   } = useDialog();
 
   const [zones, setZones] = useState<Zone[]>([]);
@@ -146,9 +147,11 @@ export default function AppLayout({
 
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      // File upload from drop is not yet implemented in the dialog.
-      // For now, we direct them to use the dialog's buttons.
-      toast({ title: "Use Upload Buttons", description: "Please use the upload buttons in the 'Add Content' dialog to upload files.", variant: "default" });
+      const file = files[0];
+      if (file) {
+        setDroppedFile(file);
+        setIsAddContentDialogOpen(true);
+      }
       return;
     }
 

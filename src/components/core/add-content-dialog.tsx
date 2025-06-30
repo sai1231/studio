@@ -2,7 +2,7 @@
 'use client';
 
 import type React from 'react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -70,7 +70,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter();
-  const { setIsRecordVoiceDialogOpen } = useDialog();
+  const { setIsRecordVoiceDialogOpen, droppedFile, setDroppedFile } = useDialog();
 
   const [internalZones, setInternalZones] = useState<Zone[]>(zones);
   const [isZonePopoverOpen, setIsZonePopoverOpen] = useState(false);
@@ -116,7 +116,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     setIsRecordVoiceDialogOpen(true);
   };
   
-  const handleFileSelected = async (file: File) => {
+  const handleFileSelected = useCallback(async (file: File) => {
     if (!user) return;
     const isImage = file.type.startsWith('image/');
     const isPdf = file.type === 'application/pdf';
@@ -149,7 +149,14 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     } finally {
       setIsUploading(false);
     }
-  };
+  }, [user, toast, form]);
+
+  useEffect(() => {
+    if (droppedFile) {
+      handleFileSelected(droppedFile);
+      setDroppedFile(null); // Reset after handling
+    }
+  }, [droppedFile, handleFileSelected, setDroppedFile]);
 
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); };
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); };
