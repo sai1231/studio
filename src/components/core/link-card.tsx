@@ -3,10 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Landmark, PlayCircle, FileText, Film, Github, Youtube, Twitter } from 'lucide-react';
+import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Landmark, PlayCircle, Film, Github, Youtube, Twitter } from 'lucide-react';
 import type { ContentItem } from '@/types';
 import { cn } from '@/lib/utils';
 import { format, isSameYear, parseISO } from 'date-fns';
+import PdfIcon from '@/components/core/PdfIcon';
 
 interface ContentCardProps {
   item: ContentItem;
@@ -27,9 +28,6 @@ const SpotifyIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 const getTypeSpecifics = (item: ContentItem) => {
-  if (item.type === 'link' && item.contentType === 'PDF') {
-    return { icon: FileText, color: 'red', iconRing: 'ring-red-500/30', iconText: 'text-red-600 dark:text-red-400' };
-  }
   switch (item.type) {
     case 'link':
       return { icon: Globe, color: 'blue', iconRing: 'ring-sky-500/30', iconText: 'text-sky-600 dark:text-sky-400' };
@@ -204,7 +202,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         </div>
       ) : item.contentType === 'PDF' && item.type === 'link' ? (
         <div className="p-6 flex flex-col flex-grow items-center justify-center text-center">
-            <FileText className="h-12 w-12 text-primary mb-3" />
+            <PdfIcon className="h-12 w-12 mb-3" />
             <h3 className="font-semibold text-foreground break-all leading-tight">{item.title}</h3>
             <p className="text-sm text-muted-foreground mt-1">PDF Document</p>
         </div>
