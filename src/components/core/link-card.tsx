@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
@@ -198,14 +197,14 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
             />
         </div>
       ) : item.type === 'note' ? (
-        <div className="p-4 flex flex-col relative">
+        <div className="p-4 flex flex-col relative flex-grow">
           <p className="text-base text-foreground line-clamp-6">
             {plainDescription}
           </p>
         </div>
       ) : item.contentType === 'PDF' && item.type === 'link' ? (
         <div className="p-6 flex flex-col flex-grow items-center justify-center text-center">
-            <FileText className="h-12 w-12 text-destructive/80 mb-3" />
+            <FileText className="h-12 w-12 text-primary mb-3" />
             <h3 className="font-semibold text-foreground break-all leading-tight">{item.title}</h3>
             <p className="text-sm text-muted-foreground mt-1">PDF Document</p>
         </div>
