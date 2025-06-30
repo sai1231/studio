@@ -472,7 +472,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
               (() => { 
                 const isDescriptionReadOnly = (item.type === 'link' && item.contentType !== 'Article' && item.type !== 'movie') || item.type === 'image' || item.type === 'voice';
                 const showMindNote = item.type === 'link' || item.type === 'image' || item.type === 'voice' || item.type === 'movie';
-                const showMediaColumn = isFetchingOembed || oembedHtml || (item.imageUrl && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice' || item.type === 'movie'));
+                const showMediaColumn = isFetchingOembed || oembedHtml || (item.imageUrl && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice' || item.type === 'movie')) || (item.type === 'link' && item.contentType === 'PDF');
                 const filteredZones = comboboxSearchText
                   ? allZones.filter(z => z.name.toLowerCase().includes(comboboxSearchText.toLowerCase()))
                   : allZones;
@@ -501,12 +501,14 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                             className="w-auto h-auto max-w-full max-h-[70vh] object-contain rounded-xl"
                             loading="lazy"
                           />
+                        ) : (item.type === 'link' && item.contentType === 'PDF' && item.url) ? (
+                            <embed src={item.url} type="application/pdf" className="w-full h-full min-h-[70vh] rounded-xl" />
                         ) : null}
                       </div>
                     )}
 
                     <div className="flex flex-col space-y-5 mt-6 md:mt-0">
-                        {item.domain && (
+                        {item.domain && item.domain !== 'mati.internal.storage' && (
                             <div className="flex items-center text-sm text-muted-foreground">
                             <Globe className="h-4 w-4 mr-2" />
                             <span>{item.domain}</span>
@@ -575,30 +577,32 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                           </div>
                         )}
                       
-                        <div>
-                            {isDescriptionReadOnly ? (
-                                <div className={cn(
-                                    "prose dark:prose-invert prose-sm max-w-none py-2 px-1 min-h-[60px]",
-                                    "text-sm text-gray-500 dark:text-gray-400"
-                                  )}
-                                >
-                                    {editableDescription ? (
-                                        <div dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
-                                    ) : (
-                                        <p className="italic">No description provided.</p>
-                                    )}
-                                </div>
-                            ) : (
-                                <Textarea
-                                    value={editableDescription}
-                                    onChange={handleDescriptionChange}
-                                    onBlur={handleDescriptionBlur}
-                                    disabled={isSavingField || isUpdatingTags}
-                                    placeholder="Enter description..."
-                                    className="w-full min-h-[100px] focus-visible:ring-accent"
-                                />
-                            )}
-                        </div>
+                        {item.contentType !== 'PDF' && (
+                            <div>
+                                {isDescriptionReadOnly ? (
+                                    <div className={cn(
+                                        "prose dark:prose-invert prose-sm max-w-none py-2 px-1 min-h-[60px]",
+                                        "text-sm text-gray-500 dark:text-gray-400"
+                                      )}
+                                    >
+                                        {editableDescription ? (
+                                            <div dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
+                                        ) : (
+                                            <p className="italic">No description provided.</p>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <Textarea
+                                        value={editableDescription}
+                                        onChange={handleDescriptionChange}
+                                        onBlur={handleDescriptionBlur}
+                                        disabled={isSavingField || isUpdatingTags}
+                                        placeholder="Enter description..."
+                                        className="w-full min-h-[100px] focus-visible:ring-accent"
+                                    />
+                                )}
+                            </div>
+                        )}
 
                         {item.type === 'voice' && item.audioUrl && (
                             <div className="mt-1">
