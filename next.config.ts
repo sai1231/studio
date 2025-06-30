@@ -40,6 +40,12 @@ const nextConfig: NextConfig = {
         hostname: 'static-production.npmjs.com',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'developer.mozilla.org',
+        port: '',
+        pathname: '/**',
       }
     ],
   },
