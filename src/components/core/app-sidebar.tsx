@@ -218,7 +218,7 @@ const AppSidebar: React.FC = () => {
         </div>
       </aside>
       <div className={cn(
-          "hidden md:block fixed top-0 left-20 h-full w-60 bg-background border-r z-20 shadow-lg transition-transform duration-300 ease-in-out flex flex-col",
+          "hidden md:block fixed top-0 bottom-0 left-20 w-60 bg-background border-r z-20 shadow-lg transition-transform duration-300 ease-in-out flex flex-col",
           activePanel ? "translate-x-0" : "-translate-x-full"
       )}>
           {panelContent}
