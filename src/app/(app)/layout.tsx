@@ -1,4 +1,3 @@
-
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -81,14 +80,12 @@ export default function AppLayout({
         description: `"${addedItem.title}" has been saved.`,
       });
 
-      if (newContentData.type !== 'todo') {
-        setIsAddContentDialogOpen(false);
-      }
+      if (isAddContentDialogOpen) setIsAddContentDialogOpen(false);
       
       router.refresh();
 
     } catch (error) {
-      console.error("Error saving content from dialog:", error);
+      console.error("Error saving content from layout:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       currentToast.update({
         id: currentToast.id,
@@ -100,24 +97,6 @@ export default function AppLayout({
   };
 
   const isValidUrl = (s: string) => { try { new URL(s); return true; } catch (_) { return false; } };
-
-  const saveDroppedItem = async (type: ContentItemType, title: string, data: string | { url?: string; description?: string } ) => {
-    const newContent: Omit<ContentItem, 'id' | 'createdAt'> = type === 'link' && typeof data === 'object' && data.url
-      ? {
-          type: 'link',
-          title: title || `Dropped Link: ${new URL(data.url).hostname}`,
-          url: data.url,
-          description: data.description || `Link dropped on ${new Date().toLocaleDateString()}`,
-          tags: [{ id: 'dnd-drop', name: 'dropped' }],
-        }
-      : {
-          type: 'note',
-          title: title || `Dropped Note - ${new Date().toLocaleDateString()}`,
-          description: data as string,
-          tags: [{ id: 'dnd-drop', name: 'dropped' }],
-        };
-    await handleAddContentAndRefresh(newContent);
-  };
 
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault(); e.stopPropagation();
@@ -131,14 +110,12 @@ export default function AppLayout({
     if (e.currentTarget.contains(e.relatedTarget as Node)) return;
     setIsDraggingOver(false);
   };
+  
   const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault(); e.stopPropagation();
     setIsDraggingOver(false);
 
-    if (e.dataTransfer.types.includes('application/x-mati-internal')) {
-      return;
-    }
-
+    if (e.dataTransfer.types.includes('application/x-mati-internal')) return;
     if (isAuthLoading || !user) {
         toast({ title: "Hold on...", description: "Still getting things ready. Please try again in a moment.", variant: "default" });
         return;
@@ -156,75 +133,68 @@ export default function AppLayout({
       }
       
       const fileTypeForUpload = isImage ? 'image' : 'pdf';
-      const { id: toastId } = toast({
+      const toastId = toast({
         title: `Uploading ${fileTypeForUpload}...`,
         description: file.name,
-      });
+      }).id;
 
       try {
         const folder = isImage ? 'contentImages' : 'contentPdfs';
         const path = `${folder}/${user.uid}/${Date.now()}_${file.name}`;
-        const storagePath = await uploadFile(file, path);
-
-        toast({
-            id: toastId,
-            title: "Upload Complete",
-            description: "Saving item...",
-            variant: "default"
-        });
+        await uploadFile(file, path);
 
         const contentData = isImage
           ? {
-              type: 'image',
-              title: file.name,
-              imagePath: storagePath,
-              tags: [{id: 'dnd-drop', name: 'dropped'}],
-              status: 'pending-analysis',
+              type: 'image', title: file.name, imagePath: path,
+              tags: [{id: 'dnd-drop', name: 'dropped'}], status: 'pending-analysis',
             } as Omit<ContentItem, 'id' | 'createdAt'>
           : {
-              type: 'link',
-              title: file.name,
-              url: storagePath,
-              contentType: 'PDF',
-              imagePath: storagePath,
-              domain: 'mati.internal.storage',
-              tags: [{id: 'dnd-drop', name: 'dropped'}],
+              type: 'link', title: file.name, url: path, contentType: 'PDF', imagePath: path,
+              domain: 'mati.internal.storage', tags: [{id: 'dnd-drop', name: 'dropped'}],
               status: 'pending-analysis',
             } as Omit<ContentItem, 'id' | 'createdAt'>;
 
-        const contentWithUser = { ...contentData, userId: user.uid };
-        const addedItem = await addContentItem(contentWithUser);
-        
-        toast({
-            id: toastId,
-            title: "Item Saved!",
-            description: `"${addedItem.title}" has been saved.`,
-        });
-        
-        router.refresh();
-
+        await handleAddContentAndRefresh(contentData);
       } catch (error: any) {
-        toast({
-            id: toastId,
-            title: "Upload Failed",
-            description: error.message || "An unknown error occurred.",
-            variant: 'destructive',
-        });
+        toast({ id: toastId, title: "Upload Failed", description: error.message || "An unknown error occurred.", variant: 'destructive' });
       }
       return;
     }
 
-
-    const uri = e.dataTransfer.getData('text/uri-list');
-    if (uri && isValidUrl(uri)) return await saveDroppedItem('link', '', { url: uri });
-    
-    const text = e.dataTransfer.getData('text/plain');
-    if (text) {
-      if (isValidUrl(text)) return await saveDroppedItem('link', '', { url: text });
-      return await saveDroppedItem('note', 'Dropped Text', text);
+    let contentData: Omit<ContentItem, 'id' | 'createdAt'> | null = null;
+    const uri = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
+    if (uri && isValidUrl(uri)) {
+        let metadata = { title: '', description: '', faviconUrl: '', imageUrl: '' };
+        try {
+            const response = await fetch(`/api/scrape-metadata?url=${encodeURIComponent(uri)}`);
+            if (response.ok) { metadata = await response.json(); }
+        } catch (e) { console.error("Failed to scrape metadata for dropped link:", e); }
+        if (!metadata.title) {
+            try { metadata.title = new URL(uri).hostname.replace(/^www\./, ''); } 
+            catch { metadata.title = "Untitled Link"; }
+        }
+        contentData = {
+            type: 'link', url: uri, title: metadata.title, description: metadata.description, 
+            faviconUrl: metadata.faviconUrl, imageUrl: metadata.imageUrl,
+            tags: [{ id: 'dnd-drop', name: 'dropped' }], domain: new URL(uri).hostname.replace(/^www\./, ''),
+            status: 'pending-analysis',
+        };
+    } else {
+        const text = e.dataTransfer.getData('text/plain');
+        if (text) {
+            const generatedTitle = text.split(/\s+/).slice(0, 5).join(' ') + (text.split(/\s+/).length > 5 ? '...' : '');
+            contentData = {
+                type: 'note', title: generatedTitle || 'Untitled Note', description: text,
+                tags: [{ id: 'dnd-drop', name: 'dropped' }], contentType: 'Note', status: 'pending-analysis',
+            };
+        }
     }
 
-    toast({ title: "Drop Not Processed", description: "Could not handle the dropped content type.", variant: "default" });
+    if (contentData) {
+      await handleAddContentAndRefresh(contentData);
+    } else {
+      toast({ title: "Drop Not Processed", description: "Could not handle the dropped content type.", variant: "default" });
+    }
   };
   
   if (isAuthLoading || !user) {
