@@ -34,6 +34,12 @@ const nextConfig: NextConfig = {
         hostname: 'image.tmdb.org',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'static-production.npmjs.com',
+        port: '',
+        pathname: '/**',
       }
     ],
   },
