@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Mati",
+    "slug": "mati-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "scheme": "mati",
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-dev-client"
+    ],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mati.app"
+    },
+    "android": {
+      "package": "com.mati.app"
+    },
+    "web": {}
+  }
+}
