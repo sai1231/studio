@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/core/theme-provider";
 import { AuthProvider } from '@/context/AuthContext';
 import { DialogProvider } from '@/context/DialogContext';
+import { SecondarySidebarProvider } from '@/context/SecondarySidebarContext';
 
 export const metadata: Metadata = {
   title: 'Mati - Save and Organize Your Thoughts', // Changed Klipped to Mati
@@ -27,15 +28,17 @@ export default function RootLayout({
       <body className="font-body antialiased min-h-screen flex flex-col">
         <AuthProvider>
           <DialogProvider>
-            <ThemeProvider
-                attribute="class"
-                defaultTheme="system"
-                enableSystem
-                disableTransitionOnChange
-            >
-              {children}
-              <Toaster />
-            </ThemeProvider>
+            <SecondarySidebarProvider>
+              <ThemeProvider
+                  attribute="class"
+                  defaultTheme="system"
+                  enableSystem
+                  disableTransitionOnChange
+              >
+                {children}
+                <Toaster />
+              </ThemeProvider>
+            </SecondarySidebarProvider>
           </DialogProvider>
         </AuthProvider>
         {/* Scripts for oEmbed providers like Twitter and Instagram */}

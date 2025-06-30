@@ -22,6 +22,7 @@ import { Plus, FileText, Mic, UploadCloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
+import { useSecondarySidebar } from '@/context/SecondarySidebarContext';
 
 export default function AppLayout({
   children,
@@ -38,6 +39,7 @@ export default function AppLayout({
     isRecordVoiceDialogOpen,
     setIsRecordVoiceDialogOpen
   } = useDialog();
+  const { activePanel } = useSecondarySidebar();
 
   const [zones, setZones] = useState<Zone[]>([]);
   const { toast } = useToast();
@@ -183,7 +185,10 @@ export default function AppLayout({
   return (
     <div className="flex min-h-screen w-full relative">
       <AppSidebar />
-      <div className="flex flex-col flex-1 md:ml-24 min-w-0">
+      <div className={cn(
+        "flex flex-col flex-1 min-w-0 transition-all duration-300",
+        activePanel ? "md:ml-[21rem]" : "md:ml-24"
+      )}>
         <AppHeader />
         <main
           className="flex-1 p-4 md:p-6 lg:p-8 bg-background overflow-auto relative"
