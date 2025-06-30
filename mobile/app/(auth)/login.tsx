@@ -27,11 +27,16 @@ const LoginScreen = () => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
 
+  const googleClientIdWeb = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_FOR_WEB;
+  const googleClientIdIos = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_FOR_IOS;
+  const googleClientIdAndroid = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_FOR_ANDROID;
+
+  const areGoogleCredsAvailable = googleClientIdWeb && googleClientIdIos && googleClientIdAndroid;
+
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    // IMPORTANT: Replace these with your own client IDs from Google Cloud Console
-    clientId: "YOUR_GOOGLE_CLIENT_ID_FOR_WEB_HERE",
-    iosClientId: "YOUR_GOOGLE_CLIENT_ID_FOR_IOS_HERE",
-    androidClientId: "YOUR_GOOGLE_CLIENT_ID_FOR_ANDROID_HERE",
+    clientId: googleClientIdWeb,
+    iosClientId: googleClientIdIos,
+    androidClientId: googleClientIdAndroid,
   });
 
   useEffect(() => {
@@ -73,6 +78,10 @@ const LoginScreen = () => {
   };
 
   const handleGoogleLogin = () => {
+    if (!areGoogleCredsAvailable) {
+        Alert.alert('Configuration Missing', 'Google Sign-In is not configured. Please add the client IDs to the .env file.');
+        return;
+    }
     setIsGoogleLoading(true);
     promptAsync().catch(error => {
         Alert.alert('Google Sign-In Error', 'Could not start the sign-in process.');
@@ -121,7 +130,7 @@ const LoginScreen = () => {
           <View style={styles.divider} />
         </View>
 
-        <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin} disabled={isLoading || isGoogleLoading}>
+        <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin} disabled={isLoading || isGoogleLoading || !areGoogleCredsAvailable}>
           {isGoogleLoading ? (
             <ActivityIndicator color="#6750A4" />
           ) : (
