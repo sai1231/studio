@@ -8,6 +8,7 @@
  */
 import { ai } from '@/ai/genkit';
 import { generateCaptionFromImage } from '@/ai/moondream';
+import { fetchImageColors } from '@/ai/color-fetcher';
 import { extractTagsFromText } from '@/ai/tag-extraction';
 import { z } from 'zod';
 import { collection, doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -41,7 +42,7 @@ const enrichContentFlow = ai.defineFlow(
       }
 
       const contentData = docSnap.data();
-      
+
       if (contentData.status === 'pending-analysis') {
         let enrichmentFailed = false;
         let updatePayload: { [key: string]: any } = { status: 'completed' };
@@ -85,7 +86,7 @@ const enrichContentFlow = ai.defineFlow(
             }
           }
         }
-        
+
         // Check if the item is an image to enrich with a caption
         if ((contentData.type === 'image' || contentData.type === 'link') && contentData.imageUrl) {
           await addLog('INFO', `[${contentId}] 🖼️ Image found. Generating caption...`);
@@ -106,7 +107,19 @@ const enrichContentFlow = ai.defineFlow(
             await addLog('WARN', `[${contentId}] 🖼️❌ Error generating caption:`, { error: e.message });
           }
         }
-        
+
+        // Fetch and save image colors
+        if ((contentData.type === 'image' || contentData.type === 'link') && contentData.imageUrl) {
+          await addLog('INFO', `[${contentId}] 🎨 Image found. Fetching color palette...`);
+          try {
+            const colorPalette = await fetchImageColors(contentData.imageUrl);
+            updatePayload.colorPalette = colorPalette;
+            await addLog('INFO', `[${contentId}] 🎨✅ Successfully fetched color palette.`);
+          } catch (e: any) {
+            await addLog('WARN', `[${contentId}] 🎨❌ Error fetching or saving color palette:`, { error: e.message });
+          }
+        }
+
         // Keyword and Key Phrase Extraction
         const descriptionToAnalyze = updatePayload.description || contentData.description;
 
@@ -120,7 +133,7 @@ const enrichContentFlow = ai.defineFlow(
             if (formattedTags.length > 0) {
               updatePayload = {
                 ...updatePayload,
-                tags: formattedTags, // Format as [{ id, name }]
+                tags: [...(updatePayload.tags || []), ...formattedTags],
               };
               await addLog('INFO', `[${contentId}] 📝✅ Successfully extracted keywords and key phrases.`, { formattedTags });
             } else {
