@@ -21,7 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Badge } from '@/components/ui/badge';
-import { X, Loader2, Check, Plus, ChevronDown, Bookmark, Briefcase, Home, Library, ImageUp, FileUp } from 'lucide-react';
+import { X, Loader2, Check, Plus, ChevronDown, Bookmark, Briefcase, Home, Library, FileUp, Image as ImageIcon, File as FileIcon } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import type { Zone, ContentItem, Tag } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -31,7 +31,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const mainContentSchema = z.object({
-  mainContent: z.string().min(1, { message: 'Please enter a note or a URL.' }),
+  mainContent: z.string(), // This will be optional if a file is uploaded
   zoneId: z.string().optional(),
 });
 
@@ -74,9 +74,10 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const [isZonePopoverOpen, setIsZonePopoverOpen] = useState(false);
   const [zoneSearchText, setZoneSearchText] = useState('');
 
-  const imageUploadInputRef = useRef<HTMLInputElement>(null);
-  const pdfUploadInputRef = useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = useState<'' | 'image' | 'pdf'>('');
+  const [uploadedFile, setUploadedFile] = useState<{ url: string; name: string; type: 'image' | 'pdf' } | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof mainContentSchema>>({
     resolver: zodResolver(mainContentSchema),
@@ -86,12 +87,17 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     },
   });
 
+  const watchedMainContent = form.watch('mainContent');
+
   useEffect(() => {
     if (open) {
       form.reset({ mainContent: '', zoneId: '' });
       setCurrentTags([]);
       setTagInput('');
       setInternalZones(zones);
+      setUploadedFile(null);
+      setIsUploading(false);
+      setIsDragging(false);
     }
   }, [open, form, zones]);
 
@@ -100,21 +106,25 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   }, [zones]);
 
   const watchedZoneId = form.watch('zoneId');
-
-  const handleFileUpload = async (file: File) => {
+  
+  const handleFileSelected = async (file: File) => {
     if (!user) return;
     const isImage = file.type.startsWith('image/');
     const isPdf = file.type === 'application/pdf';
+
     if (!isImage && !isPdf) {
       toast({ title: "Unsupported File", description: "You can only upload images or PDF files.", variant: "destructive" });
       return;
     }
-    const fileType = isImage ? 'Image' : 'PDF';
-    setIsUploading(isImage ? 'image' : 'pdf');
+
+    const fileTypeForUpload = isImage ? 'image' : 'pdf';
+    setIsUploading(true);
+    setUploadedFile(null);
+    form.clearErrors('mainContent');
 
     const currentToast = toast({
-      title: `Processing ${fileType}...`,
-      description: "Uploading to cloud storage.",
+      title: `Uploading ${fileTypeForUpload}...`,
+      description: "Please wait.",
     });
 
     try {
@@ -122,41 +132,32 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       const path = `${folder}/${user.uid}/${Date.now()}_${file.name}`;
       const downloadURL = await uploadFile(file, path);
 
-      currentToast.update({ id: currentToast.id, title: `${fileType} Uploaded`, description: `Saving metadata to your library...` });
+      currentToast.update({ id: currentToast.id, title: "Upload Complete", description: "Add details and save.", variant: "default" });
 
-      const newContentData: Omit<ContentItem, 'id' | 'createdAt'> = isImage ? {
-        type: 'image', title: file.name || 'Uploaded Image', description: `Uploaded image: ${file.name}`,
-        imageUrl: downloadURL, tags: [{id: 'upload', name: 'upload'}, { id: 'image-upload', name: 'image' }], userId: user.uid,
-      } : {
-        type: 'link', title: file.name || 'Uploaded PDF', url: downloadURL,
-        description: `Uploaded PDF: ${file.name}`, tags: [{ id: 'upload', name: 'upload' }, { id: 'pdf-upload', name: 'pdf' }],
-        contentType: 'PDF', domain: 'mati.internal.storage', userId: user.uid,
-      };
-      
-      onContentAdd(newContentData); // This will handle the final toast and refresh via the layout
-      // We don't need to call addContentItem here as onContentAdd (handleAddContentAndRefresh) does it.
-      if (onOpenChange) onOpenChange(false); // Close dialog on success
-
+      setUploadedFile({ url: downloadURL, name: file.name, type: fileTypeForUpload });
     } catch (error: any) {
-      console.error(`Error processing ${fileType} upload:`, error);
-      let description = error.message || `Could not process your ${fileType}. Please try again.`;
-      if (error.code) { /* ... firebase storage error handling ... */ }
-      currentToast.update({ id: currentToast.id, title: `${fileType} Upload Failed`, description: description, variant: "destructive" });
+      currentToast.update({ id: currentToast.id, title: "Upload Failed", description: error.message || 'Could not upload file.', variant: "destructive" });
     } finally {
-      setIsUploading('');
+      setIsUploading(false);
     }
   };
 
-  const handleUploadImageClick = () => imageUploadInputRef.current?.click();
-  const handleImageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) { handleFileUpload(file); if(e.target) e.target.value = ''; }
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); };
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); };
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); e.stopPropagation(); };
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault(); e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFileSelected(file);
   };
-  const handleUploadPdfClick = () => pdfUploadInputRef.current?.click();
-  const handlePdfInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) { handleFileUpload(file); if(e.target) e.target.value = ''; }
+    if (file) handleFileSelected(file);
+    if (e.target) e.target.value = ''; // Reset file input
   };
+  const handleUploadAreaClick = () => { if (!isUploading && !uploadedFile) fileInputRef.current?.click(); };
+  const clearUploadedFile = () => { setUploadedFile(null); };
 
   const handleCreateZone = async (zoneName: string) => {
     if (!zoneName.trim() || isSaving || !user) return;
@@ -203,41 +204,70 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   async function onSubmit(values: z.infer<typeof mainContentSchema>) {
     setIsSaving(true);
     const { mainContent, zoneId } = values;
-    const extractedUrl = extractUrl(mainContent);
-    let contentData: Partial<Omit<ContentItem, 'id' | 'createdAt'>>;
-    if (extractedUrl) {
-      let metadata = { title: '', description: '', faviconUrl: '', imageUrl: '' };
-      try {
-        const response = await fetch(`/api/scrape-metadata?url=${encodeURIComponent(extractedUrl)}`);
-        if (response.ok) { metadata = await response.json(); }
-      } catch (e) { console.error("Failed to scrape metadata during content addition:", e); }
-      if (!metadata.title) {
-        try { metadata.title = new URL(extractedUrl).hostname.replace(/^www\./, ''); } 
-        catch { metadata.title = "Untitled Link"; }
-      }
-      contentData = {
-        type: 'link', url: extractedUrl, mindNote: mainContent, zoneId: zoneId || undefined,
-        tags: currentTags, domain: new URL(extractedUrl).hostname.replace(/^www\./, ''),
-        status: 'pending-analysis', title: metadata.title, description: metadata.description,
-        faviconUrl: metadata.faviconUrl, imageUrl: metadata.imageUrl,
-      };
-    } else {
-      const textContent = mainContent.trim();
-      const generatedTitle = textContent.split(/\s+/).slice(0, 5).join(' ') + (textContent.split(/\s+/).length > 5 ? '...' : '');
-      contentData = {
-        type: 'note', title: generatedTitle || 'Untitled Note', description: textContent,
-        zoneId: zoneId || undefined, tags: currentTags, contentType: 'Note',
-      };
+
+    if (!uploadedFile && !mainContent.trim()) {
+        form.setError("mainContent", { type: "manual", message: "Please drop a file or enter a link/note." });
+        setIsSaving(false);
+        return;
     }
-    try { await onContentAdd(contentData as Omit<ContentItem, 'id' | 'createdAt'>); } 
-    catch (error) { /* Handled by caller */ } 
-    finally { setIsSaving(false); }
+    
+    form.clearErrors('mainContent');
+
+    let contentData: Partial<Omit<ContentItem, 'id' | 'createdAt'>>;
+    if (uploadedFile) {
+        contentData = uploadedFile.type === 'image'
+        ? {
+            type: 'image', title: uploadedFile.name, imageUrl: uploadedFile.url,
+            tags: [{id: 'upload', name: 'upload'}, ...currentTags], zoneId: zoneId || undefined, status: 'pending-analysis',
+          }
+        : {
+            type: 'link', title: uploadedFile.name, url: uploadedFile.url, contentType: 'PDF',
+            domain: 'mati.internal.storage', tags: [{ id: 'upload', name: 'upload' }, ...currentTags],
+            zoneId: zoneId || undefined, status: 'pending-analysis',
+          };
+    } else {
+        const extractedUrl = extractUrl(mainContent);
+        if (extractedUrl) {
+            let metadata = { title: '', description: '', faviconUrl: '', imageUrl: '' };
+            try {
+                const response = await fetch(`/api/scrape-metadata?url=${encodeURIComponent(extractedUrl)}`);
+                if (response.ok) { metadata = await response.json(); }
+            } catch (e) { console.error("Failed to scrape metadata during content addition:", e); }
+            if (!metadata.title) {
+                try { metadata.title = new URL(extractedUrl).hostname.replace(/^www\./, ''); } 
+                catch { metadata.title = "Untitled Link"; }
+            }
+            contentData = {
+                type: 'link', url: extractedUrl, mindNote: mainContent, zoneId: zoneId || undefined,
+                tags: currentTags, domain: new URL(extractedUrl).hostname.replace(/^www\./, ''),
+                status: 'pending-analysis', title: metadata.title, description: metadata.description,
+                faviconUrl: metadata.faviconUrl, imageUrl: metadata.imageUrl,
+            };
+        } else {
+            const textContent = mainContent.trim();
+            const generatedTitle = textContent.split(/\s+/).slice(0, 5).join(' ') + (textContent.split(/\s+/).length > 5 ? '...' : '');
+            contentData = {
+                type: 'note', title: generatedTitle || 'Untitled Note', description: textContent,
+                zoneId: zoneId || undefined, tags: currentTags, contentType: 'Note', status: 'pending-analysis',
+            };
+        }
+    }
+
+    try {
+        await onContentAdd(contentData as Omit<ContentItem, 'id' | 'createdAt'>);
+        if (onOpenChange) onOpenChange(false);
+    } catch (error) {
+       // Handled by caller
+    } finally {
+        setIsSaving(false);
+    }
   }
 
   const selectedZone = internalZones.find(z => z.id === watchedZoneId);
   const ZoneDisplayIcon = getIconComponent(selectedZone?.icon);
   const zoneDisplayName = selectedZone?.name || 'Select a zone';
   const filteredZones = zoneSearchText ? internalZones.filter(z => z.name.toLowerCase().includes(zoneSearchText.toLowerCase())) : internalZones;
+  const isSubmitDisabled = isSaving || isUploading || (!uploadedFile && !watchedMainContent.trim());
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -249,36 +279,63 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
 
         <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form" className="flex-grow flex flex-col overflow-hidden">
           <div className="flex-grow overflow-y-auto pr-4 pl-1 space-y-4 py-4">
-            <div className="space-y-2">
-              <Textarea
-                id="mainContent"
-                {...form.register('mainContent')}
-                placeholder="Paste a link, start typing, or drop a file here... We'll figure it out and enrich it."
-                className={cn("min-h-[120px] text-base focus-visible:ring-accent", form.formState.errors.mainContent && "border-destructive focus-visible:ring-destructive")}
-              />
-              {form.formState.errors.mainContent && <p className="text-sm text-destructive">{form.formState.errors.mainContent.message}</p>}
+            
+            <div 
+              className={cn("relative flex flex-col items-center justify-center p-4 rounded-lg border-2 border-dashed transition-colors", 
+                isDragging ? "border-primary bg-primary/10" : "border-border hover:border-primary/50",
+                isUploading || uploadedFile ? "cursor-default" : "cursor-pointer"
+              )}
+              onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}
+              onClick={handleUploadAreaClick}
+            >
+              {isUploading ? (
+                <div className="flex flex-col items-center justify-center h-[90px] text-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="mt-2 text-muted-foreground">Uploading...</p>
+                </div>
+              ) : uploadedFile ? (
+                <div className="flex flex-col items-center justify-center text-center h-[90px] w-full">
+                   <div className="flex items-center gap-3 w-full">
+                    {uploadedFile.type === 'image' ? (
+                        <ImageIcon className="h-10 w-10 text-primary shrink-0" />
+                    ) : (
+                        <FileIcon className="h-10 w-10 text-primary shrink-0" />
+                    )}
+                    <div className="text-left flex-grow truncate">
+                        <p className="font-medium truncate">{uploadedFile.name}</p>
+                        <p className="text-sm text-muted-foreground">{uploadedFile.type === 'image' ? 'Image' : 'PDF'} ready to save</p>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={clearUploadedFile}><X className="h-4 w-4" /></Button>
+                   </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center text-center h-[90px]">
+                  <FileUp className="h-8 w-8 text-muted-foreground" />
+                  <p className="mt-2 font-medium">Drop file here or <span className="text-primary">click to upload</span></p>
+                  <p className="text-xs text-muted-foreground mt-1">Supports images and PDFs</p>
+                </div>
+              )}
+            </div>
+            <input type="file" ref={fileInputRef} onChange={handleFileInputChange} accept="image/*,application/pdf" className="hidden" />
+
+            <div className="relative flex items-center">
+              <div className="flex-grow border-t"></div>
+              <span className="flex-shrink mx-4 text-xs text-muted-foreground">OR</span>
+              <div className="flex-grow border-t"></div>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="flex-grow border-t border-border"></div>
-              <span className="text-xs text-muted-foreground">OR</span>
-              <div className="flex-grow border-t border-border"></div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Button type="button" variant="outline" className="h-12 text-base" onClick={handleUploadImageClick} disabled={isSaving || !!isUploading}>
-                {isUploading === 'image' ? <Loader2 className="animate-spin" /> : <ImageUp className="mr-2 h-5 w-5" />}
-                Upload Image
-              </Button>
-              <Button type="button" variant="outline" className="h-12 text-base" onClick={handleUploadPdfClick} disabled={isSaving || !!isUploading}>
-                {isUploading === 'pdf' ? <Loader2 className="animate-spin" /> : <FileUp className="mr-2 h-5 w-5" />}
-                Upload PDF
-              </Button>
-            </div>
+            <Textarea
+              id="mainContent"
+              {...form.register('mainContent')}
+              placeholder="Paste a link or type a note..."
+              className={cn("min-h-[100px] text-base focus-visible:ring-accent", form.formState.errors.mainContent && "border-destructive focus-visible:ring-destructive")}
+              disabled={!!uploadedFile}
+            />
+            {form.formState.errors.mainContent && <p className="text-sm text-destructive">{form.formState.errors.mainContent.message}</p>}
             
             <div className="space-y-4 rounded-lg border bg-muted/50 p-4">
               <div className="space-y-2">
-                <Label htmlFor="zoneId">Zone</Label>
+                <Label htmlFor="zoneId">Zone (Optional)</Label>
                  <Popover open={isZonePopoverOpen} onOpenChange={setIsZonePopoverOpen}>
                   <PopoverTrigger asChild>
                       <Button variant="outline" role="combobox" aria-expanded={isZonePopoverOpen}
@@ -320,7 +377,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                 {form.formState.errors.zoneId && <p className="text-sm text-destructive">{form.formState.errors.zoneId.message}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tags">Tags</Label>
+                <Label htmlFor="tags">Tags (Optional)</Label>
                 <div className="flex flex-wrap gap-2">
                   {currentTags.map(tag => (
                     <Badge key={tag.id} variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">
@@ -335,19 +392,15 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
           </div>
           <DialogFooter className="pt-4 border-t mt-auto flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
-            <Button type="submit" form="add-content-form" disabled={isSaving || !!isUploading} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+            <Button type="submit" form="add-content-form" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
               {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save Content'}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
-      <input type="file" ref={imageUploadInputRef} accept="image/*" className="hidden" onChange={handleImageInputChange} />
-      <input type="file" ref={pdfUploadInputRef} accept=".pdf,application/pdf" className="hidden" onChange={handlePdfInputChange} />
     </Dialog>
   );
 };
 
 export default AddContentDialog;
-
-    
