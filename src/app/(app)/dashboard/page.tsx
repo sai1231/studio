@@ -44,17 +44,17 @@ const TodoListCard: React.FC<{
       className="shadow-lg flex flex-col w-full break-inside-avoid mb-4"
     >
       <CardContent className="p-0 flex-grow">
-        <ScrollArea className="max-h-96 p-4 pr-1">
-          <div className="space-y-3">
+        <ScrollArea className="max-h-96 p-4">
+          <div className="space-y-2">
             {items.map(todo => (
-              <div key={todo.id} className="flex items-center gap-3 p-2.5 rounded-md border hover:bg-muted/50 transition-colors">
+              <div key={todo.id} className="flex items-start gap-4 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
                 <Checkbox
                   id={`dialog-todo-${todo.id}`}
                   checked={todo.status === 'completed'}
                   onCheckedChange={() => onToggleStatus(todo.id, todo.status)}
                   disabled={isUpdatingStatus === todo.id}
                   aria-labelledby={`dialog-todo-label-${todo.id}`}
-                  className="shrink-0"
+                  className="shrink-0 mt-1"
                 />
                 <div className="flex-grow min-w-0">
                   <Label
@@ -68,9 +68,9 @@ const TodoListCard: React.FC<{
                     {todo.title}
                   </Label>
                   {todo.dueDate && (
-                    <div className="text-xs text-muted-foreground flex items-center mt-0.5">
+                    <div className="text-xs text-muted-foreground flex items-center mt-1.5">
                       <AlarmClock className={cn(
-                          "h-3.5 w-3.5 mr-1",
+                          "h-3.5 w-3.5 mr-1.5",
                           todo.status !== 'completed' && isPast(new Date(todo.dueDate)) ? "text-destructive" : "text-muted-foreground/80"
                         )}
                       />
