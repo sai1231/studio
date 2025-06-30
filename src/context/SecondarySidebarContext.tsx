@@ -1,6 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, type ReactNode, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 interface SecondarySidebarContextType {
   activePanel: string | null;
@@ -14,6 +15,13 @@ const SecondarySidebarContext = createContext<SecondarySidebarContextType | unde
 export const SecondarySidebarProvider = ({ children }: { children: ReactNode }) => {
   const [activePanel, setActivePanel] = useState<string | null>(null);
   const [panelContent, setPanelContent] = useState<React.ReactNode>(null);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    // Close the panel on any route change
+    setActivePanel(null);
+  }, [pathname]);
+
 
   const value = { activePanel, setActivePanel, panelContent, setPanelContent };
 

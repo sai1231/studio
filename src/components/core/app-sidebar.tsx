@@ -105,10 +105,6 @@ const AppSidebar: React.FC = () => {
     }
   };
 
-  const handleLinkClickInPanel = () => {
-      setActivePanel(null);
-  };
-
   const PanelButton = ({ panelId, icon: Icon, label, children }: { panelId: string, icon: LucideIcon, label: string, children: React.ReactNode }) => (
       <Button
           variant="ghost"
@@ -161,7 +157,7 @@ const AppSidebar: React.FC = () => {
                 {zones.length > 0 ? zones.map(zone => {
                   const Icon = getIconComponent(zone.icon);
                   return (
-                      <Link key={zone.id} href={`/zones/${zone.id}`} onClick={handleLinkClickInPanel} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                      <Link key={zone.id} href={`/zones/${zone.id}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
                           <Icon className="h-4 w-4 opacity-70" />
                           <span className="truncate">{zone.name}</span>
                       </Link>
@@ -171,7 +167,7 @@ const AppSidebar: React.FC = () => {
 
               <PanelButton panelId="tags" icon={Tag} label="Tags">
                 {actualTags.length > 0 ? actualTags.map(tag => (
-                  <Link key={tag.name} href={`/tags/${encodeURIComponent(tag.name)}`} onClick={handleLinkClickInPanel} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                  <Link key={tag.name} href={`/tags/${encodeURIComponent(tag.name)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
                       <span className="text-muted-foreground">#</span>
                       <span className="truncate">{tag.name}</span>
                   </Link>
@@ -180,7 +176,7 @@ const AppSidebar: React.FC = () => {
 
               <PanelButton panelId="domains" icon={Globe} label="Domains">
                 {domains.length > 0 ? domains.map(domain => (
-                  <Link key={domain} href={`/domains/${encodeURIComponent(domain)}`} onClick={handleLinkClickInPanel} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                  <Link key={domain} href={`/domains/${encodeURIComponent(domain)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
                       <Globe className="h-4 w-4 opacity-70" />
                       <span className="truncate">{formatDomainName(domain)}</span>
                   </Link>
@@ -193,7 +189,7 @@ const AppSidebar: React.FC = () => {
                    if (!typeDetails) return null;
                    const Icon = typeDetails.icon;
                    return (
-                      <Link key={typeKey} href={`/content-types/${encodeURIComponent(typeKey)}`} onClick={handleLinkClickInPanel} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                      <Link key={typeKey} href={`/content-types/${encodeURIComponent(typeKey)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
                           <Icon className="h-4 w-4 opacity-70" />
                           <span className="truncate">{typeDetails.name}</span>
                       </Link>
@@ -202,7 +198,7 @@ const AppSidebar: React.FC = () => {
               </PanelButton>
               
               <PanelButton panelId="developer" icon={Code} label="Developer">
-                  <Link href="/admin/logs" onClick={handleLinkClickInPanel} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                  <Link href="/admin/logs" className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
                       <Server className="h-4 w-4 opacity-70" />
                       <span className="truncate">Logs</span>
                   </Link>
