@@ -10,7 +10,7 @@ import AddTodoDialog from '@/components/core/AddTodoDialog';
 import RecordVoiceDialog from '@/components/core/RecordVoiceDialog';
 import type { Zone, ContentItem, ContentItemType } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { addContentItem, getZones, uploadFile } from '@/services/contentService';
+import { addContentItem, getZones } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -18,7 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, FileText, ImageUp, Mic, UploadCloud, FileUp, ListChecks, Loader2 } from 'lucide-react';
+import { Plus, FileText, Mic, UploadCloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
@@ -41,8 +41,6 @@ export default function AppLayout({
 
   const [zones, setZones] = useState<Zone[]>([]);
   const { toast } = useToast();
-  const imageUploadInputRef = useRef<HTMLInputElement>(null);
-  const pdfUploadInputRef = useRef<HTMLInputElement>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   useEffect(() => {
@@ -107,110 +105,7 @@ export default function AppLayout({
     }
   };
 
-  const handleFileUpload = async (file: File) => {
-    if (!user) return;
-
-    const isImage = file.type.startsWith('image/');
-    const isPdf = file.type === 'application/pdf';
-
-    if (!isImage && !isPdf) {
-      toast({ title: "Unsupported File", description: "You can only upload images or PDF files.", variant: "destructive" });
-      return;
-    }
-
-    const fileType = isImage ? 'Image' : 'PDF';
-    const currentToast = toast({
-      title: `Processing ${fileType}...`,
-      description: "Uploading to cloud storage.",
-    });
-
-    try {
-      const folder = isImage ? 'contentImages' : 'contentPdfs';
-      const path = `${folder}/${user.uid}/${Date.now()}_${file.name}`;
-
-      const downloadURL = await uploadFile(file, path);
-
-      currentToast.update({
-        id: currentToast.id,
-        title: `${fileType} Uploaded`,
-        description: `Saving metadata to your library...`,
-      });
-
-      const newContentData: Omit<ContentItem, 'id' | 'createdAt'> = isImage ? {
-        type: 'image',
-        title: file.name || 'Uploaded Image',
-        description: `Uploaded image: ${file.name}`,
-        imageUrl: downloadURL,
-        tags: [{id: 'upload', name: 'upload'}, { id: 'image-upload', name: 'image' }],
-        userId: user.uid,
-      } : {
-        type: 'link', 
-        title: file.name || 'Uploaded PDF',
-        url: downloadURL,
-        description: `Uploaded PDF: ${file.name}`,
-        tags: [{ id: 'upload', name: 'upload' }, { id: 'pdf-upload', name: 'pdf' }],
-        contentType: 'PDF',
-        domain: 'mati.internal.storage',
-        userId: user.uid,
-      };
-
-      await addContentItem(newContentData);
-
-      currentToast.update({
-        id: currentToast.id,
-        title: `${fileType} Saved!`,
-        description: `Path: ${path}`,
-      });
-      
-      router.refresh();
-
-    } catch (error: any) {
-      console.error(`Error processing ${fileType} upload:`, error);
-      let description = error.message || `Could not process your ${fileType}. Please try again.`;
-      if (error.code) {
-        switch(error.code) {
-          case 'storage/retry-limit-exceeded':
-            description = "Connection timed out. Is Storage enabled with a Blaze plan in your project console?";
-            break;
-          case 'storage/unauthorized':
-            description = "Permission denied. Please check your Firebase Storage security rules.";
-            break;
-          case 'storage/object-not-found':
-            description = "File not found. This can happen if the upload was interrupted.";
-            break;
-          default:
-            description = `An unknown storage error occurred: ${error.code}.`;
-        }
-      }
-      currentToast.update({
-        id: currentToast.id,
-        title: `${fileType} Upload Failed`,
-        description: description,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleUploadImageClick = () => imageUploadInputRef.current?.click();
-  const handleImageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileUpload(file);
-      if(e.target) e.target.value = '';
-    }
-  };
-
-  const handleUploadPdfClick = () => pdfUploadInputRef.current?.click();
-  const handlePdfInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileUpload(file);
-      if(e.target) e.target.value = '';
-    }
-  };
-
   const handleRecordVoiceClick = () => setIsRecordVoiceDialogOpen(true);
-  const handleAddTodoClick = () => setIsAddTodoDialogOpen(true);
 
   const isValidUrl = (s: string) => { try { new URL(s); return true; } catch (_) { return false; } };
 
@@ -248,7 +143,6 @@ export default function AppLayout({
     e.preventDefault(); e.stopPropagation();
     setIsDraggingOver(false);
 
-    // Ignore drops originating from within the app
     if (e.dataTransfer.types.includes('application/x-mati-internal')) {
       return;
     }
@@ -260,11 +154,10 @@ export default function AppLayout({
 
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      const file = files[0];
-      if (file.type.startsWith('image/') || file.type === 'application/pdf') {
-        return await handleFileUpload(file);
-      }
-      if (file.type === 'text/plain') return await saveDroppedItem('note', file.name, await file.text());
+      // File upload from drop is not yet implemented in the dialog.
+      // For now, we direct them to use the dialog's buttons.
+      toast({ title: "Use Upload Buttons", description: "Please use the upload buttons in the 'Add Content' dialog to upload files.", variant: "default" });
+      return;
     }
 
     const uri = e.dataTransfer.getData('text/uri-list');
@@ -282,7 +175,7 @@ export default function AppLayout({
   if (isAuthLoading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <div className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
@@ -342,38 +235,12 @@ export default function AppLayout({
             <FileText className="mr-2 h-4 w-4" />
             <span>Add Link / Note</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleAddTodoClick} className="cursor-pointer">
-            <ListChecks className="mr-2 h-4 w-4" />
-            <span>Add Todo</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleUploadImageClick} className="cursor-pointer">
-            <ImageUp className="mr-2 h-4 w-4" />
-            <span>Upload Image</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleUploadPdfClick} className="cursor-pointer">
-            <FileUp className="mr-2 h-4 w-4" />
-            <span>Upload PDF</span>
-          </DropdownMenuItem>
           <DropdownMenuItem onClick={handleRecordVoiceClick} className="cursor-pointer">
             <Mic className="mr-2 h-4 w-4" />
             <span>Record Voice</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <input
-        type="file"
-        ref={imageUploadInputRef}
-        accept="image/*"
-        className="hidden"
-        onChange={handleImageInputChange}
-      />
-      <input
-        type="file"
-        ref={pdfUploadInputRef}
-        accept=".pdf,application/pdf"
-        className="hidden"
-        onChange={handlePdfInputChange}
-      />
     </div>
   );
 }
