@@ -196,9 +196,11 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         </div>
       ) : item.type === 'note' ? (
         <div className="p-4 flex flex-col relative flex-grow">
-          <p className="text-base text-foreground line-clamp-6">
+          <span className="text-6xl text-muted-foreground/20 absolute top-2 left-2 font-serif leading-none select-none">“</span>
+          <p className="text-base text-foreground line-clamp-6 pt-4 pl-2 z-10 relative">
             {plainDescription}
           </p>
+          <span className="text-6xl text-muted-foreground/20 absolute bottom-0 right-2 font-serif leading-none select-none">”</span>
         </div>
       ) : item.contentType === 'PDF' && item.type === 'link' ? (
         <div className="p-6 flex flex-col flex-grow items-center justify-center text-center">
