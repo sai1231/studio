@@ -196,6 +196,12 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
             <span className="absolute -bottom-8 right-0 text-7xl text-muted-foreground/20 font-serif leading-none">”</span>
           </div>
         </div>
+      ) : item.contentType === 'PDF' && item.type === 'link' ? (
+        <div className="p-6 flex flex-col flex-grow items-center justify-center text-center">
+            <FileText className="h-12 w-12 text-destructive/80 mb-3" />
+            <h3 className="font-semibold text-foreground break-all leading-tight">{item.title}</h3>
+            <p className="text-sm text-muted-foreground mt-1">PDF Document</p>
+        </div>
       ) : (
         <>
           {hasImage && (
@@ -231,7 +237,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                   </div>
               )}
             </div>
-            {item.domain && (
+            {item.domain && item.domain !== 'mati.internal.storage' && (
               <div className="mt-auto pt-3 flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
                   <Landmark className="h-3.5 w-3.5 opacity-80 shrink-0" />
