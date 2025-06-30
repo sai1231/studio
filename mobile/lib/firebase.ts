@@ -13,7 +13,7 @@ const firebaseConfig: FirebaseOptions = {
 };
 
 // Check if the config has been populated
-export const isFirebaseConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY_HERE" && firebaseConfig.projectId !== "YOUR_PROJECT_ID_HERE";
+const isFirebaseConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY_HERE" && firebaseConfig.projectId !== "YOUR_PROJECT_ID_HERE";
 
 let app: FirebaseApp;
 let auth: Auth;

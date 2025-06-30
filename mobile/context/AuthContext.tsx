@@ -41,6 +41,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // If firebase isn't configured, auth will be null.
+    // This prevents the app from crashing.
+    if (!auth) {
+        setIsLoading(false);
+        return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsLoading(false);
