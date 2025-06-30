@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
-import { PlusCircle, Loader2, FolderOpen, ListChecks, AlarmClock, Clapperboard, MessagesSquare, FileImage, Globe, BookOpen, StickyNote, Github, FileText } from 'lucide-react';
+import { PlusCircle, Loader2, FolderOpen, ListChecks, AlarmClock, Clapperboard, MessagesSquare, FileImage, Globe, BookOpen, StickyNote, Github, FileText, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { subscribeToContentItems, deleteContentItem, getZones, updateContentItem } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
@@ -30,9 +30,10 @@ const pageLoadingMessages = [
 const TodoListCard: React.FC<{
   items: ContentItem[];
   onToggleStatus: (itemId: string, currentStatus: 'pending' | 'completed' | undefined) => void;
+  onDeleteItem: (itemId: string) => void;
   isUpdatingStatus: string | null;
   onAddTodoClick: () => void;
-}> = ({ items, onToggleStatus, isUpdatingStatus, onAddTodoClick }) => {
+}> = ({ items, onToggleStatus, onDeleteItem, isUpdatingStatus, onAddTodoClick }) => {
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('application/x-mati-internal', 'true');
   };
@@ -47,7 +48,7 @@ const TodoListCard: React.FC<{
         <ScrollArea className="max-h-96 p-4">
           <div className="space-y-2">
             {items.map(todo => (
-              <div key={todo.id} className="flex items-start gap-4 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+              <div key={todo.id} className="group flex items-start gap-4 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
                 <Checkbox
                   id={`dialog-todo-${todo.id}`}
                   checked={todo.status === 'completed'}
@@ -80,7 +81,21 @@ const TodoListCard: React.FC<{
                     </div>
                   )}
                 </div>
-                {isUpdatingStatus === todo.id && <Loader2 className="h-5 w-5 animate-spin text-primary ml-auto shrink-0" />}
+                 {isUpdatingStatus === todo.id ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-primary ml-auto shrink-0" />
+                 ) : (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10 ml-auto shrink-0"
+                    onClick={(e) => {
+                      e.stopPropagation(); // prevent card's onEdit from firing
+                      onDeleteItem(todo.id);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                 )}
               </div>
             ))}
           </div>
@@ -94,7 +109,7 @@ const TodoListCard: React.FC<{
           onClick={onAddTodoClick}
         >
           <PlusCircle className="h-4 w-4 mr-2" />
-          Add a new TODO
+          Add a task
         </Button>
       </div>
     </Card>
@@ -313,6 +328,7 @@ export default function DashboardPage() {
                 <TodoListCard
                   items={todoItems}
                   onToggleStatus={handleToggleTodoStatus}
+                  onDeleteItem={handleDeleteContent}
                   isUpdatingStatus={isUpdatingTodoStatus}
                   onAddTodoClick={handleAddTodoClick}
                 />
@@ -335,7 +351,7 @@ export default function DashboardPage() {
                             onClick={handleAddTodoClick}
                         >
                             <PlusCircle className="h-4 w-4 mr-2" />
-                            Add a new TODO
+                            Add a task
                         </Button>
                     </div>
                 </Card>
