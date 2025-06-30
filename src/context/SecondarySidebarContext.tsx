@@ -6,15 +6,15 @@ import { usePathname } from 'next/navigation';
 interface SecondarySidebarContextType {
   activePanel: string | null;
   setActivePanel: (panel: string | null) => void;
-  panelContent: React.ReactNode;
-  setPanelContent: (content: React.ReactNode) => void;
+  panelData: { content: React.ReactNode; label: string } | null;
+  setPanelData: (data: { content: React.ReactNode; label: string } | null) => void;
 }
 
 const SecondarySidebarContext = createContext<SecondarySidebarContextType | undefined>(undefined);
 
 export const SecondarySidebarProvider = ({ children }: { children: ReactNode }) => {
   const [activePanel, setActivePanel] = useState<string | null>(null);
-  const [panelContent, setPanelContent] = useState<React.ReactNode>(null);
+  const [panelData, setPanelData] = useState<{ content: React.ReactNode; label: string } | null>(null);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export const SecondarySidebarProvider = ({ children }: { children: ReactNode }) 
   }, [pathname]);
 
 
-  const value = { activePanel, setActivePanel, panelContent, setPanelContent };
+  const value = { activePanel, setActivePanel, panelData, setPanelData };
 
   return (
     <SecondarySidebarContext.Provider value={value}>

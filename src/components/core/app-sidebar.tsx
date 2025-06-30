@@ -1,4 +1,3 @@
-
 'use client';
 import type React from 'react';
 import { useState, useEffect } from 'react';
@@ -43,7 +42,7 @@ const SidebarLink = ({ href, icon: Icon, children }: { href: string, icon: Lucid
 
 
 const AppSidebar: React.FC = () => {
-  const { activePanel, setActivePanel, setPanelContent, panelContent } = useSecondarySidebar();
+  const { activePanel, setActivePanel, panelData, setPanelData } = useSecondarySidebar();
   const [zones, setZones] = useState<Zone[]>([]);
   const [domains, setDomains] = useState<string[]>([]);
   const [contentTypes, setContentTypes] = useState<string[]>([]);
@@ -92,15 +91,7 @@ const AppSidebar: React.FC = () => {
     if (activePanel === panelId) {
         setActivePanel(null);
     } else {
-        const panelBody = (
-            <>
-                <div className="text-lg font-semibold p-4 border-b text-popover-foreground flex-shrink-0">{label}</div>
-                <ScrollArea className="flex-1 min-h-0">
-                    <div className="p-2">{content}</div>
-                </ScrollArea>
-            </>
-        );
-        setPanelContent(panelBody);
+        setPanelData({ content, label });
         setActivePanel(panelId);
     }
   };
@@ -221,7 +212,16 @@ const AppSidebar: React.FC = () => {
           "hidden md:block fixed top-0 bottom-0 left-20 w-60 bg-background border-r z-20 shadow-lg transition-transform duration-300 ease-in-out flex flex-col",
           activePanel ? "translate-x-0" : "-translate-x-full"
       )}>
-          {panelContent}
+          {activePanel && panelData && (
+            <>
+              <div className="text-lg font-semibold p-4 border-b text-popover-foreground flex-shrink-0">
+                {panelData.label}
+              </div>
+              <ScrollArea className="flex-1 min-h-0">
+                <div className="p-2">{panelData.content}</div>
+              </ScrollArea>
+            </>
+          )}
       </div>
     </>
   );
