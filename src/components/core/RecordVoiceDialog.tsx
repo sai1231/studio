@@ -1,3 +1,4 @@
+
 'use client';
 
 import type React from 'react';
@@ -312,23 +313,23 @@ const RecordVoiceDialog: React.FC<RecordVoiceDialogProps> = ({ open, onOpenChang
             </div>
           )}
         </div>
-        <DialogFooter className="gap-2 sm:justify-center">
-          {audioUrl && !isSaving && (
-            <>
-              <Button onClick={handleSave} size="lg" className="bg-green-600 hover:bg-green-700 text-white">
-                <Save className="mr-2 h-5 w-5" /> Save
-              </Button>
-              <Button onClick={resetState} size="lg" variant="destructive">
-                <Trash2 className="mr-2 h-5 w-5" /> Discard
-              </Button>
-            </>
-          )}
-          {isSaving && (
-            <div className="flex items-center text-muted-foreground">
-              <Loader2 className="mr-2 h-5 w-5 animate-spin"/>
-              Saving your note...
-            </div>
-          )}
+        <DialogFooter className="pt-4 border-t">
+            {audioUrl && !isSaving && (
+                <>
+                <Button onClick={resetState} variant="outline">
+                    Discard
+                </Button>
+                <Button onClick={handleSave} className="bg-primary hover:bg-primary/90">
+                    <Save className="mr-2 h-4 w-4" /> Save
+                </Button>
+                </>
+            )}
+            {isSaving && (
+                <div className="flex w-full justify-end items-center text-muted-foreground">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                    Saving your note...
+                </div>
+            )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
