@@ -11,8 +11,8 @@ import { generateCaptionFromImage } from '@/ai/moondream';
 import { fetchImageColors } from '@/ai/color-fetcher';
 import { extractTagsFromText } from '@/ai/tag-extraction';
 import { z } from 'zod';
-import { collection, doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { collection, doc, getDoc, updateDoc, type Firestore, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase'; // Keep using client 'db' for consistency here
 import { addLog } from '@/services/loggingService';
 
 const contentCollectionRef = collection(db, 'content');
@@ -38,6 +38,7 @@ const enrichContentFlow = ai.defineFlow(
       const docSnap = await getDoc(docRef);
 
       if (!docSnap.exists()) {
+        await addLog('WARN', `[${contentId}] Document does not exist, skipping enrichment.`);
         return;
       }
 
@@ -52,6 +53,7 @@ const enrichContentFlow = ai.defineFlow(
           const imdbId = contentData.url.split('/title/')[1].split('/')[0];
           if (imdbId) {
             try {
+              await addLog('INFO', `[${contentId}] 🎬 Found IMDb link, fetching details...`);
               const tmdbResponse = await fetch(`https://api.themoviedb.org/3/find/${imdbId}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&external_source=imdb_id`);
               const tmdbFindData = await tmdbResponse.json();
 
@@ -95,7 +97,6 @@ const enrichContentFlow = ai.defineFlow(
 
             if (caption) {
               updatePayload.description = (contentData.description || '') + (contentData.description ? '\\n' : '') + caption;
-
               await addLog('INFO', `[${contentId}] 🖼️✅ Successfully generated caption.`, { caption });
             } else {
               await addLog('WARN', `[${contentId}] 🖼️⚠️ Moondream returned no caption.`);
@@ -103,16 +104,23 @@ const enrichContentFlow = ai.defineFlow(
 
           } catch (e: any) {
             enrichmentFailed = true;
-            // Log error but don't fail the entire enrichment if captioning fails
             await addLog('WARN', `[${contentId}] 🖼️❌ Error generating caption:`, { error: e.message });
           }
         }
 
         // Fetch and save image colors
-        if ((contentData.type === 'image' || contentData.type === 'link') && contentData.imageUrl) {
+        if ((contentData.type === 'image' || contentData.type === 'link') && contentData.imageUrl && contentData.contentType !== 'PDF') {
           await addLog('INFO', `[${contentId}] 🎨 Image found. Fetching color palette...`);
           try {
-            const colorPalette = await fetchImageColors(contentData.imageUrl);
+            // Download the image into a buffer
+            const imageResponse = await fetch(contentData.imageUrl);
+            if (!imageResponse.ok) {
+              throw new Error(`Failed to fetch image for color analysis: ${imageResponse.statusText}`);
+            }
+            const arrayBuffer = await imageResponse.arrayBuffer();
+            const imageBuffer = Buffer.from(arrayBuffer);
+            
+            const colorPalette = await fetchImageColors(imageBuffer);
             updatePayload.colorPalette = colorPalette;
             await addLog('INFO', `[${contentId}] 🎨✅ Successfully fetched color palette.`);
           } catch (e: any) {
@@ -125,24 +133,20 @@ const enrichContentFlow = ai.defineFlow(
 
         if (descriptionToAnalyze && typeof descriptionToAnalyze === 'string') {
           await addLog('INFO', `[${contentId}] 📝 Extracting keywords and key phrases...`);
-
           try {
             const formattedTags = await extractTagsFromText(descriptionToAnalyze);
-
 
             if (formattedTags.length > 0) {
               updatePayload = {
                 ...updatePayload,
                 tags: [...(updatePayload.tags || []), ...formattedTags],
               };
-              await addLog('INFO', `[${contentId}] 📝✅ Successfully extracted keywords and key phrases.`, { formattedTags });
+              await addLog('INFO', `[${contentId}] 📝✅ Successfully extracted keywords.`, { formattedTags });
             } else {
-              await addLog('INFO', `[${contentId}] 📝ℹ️ No keywords or key phrases extracted.`);
+              await addLog('INFO', `[${contentId}] 📝ℹ️ No keywords extracted.`);
             }
 
           } catch (e: any) {
-            // Log error but don't fail the entire enrichment if tag extraction fails
-            // enrichmentFailed = true; // Decided not to fail the whole process for failed tag extraction
             await addLog('ERROR', `[${contentId}] 📝❌ Error during keyword extraction:`, { error: e.message });
           }
         } else {
