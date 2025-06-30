@@ -55,7 +55,7 @@ const HoverNavButton = ({ icon: Icon, label, children }: { icon: React.ElementTy
         </HoverCardTrigger>
         <HoverCardContent side="right" align="start" className="w-64 p-2 ml-2">
             <div className="text-lg font-semibold p-2 border-b mb-2">{label}</div>
-            <div className="max-h-80 overflow-y-auto custom-scrollbar">
+            <div className="max-h-[70vh] overflow-y-auto">
                 <div className="flex flex-col gap-1 p-1">
                     {children}
                 </div>
@@ -173,7 +173,7 @@ const AppSidebar: React.FC = () => {
                       <Globe className="h-4 w-4 opacity-70" />
                       <span className="truncate">{formatDomainName(domain)}</span>
                   </Link>
-                )) : <p className="p-2 text-xs text-muted-foreground">No domains found.</p>}
+                )) : <p className="p-2 text-muted-foreground">No domains found.</p>}
               </HoverNavButton>
 
               <HoverNavButton icon={ClipboardList} label="Types">
