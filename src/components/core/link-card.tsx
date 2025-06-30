@@ -154,7 +154,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                             onClick={handleActionClick}
                             className="h-8 w-8 p-0 rounded-full bg-background/70 backdrop-blur-sm text-card-foreground hover:bg-primary hover:text-primary-foreground" 
                         >
-                            <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Open link in new tab" className="flex items-center justify-center h-full w-full rounded-full">
+                            <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Open link in new tab">
                                 <ExternalLink className="h-4 w-4" />
                             </a>
                         </Button>
@@ -196,13 +196,9 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         </div>
       ) : item.type === 'note' ? (
         <div className="p-4 flex flex-col relative">
-          <div className="relative p-6">
-            <span className="absolute -top-2 left-0 text-7xl text-muted-foreground/20 font-serif leading-none">“</span>
-            <p className="text-base text-foreground line-clamp-6">
-              {plainDescription}
-            </p>
-            <span className="absolute right-0 -bottom-4 text-7xl text-muted-foreground/20 font-serif leading-none">”</span>
-          </div>
+          <p className="text-base text-foreground line-clamp-6">
+            {plainDescription}
+          </p>
         </div>
       ) : item.contentType === 'PDF' && item.type === 'link' ? (
         <div className="p-6 flex flex-col flex-grow items-center justify-center text-center">
