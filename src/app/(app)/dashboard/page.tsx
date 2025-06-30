@@ -18,6 +18,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
 import { cn } from '@/lib/utils';
 import { format, isPast } from 'date-fns';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 const pageLoadingMessages = [
@@ -48,7 +49,7 @@ const TodoListCard: React.FC<{
         <ScrollArea className="max-h-96 p-4">
           <div className="space-y-2">
             {items.map(todo => (
-              <div key={todo.id} className="group flex items-start gap-4 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+              <div key={todo.id} className="group flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
                 <Checkbox
                   id={`dialog-todo-${todo.id}`}
                   checked={todo.status === 'completed'}
@@ -84,17 +85,26 @@ const TodoListCard: React.FC<{
                  {isUpdatingStatus === todo.id ? (
                   <Loader2 className="h-5 w-5 animate-spin text-primary ml-auto shrink-0" />
                  ) : (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10 ml-auto shrink-0"
-                    onClick={(e) => {
-                      e.stopPropagation(); // prevent card's onEdit from firing
-                      onDeleteItem(todo.id);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10 ml-auto shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation(); // prevent card's onEdit from firing
+                            onDeleteItem(todo.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Delete Task</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                  )}
               </div>
             ))}
