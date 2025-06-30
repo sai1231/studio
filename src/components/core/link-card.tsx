@@ -134,6 +134,14 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
       )}
       onClick={() => onEdit(item)}
     >
+      {item.domain && item.domain !== 'mati.internal.storage' && (
+        <div className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="flex items-center gap-1.5 rounded-full bg-background/70 backdrop-blur-sm px-2 py-1 text-xs text-muted-foreground">
+            <Landmark className="h-3.5 w-3.5 opacity-80 shrink-0" />
+            <span className="truncate">{item.domain}</span>
+          </div>
+        </div>
+      )}
       <div className="absolute bottom-3 right-3 z-20 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
         {(item.type === 'link' || item.type === 'movie') && item.url && (
             <TooltipProvider>
@@ -193,7 +201,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
             <p className="text-base text-foreground line-clamp-6">
               {plainDescription}
             </p>
-            <span className="absolute -bottom-2 right-0 text-7xl text-muted-foreground/20 font-serif leading-none">”</span>
+            <span className="absolute right-0 -bottom-4 text-7xl text-muted-foreground/20 font-serif leading-none">”</span>
           </div>
         </div>
       ) : item.contentType === 'PDF' && item.type === 'link' ? (
@@ -237,14 +245,6 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                   </div>
               )}
             </div>
-            {item.domain && item.domain !== 'mati.internal.storage' && (
-              <div className="mt-auto pt-3 flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
-                  <Landmark className="h-3.5 w-3.5 opacity-80 shrink-0" />
-                  <span className="truncate">{item.domain}</span>
-                </div>
-              </div>
-            )}
           </div>
         </>
       )}
