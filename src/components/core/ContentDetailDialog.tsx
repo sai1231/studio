@@ -362,7 +362,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       setNewTagInput(''); 
       return;
     }
-    const newTag: Tag = { id: Date.now().toString(), name: newTagInput.trim() }; 
+    const newTag: Tag = { id: newTagInput.trim().toLowerCase(), name: newTagInput.trim() }; 
     const newTags = [...editableTags, newTag];
     
     setEditableTags(newTags); 
@@ -429,15 +429,15 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
             </DialogTitle>
           </DialogHeader>
           
-          <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar py-4">
+          <div className="flex-grow overflow-y-auto pr-4 pl-1 custom-scrollbar py-4">
             {isLoading ? (
-              <div className="md:grid md:grid-cols-[minmax(0,_3fr)_minmax(0,_2fr)] gap-6">
+              <div className="md:grid md:grid-cols-[minmax(0,_3fr)_minmax(0,_2fr)] gap-8">
                 {/* Left Column Skeleton (Media) */}
                 <div className="relative w-full overflow-hidden rounded-xl shadow-sm aspect-video">
                   <Skeleton className="h-full w-full" />
                 </div>
                 {/* Right Column Skeleton (Details) */}
-                <div className="flex flex-col space-y-4 mt-6 md:mt-0">
+                <div className="flex flex-col space-y-6 mt-6 md:mt-0">
                   <Skeleton className="h-7 w-3/4 rounded" /> {/* Title Skeleton */}
                   <Skeleton className="h-4 w-1/2 rounded" /> {/* Domain/Link Skeleton */}
                   <div className="space-y-2"> {/* Description Skeleton */}
@@ -451,7 +451,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                     <Skeleton className="h-6 w-24 rounded-full" />
                     <Skeleton className="h-6 w-16 rounded-full" />
                   </div>
-                  <div className="bg-muted/50 dark:bg-muted/20 p-3 rounded-lg mt-4"> {/* Mind Note Area Skeleton */}
+                  <div className="bg-muted/50 dark:bg-muted/20 p-4 rounded-lg mt-4"> {/* Mind Note Area Skeleton */}
                     <Skeleton className="h-5 w-1/3 mb-2 rounded" /> {/* Mind Note Title Skeleton */}
                     <Skeleton className="h-16 w-full rounded" /> {/* Mind Note Textarea Skeleton */}
                   </div>
@@ -483,10 +483,10 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
 
                 return (
                   <div className={cn(
-                    showMediaColumn ? "md:grid md:grid-cols-[minmax(0,_3fr)_minmax(0,_2fr)] gap-6" : ""
+                    showMediaColumn ? "md:grid md:grid-cols-[minmax(0,_3fr)_minmax(0,_2fr)] gap-8" : ""
                   )}>
                     {showMediaColumn && (
-                       <div className="relative w-full overflow-hidden rounded-xl shadow-sm max-h-[70vh] flex items-center justify-center bg-black/5">
+                       <div className="relative w-full overflow-hidden rounded-xl shadow-sm max-h-[70vh] flex items-center justify-center bg-black/5 dark:bg-black/20">
                         {isFetchingOembed ? (
                           <div className="w-full aspect-video flex items-center justify-center">
                             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -505,17 +505,17 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                       </div>
                     )}
 
-                    <div className="flex flex-col space-y-3.5 mt-6 md:mt-0"> {/* Adjusted base spacing */}
+                    <div className="flex flex-col space-y-5 mt-6 md:mt-0">
                         {item.domain && (
-                            <div className="flex items-center text-xs text-muted-foreground">
-                            <Globe className="h-3.5 w-3.5 mr-1.5" />
+                            <div className="flex items-center text-sm text-muted-foreground">
+                            <Globe className="h-4 w-4 mr-2" />
                             <span>{item.domain}</span>
                             {(item.type === 'link' || item.type === 'movie') && item.url && (
                                 <TooltipProvider>
                                     <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1 ml-1 text-primary hover:text-primary/80" title={`Open link: ${item.url}`}>
-                                        <ExternalLink className="h-3.5 w-3.5" />
+                                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1 ml-1.5 text-primary hover:text-primary/80" title={`Open link: ${item.url}`}>
+                                        <ExternalLink className="h-4 w-4" />
                                         </a>
                                     </TooltipTrigger>
                                     <TooltipContent><p>Open link</p></TooltipContent>
@@ -536,12 +536,14 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                                 placeholder="Enter title"
                             />
                         </div>
+
                         {item.contentType === 'Article' && item.url && (
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={handleOpenSimplifiedView}
                             disabled={isFetchingArticle}
+                            className="self-start"
                           >
                             {isFetchingArticle ? (
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -553,7 +555,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                         )}
 
                         {item.type === 'movie' && item.movieDetails && (
-                          <div className="space-y-1.5 border-b pb-2.5 mb-2.5">
+                          <div className="space-y-2 border-b pb-3 mb-2">
                             <div className="flex items-center text-sm text-muted-foreground">
                               <Star className="h-4 w-4 mr-1.5 text-yellow-400 fill-yellow-400" />
                               <span>{item.movieDetails.rating ? `${item.movieDetails.rating.toFixed(1)}/10` : 'N/A'}</span>
@@ -564,7 +566,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                             {item.movieDetails.director && <p className="text-sm"><strong className="font-medium text-foreground">Director:</strong> {item.movieDetails.director}</p>}
                              {item.movieDetails.cast && item.movieDetails.cast.length > 0 && <p className="text-sm"><strong className="font-medium text-foreground">Cast:</strong> {item.movieDetails.cast.slice(0,5).join(', ')}{item.movieDetails.cast.length > 5 ? '...' : ''}</p>}
                             {item.movieDetails.genres && item.movieDetails.genres.length > 0 && (
-                              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                              <div className="flex flex-wrap gap-1.5 pt-1">
                                 {item.movieDetails.genres.map(genre => (
                                   <Badge key={genre} variant="secondary" className="text-xs">{genre}</Badge>
                                 ))}
@@ -574,9 +576,6 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                         )}
                       
                         <div>
-                            <h3 className="text-lg font-semibold mb-1 text-foreground flex items-center sr-only">
-                                <Edit3 className="h-4 w-4 mr-2 text-muted-foreground"/> Description
-                            </h3>
                             {isDescriptionReadOnly ? (
                                 <div className={cn(
                                     "prose dark:prose-invert prose-sm max-w-none py-2 px-1 min-h-[60px]",
@@ -608,9 +607,9 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                             </audio>
                             </div>
                         )}
-
-                        <div className="text-sm items-center pt-0.5">
-                            <div className="flex items-center space-x-2">
+                        
+                        <div className="space-y-3">
+                           <div className="flex items-center space-x-2">
                                 <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
                                     <PopoverTrigger asChild>
                                         <Button
@@ -631,7 +630,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                                             <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
                                     </PopoverTrigger>
-                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-gray-50 dark:bg-gray-700">
+                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                                         <Command>
                                             <CommandInput
                                                 placeholder="Search or create zone..."
@@ -647,7 +646,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                                                 <CommandGroup>
                                                     <CommandItem
                                                         value={NO_ZONE_VALUE}
-                                                        onSelect={() => handleZoneSelection(NO_ZONE_VALUE)}
+                                                        onSelect={() => handleZoneSelection(undefined)}
                                                     >
                                                         <Check className={cn("mr-2 h-4 w-4", !editableZoneId ? "opacity-100" : "opacity-0")} />
                                                         <Ban className="mr-2 h-4 w-4 opacity-70 text-muted-foreground" />
@@ -682,66 +681,65 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                                     </PopoverContent>
                                 </Popover>
                             </div>
-                        </div>
-
-                        <div className="pt-0.5">
-                            <div className="flex flex-wrap items-center gap-2 mb-2">
-                            {editableTags.map(tag => (
-                                <Badge key={tag.id} className={cn(tagBaseClasses, getTagStyles(tag.name))}>
-                                {tag.name}
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-5 w-5 ml-1.5 p-0.5 opacity-50 group-hover:opacity-100 hover:bg-destructive/20 hover:text-destructive absolute -right-1 -top-1 rounded-full bg-background/50"
-                                    onClick={() => handleRemoveTag(tag.id)}
-                                    disabled={isUpdatingTags || isSavingField}
-                                    aria-label={`Remove tag ${tag.name}`}
-                                >
-                                    <X className="h-3 w-3" />
-                                </Button>
-                                </Badge>
-                            ))}
-                            {isAddingTag ? (
-                                <div className="flex items-center gap-1">
-                                <Input
-                                    ref={newTagInputRef}
-                                    value={newTagInput}
-                                    onChange={(e) => setNewTagInput(e.target.value)}
-                                    placeholder="New tag"
-                                    onKeyDown={handleTagInputKeyDown}
-                                    disabled={isUpdatingTags || isSavingField}
-                                    className="h-8 text-sm w-32 focus-visible:ring-accent"
-                                    autoFocus
-                                />
-                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleAddNewTag} disabled={isUpdatingTags || isSavingField || newTagInput.trim() === ''} aria-label="Confirm add tag" >
-                                    <Check className="h-4 w-4 text-green-600" />
-                                </Button>
-                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleCancelAddTag} disabled={isUpdatingTags || isSavingField} aria-label="Cancel add tag" >
-                                    <X className="h-4 w-4 text-destructive" />
-                                </Button>
+                            <div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                {editableTags.map(tag => (
+                                    <Badge key={tag.id} className={cn(tagBaseClasses, getTagStyles(tag.name))}>
+                                    {tag.name}
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-5 w-5 ml-1.5 p-0.5 opacity-50 group-hover:opacity-100 hover:bg-destructive/20 hover:text-destructive absolute -right-1 -top-1 rounded-full bg-background/50"
+                                        onClick={() => handleRemoveTag(tag.id)}
+                                        disabled={isUpdatingTags || isSavingField}
+                                        aria-label={`Remove tag ${tag.name}`}
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </Button>
+                                    </Badge>
+                                ))}
+                                {isAddingTag ? (
+                                    <div className="flex items-center gap-1">
+                                    <Input
+                                        ref={newTagInputRef}
+                                        value={newTagInput}
+                                        onChange={(e) => setNewTagInput(e.target.value)}
+                                        placeholder="New tag"
+                                        onKeyDown={handleTagInputKeyDown}
+                                        disabled={isUpdatingTags || isSavingField}
+                                        className="h-8 text-sm w-32 focus-visible:ring-accent"
+                                        autoFocus
+                                    />
+                                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleAddNewTag} disabled={isUpdatingTags || isSavingField || newTagInput.trim() === ''} aria-label="Confirm add tag" >
+                                        <Check className="h-4 w-4 text-green-600" />
+                                    </Button>
+                                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleCancelAddTag} disabled={isUpdatingTags || isSavingField} aria-label="Cancel add tag" >
+                                        <X className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                    </div>
+                                ) : (
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button size="icon" className="h-8 w-8 rounded-full bg-primary/10 text-primary hover:bg-primary/20" onClick={() => setIsAddingTag(true)} disabled={isUpdatingTags || isSavingField} aria-label="Add new tag" >
+                                                    <Plus className="h-4 w-4" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent><p>Add new tag</p></TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                )}
+                                {isUpdatingTags && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
                                 </div>
-                            ) : (
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button size="icon" className="h-8 w-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => setIsAddingTag(true)} disabled={isUpdatingTags || isSavingField} aria-label="Add new tag" >
-                                                <Plus className="h-4 w-4" />
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>Add new tag</p></TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            )}
-                            {isUpdatingTags && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                                {editableTags.length === 0 && !isAddingTag && !isUpdatingTags && (
+                                    <p className="text-sm text-muted-foreground mt-2">No tags yet. Click '+' to add one.</p>
+                                )}
                             </div>
-                            {editableTags.length === 0 && !isAddingTag && !isUpdatingTags && (
-                                <p className="text-sm text-muted-foreground">No tags yet. Click '+' to add one.</p>
-                            )}
                         </div>
 
                         {showMindNote && (
-                            <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg mt-1">
-                                <h3 className="text-lg font-semibold mb-1 text-foreground flex items-center">
+                            <div className="bg-muted/50 dark:bg-muted/20 p-4 rounded-lg mt-2">
+                                <h3 className="text-lg font-semibold mb-2 text-foreground flex items-center">
                                     <StickyNote className="h-4 w-4 mr-2 text-muted-foreground"/> Mind Note
                                 </h3>
                                 <Textarea
@@ -750,7 +748,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                                     onBlur={handleMindNoteBlur}
                                     disabled={isSavingField || isUpdatingTags}
                                     placeholder="Add your personal thoughts or quick notes here..."
-                                    className="w-full min-h-[80px] focus-visible:ring-accent bg-transparent dark:bg-transparent border-gray-300 dark:border-gray-700"
+                                    className="w-full min-h-[80px] focus-visible:ring-accent bg-background dark:bg-card border-border"
                                 />
                             </div>
                         )}
@@ -794,3 +792,5 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
     </>
   );
 }
+
+    
