@@ -214,14 +214,18 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     form.clearErrors('mainContent');
 
     let contentData: Partial<Omit<ContentItem, 'id' | 'createdAt'>>;
+
     if (uploadedFile) {
+        const mindNoteFromInput = mainContent.trim() ? mainContent.trim() : undefined;
         contentData = uploadedFile.type === 'image'
         ? {
             type: 'image', title: uploadedFile.name, imageUrl: uploadedFile.url,
+            mindNote: mindNoteFromInput,
             tags: [{id: 'upload', name: 'upload'}, ...currentTags], zoneId: zoneId || undefined, status: 'pending-analysis',
           }
         : {
             type: 'link', title: uploadedFile.name, url: uploadedFile.url, contentType: 'PDF',
+            mindNote: mindNoteFromInput,
             domain: 'mati.internal.storage', tags: [{ id: 'upload', name: 'upload' }, ...currentTags],
             zoneId: zoneId || undefined, status: 'pending-analysis',
           };
@@ -327,9 +331,8 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
             <Textarea
               id="mainContent"
               {...form.register('mainContent')}
-              placeholder="Paste a link or type a note..."
+              placeholder="Paste a link, type a note, or add a thought for your uploaded file..."
               className={cn("min-h-[100px] text-base focus-visible:ring-accent", form.formState.errors.mainContent && "border-destructive focus-visible:ring-destructive")}
-              disabled={!!uploadedFile}
             />
             {form.formState.errors.mainContent && <p className="text-sm text-destructive">{form.formState.errors.mainContent.message}</p>}
             
