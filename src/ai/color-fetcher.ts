@@ -1,5 +1,4 @@
 import getColors from 'get-image-colors';
-import decode from 'image-decode';
 
 export async function fetchImageColors(imageUrl: string): Promise<number[][]> {
   try {
@@ -10,16 +9,14 @@ export async function fetchImageColors(imageUrl: string): Promise<number[][]> {
     }
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const mimeType = response.headers.get('content-type') || 'image/jpeg';
+    const mimeType = response.headers.get('content-type');
 
-    // Decode the image data to get pixel information
-    const decodedImage = decode(buffer);
-    if (!decodedImage) {
-        throw new Error('Failed to decode image data.');
+    if (!mimeType) {
+      throw new Error('Could not determine image MIME type.');
     }
 
     // Extract colors
-    const colors = await getColors(decodedImage.data, {
+    const colors = await getColors(buffer, {
       count: 8,
       type: mimeType,
     });

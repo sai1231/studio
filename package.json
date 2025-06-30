@@ -50,7 +50,6 @@
     "firebase": "^11.9.0",
     "genkit": "^1.0.2",
     "get-image-colors": "^4.0.1",
-    "image-decode": "^1.2.2",
     "jsdom": "^24.1.0",
     "lucide-react": "^0.475.0",
     "next": "15.2.3",
