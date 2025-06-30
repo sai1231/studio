@@ -1,5 +1,5 @@
 'use server';
-export const runtime = 'nodejs';
+
 /**
  * @fileOverview A flow for enriching content after it has been created.
  *
