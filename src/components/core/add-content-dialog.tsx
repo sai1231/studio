@@ -344,8 +344,8 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
               </div>
               <input type="file" ref={fileInputRef} onChange={handleFileInputChange} accept="image/*,application/pdf" className="hidden" />
 
-              <Button type="button" variant="outline" className="h-full min-h-[110px] flex flex-col items-center justify-center p-4" onClick={handleRecordVoiceClick}>
-                <Mic className="h-8 w-8 text-muted-foreground" />
+              <Button type="button" variant="default" className="h-full min-h-[110px] flex flex-col items-center justify-center p-4" onClick={handleRecordVoiceClick}>
+                <Mic className="h-8 w-8" />
                 <p className="mt-2 text-sm font-medium">Record Voice</p>
               </Button>
             </div>
