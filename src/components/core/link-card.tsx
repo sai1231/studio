@@ -60,13 +60,15 @@ const domainIconMap: { [key: string]: React.ElementType } = {
 
 const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => {
   const [faviconError, setFaviconError] = useState(false);
+  const [imageError, setImageError] = useState(false);
   
   useEffect(() => {
     setFaviconError(false);
+    setImageError(false);
   }, [item.id]);
 
   const specifics = getTypeSpecifics(item);
-  const hasImage = !!item.imageUrl;
+  const hasImage = !!item.imageUrl && !imageError;
 
   const handleActionClick = (e: React.MouseEvent) => {
     e.stopPropagation(); 
@@ -129,7 +131,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
       draggable="true"
       onDragStart={handleDragStart}
       className={cn(
-        "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex w-full flex-col group rounded-2xl break-inside-avoid mb-4",
+        "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex w-full flex-col group rounded-xl break-inside-avoid mb-4",
         "cursor-pointer relative"
       )}
       onClick={() => onEdit(item)}
@@ -192,6 +194,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
               data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
               className="w-full h-auto group-hover:scale-105 transition-transform duration-300"
               loading="lazy"
+              onError={() => setImageError(true)}
             />
         </div>
       ) : item.type === 'note' ? (
@@ -218,6 +221,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                 data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
                 className="w-full h-auto group-hover:scale-105 transition-transform duration-300"
                 loading="lazy"
+                onError={() => setImageError(true)}
               />
             </div>
           )}

@@ -130,6 +130,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   // oEmbed state
   const [oembedHtml, setOembedHtml] = useState<string | null>(null);
   const [isFetchingOembed, setIsFetchingOembed] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
 
   useEffect(() => {
@@ -145,6 +146,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       setArticleViewData(null);
       setIsArticleViewOpen(false);
       setOembedHtml(null);
+      setImageError(false);
       
       const randomIndex = Math.floor(Math.random() * loadingMessages.length);
       setCurrentLoadingMessage(loadingMessages[randomIndex]);
@@ -472,7 +474,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
               (() => { 
                 const isDescriptionReadOnly = (item.type === 'link' && item.contentType !== 'Article' && item.type !== 'movie') || item.type === 'image' || item.type === 'voice';
                 const showMindNote = item.type === 'link' || item.type === 'image' || item.type === 'voice' || item.type === 'movie';
-                const showMediaColumn = isFetchingOembed || oembedHtml || (item.imageUrl && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice' || item.type === 'movie')) || (item.type === 'link' && item.contentType === 'PDF');
+                const showMediaColumn = isFetchingOembed || oembedHtml || (item.imageUrl && !imageError && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice' || item.type === 'movie')) || (item.type === 'link' && item.contentType === 'PDF');
                 const filteredZones = comboboxSearchText
                   ? allZones.filter(z => z.name.toLowerCase().includes(comboboxSearchText.toLowerCase()))
                   : allZones;
@@ -493,13 +495,14 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                           </div>
                         ) : oembedHtml ? (
                           <div className="oembed-container w-full" dangerouslySetInnerHTML={{ __html: oembedHtml }} />
-                        ) : item.imageUrl ? (
+                        ) : item.imageUrl && !imageError ? (
                            <img
                             src={item.imageUrl}
                             alt={editableTitle || 'Content Image'}
                             data-ai-hint={item.title || "image"}
                             className="w-auto h-auto max-w-full max-h-[70vh] object-contain rounded-xl"
                             loading="lazy"
+                            onError={() => setImageError(true)}
                           />
                         ) : (item.type === 'link' && item.contentType === 'PDF' && item.url) ? (
                             <embed src={item.url} type="application/pdf" className="w-full h-full min-h-[70vh] rounded-xl" />
