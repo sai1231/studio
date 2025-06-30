@@ -297,7 +297,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
               id="mainContent"
               {...form.register('mainContent')}
               placeholder="Paste a link, type a note, or add a thought..."
-              className={cn("min-h-[100px] text-base focus-visible:ring-accent", form.formState.errors.mainContent && "border-destructive focus-visible:ring-destructive")}
+              className={cn("min-h-[100px] text-base focus-visible:ring-accent bg-muted/30", form.formState.errors.mainContent && "border-destructive focus-visible:ring-destructive")}
             />
             {form.formState.errors.mainContent && <p className="text-sm text-destructive">{form.formState.errors.mainContent.message}</p>}
 
@@ -344,7 +344,12 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
               </div>
               <input type="file" ref={fileInputRef} onChange={handleFileInputChange} accept="image/*,application/pdf" className="hidden" />
 
-              <Button type="button" variant="default" className="h-full min-h-[110px] flex flex-col items-center justify-center p-4" onClick={handleRecordVoiceClick}>
+              <Button
+                type="button"
+                variant="secondary"
+                className="h-full min-h-[110px] flex-col items-center justify-center p-4 transition-colors hover:bg-primary hover:text-primary-foreground"
+                onClick={handleRecordVoiceClick}
+              >
                 <Mic className="h-8 w-8" />
                 <p className="mt-2 text-sm font-medium">Record Voice</p>
               </Button>
@@ -411,7 +416,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
             <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
             <Button type="submit" form="add-content-form" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
               {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save Content'}
+              {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
             </Button>
           </DialogFooter>
         </form>
