@@ -174,7 +174,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                             onDelete(item.id);
                         }}
                         aria-label="Forget item"
-                        className="h-8 w-8 p-0 rounded-full bg-background/70 backdrop-blur-sm text-card-foreground hover:bg-destructive hover:text-white"
+                        className="h-8 w-8 p-0 rounded-full bg-background/70 backdrop-blur-sm text-card-foreground hover:bg-primary hover:text-primary-foreground"
                     >
                         <Trash2 className="h-4 w-4" />
                     </Button>
