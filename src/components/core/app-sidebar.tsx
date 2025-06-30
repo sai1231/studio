@@ -42,13 +42,11 @@ const SidebarFlyout = ({ trigger, children, label }: { trigger: React.ReactNode,
         <span className="text-[10px] font-medium leading-none">{label}</span>
       </div>
     </HoverCardTrigger>
-    <HoverCardContent side="right" align="start" sideOffset={8} className="w-60 p-2 bg-popover shadow-xl rounded-lg border-border">
-      <div className="text-sm font-semibold p-2 text-popover-foreground">{label}</div>
-      <ScrollArea className="max-h-80">
-        <div className="p-1">
-          {children}
-        </div>
-      </ScrollArea>
+    <HoverCardContent side="right" align="start" sideOffset={8} className="w-60 p-0 bg-popover shadow-xl rounded-lg border-border">
+      <div className="text-sm font-semibold p-2 border-b text-popover-foreground">{label}</div>
+      <div className="max-h-80 overflow-y-auto p-1">
+        {children}
+      </div>
     </HoverCardContent>
   </HoverCard>
 );
