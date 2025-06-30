@@ -505,7 +505,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                             onError={() => setImageError(true)}
                           />
                         ) : (item.type === 'link' && item.contentType === 'PDF' && item.url) ? (
-                            <embed src={item.url} type="application/pdf" className="w-full h-full min-h-[70vh] rounded-xl" />
+                            <iframe src={item.url} className="w-full h-full min-h-[70vh] rounded-xl border-0" title={editableTitle || 'PDF Preview'}></iframe>
                         ) : null}
                       </div>
                     )}
