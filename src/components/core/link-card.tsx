@@ -9,6 +9,7 @@ import type { ContentItem } from '@/types';
 import { cn } from '@/lib/utils';
 import { format, isSameYear, parseISO } from 'date-fns';
 import PdfIcon from '@/components/core/PdfIcon';
+import { useStorageUrl } from '@/hooks/useStorageUrl';
 
 interface ContentCardProps {
   item: ContentItem;
@@ -60,13 +61,19 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
   const [faviconError, setFaviconError] = useState(false);
   const [imageError, setImageError] = useState(false);
   
+  const { url: secureImageUrl } = useStorageUrl(item.imagePath);
+  const { url: secureAudioUrl } = useStorageUrl(item.audioPath);
+
+  const displayImageUrl = secureImageUrl || item.imageUrl;
+  const displayAudioUrl = secureAudioUrl || item.audioUrl;
+
   useEffect(() => {
     setFaviconError(false);
     setImageError(false);
   }, [item.id]);
 
   const specifics = getTypeSpecifics(item);
-  const hasImage = !!item.imageUrl && !imageError;
+  const hasImage = !!displayImageUrl && !imageError;
 
   const handleActionClick = (e: React.MouseEvent) => {
     e.stopPropagation(); 
@@ -187,7 +194,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
       {item.type === 'image' && hasImage ? (
         <div className="relative w-full overflow-hidden">
             <img
-              src={item.imageUrl!}
+              src={displayImageUrl!}
               alt={item.title}
               data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
               className="w-full h-auto group-hover:scale-105 transition-transform duration-300"
@@ -216,7 +223,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
               className="relative w-full overflow-hidden"
             >
               <img
-                src={item.imageUrl!}
+                src={displayImageUrl!}
                 alt={item.title}
                 data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
                 className="w-full h-auto group-hover:scale-105 transition-transform duration-300"
@@ -238,7 +245,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                 </p>
               )}
 
-              {item.type === 'voice' && item.audioUrl && !plainDescription && !hasImage && (
+              {item.type === 'voice' && displayAudioUrl && !plainDescription && !hasImage && (
                   <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                     <PlayCircle className={cn("h-5 w-5", getTypeSpecifics(item).iconText)} />
                     <span>Voice recording</span>
@@ -254,5 +261,3 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
 };
 
 export default ContentCard;
-
-    

@@ -197,13 +197,13 @@ const RecordVoiceDialog: React.FC<RecordVoiceDialogProps> = ({ open, onOpenChang
     try {
       const fileName = `voice-note-${Date.now()}.webm`;
       const filePath = `voiceRecordings/${user.uid}/${fileName}`;
-      const downloadURL = await uploadFile(new File([audioBlob], fileName), filePath);
+      const storagePath = await uploadFile(new File([audioBlob], fileName), filePath);
 
       const newContentData: Omit<ContentItem, 'id' | 'createdAt'> = {
         type: 'voice',
         title: format(new Date(), 'MMM d, yyyy h:mm a'),
         description: finalTranscript.trim(),
-        audioUrl: downloadURL,
+        audioPath: storagePath,
         tags: [{ id: 'voice-note', name: 'voice note' }],
         contentType: 'Voice Recording',
         status: 'pending-analysis'
@@ -314,22 +314,21 @@ const RecordVoiceDialog: React.FC<RecordVoiceDialogProps> = ({ open, onOpenChang
           )}
         </div>
         <DialogFooter className="pt-4 border-t">
-            {audioUrl && !isSaving && (
+            {audioUrl && !isSaving ? (
                 <>
                 <Button onClick={resetState} variant="outline">
                     Discard
                 </Button>
-                <Button onClick={handleSave} className="bg-primary hover:bg-primary/90">
+                <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                     <Save className="mr-2 h-4 w-4" /> Save
                 </Button>
                 </>
-            )}
-            {isSaving && (
+            ) : isSaving ? (
                 <div className="flex w-full justify-end items-center text-muted-foreground">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
                     Saving your note...
                 </div>
-            )}
+            ) : null}
         </DialogFooter>
       </DialogContent>
     </Dialog>

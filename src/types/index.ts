@@ -20,8 +20,10 @@ export interface ContentItem {
   description?: string;
   mindNote?: string;
   url?: string;
-  imageUrl?: string;
-  audioUrl?: string;
+  imageUrl?: string; // For external images (e.g., from links, movie posters)
+  imagePath?: string; // For user-uploaded, private images in Firebase Storage
+  audioUrl?: string; // For external audio
+  audioPath?: string; // For user-uploaded, private audio in Firebase Storage
   faviconUrl?: string;
   tags: Tag[];
   zoneId?: string;

@@ -76,7 +76,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const [isZonePopoverOpen, setIsZonePopoverOpen] = useState(false);
   const [zoneSearchText, setZoneSearchText] = useState('');
 
-  const [uploadedFile, setUploadedFile] = useState<{ url: string; name: string; type: 'image' | 'pdf' } | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<{ path: string; name: string; type: 'image' | 'pdf' } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -139,11 +139,11 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     try {
       const folder = isImage ? 'contentImages' : 'contentPdfs';
       const path = `${folder}/${user.uid}/${Date.now()}_${file.name}`;
-      const downloadURL = await uploadFile(file, path);
+      const storagePath = await uploadFile(file, path);
 
       currentToast.update({ id: currentToast.id, title: "Upload Complete", description: "Add details and save.", variant: "default" });
 
-      setUploadedFile({ url: downloadURL, name: file.name, type: fileTypeForUpload });
+      setUploadedFile({ path: storagePath, name: file.name, type: fileTypeForUpload });
     } catch (error: any) {
       currentToast.update({ id: currentToast.id, title: "Upload Failed", description: error.message || 'Could not upload file.', variant: "destructive" });
     } finally {
@@ -228,12 +228,13 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
         const mindNoteFromInput = mainContent.trim() ? mainContent.trim() : undefined;
         contentData = uploadedFile.type === 'image'
         ? {
-            type: 'image', title: uploadedFile.name, imageUrl: uploadedFile.url,
+            type: 'image', title: uploadedFile.name, imagePath: uploadedFile.path,
             mindNote: mindNoteFromInput,
             tags: [{id: 'upload', name: 'upload'}, ...currentTags], zoneId: zoneId || undefined, status: 'pending-analysis',
           }
         : {
-            type: 'link', title: uploadedFile.name, url: uploadedFile.url, contentType: 'PDF',
+            type: 'link', title: uploadedFile.name, url: uploadedFile.path, contentType: 'PDF', // Using URL for path here for PDF viewing
+            imagePath: uploadedFile.path, // Store path for secure access later if needed
             mindNote: mindNoteFromInput,
             domain: 'mati.internal.storage', tags: [{ id: 'upload', name: 'upload' }, ...currentTags],
             zoneId: zoneId || undefined, status: 'pending-analysis',
@@ -297,7 +298,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
               id="mainContent"
               {...form.register('mainContent')}
               placeholder="Paste a link, type a note, or add a thought..."
-              className={cn("min-h-[100px] text-base focus-visible:ring-accent bg-muted/30", form.formState.errors.mainContent && "border-destructive focus-visible:ring-destructive")}
+              className={cn("min-h-[100px] text-base focus-visible:ring-accent bg-muted/50", form.formState.errors.mainContent && "border-destructive focus-visible:ring-destructive")}
             />
             {form.formState.errors.mainContent && <p className="text-sm text-destructive">{form.formState.errors.mainContent.message}</p>}
 
@@ -347,7 +348,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
               <Button
                 type="button"
                 variant="secondary"
-                className="h-full min-h-[110px] flex-col items-center justify-center p-4 transition-colors hover:bg-primary hover:text-primary-foreground"
+                className="h-full min-h-[110px] flex-col items-center justify-center p-4 transition-colors text-muted-foreground hover:bg-primary hover:text-primary-foreground"
                 onClick={handleRecordVoiceClick}
               >
                 <Mic className="h-8 w-8" />
