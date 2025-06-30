@@ -1,12 +1,12 @@
+
 'use client';
 import type React from 'react';
 import { useState, useEffect } from 'react';
-import { Home, Tag, Settings, LogOut, Users, ChevronDown, Plus, Globe, ClipboardList, Bookmark, Newspaper, Film, Baseline, Github, MessageSquare, MessagesSquare, BookOpen, LucideIcon, StickyNote, Briefcase, Library, FileText, Sparkles, Layers, Code, Server, Moon, Sun } from 'lucide-react';
+import { Home, Tag, Settings, LogOut, Users, ChevronDown, Plus, Globe, ClipboardList, Bookmark, Newspaper, Film, Baseline, Github, MessageSquare, MessagesSquare, BookOpen, LucideIcon, StickyNote, Briefcase, Library, FileText, Sparkles, Layers, Code, Server, Moon, Sun, Brain } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import MatiLogo from './mati-logo';
 import type { Zone, Tag as TagType } from '@/types';
 import { ThemeToggle } from './theme-toggle';
 import { subscribeToZones, subscribeToContentItems, getUniqueDomainsFromItems, getUniqueContentTypesFromItems, getUniqueTagsFromItems } from '@/services/contentService';
@@ -142,10 +142,12 @@ const AppSidebar: React.FC = () => {
 
   return (
     <>
-      <aside className="hidden border-r bg-sidebar text-sidebar-foreground md:block w-24 fixed top-0 left-0 h-full z-30">
+      <aside className="hidden border-r bg-sidebar text-sidebar-foreground md:block w-20 fixed top-0 left-0 h-full z-30">
         <div className="flex h-full max-h-screen flex-col">
           <div className="flex h-16 items-center justify-center border-b border-sidebar-border px-2">
-            <MatiLogo iconSize={28} textSize="text-2xl" />
+            <Link href="/dashboard" aria-label="Home">
+                <Brain size={28} className="text-primary" />
+            </Link>
           </div>
 
           <ScrollArea className="flex-1 py-2 px-2">
@@ -216,7 +218,7 @@ const AppSidebar: React.FC = () => {
         </div>
       </aside>
       <div className={cn(
-          "hidden md:block fixed top-0 left-24 h-full w-60 bg-background border-r z-20 shadow-lg transition-transform duration-300 ease-in-out flex flex-col",
+          "hidden md:block fixed top-0 left-20 h-full w-60 bg-background border-r z-20 shadow-lg transition-transform duration-300 ease-in-out flex flex-col",
           activePanel ? "translate-x-0" : "-translate-x-full"
       )}>
           {panelContent}

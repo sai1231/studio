@@ -309,13 +309,36 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className={'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
-              {todoItems.length > 0 && (
+              {todoItems.length > 0 ? (
                 <TodoListCard
                   items={todoItems}
                   onToggleStatus={handleToggleTodoStatus}
                   isUpdatingStatus={isUpdatingTodoStatus}
                   onAddTodoClick={handleAddTodoClick}
                 />
+              ) : (
+                <Card 
+                  draggable="true"
+                  onDragStart={(e: React.DragEvent) => e.dataTransfer.setData('application/x-mati-internal', 'true')}
+                  className="shadow-lg flex flex-col w-full break-inside-avoid mb-4"
+                >
+                    <CardContent className="p-6 flex-grow flex flex-col items-center justify-center text-center min-h-[150px]">
+                        <ListChecks className="h-10 w-10 text-muted-foreground mb-3" />
+                        <p className="font-medium text-foreground">You're all caught up!</p>
+                        <p className="text-sm text-muted-foreground">No pending tasks.</p>
+                    </CardContent>
+                    <div className="border-t p-2 flex-shrink-0">
+                        <Button
+                            variant="link"
+                            size="sm"
+                            className="w-full text-muted-foreground hover:text-primary"
+                            onClick={handleAddTodoClick}
+                        >
+                            <PlusCircle className="h-4 w-4 mr-2" />
+                            Add a new TODO
+                        </Button>
+                    </div>
+                </Card>
               )}
               {displayedItems.map(item => (
                 <ContentCard

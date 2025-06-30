@@ -187,7 +187,7 @@ export default function AppLayout({
       <AppSidebar />
       <div className={cn(
         "flex flex-col flex-1 min-w-0 transition-all duration-300",
-        activePanel ? "md:ml-[21rem]" : "md:ml-24"
+        activePanel ? "md:ml-[20rem]" : "md:ml-20"
       )}>
         <AppHeader />
         <main
