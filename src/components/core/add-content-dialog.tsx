@@ -244,24 +244,39 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       {children && <div onClick={(e) => e.stopPropagation()}>{children}</div>}
       <DialogContent className="sm:max-w-[625px] max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="font-headline">Add Link or Note</DialogTitle>
-          <DialogDescription>Paste a link or just start typing. We'll figure it out and enrich it with metadata.</DialogDescription>
+          <DialogTitle className="font-headline">Add Content</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form" className="flex-grow flex flex-col overflow-hidden">
-          <div className="flex-grow overflow-y-auto pr-4 pl-1 space-y-6 py-4">
+          <div className="flex-grow overflow-y-auto pr-4 pl-1 space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="mainContent" className="text-base font-medium">Content</Label>
               <Textarea
                 id="mainContent"
                 {...form.register('mainContent')}
-                placeholder="Paste a URL or write your note here..."
-                className={cn("min-h-[140px] text-base focus-visible:ring-accent", form.formState.errors.mainContent && "border-destructive focus-visible:ring-destructive")}
+                placeholder="Paste a link, start typing, or drop a file here... We'll figure it out and enrich it."
+                className={cn("min-h-[120px] text-base focus-visible:ring-accent", form.formState.errors.mainContent && "border-destructive focus-visible:ring-destructive")}
               />
               {form.formState.errors.mainContent && <p className="text-sm text-destructive">{form.formState.errors.mainContent.message}</p>}
             </div>
+
+            <div className="flex items-center gap-4">
+              <div className="flex-grow border-t border-border"></div>
+              <span className="text-xs text-muted-foreground">OR</span>
+              <div className="flex-grow border-t border-border"></div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Button type="button" variant="outline" className="h-12 text-base" onClick={handleUploadImageClick} disabled={isSaving || !!isUploading}>
+                {isUploading === 'image' ? <Loader2 className="animate-spin" /> : <ImageUp className="mr-2 h-5 w-5" />}
+                Upload Image
+              </Button>
+              <Button type="button" variant="outline" className="h-12 text-base" onClick={handleUploadPdfClick} disabled={isSaving || !!isUploading}>
+                {isUploading === 'pdf' ? <Loader2 className="animate-spin" /> : <FileUp className="mr-2 h-5 w-5" />}
+                Upload PDF
+              </Button>
+            </div>
+            
             <div className="space-y-4 rounded-lg border bg-muted/50 p-4">
-              <h3 className="text-lg font-semibold text-foreground">Organization</h3>
               <div className="space-y-2">
                 <Label htmlFor="zoneId">Zone</Label>
                  <Popover open={isZonePopoverOpen} onOpenChange={setIsZonePopoverOpen}>
@@ -318,34 +333,12 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
               </div>
             </div>
           </div>
-          <DialogFooter className="pt-4 border-t mt-auto flex flex-col-reverse sm:flex-row sm:justify-between sm:items-center gap-2">
-            <div className="flex items-center gap-2">
-              <TooltipProvider>
-                  <Tooltip>
-                      <TooltipTrigger asChild>
-                          <Button type="button" variant="outline" size="icon" onClick={handleUploadImageClick} disabled={isSaving || !!isUploading}>
-                              {isUploading === 'image' ? <Loader2 className="animate-spin" /> : <ImageUp className="h-5 w-5" />}
-                          </Button>
-                      </TooltipTrigger>
-                      <TooltipContent><p>Upload Image</p></TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                      <TooltipTrigger asChild>
-                          <Button type="button" variant="outline" size="icon" onClick={handleUploadPdfClick} disabled={isSaving || !!isUploading}>
-                              {isUploading === 'pdf' ? <Loader2 className="animate-spin" /> : <FileUp className="h-5 w-5" />}
-                          </Button>
-                      </TooltipTrigger>
-                      <TooltipContent><p>Upload PDF</p></TooltipContent>
-                  </Tooltip>
-              </TooltipProvider>
-            </div>
-            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
-              <Button type="submit" form="add-content-form" disabled={isSaving || !!isUploading} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save Content'}
-              </Button>
-            </div>
+          <DialogFooter className="pt-4 border-t mt-auto flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
+            <Button type="submit" form="add-content-form" disabled={isSaving || !!isUploading} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save Content'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -356,3 +349,5 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
 };
 
 export default AddContentDialog;
+
+    
