@@ -21,13 +21,14 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Badge } from '@/components/ui/badge';
-import { X, Loader2, Check, Plus, ChevronDown, Bookmark, Briefcase, Home, Library, FileUp, Image as ImageIcon, File as FileIcon } from 'lucide-react';
+import { X, Loader2, Check, Plus, ChevronDown, Bookmark, Briefcase, Home, Library, FileUp, Image as ImageIcon, File as FileIcon, Mic } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import type { Zone, ContentItem, Tag } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { addContentItem, addZone, uploadFile } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
+import { useDialog } from '@/context/DialogContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const mainContentSchema = z.object({
@@ -69,6 +70,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter();
+  const { setIsRecordVoiceDialogOpen } = useDialog();
 
   const [internalZones, setInternalZones] = useState<Zone[]>(zones);
   const [isZonePopoverOpen, setIsZonePopoverOpen] = useState(false);
@@ -106,6 +108,13 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   }, [zones]);
 
   const watchedZoneId = form.watch('zoneId');
+
+  const handleRecordVoiceClick = () => {
+    if (onOpenChange) {
+      onOpenChange(false);
+    }
+    setIsRecordVoiceDialogOpen(true);
+  };
   
   const handleFileSelected = async (file: File) => {
     if (!user) return;
@@ -284,57 +293,62 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
         <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form" className="flex-grow flex flex-col overflow-hidden">
           <div className="flex-grow overflow-y-auto pr-4 pl-1 space-y-4 py-4">
             
-            <div 
-              className={cn("relative flex flex-col items-center justify-center p-4 rounded-lg border-2 border-dashed transition-colors", 
-                isDragging ? "border-primary bg-primary/10" : "border-border hover:border-primary/50",
-                isUploading || uploadedFile ? "cursor-default" : "cursor-pointer"
-              )}
-              onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}
-              onClick={handleUploadAreaClick}
-            >
-              {isUploading ? (
-                <div className="flex flex-col items-center justify-center h-[90px] text-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <p className="mt-2 text-muted-foreground">Uploading...</p>
-                </div>
-              ) : uploadedFile ? (
-                <div className="flex flex-col items-center justify-center text-center h-[90px] w-full">
-                   <div className="flex items-center gap-3 w-full">
-                    {uploadedFile.type === 'image' ? (
-                        <ImageIcon className="h-10 w-10 text-primary shrink-0" />
-                    ) : (
-                        <FileIcon className="h-10 w-10 text-primary shrink-0" />
-                    )}
-                    <div className="text-left flex-grow truncate">
-                        <p className="font-medium truncate">{uploadedFile.name}</p>
-                        <p className="text-sm text-muted-foreground">{uploadedFile.type === 'image' ? 'Image' : 'PDF'} ready to save</p>
-                    </div>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={clearUploadedFile}><X className="h-4 w-4" /></Button>
-                   </div>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center text-center h-[90px]">
-                  <FileUp className="h-8 w-8 text-muted-foreground" />
-                  <p className="mt-2 font-medium">Drop file here or <span className="text-primary">click to upload</span></p>
-                  <p className="text-xs text-muted-foreground mt-1">Supports images and PDFs</p>
-                </div>
-              )}
-            </div>
-            <input type="file" ref={fileInputRef} onChange={handleFileInputChange} accept="image/*,application/pdf" className="hidden" />
-
-            <div className="relative flex items-center">
-              <div className="flex-grow border-t"></div>
-              <span className="flex-shrink mx-4 text-xs text-muted-foreground">OR</span>
-              <div className="flex-grow border-t"></div>
-            </div>
-
             <Textarea
               id="mainContent"
               {...form.register('mainContent')}
-              placeholder="Paste a link, type a note, or add a thought for your uploaded file..."
+              placeholder="Paste a link, type a note, or add a thought..."
               className={cn("min-h-[100px] text-base focus-visible:ring-accent", form.formState.errors.mainContent && "border-destructive focus-visible:ring-destructive")}
             />
             {form.formState.errors.mainContent && <p className="text-sm text-destructive">{form.formState.errors.mainContent.message}</p>}
+
+            <div className="relative flex items-center pt-2">
+              <div className="flex-grow border-t"></div>
+              <span className="flex-shrink mx-4 text-xs uppercase text-muted-foreground">Or add by</span>
+              <div className="flex-grow border-t"></div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div 
+                className={cn("relative flex flex-col items-center justify-center p-4 rounded-lg border-2 border-dashed transition-colors h-full min-h-[110px]", 
+                  isDragging ? "border-primary bg-primary/10" : "border-border hover:border-primary/50",
+                  isUploading || uploadedFile ? "cursor-default" : "cursor-pointer"
+                )}
+                onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}
+                onClick={handleUploadAreaClick}
+              >
+                {isUploading ? (
+                  <div className="flex flex-col items-center justify-center text-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="mt-2 text-sm text-muted-foreground">Uploading...</p>
+                  </div>
+                ) : uploadedFile ? (
+                  <div className="flex items-center gap-3 w-full">
+                      {uploadedFile.type === 'image' ? (
+                          <ImageIcon className="h-8 w-8 text-primary shrink-0" />
+                      ) : (
+                          <FileIcon className="h-8 w-8 text-primary shrink-0" />
+                      )}
+                      <div className="text-left flex-grow truncate">
+                          <p className="font-medium truncate text-sm">{uploadedFile.name}</p>
+                          <p className="text-xs text-muted-foreground">{uploadedFile.type === 'image' ? 'Image ready' : 'PDF ready'}</p>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={clearUploadedFile}><X className="h-4 w-4" /></Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center">
+                    <FileUp className="h-8 w-8 text-muted-foreground" />
+                    <p className="mt-2 text-sm font-medium">Upload File</p>
+                    <p className="text-xs text-muted-foreground">Image or PDF</p>
+                  </div>
+                )}
+              </div>
+              <input type="file" ref={fileInputRef} onChange={handleFileInputChange} accept="image/*,application/pdf" className="hidden" />
+
+              <Button type="button" variant="outline" className="h-full min-h-[110px] flex flex-col items-center justify-center p-4" onClick={handleRecordVoiceClick}>
+                <Mic className="h-8 w-8 text-muted-foreground" />
+                <p className="mt-2 text-sm font-medium">Record Voice</p>
+              </Button>
+            </div>
             
             <div className="space-y-4 rounded-lg border bg-muted/50 p-4">
               <div className="space-y-2">

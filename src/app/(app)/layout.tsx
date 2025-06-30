@@ -12,13 +12,7 @@ import type { Zone, ContentItem, ContentItemType } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { addContentItem, getZones } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Plus, FileText, Mic, UploadCloud } from 'lucide-react';
+import { Plus, UploadCloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
@@ -104,8 +98,6 @@ export default function AppLayout({
       });
     }
   };
-
-  const handleRecordVoiceClick = () => setIsRecordVoiceDialogOpen(true);
 
   const isValidUrl = (s: string) => { try { new URL(s); return true; } catch (_) { return false; } };
 
@@ -219,28 +211,15 @@ export default function AppLayout({
         onRecordingSave={handleAddContentAndRefresh}
       />
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            size="lg"
-            className="fixed bottom-6 right-6 md:bottom-8 md:right-8 rounded-full h-16 w-16 shadow-xl z-40 bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center"
-            aria-label="Add Content Menu"
-            disabled={isAuthLoading}
-          >
-            <Plus className="h-7 w-7" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" side="top" sideOffset={16} className="w-56 mb-1">
-          <DropdownMenuItem onClick={() => setIsAddContentDialogOpen(true)} className="cursor-pointer">
-            <FileText className="mr-2 h-4 w-4" />
-            <span>Add Link / Note</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleRecordVoiceClick} className="cursor-pointer">
-            <Mic className="mr-2 h-4 w-4" />
-            <span>Record Voice</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <Button
+        size="lg"
+        className="fixed bottom-6 right-6 md:bottom-8 md:right-8 rounded-full h-16 w-16 shadow-xl z-40 bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center"
+        aria-label="Add Content"
+        disabled={isAuthLoading}
+        onClick={() => setIsAddContentDialogOpen(true)}
+      >
+        <Plus className="h-7 w-7" />
+      </Button>
     </div>
   );
 }
