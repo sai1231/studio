@@ -1,3 +1,4 @@
+
 import { Stack } from 'expo-router';
 import { AuthProvider, useAuth, useProtectedRoute } from '@/context/AuthContext';
 import { ActivityIndicator, View } from 'react-native';
