@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useContext, createContext, type ReactNode } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { useRouter, useSegments } from 'expo-router';
 
 interface AuthContextType {
   user: User | null;
@@ -22,21 +21,6 @@ export function useAuth() {
   return context;
 }
 
-export function useProtectedRoute(user: User | null) {
-  const segments = useSegments();
-  const router = useRouter();
-
-  useEffect(() => {
-    const inAuthGroup = segments[0] === '(auth)';
-
-    if (!user && !inAuthGroup) {
-      router.replace('/login');
-    } else if (user && inAuthGroup) {
-      router.replace('/dashboard');
-    }
-  }, [user, segments, router]);
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // If firebase isn't configured, auth will be null.
     // This prevents the app from crashing.
     if (!auth) {
+        setUser(null);
         setIsLoading(false);
         return;
     }
