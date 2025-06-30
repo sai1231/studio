@@ -3,6 +3,9 @@
 import React, { createContext, useContext, useState, type ReactNode, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 
+// This context is no longer in use after reverting to the hover-card navigation pattern.
+// It is kept in the project to avoid breaking potential future references but is not actively used.
+
 interface SecondarySidebarContextType {
   activePanel: string | null;
   setActivePanel: (panel: string | null) => void;
@@ -18,7 +21,6 @@ export const SecondarySidebarProvider = ({ children }: { children: ReactNode }) 
   const pathname = usePathname();
 
   useEffect(() => {
-    // Close the panel on any route change
     setActivePanel(null);
   }, [pathname]);
 

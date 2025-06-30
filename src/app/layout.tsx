@@ -28,17 +28,15 @@ export default function RootLayout({
       <body className="font-body antialiased min-h-screen flex flex-col">
         <AuthProvider>
           <DialogProvider>
-            <SecondarySidebarProvider>
-              <ThemeProvider
-                  attribute="class"
-                  defaultTheme="system"
-                  enableSystem
-                  disableTransitionOnChange
-              >
-                {children}
-                <Toaster />
-              </ThemeProvider>
-            </SecondarySidebarProvider>
+            <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+            >
+              {children}
+              <Toaster />
+            </ThemeProvider>
           </DialogProvider>
         </AuthProvider>
         {/* Scripts for oEmbed providers like Twitter and Instagram */}

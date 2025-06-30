@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import type { Zone, Tag as TagType } from '@/types';
 import { ThemeToggle } from './theme-toggle';
 import { subscribeToZones, subscribeToContentItems, getUniqueDomainsFromItems, getUniqueContentTypesFromItems, getUniqueTagsFromItems } from '@/services/contentService';
@@ -13,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { getAuth, signOut } from 'firebase/auth';
 import { useAuth } from '@/context/AuthContext';
-import { useSecondarySidebar } from '@/context/SecondarySidebarContext';
+
 
 const predefinedContentTypes: Record<string, { icon: LucideIcon, name: string }> = {
   Post: { icon: Newspaper, name: 'Post' },
@@ -41,8 +42,30 @@ const SidebarLink = ({ href, icon: Icon, children }: { href: string, icon: Lucid
 );
 
 
+const HoverNavButton = ({ icon: Icon, label, children }: { icon: React.ElementType, label: string, children: React.ReactNode }) => (
+    <HoverCard openDelay={100} closeDelay={100}>
+        <HoverCardTrigger asChild>
+            <Button
+                variant="ghost"
+                className="flex flex-col items-center justify-center text-center gap-1 rounded-lg p-2 text-sidebar-foreground transition-all w-full h-auto hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            >
+                <Icon className="h-5 w-5" />
+                <span className="text-[10px] font-medium leading-none">{label}</span>
+            </Button>
+        </HoverCardTrigger>
+        <HoverCardContent side="right" align="start" className="w-64 p-2 ml-2">
+            <div className="text-lg font-semibold p-2 border-b mb-2">{label}</div>
+            <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                <div className="flex flex-col gap-1 p-1">
+                    {children}
+                </div>
+            </div>
+        </HoverCardContent>
+    </HoverCard>
+);
+
+
 const AppSidebar: React.FC = () => {
-  const { activePanel, setActivePanel, panelData, setPanelData } = useSecondarySidebar();
   const [zones, setZones] = useState<Zone[]>([]);
   const [domains, setDomains] = useState<string[]>([]);
   const [contentTypes, setContentTypes] = useState<string[]>([]);
@@ -87,29 +110,6 @@ const AppSidebar: React.FC = () => {
     };
   }, [user, toast]);
 
-  const handlePanelToggle = (panelId: string, content: React.ReactNode, label: string) => {
-    if (activePanel === panelId) {
-        setActivePanel(null);
-    } else {
-        setPanelData({ content, label });
-        setActivePanel(panelId);
-    }
-  };
-
-  const PanelButton = ({ panelId, icon: Icon, label, children }: { panelId: string, icon: LucideIcon, label: string, children: React.ReactNode }) => (
-      <Button
-          variant="ghost"
-          className={cn(
-              "flex flex-col items-center justify-center text-center gap-1 rounded-lg p-2 text-sidebar-foreground transition-all w-full h-auto",
-              activePanel === panelId ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          )}
-          onClick={() => handlePanelToggle(panelId, children, label)}
-      >
-          <Icon className="h-5 w-5" />
-          <span className="text-[10px] font-medium leading-none">{label}</span>
-      </Button>
-  );
-
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -146,7 +146,7 @@ const AppSidebar: React.FC = () => {
               <SidebarLink href="/dashboard" icon={Home}>Home</SidebarLink>
               <SidebarLink href="/declutter" icon={Sparkles}>Declutter</SidebarLink>
               
-              <PanelButton panelId="zones" icon={Bookmark} label="Zones">
+              <HoverNavButton icon={Bookmark} label="Zones">
                 {zones.length > 0 ? zones.map(zone => {
                   const Icon = getIconComponent(zone.icon);
                   return (
@@ -156,27 +156,27 @@ const AppSidebar: React.FC = () => {
                       </Link>
                   );
                 }) : <p className="p-2 text-xs text-muted-foreground">No zones found.</p>}
-              </PanelButton>
+              </HoverNavButton>
 
-              <PanelButton panelId="tags" icon={Tag} label="Tags">
+              <HoverNavButton icon={Tag} label="Tags">
                 {actualTags.length > 0 ? actualTags.map(tag => (
                   <Link key={tag.name} href={`/tags/${encodeURIComponent(tag.name)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
                       <span className="text-muted-foreground">#</span>
                       <span className="truncate">{tag.name}</span>
                   </Link>
                 )) : <p className="p-2 text-xs text-muted-foreground">No tags found.</p>}
-              </PanelButton>
+              </HoverNavButton>
 
-              <PanelButton panelId="domains" icon={Globe} label="Domains">
+              <HoverNavButton icon={Globe} label="Domains">
                 {domains.length > 0 ? domains.map(domain => (
                   <Link key={domain} href={`/domains/${encodeURIComponent(domain)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
                       <Globe className="h-4 w-4 opacity-70" />
                       <span className="truncate">{formatDomainName(domain)}</span>
                   </Link>
                 )) : <p className="p-2 text-xs text-muted-foreground">No domains found.</p>}
-              </PanelButton>
+              </HoverNavButton>
 
-              <PanelButton panelId="types" icon={ClipboardList} label="Types">
+              <HoverNavButton icon={ClipboardList} label="Types">
                 {contentTypes.length > 0 ? contentTypes.map(typeKey => {
                    const typeDetails = predefinedContentTypes[typeKey];
                    if (!typeDetails) return null;
@@ -188,14 +188,14 @@ const AppSidebar: React.FC = () => {
                       </Link>
                    )
                 }) : <p className="p-2 text-xs text-muted-foreground">No content types found.</p>}
-              </PanelButton>
+              </HoverNavButton>
               
-              <PanelButton panelId="developer" icon={Code} label="Developer">
+              <HoverNavButton icon={Code} label="Developer">
                   <Link href="/admin/logs" className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
                       <Server className="h-4 w-4 opacity-70" />
                       <span className="truncate">Logs</span>
                   </Link>
-              </PanelButton>
+              </HoverNavButton>
             </nav>
           </ScrollArea>
           
@@ -208,21 +208,6 @@ const AppSidebar: React.FC = () => {
           </div>
         </div>
       </aside>
-      <div className={cn(
-          "hidden md:block fixed top-0 bottom-0 left-20 w-60 bg-background border-r z-20 shadow-lg transition-transform duration-300 ease-in-out flex flex-col",
-          activePanel ? "translate-x-0" : "-translate-x-full"
-      )}>
-          {activePanel && panelData && (
-            <>
-              <div className="text-lg font-semibold p-4 border-b text-popover-foreground flex-shrink-0">
-                {panelData.label}
-              </div>
-              <ScrollArea className="flex-1 min-h-0">
-                <div className="p-2">{panelData.content}</div>
-              </ScrollArea>
-            </>
-          )}
-      </div>
     </>
   );
 };
