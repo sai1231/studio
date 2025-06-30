@@ -10,7 +10,7 @@ import AddTodoDialog from '@/components/core/AddTodoDialog';
 import RecordVoiceDialog from '@/components/core/RecordVoiceDialog';
 import type { Zone, ContentItem, ContentItemType } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { addContentItem, getZones } from '@/services/contentService';
+import { addContentItem, getZones, uploadFile } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
 import { Plus, UploadCloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -31,7 +31,6 @@ export default function AppLayout({
     setIsAddTodoDialogOpen,
     isRecordVoiceDialogOpen,
     setIsRecordVoiceDialogOpen,
-    setDroppedFile,
   } = useDialog();
 
   const [zones, setZones] = useState<Zone[]>([]);
@@ -148,12 +147,73 @@ export default function AppLayout({
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
       const file = files[0];
-      if (file) {
-        setDroppedFile(file);
-        setIsAddContentDialogOpen(true);
+      const isImage = file.type.startsWith('image/');
+      const isPdf = file.type === 'application/pdf';
+
+      if (!isImage && !isPdf) {
+        toast({ title: "Unsupported File", description: "You can only upload images or PDF files.", variant: "destructive" });
+        return;
+      }
+      
+      const fileTypeForUpload = isImage ? 'image' : 'pdf';
+      const { id: toastId } = toast({
+        title: `Uploading ${fileTypeForUpload}...`,
+        description: file.name,
+      });
+
+      try {
+        const folder = isImage ? 'contentImages' : 'contentPdfs';
+        const path = `${folder}/${user.uid}/${Date.now()}_${file.name}`;
+        const storagePath = await uploadFile(file, path);
+
+        toast({
+            id: toastId,
+            title: "Upload Complete",
+            description: "Saving item...",
+            variant: "default"
+        });
+
+        const contentData = isImage
+          ? {
+              type: 'image',
+              title: file.name,
+              imagePath: storagePath,
+              tags: [{id: 'dnd-drop', name: 'dropped'}],
+              status: 'pending-analysis',
+            } as Omit<ContentItem, 'id' | 'createdAt'>
+          : {
+              type: 'link',
+              title: file.name,
+              url: storagePath,
+              contentType: 'PDF',
+              imagePath: storagePath,
+              domain: 'mati.internal.storage',
+              tags: [{id: 'dnd-drop', name: 'dropped'}],
+              status: 'pending-analysis',
+            } as Omit<ContentItem, 'id' | 'createdAt'>;
+
+        const contentWithUser = { ...contentData, userId: user.uid };
+        const addedItem = await addContentItem(contentWithUser);
+        
+        toast({
+            id: toastId,
+            title: "Item Saved!",
+            description: `"${addedItem.title}" has been saved.`,
+        });
+        
+        router.refresh();
+
+      } catch (error: any) {
+        toast({
+            id: toastId,
+            title: "Upload Failed",
+            description: error.message || "An unknown error occurred.",
+            variant: 'destructive',
+        });
       }
       return;
     }
+
 
     const uri = e.dataTransfer.getData('text/uri-list');
     if (uri && isValidUrl(uri)) return await saveDroppedItem('link', '', { url: uri });

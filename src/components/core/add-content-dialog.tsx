@@ -70,7 +70,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter();
-  const { setIsRecordVoiceDialogOpen, droppedFile, setDroppedFile } = useDialog();
+  const { setIsRecordVoiceDialogOpen } = useDialog();
 
   const [internalZones, setInternalZones] = useState<Zone[]>(zones);
   const [isZonePopoverOpen, setIsZonePopoverOpen] = useState(false);
@@ -150,13 +150,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       setIsUploading(false);
     }
   }, [user, toast, form]);
-
-  useEffect(() => {
-    if (droppedFile) {
-      handleFileSelected(droppedFile);
-      setDroppedFile(null); // Reset after handling
-    }
-  }, [droppedFile, handleFileSelected, setDroppedFile]);
 
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); };
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); };
