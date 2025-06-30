@@ -54,7 +54,7 @@ const AppHeader: React.FC = () => {
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 md:px-6">
       <div className="flex-1">
-        <form onSubmit={handleSearchSubmit} className="relative w-full max-w-md">
+        <form onSubmit={handleSearchSubmit} className="relative w-full">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
                 type="search"
