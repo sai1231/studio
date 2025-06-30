@@ -2,16 +2,15 @@
 'use client';
 import type React from 'react';
 import { useState, useEffect } from 'react';
-import { Home, Tag, Settings, LogOut, Users, ChevronDown, Plus, Globe, ClipboardList, Bookmark, Newspaper, Film, Baseline, Github, MessageSquare, MessagesSquare, BookOpen, LucideIcon, StickyNote, Briefcase, Library, FileText, Sparkles, Layers, Code, Server } from 'lucide-react';
+import { Home, Tag, Settings, LogOut, Users, ChevronDown, Plus, Globe, ClipboardList, Bookmark, Newspaper, Film, Baseline, Github, MessageSquare, MessagesSquare, BookOpen, LucideIcon, StickyNote, Briefcase, Library, FileText, Sparkles, Layers, Code, Server, Moon, Sun } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import MatiLogo from './mati-logo';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import type { Zone, Tag as TagType } from '@/types';
 import { ThemeToggle } from './theme-toggle';
-import { Separator } from '@/components/ui/separator';
 import { subscribeToZones, subscribeToContentItems, getUniqueDomainsFromItems, getUniqueContentTypesFromItems, getUniqueTagsFromItems } from '@/services/contentService';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -36,6 +35,32 @@ const iconMap: { [key: string]: React.ElementType } = {
   Bookmark,
 };
 
+const SidebarFlyout = ({ trigger, children, label }: { trigger: React.ReactNode, children: React.ReactNode, label: string }) => (
+  <HoverCard openDelay={100} closeDelay={100}>
+    <HoverCardTrigger asChild>
+      <div className="flex flex-col items-center justify-center text-center gap-1 rounded-lg p-2 text-sidebar-foreground transition-all w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer">
+        {trigger}
+        <span className="text-[10px] font-medium leading-none">{label}</span>
+      </div>
+    </HoverCardTrigger>
+    <HoverCardContent side="right" align="start" sideOffset={8} className="w-60 p-2 bg-popover shadow-xl rounded-lg border-border">
+      <div className="text-sm font-semibold p-2 text-popover-foreground">{label}</div>
+      <ScrollArea className="max-h-80">
+        <div className="p-1">
+          {children}
+        </div>
+      </ScrollArea>
+    </HoverCardContent>
+  </HoverCard>
+);
+
+const SidebarLink = ({ href, icon: Icon, children }: { href: string, icon: LucideIcon, children: React.ReactNode }) => (
+  <Link href={href} className="flex flex-col items-center justify-center text-center gap-1 rounded-lg p-2 text-sidebar-foreground transition-all w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+    <Icon className="h-5 w-5" />
+    <span className="text-[10px] font-medium leading-none">{children}</span>
+  </Link>
+);
+
 
 const AppSidebar: React.FC = () => {
   const [zones, setZones] = useState<Zone[]>([]);
@@ -50,7 +75,6 @@ const AppSidebar: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
-    // Subscribe to zones for real-time updates.
     const unsubscribeZones = subscribeToZones(user.uid, (fetchedZones, error) => {
       if (error) {
         console.error("Error subscribing to zones in sidebar:", error);
@@ -60,7 +84,6 @@ const AppSidebar: React.FC = () => {
       setZones(fetchedZones);
     });
 
-    // Subscribe to content items for real-time updates to domains, tags, and content types.
     const unsubscribeContent = subscribeToContentItems(user.uid, (items, error) => {
         if (error) {
             console.error("Error subscribing to content items in sidebar:", error);
@@ -74,10 +97,7 @@ const AppSidebar: React.FC = () => {
         
         setDomains(fetchedDomains);
         setActualTags(fetchedTags);
-
-        const availablePredefinedTypes = fetchedContentTypes.filter(
-            type => predefinedContentTypes[type]
-        );
+        const availablePredefinedTypes = fetchedContentTypes.filter(type => predefinedContentTypes[type]);
         setContentTypes(availablePredefinedTypes);
     });
 
@@ -86,7 +106,6 @@ const AppSidebar: React.FC = () => {
       unsubscribeContent();
     };
   }, [user, toast]);
-
 
   const handleLogout = async () => {
     try {
@@ -104,168 +123,85 @@ const AppSidebar: React.FC = () => {
     return nameWithoutTld.charAt(0).toUpperCase() + nameWithoutTld.slice(1);
   };
 
+  const getIconComponent = (iconName?: string): React.ElementType => {
+    if (iconName && iconMap[iconName]) return iconMap[iconName];
+    return Bookmark;
+  };
 
   return (
-    <aside className="hidden border-r bg-sidebar text-sidebar-foreground md:block w-64 fixed top-0 left-0 h-full z-20">
+    <aside className="hidden border-r bg-sidebar text-sidebar-foreground md:block w-24 fixed top-0 left-0 h-full z-20">
       <div className="flex h-full max-h-screen flex-col">
-        <div className="flex h-16 items-center border-b border-sidebar-border px-6">
-          <MatiLogo />
+        <div className="flex h-16 items-center justify-center border-b border-sidebar-border px-2">
+          <MatiLogo iconSize={28} textSize="text-2xl" />
         </div>
 
-        <ScrollArea className="flex-1 py-2 px-4">
-          <nav className="grid items-start gap-1 text-sm font-medium">
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary aria-[current=page]:text-sidebar-primary-foreground"
-            >
-              <Home className="h-4 w-4" />
-              All Memories
-            </Link>
-
-            <Link
-              href="/declutter"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary aria-[current=page]:text-sidebar-primary-foreground"
-            >
-              <Sparkles className="h-4 w-4" />
-              Declutter
-            </Link>
-
-            <Accordion type="multiple" defaultValue={['zones', 'developer']} className="w-full">
-              <AccordionItem value="zones" className="border-b-0">
-                <AccordionTrigger className="px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg hover:no-underline">
-                  <div className="flex items-center gap-3">
-                    <Bookmark className="h-4 w-4" />
-                    Zones
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pl-4 mt-1 space-y-1">
-                  {zones.map((zone) => {
-                    const IconComponent = zone.icon && iconMap[zone.icon] ? iconMap[zone.icon] : Bookmark;
-                    const isDefaultIcon = !zone.icon || !iconMap[zone.icon];
-                    return (
-                      <Link
-                        key={zone.id}
-                        href={`/zones/${zone.id}`}
-                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary/80 aria-[current=page]:text-sidebar-primary-foreground"
-                      >
-                        <IconComponent className={cn("h-4 w-4", isDefaultIcon && "opacity-50")} />
-                        {zone.name}
-                      </Link>
-                    );
-                  })}
-                  <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground/80 mt-1 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground">
-                    <Plus className="h-4 w-4 mr-2" /> Add Zone
-                  </Button>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="tags" className="border-b-0">
-                <AccordionTrigger className="px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg hover:no-underline">
-                  <div className="flex items-center gap-3">
-                    <Tag className="h-4 w-4" />
-                    Tags
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pl-4 mt-1 space-y-1">
-                  {actualTags.length > 0 ? actualTags.map((tag) => (
-                    <Link
-                      key={tag.name} 
-                      href={`/tags/${encodeURIComponent(tag.name)}`}
-                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary/80 aria-[current=page]:text-sidebar-primary-foreground"
-                    >
-                       # {tag.name}
+        <ScrollArea className="flex-1 py-2 px-2">
+          <nav className="flex flex-col items-center gap-2 text-sm font-medium">
+            <SidebarLink href="/dashboard" icon={Home}>Dashboard</SidebarLink>
+            <SidebarLink href="/declutter" icon={Sparkles}>Declutter</SidebarLink>
+            
+            <SidebarFlyout label="Zones" trigger={<Bookmark className="h-5 w-5" />}>
+              {zones.map(zone => {
+                const Icon = getIconComponent(zone.icon);
+                return (
+                    <Link key={zone.id} href={`/zones/${zone.id}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                        <Icon className="h-4 w-4 opacity-70" />
+                        <span className="truncate">{zone.name}</span>
                     </Link>
-                  )) : (
-                    <p className="px-3 py-2 text-xs text-sidebar-foreground/60">No tags found.</p>
-                  )}
-                   <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground/80 mt-1 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground">
-                    <Plus className="h-4 w-4 mr-2" /> Manage Tags
-                  </Button>
-                </AccordionContent>
-              </AccordionItem>
+                );
+              })}
+              {zones.length === 0 && <p className="p-2 text-xs text-muted-foreground">No zones found.</p>}
+            </SidebarFlyout>
 
-              <AccordionItem value="domains" className="border-b-0">
-                <AccordionTrigger className="px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg hover:no-underline">
-                  <div className="flex items-center gap-3">
-                    <Globe className="h-4 w-4" />
-                    Domains
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pl-4 mt-1 space-y-1">
-                  {domains.map((domain) => (
-                    <Link
-                      key={domain}
-                      href={`/domains/${encodeURIComponent(domain)}`}
-                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary/80 aria-[current=page]:text-sidebar-primary-foreground"
-                    >
-                       <Globe className="h-4 w-4 opacity-70" />
-                       {formatDomainName(domain)}
+            <SidebarFlyout label="Tags" trigger={<Tag className="h-5 w-5" />}>
+              {actualTags.map(tag => (
+                <Link key={tag.name} href={`/tags/${encodeURIComponent(tag.name)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                    <span className="text-muted-foreground">#</span>
+                    <span className="truncate">{tag.name}</span>
+                </Link>
+              ))}
+              {actualTags.length === 0 && <p className="p-2 text-xs text-muted-foreground">No tags found.</p>}
+            </SidebarFlyout>
+
+            <SidebarFlyout label="Domains" trigger={<Globe className="h-5 w-5" />}>
+              {domains.map(domain => (
+                <Link key={domain} href={`/domains/${encodeURIComponent(domain)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                    <Globe className="h-4 w-4 opacity-70" />
+                    <span className="truncate">{formatDomainName(domain)}</span>
+                </Link>
+              ))}
+              {domains.length === 0 && <p className="p-2 text-xs text-muted-foreground">No domains found.</p>}
+            </SidebarFlyout>
+
+            <SidebarFlyout label="Types" trigger={<ClipboardList className="h-5 w-5" />}>
+              {contentTypes.map(typeKey => {
+                 const typeDetails = predefinedContentTypes[typeKey];
+                 if (!typeDetails) return null;
+                 const Icon = typeDetails.icon;
+                 return (
+                    <Link key={typeKey} href={`/content-types/${encodeURIComponent(typeKey)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                        <Icon className="h-4 w-4 opacity-70" />
+                        <span className="truncate">{typeDetails.name}</span>
                     </Link>
-                  ))}
-                  {domains.length === 0 && <p className="px-3 py-2 text-xs text-sidebar-foreground/60">No domains found.</p>}
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="contentTypes" className="border-b-0">
-                <AccordionTrigger className="px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg hover:no-underline">
-                  <div className="flex items-center gap-3">
-                    <ClipboardList className="h-4 w-4" />
-                    Content Types
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pl-4 mt-1 space-y-1">
-                  {contentTypes.map((contentTypeKey) => {
-                    const typeDetails = predefinedContentTypes[contentTypeKey];
-                    if (!typeDetails) return null;
-                    const IconComponent = typeDetails.icon;
-                    return (
-                      <Link
-                        key={contentTypeKey}
-                        href={`/content-types/${encodeURIComponent(contentTypeKey)}`}
-                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary/80 aria-[current=page]:text-sidebar-primary-foreground"
-                      >
-                        <IconComponent className="h-4 w-4 opacity-70" />
-                        {typeDetails.name}
-                      </Link>
-                    );
-                  })}
-                  {contentTypes.length === 0 && <p className="px-3 py-2 text-xs text-sidebar-foreground/60">No matching content types found.</p>}
-                </AccordionContent>
-              </AccordionItem>
-              
-              <AccordionItem value="developer" className="border-b-0">
-                <AccordionTrigger className="px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg hover:no-underline">
-                  <div className="flex items-center gap-3">
-                    <Code className="h-4 w-4" />
-                    Developer
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pl-4 mt-1 space-y-1">
-                  <Link href="/admin/logs" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground">
-                    <Server className="h-4 w-4 opacity-70" /> Logs
-                  </Link>
-                </AccordionContent>
-              </AccordionItem>
-
-            </Accordion>
-
-            <Link
-              href="/settings"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary aria-[current=page]:text-sidebar-primary-foreground"
-            >
-              <Settings className="h-4 w-4" />
-              Settings
-            </Link>
+                 )
+              })}
+              {contentTypes.length === 0 && <p className="p-2 text-xs text-muted-foreground">No content types found.</p>}
+            </SidebarFlyout>
+            
+            <SidebarFlyout label="Developer" trigger={<Code className="h-5 w-5" />}>
+                <Link href="/admin/logs" className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                    <Server className="h-4 w-4 opacity-70" />
+                    <span className="truncate">Logs</span>
+                </Link>
+            </SidebarFlyout>
           </nav>
         </ScrollArea>
         
-        <div className="p-4">
-            <ThemeToggle />
-        </div>
-        <div className="p-4 border-t border-sidebar-border">
-           <Button variant="ghost" onClick={handleLogout} className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
-             <LogOut className="h-4 w-4 mr-2" />
-             Logout
+        <div className="mt-auto flex flex-col items-center gap-2 p-2">
+           <ThemeToggle />
+           <Button variant="ghost" onClick={handleLogout} className="flex w-full flex-col items-center justify-center h-auto gap-1 rounded-lg p-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+             <LogOut className="h-5 w-5" />
+             <span className="text-[10px] font-medium leading-none">Logout</span>
            </Button>
         </div>
       </div>

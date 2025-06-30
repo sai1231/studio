@@ -4,9 +4,7 @@
 import * as React from "react"
 import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
-
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
 
 export function ThemeToggle() {
   const [mounted, setMounted] = React.useState(false)
@@ -17,13 +15,10 @@ export function ThemeToggle() {
   }, [])
 
   if (!mounted) {
-    // Render a placeholder or null on the server and initial client render
-    // to avoid hydration mismatch. A placeholder with similar dimensions
-    // can prevent layout shift.
     return (
-      <div className="flex items-center space-x-2 p-2 rounded-lg h-[40px]">
-        <div className="h-6 w-11 rounded-full bg-muted opacity-50" /> {/* Switch Skeleton */}
-        <div className="h-4 w-[90px] rounded bg-muted opacity-50" /> {/* Label Skeleton */}
+      <div className="flex w-full flex-col items-center justify-center h-[54px] gap-1 rounded-lg p-2">
+        <div className="h-5 w-5 rounded-full bg-muted opacity-50" />
+        <div className="h-[10px] w-8 rounded bg-muted opacity-50" />
       </div>
     )
   }
@@ -35,22 +30,18 @@ export function ThemeToggle() {
   }
 
   return (
-    <div className="flex items-center space-x-2 p-2 rounded-lg hover:bg-sidebar-accent/80 transition-colors">
-      <Switch
-        id="theme-mode"
-        checked={isDarkMode}
-        onCheckedChange={toggleTheme}
+    <Button
+        variant="ghost"
+        onClick={toggleTheme}
+        className="flex w-full flex-col items-center justify-center h-auto gap-1 rounded-lg p-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         aria-label={`Switch to ${isDarkMode ? "light" : "dark"} mode`}
-        className="data-[state=checked]:bg-sidebar-primary data-[state=unchecked]:bg-muted"
-      />
-      <Label htmlFor="theme-mode" className="text-sm text-sidebar-foreground cursor-pointer flex items-center">
-        {isDarkMode ? (
-          <Moon className="h-4 w-4 mr-2" />
-        ) : (
-          <Sun className="h-4 w-4 mr-2" />
-        )}
-        {isDarkMode ? "Dark Mode" : "Light Mode"}
-      </Label>
-    </div>
+    >
+      {isDarkMode ? (
+        <Sun className="h-5 w-5" />
+      ) : (
+        <Moon className="h-5 w-5" />
+      )}
+      <span className="text-[10px] font-medium leading-none">{isDarkMode ? "Light" : "Dark"}</span>
+    </Button>
   )
 }
