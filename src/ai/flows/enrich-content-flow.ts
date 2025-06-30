@@ -122,7 +122,7 @@ const enrichContentFlow = ai.defineFlow(
             
             const colorPalette = await fetchImageColors(imageBuffer);
             updatePayload.colorPalette = colorPalette;
-            await addLog('INFO', `[${contentId}] 🎨✅ Successfully fetched color palette.`);
+            await addLog('INFO', `[${contentId}] 🎨✅ Successfully fetched color palette. ${colorPalette}`);
           } catch (e: any) {
             await addLog('WARN', `[${contentId}] 🎨❌ Error fetching or saving color palette:`, { error: e.message });
           }

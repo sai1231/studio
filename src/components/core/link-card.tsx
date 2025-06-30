@@ -56,6 +56,35 @@ const domainIconMap: { [key: string]: React.ElementType } = {
   'spotify.com': SpotifyIcon,
 };
 
+const ColorPalette: React.FC<{ palette: string[] | undefined }> = ({ palette }) => {
+  if (!palette || palette.length === 0) {
+    return null;
+  }
+  return (
+    <div className="px-4 pb-3 pt-2">
+      <div className="flex h-2 items-center gap-0 overflow-hidden rounded-full shadow-inner">
+        {palette.slice(0, 10).map((color, index) => (
+          <TooltipProvider key={`${color}-${index}`}>
+            <Tooltip>
+              <TooltipTrigger
+                className="h-full w-full flex-1"
+                style={{ backgroundColor: color }}
+                aria-label={color}
+              />
+              <TooltipContent>
+                <div className="flex items-center gap-2">
+                  <div className="h-4 w-4 rounded-full border" style={{ backgroundColor: color }} />
+                  <p className="font-mono text-xs">{color}</p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => {
   const [faviconError, setFaviconError] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -134,87 +163,59 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
       )}
       onClick={() => onEdit(item)}
     >
-      {item.domain && item.domain !== 'mati.internal.storage' && (
-        <div className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <div className="flex items-center gap-1.5 rounded-full bg-background/70 backdrop-blur-sm px-2 py-1 text-xs text-muted-foreground">
-            <Landmark className="h-3.5 w-3.5 opacity-80 shrink-0" />
-            <span className="truncate">{item.domain}</span>
+      <div className="flex-grow min-h-0">
+        {item.domain && item.domain !== 'mati.internal.storage' && (
+          <div className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="flex items-center gap-1.5 rounded-full bg-background/70 backdrop-blur-sm px-2 py-1 text-xs text-muted-foreground">
+              <Landmark className="h-3.5 w-3.5 opacity-80 shrink-0" />
+              <span className="truncate">{item.domain}</span>
+            </div>
           </div>
-        </div>
-      )}
-      <div className="absolute bottom-3 right-3 z-20 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        {(item.type === 'link' || item.type === 'movie') && item.url && (
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            asChild 
-                            onClick={handleActionClick}
-                            className="h-8 w-8 p-0 rounded-full bg-background/70 backdrop-blur-sm text-card-foreground hover:bg-primary hover:text-primary-foreground" 
-                        >
-                            <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Open link in new tab">
-                                <ExternalLink className="h-4 w-4" />
-                            </a>
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent><p>Open link</p></TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
         )}
-        <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                            handleActionClick(e);
-                            onDelete(item.id);
-                        }}
-                        aria-label="Forget item"
-                        className="h-8 w-8 p-0 rounded-full bg-background/70 backdrop-blur-sm text-card-foreground hover:bg-primary hover:text-primary-foreground"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>Forget</p></TooltipContent>
-            </Tooltip>
-        </TooltipProvider>
-      </div>
+        <div className="absolute bottom-3 right-3 z-20 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          {(item.type === 'link' || item.type === 'movie') && item.url && (
+              <TooltipProvider>
+                  <Tooltip>
+                      <TooltipTrigger asChild>
+                          <Button
+                              variant="ghost"
+                              size="icon"
+                              asChild 
+                              onClick={handleActionClick}
+                              className="h-8 w-8 p-0 rounded-full bg-background/70 backdrop-blur-sm text-card-foreground hover:bg-primary hover:text-primary-foreground" 
+                          >
+                              <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Open link in new tab">
+                                  <ExternalLink className="h-4 w-4" />
+                              </a>
+                          </Button>
+                      </TooltipTrigger>
+                      <TooltipContent><p>Open link</p></TooltipContent>
+                  </Tooltip>
+              </TooltipProvider>
+          )}
+          <TooltipProvider>
+              <Tooltip>
+                  <TooltipTrigger asChild>
+                      <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                              handleActionClick(e);
+                              onDelete(item.id);
+                          }}
+                          aria-label="Forget item"
+                          className="h-8 w-8 p-0 rounded-full bg-background/70 backdrop-blur-sm text-card-foreground hover:bg-primary hover:text-primary-foreground"
+                      >
+                          <Trash2 className="h-4 w-4" />
+                      </Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Forget</p></TooltipContent>
+              </Tooltip>
+          </TooltipProvider>
+        </div>
 
-      {item.type === 'image' && hasImage ? (
-        <div className="relative w-full overflow-hidden">
-            <img
-              src={item.imageUrl!}
-              alt={item.title}
-              data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
-              className="w-full h-auto group-hover:scale-105 transition-transform duration-300"
-              loading="lazy"
-              onError={() => setImageError(true)}
-            />
-        </div>
-      ) : item.type === 'note' ? (
-        <div className="p-4 flex flex-col relative flex-grow">
-          <span className="text-6xl text-muted-foreground/20 absolute top-2 left-2 font-serif leading-none select-none">“</span>
-          <p className="text-base text-foreground line-clamp-6 pt-4 pl-2 z-10 relative pb-6">
-            {plainDescription}
-          </p>
-          <span className="text-6xl text-muted-foreground/20 absolute bottom-2 right-2 font-serif leading-none select-none">”</span>
-        </div>
-      ) : item.contentType === 'PDF' && item.type === 'link' ? (
-        <div className="p-6 flex flex-col flex-grow items-center justify-center text-center">
-            <PdfIcon className="h-12 w-12 mb-3" />
-            <h3 className="font-semibold text-foreground break-all leading-tight">{item.title}</h3>
-            <p className="text-sm text-muted-foreground mt-1">PDF Document</p>
-        </div>
-      ) : (
-        <>
-          {hasImage && (
-            <div 
-              className="relative w-full overflow-hidden"
-            >
+        {item.type === 'image' && hasImage ? (
+          <div className="relative w-full overflow-hidden">
               <img
                 src={item.imageUrl!}
                 alt={item.title}
@@ -223,32 +224,62 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                 loading="lazy"
                 onError={() => setImageError(true)}
               />
-            </div>
-          )}
-          <div className="p-4 flex flex-col flex-grow relative">
-            <div className="flex-grow space-y-2 mb-4">
-              <h3 className="font-semibold leading-tight group-hover:text-primary transition-colors flex items-start gap-3">
-                {TitleIcon}
-                <span className="truncate">{displayTitle}</span>
-              </h3>
-
-              {plainDescription && (
-                <p className="text-sm text-muted-foreground break-words line-clamp-3">
-                  {plainDescription}
-                </p>
-              )}
-
-              {item.type === 'voice' && item.audioUrl && !plainDescription && !hasImage && (
-                  <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                    <PlayCircle className={cn("h-5 w-5", getTypeSpecifics(item).iconText)} />
-                    <span>Voice recording</span>
-                  </div>
-              )}
-            </div>
           </div>
-        </>
-      )}
+        ) : item.type === 'note' ? (
+          <div className="p-4 flex flex-col relative flex-grow">
+            <span className="text-6xl text-muted-foreground/20 absolute top-2 left-2 font-serif leading-none select-none">“</span>
+            <p className="text-base text-foreground line-clamp-6 pt-4 pl-2 z-10 relative pb-6">
+              {plainDescription}
+            </p>
+            <span className="text-6xl text-muted-foreground/20 absolute bottom-2 right-2 font-serif leading-none select-none">”</span>
+          </div>
+        ) : item.contentType === 'PDF' && item.type === 'link' ? (
+          <div className="p-6 flex flex-col flex-grow items-center justify-center text-center">
+              <PdfIcon className="h-12 w-12 mb-3" />
+              <h3 className="font-semibold text-foreground break-all leading-tight">{item.title}</h3>
+              <p className="text-sm text-muted-foreground mt-1">PDF Document</p>
+          </div>
+        ) : (
+          <>
+            {hasImage && (
+              <div 
+                className="relative w-full overflow-hidden"
+              >
+                <img
+                  src={item.imageUrl!}
+                  alt={item.title}
+                  data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
+                  className="w-full h-auto group-hover:scale-105 transition-transform duration-300"
+                  loading="lazy"
+                  onError={() => setImageError(true)}
+                />
+              </div>
+            )}
+            <div className="p-4 flex flex-col flex-grow relative">
+              <div className="flex-grow space-y-2 mb-4">
+                <h3 className="font-semibold leading-tight group-hover:text-primary transition-colors flex items-start gap-3">
+                  {TitleIcon}
+                  <span className="truncate">{displayTitle}</span>
+                </h3>
 
+                {plainDescription && (
+                  <p className="text-sm text-muted-foreground break-words line-clamp-3">
+                    {plainDescription}
+                  </p>
+                )}
+
+                {item.type === 'voice' && item.audioUrl && !plainDescription && !hasImage && (
+                    <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                      <PlayCircle className={cn("h-5 w-5", getTypeSpecifics(item).iconText)} />
+                      <span>Voice recording</span>
+                    </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+      <ColorPalette palette={item.colorPalette} />
     </Card>
   );
 };
