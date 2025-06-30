@@ -31,7 +31,7 @@ const LoginScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Brain size={48} color="#FF6F61" />
+        <Brain size={48} color="#6750A4" />
         <Text style={styles.title}>Mati</Text>
       </View>
       <Text style={styles.subtitle}>Welcome back</Text>
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F5F7',
+    backgroundColor: '#F2F0F7',
     paddingHorizontal: 20,
   },
   header: {
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: '#FF6F61',
+    color: '#6750A4',
     marginLeft: 12,
   },
   subtitle: {
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   },
   button: {
     height: 50,
-    backgroundColor: '#FF6F61',
+    backgroundColor: '#6750A4',
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   linkText: {
-    color: '#FF6F61',
+    color: '#6750A4',
     fontWeight: 'bold',
   },
 });
