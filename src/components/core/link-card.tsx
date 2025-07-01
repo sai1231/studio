@@ -212,6 +212,8 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
               <h3 className="font-semibold text-foreground break-all leading-tight">{item.title}</h3>
               <p className="text-sm text-muted-foreground mt-1">PDF Document</p>
           </div>
+        ) : item.type === 'image' ? (
+            null
         ) : (
             <div className="p-4 flex flex-col flex-grow relative">
               <div className="flex-grow space-y-2 mb-4">
