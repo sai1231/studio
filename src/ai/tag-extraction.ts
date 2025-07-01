@@ -11,8 +11,8 @@ interface Tag {
 
 export async function extractTagsFromText(text: string): Promise<Tag[]> {
   if (!text || typeof text !== 'string') {
+    await addLog('INFO', 'Skipping tag extraction: input text is empty or not a string.');
     return [];
- await addLog('INFO', 'Skipping tag extraction: input text is empty or not a string.');
   }
 
   try {
