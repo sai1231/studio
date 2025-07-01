@@ -1,4 +1,3 @@
-
 'use client';
 import type React from 'react';
 import { useState, useEffect } from 'react';
@@ -28,19 +27,19 @@ const AppHeader: React.FC = () => {
   const { user } = useAuth();
   const auth = getAuth();
   
-  // Local state for the input field to allow for debouncing
   const [inputValue, setInputValue] = useState(searchParams.get('q') || '');
 
-  // Effect to update the input's value if the URL query changes (e.g., from browser back/forward)
+  // Effect to update the input's value if the URL query changes
   useEffect(() => {
     setInputValue(searchParams.get('q') || '');
   }, [searchParams]);
 
-  // Effect to debounce user input and update the URL
+  // Debounced effect to update the URL with the search query
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
-      // Don't do anything if the user is not on the search page and the input is empty
-      if (pathname !== '/search' && !inputValue) {
+      // If the input is empty and we're not on the dashboard, do nothing.
+      // This prevents clearing the search on another page and redirecting unnecessarily.
+      if (!inputValue.trim() && pathname !== '/dashboard') {
         return;
       }
       
@@ -52,9 +51,8 @@ const AppHeader: React.FC = () => {
         newParams.set('q', inputValue.trim());
       }
       
-      // Navigate to the search page with the new query.
-      // `router.push` is smart enough to not cause a full page reload if only search params change.
-      router.push(`/search?${newParams.toString()}`);
+      // Always perform search actions relative to the dashboard page.
+      router.push(`/dashboard?${newParams.toString()}`);
      
     }, 300); // 300ms delay
 

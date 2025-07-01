@@ -1,8 +1,7 @@
-
 'use client';
 import type React from 'react';
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import ContentCard from '@/components/core/link-card';
 import ContentDetailDialog from '@/components/core/ContentDetailDialog';
 import type { ContentItem, Zone as AppZone } from '@/types';
@@ -11,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
-import { PlusCircle, Loader2, FolderOpen, ListChecks, AlarmClock, Clapperboard, MessagesSquare, FileImage, Globe, BookOpen, StickyNote, Github, FileText, Trash2 } from 'lucide-react';
+import { PlusCircle, Loader2, FolderOpen, ListChecks, AlarmClock, Clapperboard, MessagesSquare, FileImage, Globe, BookOpen, StickyNote, Github, FileText, Trash2, Search as SearchIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getContentItemsPaginated, getTodoItems, deleteContentItem, getZones, updateContentItem } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
@@ -20,7 +19,7 @@ import { cn } from '@/lib/utils';
 import { format, isPast } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { DocumentSnapshot } from 'firebase/firestore';
-
+import { useSearch } from '@/context/SearchContext';
 
 const pageLoadingMessages = [
   "Organizing your memories...",
@@ -128,35 +127,41 @@ const TodoListCard: React.FC<{
 };
 
 
-export default function DashboardPage() {
+function DashboardPageContent() {
   const { user } = useAuth();
   const { setIsAddTodoDialogOpen, newlyAddedItem, setNewlyAddedItem } = useDialog();
+  const searchParams = useSearchParams();
+  const query = searchParams.get('q') || '';
+  const isSearching = !!query.trim();
 
+  // Search state
+  const { searchResults, isLoading: isSearchLoading, search, isInitialized } = useSearch();
+
+  // Dashboard state (for non-search view)
   const [displayedItems, setDisplayedItems] = useState<ContentItem[]>([]);
   const [todoItems, setTodoItems] = useState<ContentItem[]>([]);
-  
   const [lastVisibleDoc, setLastVisibleDoc] = useState<DocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(true);
-
   const [isLoading, setIsLoading] = useState(true);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
+  
+  // Shared state
   const [isUpdatingTodoStatus, setIsUpdatingTodoStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
   const [selectedItemIdForDetail, setSelectedItemIdForDetail] = useState<string | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
-  
   const { toast } = useToast();
   const [clientLoadingMessage, setClientLoadingMessage] = useState<string | null>(null);
   const loaderRef = useRef<HTMLDivElement | null>(null);
 
   const handleAddTodoClick = () => setIsAddTodoDialogOpen(true);
 
+  // Effect to trigger search when query changes
   useEffect(() => {
-    if (isLoading) {
-      setClientLoadingMessage(pageLoadingMessages[Math.floor(Math.random() * pageLoadingMessages.length)]);
+    if (isInitialized && isSearching) {
+      search(query, {}); // Empty filters for now
     }
-  }, [isLoading]);
+  }, [query, isInitialized, search, isSearching]);
 
   const fetchTodos = useCallback(async (userId: string) => {
     try {
@@ -195,7 +200,12 @@ export default function DashboardPage() {
   }, [hasMore, isFetchingMore, lastVisibleDoc, toast]);
 
 
+  // Effect for initial data load (only runs when not searching)
   useEffect(() => {
+    if (isSearching) {
+      setIsLoading(false);
+      return;
+    }
     if (!user) {
       setIsLoading(false);
       return;
@@ -223,12 +233,12 @@ export default function DashboardPage() {
     };
     initialFetch();
 
-  }, [user, fetchTodos]);
+  }, [user, fetchTodos, isSearching]);
   
+  // Effect to add newly created items to the view
   useEffect(() => {
     if (newlyAddedItem) {
       if (newlyAddedItem.type === 'todo') {
-        // Add new todo and re-sort the list to maintain order
         setTodoItems(prevItems => 
           [newlyAddedItem, ...prevItems].sort((a, b) => {
             if (a.status === 'pending' && b.status === 'completed') return -1;
@@ -240,17 +250,15 @@ export default function DashboardPage() {
           })
         );
       } else {
-        // For other content, prepending is fine as it's sorted by creation date desc.
         setDisplayedItems(prevItems => [newlyAddedItem, ...prevItems]);
       }
-      
-      // Reset the context state to prevent adding the item again on re-renders
       setNewlyAddedItem(null);
     }
   }, [newlyAddedItem, setNewlyAddedItem]);
 
+  // Effect for infinite scroll (only runs when not searching)
   useEffect(() => {
-    if (isFetchingMore || !hasMore || !user) return;
+    if (isSearching || isFetchingMore || !hasMore || !user) return;
 
     const observer = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting) {
@@ -268,7 +276,7 @@ export default function DashboardPage() {
         observer.unobserve(currentLoader);
       }
     };
-  }, [isFetchingMore, hasMore, user, fetchMoreContent]);
+  }, [isSearching, isFetchingMore, hasMore, user, fetchMoreContent]);
 
   const handleOpenDetailDialog = (item: ContentItem) => {
     setSelectedItemIdForDetail(item.id);
@@ -316,14 +324,19 @@ export default function DashboardPage() {
       setIsUpdatingTodoStatus(null);
     }
   };
+  
+  useEffect(() => {
+    setClientLoadingMessage(pageLoadingMessages[Math.floor(Math.random() * pageLoadingMessages.length)]);
+  }, []);
 
-  if (isLoading) {
+  const isPageLoading = isLoading || (isSearching && (isSearchLoading || !isInitialized));
+
+  if (isPageLoading) {
+    const message = isSearching ? "Searching your memories..." : (clientLoadingMessage || pageLoadingMessages[0]);
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">
-          {clientLoadingMessage || pageLoadingMessages[0]}
-        </p>
+        <p className="mt-4 text-muted-foreground">{message}</p>
       </div>
     );
   }
@@ -338,10 +351,20 @@ export default function DashboardPage() {
       </div>
     );
   }
+  
+  const contentToDisplay = isSearching ? searchResults : displayedItems;
+  const noContentOnDashboard = !isSearching && displayedItems.length === 0 && todoItems.length === 0;
 
   return (
     <div className="container mx-auto py-2">
-      {(displayedItems.length === 0 && todoItems.length === 0) ? (
+      {isSearching ? (
+        <div className="text-center py-6">
+          <h2 className="text-2xl font-headline font-semibold">Search Results</h2>
+          <p className="text-muted-foreground">Found {searchResults.length} items for &quot;{query}&quot;</p>
+        </div>
+      ) : null}
+
+      {noContentOnDashboard ? (
         <div className="text-center py-12">
           <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h2 className="text-xl font-medium text-muted-foreground">No content saved yet.</h2>
@@ -375,42 +398,53 @@ export default function DashboardPage() {
             </p>
           </div>
         </div>
+      ) : isSearching && contentToDisplay.length === 0 ? (
+         <div className="text-center py-12">
+          <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h2 className="text-xl font-medium text-muted-foreground">No items found.</h2>
+          <p className="text-muted-foreground mt-2">Try a different search term.</p>
+        </div>
       ) : (
         <div>
           <div className={'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
-            {todoItems.length > 0 ? (
-              <TodoListCard
-                items={todoItems}
-                onToggleStatus={handleToggleTodoStatus}
-                onDeleteItem={(id) => handleDeleteContent(id, 'todo')}
-                isUpdatingStatus={isUpdatingTodoStatus}
-                onAddTodoClick={handleAddTodoClick}
-              />
-            ) : (
-              <Card 
-                draggable="true"
-                onDragStart={(e: React.DragEvent) => e.dataTransfer.setData('application/x-mati-internal', 'true')}
-                className="shadow-lg flex flex-col w-full break-inside-avoid mb-4"
-              >
-                  <CardContent className="p-6 flex-grow flex flex-col items-center justify-center text-center min-h-[150px]">
-                      <ListChecks className="h-10 w-10 text-muted-foreground mb-3" />
-                      <p className="font-medium text-foreground">You're all caught up!</p>
-                      <p className="text-sm text-muted-foreground">No pending tasks.</p>
-                  </CardContent>
-                  <div className="border-t p-2 flex-shrink-0">
-                      <Button
-                          variant="link"
-                          size="sm"
-                          className="w-full text-muted-foreground hover:text-primary"
-                          onClick={handleAddTodoClick}
-                      >
-                          <PlusCircle className="h-4 w-4 mr-2" />
-                          Add a task
-                      </Button>
-                  </div>
-              </Card>
+            {!isSearching && (
+              <>
+                {todoItems.length > 0 ? (
+                  <TodoListCard
+                    items={todoItems}
+                    onToggleStatus={handleToggleTodoStatus}
+                    onDeleteItem={(id) => handleDeleteContent(id, 'todo')}
+                    isUpdatingStatus={isUpdatingTodoStatus}
+                    onAddTodoClick={handleAddTodoClick}
+                  />
+                ) : (
+                  <Card 
+                    draggable="true"
+                    onDragStart={(e: React.DragEvent) => e.dataTransfer.setData('application/x-mati-internal', 'true')}
+                    className="shadow-lg flex flex-col w-full break-inside-avoid mb-4"
+                  >
+                      <CardContent className="p-6 flex-grow flex flex-col items-center justify-center text-center min-h-[150px]">
+                          <ListChecks className="h-10 w-10 text-muted-foreground mb-3" />
+                          <p className="font-medium text-foreground">You're all caught up!</p>
+                          <p className="text-sm text-muted-foreground">No pending tasks.</p>
+                      </CardContent>
+                      <div className="border-t p-2 flex-shrink-0">
+                          <Button
+                              variant="link"
+                              size="sm"
+                              className="w-full text-muted-foreground hover:text-primary"
+                              onClick={handleAddTodoClick}
+                          >
+                              <PlusCircle className="h-4 w-4 mr-2" />
+                              Add a task
+                          </Button>
+                      </div>
+                  </Card>
+                )}
+              </>
             )}
-            {displayedItems.map(item => (
+
+            {contentToDisplay.map(item => (
               <ContentCard
                 key={item.id}
                 item={item}
@@ -419,12 +453,14 @@ export default function DashboardPage() {
               />
             ))}
           </div>
-          <div ref={loaderRef} className="flex justify-center items-center h-16">
-            {isFetchingMore && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
-            {!hasMore && displayedItems.length > 0 && (
-                <p className="text-muted-foreground">You've reached the end!</p>
-            )}
-          </div>
+          {!isSearching && (
+            <div ref={loaderRef} className="flex justify-center items-center h-16">
+              {isFetchingMore && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
+              {!hasMore && displayedItems.length > 0 && (
+                  <p className="text-muted-foreground">You've reached the end!</p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -441,4 +477,17 @@ export default function DashboardPage() {
       )}
     </div>
   );
+}
+
+export default function DashboardPage() {
+  return (
+    // Suspense is needed because useSearchParams is a client-side hook
+    <Suspense fallback={
+        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    }>
+        <DashboardPageContent />
+    </Suspense>
+  )
 }
