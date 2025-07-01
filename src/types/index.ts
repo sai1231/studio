@@ -45,6 +45,12 @@ export interface MovieDetails {
   genres?: string[];
 }
 
+export interface SearchFilters {
+  zoneId?: string | null;
+  contentType?: string | null;
+  tagNames?: string[];
+}
+
 // Specific type for Link items, if needed for type guarding
 export type LinkItem = ContentItem & {
   type: 'link';

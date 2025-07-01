@@ -19,9 +19,10 @@ import {
   type DocumentSnapshot,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { ContentItem, Zone, Tag, MovieDetails } from '@/types';
+import type { ContentItem, Zone, Tag, MovieDetails, SearchFilters } from '@/types';
 import { enrichContent } from '@/ai/flows/enrich-content-flow';
 import { addLog } from '@/services/loggingService';
+import { syncItemWithMeili, deleteItemFromMeili } from '@/services/meilisearchService';
 
 // Firestore collection references
 const contentCollection = collection(db, 'content');
@@ -217,21 +218,24 @@ export async function addContentItem(
 
     const docRef = await addDoc(contentCollection, dataToSave);
 
+    const finalItem: ContentItem = {
+      id: docRef.id,
+      ...dataToSave,
+      createdAt: (dataToSave.createdAt as Timestamp).toDate().toISOString(),
+    };
+
     // After successfully adding the document, trigger the enrichment flow asynchronously
     if (dataToSave.status === 'pending-analysis') {
       // We do not await this. Let it run in the background.
       enrichContent(docRef.id).catch(err => {
         console.error(`Failed to trigger enrichment for ${docRef.id}:`, err);
       });
+    } else {
+        // If not going for enrichment, sync to Meilisearch now.
+        await syncItemWithMeili(finalItem);
     }
 
-    const finalItem = {
-      id: docRef.id,
-      ...dataToSave,
-    };
-    finalItem.createdAt = (finalItem.createdAt as Timestamp).toDate().toISOString();
-
-    return finalItem as ContentItem;
+    return finalItem;
 
   } catch (error) {
     console.error("Failed to add content item to Firestore:", error);
@@ -242,6 +246,7 @@ export async function addContentItem(
 // Function to delete a content item
 export async function deleteContentItem(itemId: string): Promise<void> {
   try {
+    await deleteItemFromMeili(itemId); // Sync with Meilisearch
     await deleteDoc(doc(db, 'content', itemId));
   } catch(error) {
     console.error(`Failed to delete content item with ID ${itemId}:`, error);
@@ -265,115 +270,16 @@ export async function updateContentItem(
     }
 
     await updateDoc(docRef, updateData);
-    return await getContentItemById(itemId);
+    const updatedItem = await getContentItemById(itemId);
+    if(updatedItem) {
+        await syncItemWithMeili(updatedItem); // Sync with Meilisearch
+    }
+    return updatedItem;
   } catch(error) {
     console.error(`Failed to update content item with ID ${itemId}:`, error);
     throw error;
   }
 }
-
-export interface SearchFilters {
-  zoneId?: string | null;
-  contentType?: string | null;
-  tagNames?: string[];
-}
-
-
-export async function searchContentItems({
-  userId,
-  searchQuery,
-  filters = {},
-  pageSize,
-  lastDoc,
-}: {
-  userId: string;
-  searchQuery: string;
-  filters?: SearchFilters;
-  pageSize: number;
-  lastDoc?: DocumentSnapshot;
-}): Promise<{ items: ContentItem[]; lastVisibleDoc: DocumentSnapshot | null }> {
-    const searchId = `search-${Date.now()}`;
-    await addLog('INFO', `[${searchId}] Search initiated for user ${userId}`, { searchQuery, filters, pageSize });
-
-    try {
-        if (!userId || !searchQuery.trim()) {
-            await addLog('WARN', `[${searchId}] Search aborted: missing user ID or search query.`);
-            return { items: [], lastVisibleDoc: null };
-        }
-
-        const queryWords = [...new Set(searchQuery.toLowerCase().split(/\s+/).filter(w => w.length > 1))];
-        if (queryWords.length === 0) {
-            await addLog('WARN', `[${searchId}] Search aborted: no valid query words.`);
-            return { items: [], lastVisibleDoc: null };
-        }
-        
-        const primaryKeyword = queryWords[0];
-        await addLog('INFO', `[${searchId}] Primary keyword for Firestore query: '${primaryKeyword}'`);
-        
-        const queryConstraints: any[] = [
-            where('userId', '==', userId),
-            where('searchableKeywords', 'array-contains', primaryKeyword),
-            orderBy('createdAt', 'desc'),
-            limit(pageSize),
-        ];
-
-        if (filters.zoneId) {
-            queryConstraints.push(where('zoneId', '==', filters.zoneId));
-        }
-        if (filters.contentType) {
-            queryConstraints.push(where('contentType', '==', filters.contentType));
-        }
-        if (lastDoc) {
-            queryConstraints.push(startAfter(lastDoc));
-        }
-        
-        await addLog('INFO', `[${searchId}] Executing Firestore query.`);
-        const q = query(contentCollection, ...queryConstraints);
-        const querySnapshot = await getDocs(q);
-        await addLog('INFO', `[${searchId}] Firestore query returned ${querySnapshot.docs.length} documents.`);
-        
-        let items = querySnapshot.docs.map(doc => {
-            const data = doc.data();
-            const createdAt = data.createdAt;
-            return {
-                id: doc.id,
-                ...data,
-                createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : new Date().toISOString(),
-            } as ContentItem;
-        });
-        
-        const preFilterCount = items.length;
-
-        const remainingKeywords = queryWords.slice(1);
-        if (remainingKeywords.length > 0) {
-            items = items.filter(item => 
-                remainingKeywords.every(kw => 
-                    item.searchableKeywords?.includes(kw)
-                )
-            );
-        }
-
-        if (filters.tagNames && filters.tagNames.length > 0) {
-            const filterTagNamesLower = filters.tagNames.map(t => t.toLowerCase());
-            items = items.filter(item => {
-                const itemTagNames = item.tags.map(tag => tag.name.toLowerCase());
-                return filterTagNamesLower.every(filterTag => itemTagNames.includes(filterTag));
-            });
-        }
-        
-        await addLog('INFO', `[${searchId}] Client-side filtering complete. Pre-filter count: ${preFilterCount}, Post-filter count: ${items.length}.`);
-
-        const lastVisibleDoc = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
-
-        await addLog('INFO', `[${searchId}] Search successful. Returning ${items.length} items.`);
-        return { items, lastVisibleDoc };
-    } catch (error: any) {
-        console.error("Failed to search content items from Firestore:", error);
-        await addLog('ERROR', `[${searchId}] Search failed catastrophically.`, { error: error.message, stack: error.stack });
-        throw error;
-    }
-}
-
 
 // --- Zone Functions ---
 

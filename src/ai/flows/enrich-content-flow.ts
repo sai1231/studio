@@ -15,6 +15,8 @@ import { z } from 'zod';
 import { collection, doc, getDoc, updateDoc, type Firestore, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase'; // Keep using client 'db' for consistency here
 import { addLog } from '@/services/loggingService';
+import { syncItemWithMeili } from '@/services/meilisearchService';
+import type { ContentItem } from '@/types';
 
 const contentCollectionRef = collection(db, 'content');
 
@@ -250,6 +252,15 @@ const enrichContentFlow = ai.defineFlow(
 
       await updateDoc(docRef, updatePayload);
       await addLog('INFO', `[${contentId}] ✅ Successfully updated document with payload:`, { payload: updatePayload });
+
+      // After all updates, sync the final state to Meilisearch
+      const finalItemForSync: ContentItem = {
+        ...contentData,
+        ...updatePayload,
+        id: contentId,
+        createdAt: (contentData.createdAt as Timestamp).toDate().toISOString(),
+      };
+      await syncItemWithMeili(finalItemForSync);
 
     } else {
       await addLog('INFO', `[${contentId}] ⏭️ Skipping enrichment, status is '${contentData.status}', not 'pending-analysis'.`);

@@ -1,3 +1,4 @@
+
 'use server';
 
 import { MeiliSearch } from 'meilisearch';
@@ -27,11 +28,10 @@ if (host && apiKey) {
 async function initializeIndex() {
   if (!isMeiliConfigured) return;
   try {
-    // Check if the index exists. If it does, update settings. If not, create it.
     const index = await client.getIndex(indexName).catch(() => null);
     if (!index) {
         await client.createIndex(indexName, { primaryKey: 'id' });
-        await addLog('INFO', `Meilisearch index '${indexName}' created.`);
+        await addLog('INFO', `[Meili] Index '${indexName}' created.`);
     }
 
     const indexToUpdate = client.index(indexName);
@@ -58,15 +58,17 @@ async function initializeIndex() {
         'exactness',
         'createdAt:desc',
       ],
+      facetting: {
+        maxValuesPerFacet: 100,
+      }
     });
-    await addLog('INFO', `Meilisearch index '${indexName}' configured successfully.`);
+    await addLog('INFO', `[Meili] Index '${indexName}' configured successfully.`);
   } catch (error) {
-    await addLog('ERROR', `Failed to initialize Meilisearch index '${indexName}'`, { error: (error as Error).message });
-    console.error(`Failed to initialize Meilisearch index '${indexName}':`, error)
+    await addLog('ERROR', `[Meili] Failed to initialize index '${indexName}'`, { error: (error as Error).message });
+    console.error(`[Meili] Failed to initialize index '${indexName}':`, error)
   }
 }
 
-// Call this once on startup
 if (isMeiliConfigured) {
   initializeIndex();
 }
@@ -74,7 +76,6 @@ if (isMeiliConfigured) {
 export async function syncItemWithMeili(item: ContentItem): Promise<void> {
   if (!isMeiliConfigured) return;
   
-  // Meilisearch expects flat objects for filtering/sorting on nested fields.
   const documentToIndex = {
     ...item,
     'tags.name': item.tags.map(t => t.name),
@@ -83,9 +84,8 @@ export async function syncItemWithMeili(item: ContentItem): Promise<void> {
   try {
     const index = client.index(indexName);
     await index.addDocuments([documentToIndex], { primaryKey: 'id' });
-    await addLog('INFO', `[Meili] Synced item ${item.id}`);
   } catch (error) {
-    await addLog('ERROR', `[Meili] Failed to sync item ${item.id}`, { error: (error as Error).message });
+    await addLog('ERROR', `[Meili] Failed to sync item ${item.id}`, { error: (error as Error).message, item });
     console.error(`[Meili] Failed to sync item ${item.id}:`, error);
   }
 }
@@ -95,7 +95,6 @@ export async function deleteItemFromMeili(itemId: string): Promise<void> {
   try {
     const index = client.index(indexName);
     await index.deleteDocument(itemId);
-    await addLog('INFO', `[Meili] Deleted item ${itemId}`);
   } catch (error) {
     await addLog('ERROR', `[Meili] Failed to delete item ${itemId}`, { error: (error as Error).message });
     console.error(`[Meili] Failed to delete item ${itemId}:`, error);
@@ -105,10 +104,10 @@ export async function deleteItemFromMeili(itemId: string): Promise<void> {
 export async function searchMeili(
   userId: string,
   searchQuery: string,
-  filters?: SearchFilters,
+  filters: SearchFilters = {},
   limit: number = 20,
   offset: number = 0,
-): Promise<{ hits: ContentItem[], estimatedTotalHits: number }> {
+): Promise<{ hits: ContentItem[], estimatedTotalHits: number, facetDistribution?: Record<string, Record<string, number>> }> {
   if (!isMeiliConfigured) return { hits: [], estimatedTotalHits: 0 };
   
   const searchId = `meili-search-${Date.now()}`;
@@ -122,7 +121,7 @@ export async function searchMeili(
     if (filters?.contentType) filterClauses.push(`contentType = '${filters.contentType}'`);
     if (filters?.tagNames && filters.tagNames.length > 0) {
       filters.tagNames.forEach(tagName => {
-        filterClauses.push(`tags.name = '${tagName}'`);
+        filterClauses.push(`'${tagName}' IN tags.name`);
       });
     }
 
@@ -131,6 +130,7 @@ export async function searchMeili(
       offset,
       filter: filterClauses.join(' AND '),
       sort: ['createdAt:desc'],
+      facets: ['contentType', 'tags.name'],
     });
 
     await addLog('INFO', `[${searchId}] Meilisearch returned ${searchResult.hits.length} hits`, { total: searchResult.estimatedTotalHits });
@@ -138,6 +138,7 @@ export async function searchMeili(
     return {
       hits: searchResult.hits as ContentItem[],
       estimatedTotalHits: searchResult.estimatedTotalHits,
+      facetDistribution: searchResult.facetDistribution
     };
   } catch (error) {
     await addLog('ERROR', `[${searchId}] Meilisearch search failed`, { error: (error as Error).message });

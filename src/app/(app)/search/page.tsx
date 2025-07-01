@@ -16,16 +16,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Search as SearchIcon, FolderOpen, ListFilter, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
-  searchContentItems,
   deleteContentItem,
   getZones,
-  getUniqueContentTypesFromItems,
-  getUniqueTagsFromItems,
 } from '@/services/contentService';
+import { searchMeili } from '@/services/meilisearchService';
 import { useAuth } from '@/context/AuthContext';
-import { cn } from '@/lib/utils';
-import type { DocumentSnapshot } from 'firebase/firestore';
-
 
 const ALL_FILTER_VALUE = "__ALL__";
 
@@ -47,8 +42,8 @@ function SearchResultsPageContent() {
   
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
-  const [lastVisibleDoc, setLastVisibleDoc] = useState<DocumentSnapshot | null>(null);
-  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
+  const [estimatedTotalHits, setEstimatedTotalHits] = useState(0);
   
   const [error, setError] = useState<string | null>(null);
   
@@ -62,29 +57,21 @@ function SearchResultsPageContent() {
   const [pendingSelectedTagIds, setPendingSelectedTagIds] = useState<string[]>(tagIds);
   const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
 
-  // Fetch static filter options like zones and all content types/tags
+  // Fetch static filter options like zones
   useEffect(() => {
     if (!user) return;
     const fetchFilterOptions = async () => {
         try {
-            const [zones, contentTypes, tags] = await Promise.all([
-                getZones(user.uid),
-                // Since search is server-side, we can't derive filters from results.
-                // We'll fetch all unique types/tags once for the filter dropdowns.
-                // This could be optimized further if needed.
-                getUniqueContentTypesFromItems([]), // This part needs to be re-thought or removed
-                getUniqueTagsFromItems([]),
-            ]);
+            const zones = await getZones(user.uid);
             setAvailableZones(zones);
         } catch (e) {
-            console.error("Error fetching filter options:", e);
-            toast({ title: "Error", description: "Could not load filter options.", variant: "destructive" });
+            console.error("Error fetching zones for filter:", e);
         }
     };
     fetchFilterOptions();
-  }, [user, toast]);
+  }, [user]);
   
-  const performSearch = useCallback(async (isNewSearch: boolean, currentLastDoc?: DocumentSnapshot | null) => {
+  const performSearch = useCallback(async (isNewSearch: boolean) => {
     if (!user || !query.trim()) {
         setSearchResults([]);
         setIsLoading(false);
@@ -94,8 +81,8 @@ function SearchResultsPageContent() {
     if (isNewSearch) {
         setIsLoading(true);
         setSearchResults([]);
-        setLastVisibleDoc(null);
-        setHasMore(true);
+        setOffset(0);
+        setEstimatedTotalHits(0);
     } else {
         setIsFetchingMore(true);
     }
@@ -105,25 +92,28 @@ function SearchResultsPageContent() {
         const filters = {
             zoneId: zoneId !== ALL_FILTER_VALUE ? zoneId : undefined,
             contentType: contentType !== ALL_FILTER_VALUE ? contentType : undefined,
-            tagNames: tagIds, // Pass tag names for client-side filtering
+            tagNames: tagIds,
         };
 
-        const { items, lastVisibleDoc: newLastDoc } = await searchContentItems({
-            userId: user.uid,
-            searchQuery: query,
+        const searchOffset = isNewSearch ? 0 : offset;
+        const { hits, estimatedTotalHits: total, facetDistribution } = await searchMeili(
+            user.uid,
+            query,
             filters,
-            pageSize: 50,
-            lastDoc: isNewSearch ? undefined : currentLastDoc || undefined,
-        });
+            20, // Page size
+            searchOffset,
+        );
 
-        if (isNewSearch) {
-            setSearchResults(items);
-        } else {
-            setSearchResults(prev => [...prev, ...items]);
+        setEstimatedTotalHits(total);
+        setSearchResults(prev => isNewSearch ? hits : [...prev, ...hits]);
+        setOffset(searchOffset + hits.length);
+
+        if (isNewSearch && facetDistribution) {
+            setAvailableContentTypes(Object.keys(facetDistribution.contentType || {}));
+            setAvailableTags(
+                Object.keys(facetDistribution['tags.name'] || {}).map(name => ({ id: name, name }))
+            );
         }
-        
-        setLastVisibleDoc(newLastDoc);
-        setHasMore(!!newLastDoc);
 
     } catch (err) {
         console.error("Error fetching search data:", err);
@@ -132,19 +122,23 @@ function SearchResultsPageContent() {
         setIsLoading(false);
         setIsFetchingMore(false);
     }
-  }, [user, query, zoneId, contentType, tagIds, toast]);
+  }, [user, query, zoneId, contentType, tagIds, offset]);
 
   // Effect to trigger a new search when query or filters change
   useEffect(() => {
     performSearch(true);
-  }, [query, zoneId, contentType, tagIds, performSearch]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, zoneId, contentType, tagIds]);
 
 
   // Effect for infinite scroll
   useEffect(() => {
+    const hasMore = offset < estimatedTotalHits;
+    if (!hasMore || isFetchingMore) return;
+
     const observer = new IntersectionObserver(entries => {
-        if (entries[0].isIntersecting && hasMore && !isFetchingMore) {
-            performSearch(false, lastVisibleDoc);
+        if (entries[0].isIntersecting) {
+            performSearch(false);
         }
     });
 
@@ -157,7 +151,7 @@ function SearchResultsPageContent() {
             observer.unobserve(currentLoader);
         }
     };
-  }, [isFetchingMore, hasMore, lastVisibleDoc, performSearch]);
+  }, [isFetchingMore, offset, estimatedTotalHits, performSearch]);
 
   // Update pending filters when popover opens
   useEffect(() => {
@@ -218,6 +212,8 @@ function SearchResultsPageContent() {
     return count;
   }, [zoneId, contentType, tagIds]);
 
+  const hasMore = offset < estimatedTotalHits;
+
   return (
     <div className="container mx-auto py-2">
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
@@ -229,7 +225,81 @@ function SearchResultsPageContent() {
           {query && <p className="text-muted-foreground mt-1">Showing results for: <span className="font-semibold text-foreground">&quot;{query}&quot;</span></p>}
         </div>
         <div className="flex items-center gap-2">
-            {/* Filter Popover remains the same */}
+            <Popover open={isFilterPopoverOpen} onOpenChange={setIsFilterPopoverOpen}>
+                <PopoverTrigger asChild>
+                    <Button variant="outline" className="relative">
+                        <ListFilter className="h-4 w-4 mr-2"/>
+                        Filters
+                        {activeFilterCount > 0 && (
+                           <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
+                             {activeFilterCount}
+                           </span>
+                        )}
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-4 space-y-4" align="end">
+                    <div className="space-y-1">
+                        <Label htmlFor="zone-filter-search" className="text-sm font-medium">Zone</Label>
+                        <Select value={pendingSelectedZoneId} onValueChange={setPendingSelectedZoneId}>
+                            <SelectTrigger id="zone-filter-search">
+                                <SelectValue placeholder="All Zones" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value={ALL_FILTER_VALUE}>All Zones</SelectItem>
+                                {availableZones.map(zone => (
+                                    <SelectItem key={zone.id} value={zone.id}>{zone.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-1">
+                        <Label htmlFor="content-type-filter-search" className="text-sm font-medium">Content Type</Label>
+                        <Select value={pendingSelectedContentType} onValueChange={setPendingSelectedContentType}>
+                            <SelectTrigger id="content-type-filter-search">
+                                <SelectValue placeholder="All Content Types" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value={ALL_FILTER_VALUE}>All Content Types</SelectItem>
+                                {availableContentTypes.map(type => (
+                                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label className="text-sm font-medium">Tags</Label>
+                        {availableTags.length > 0 ? (
+                            <ScrollArea className="h-32 rounded-md border p-2">
+                                <div className="space-y-1.5">
+                                {availableTags.map(tag => (
+                                    <div key={tag.id} className="flex items-center space-x-2">
+                                        <Checkbox 
+                                            id={`tag-search-${tag.id}`} 
+                                            checked={pendingSelectedTagIds.includes(tag.id)}
+                                            onCheckedChange={(checked) => setPendingSelectedTagIds(prev => checked ? [...prev, tag.id] : prev.filter(id => id !== tag.id))}
+                                        />
+                                        <Label htmlFor={`tag-search-${tag.id}`} className="text-sm font-normal cursor-pointer">{tag.name}</Label>
+                                    </div>
+                                ))}
+                                </div>
+                            </ScrollArea>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">No tags found for this search.</p>
+                        )}
+                    </div>
+                    <div className="flex justify-end gap-2 pt-4 border-t mt-4">
+                        <Button onClick={handleClearFilters} variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                            <XCircle className="h-4 w-4 mr-2"/>
+                            Clear All
+                        </Button>
+                        <Button onClick={handleApplyFilters} size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                            Apply Filters
+                        </Button>
+                    </div>
+                </PopoverContent>
+            </Popover>
         </div>
       </div>
 
