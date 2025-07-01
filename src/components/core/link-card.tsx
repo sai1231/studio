@@ -128,26 +128,36 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
     return React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) });
   }, [item, specifics, hasImage, faviconError]);
 
-  const ImageComponent = ({ className }: { className?: string }) => (
-    <div className={cn("relative w-full overflow-hidden aspect-video bg-muted", className)}>
-      {isImageLoading && <Skeleton className="absolute inset-0 h-full w-full" />}
-      <img
-        src={item.imageUrl!}
-        alt={item.title}
-        data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
-        className={cn(
-          "w-full h-full object-cover group-hover:scale-105 transition-all duration-300",
-          isImageLoading ? "opacity-0" : "opacity-100"
-        )}
-        loading="lazy"
-        onLoad={() => setIsImageLoading(false)}
-        onError={() => {
-          setIsImageLoading(false);
-          setImageError(true);
-        }}
-      />
-    </div>
-  );
+  const ImageComponent = ({ className }: { className?: string }) => {
+    // Calculate aspect ratio. Use a default if dimensions aren't available.
+    const aspectRatio = (item.imageWidth && item.imageHeight) 
+      ? (item.imageHeight / item.imageWidth) * 100 
+      : 56.25; // Default to 16:9 aspect ratio (9 / 16 * 100) if no dimensions
+
+    return (
+        <div className={cn("relative w-full overflow-hidden bg-muted", className)}>
+            {/* This div reserves the space */}
+            <div style={{ paddingTop: `${aspectRatio}%` }}>
+                {isImageLoading && <Skeleton className="absolute inset-0 h-full w-full" />}
+            </div>
+            <img
+                src={item.imageUrl!}
+                alt={item.title}
+                data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
+                className={cn(
+                    "absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-300",
+                    isImageLoading ? "opacity-0" : "opacity-100"
+                )}
+                loading="lazy"
+                onLoad={() => setIsImageLoading(false)}
+                onError={() => {
+                    setIsImageLoading(false);
+                    setImageError(true);
+                }}
+            />
+        </div>
+    );
+  };
 
   return (
     <Card

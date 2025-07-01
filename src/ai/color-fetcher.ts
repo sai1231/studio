@@ -5,15 +5,8 @@ export async function fetchImageColors(buffer: Buffer, contentId: string): Promi
   try {
     await addLog('INFO', `[${contentId}] Attempting to extract colors from image buffer.`);
 
-    // Convert buffer to imageData format expected by extractColors
-    const imageData = {
-      data: new Uint8Array(buffer),
-      width: 100,  // Adjust based on actual image dimensions
-      height: 100, // Adjust based on actual image dimensions
-    };
-
     // Extract colors (already sorted by dominance)
-    const colors = await extractColors(imageData, {
+    const colors = await extractColors(buffer, {
       pixels: 64000,
       distance: 0.22,
     });
@@ -36,7 +29,7 @@ const top10HexCodes = sortedByArea.slice(0, 10).map(color => color.hex);
     
     await addLog('INFO', `[${contentId}] Extracted top 10 hex codes: ${JSON.stringify(top10HexCodes)}`);
     return top10HexCodes;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error extracting colors:`, error);
     await addLog('ERROR', `[${contentId}] Failed to extract colors: ${error.message}`);
     throw error;
