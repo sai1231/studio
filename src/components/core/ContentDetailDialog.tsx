@@ -278,7 +278,6 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       }
     } catch (e) {
       console.error(`Error updating ${fieldName}:`, e);
-      toast({ title: "Error", description: `Could not update ${fieldName}.`, variant: "destructive" });
     } finally {
       setIsSavingField(false);
     }
@@ -371,7 +370,6 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       }
     } catch (e) {
       console.error('Error updating tags:', e);
-      toast({ title: "Error", description: "Could not save tags. Please try again.", variant: "destructive" });
       if(item) setEditableTags(item.tags || []); 
     } finally {
       setIsUpdatingTags(false);
@@ -433,12 +431,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   };
   
   const handleExpiryChange = (value: string) => {
-    let newExpiryDate: Date;
-    if (value === 'test_5s') {
-      newExpiryDate = add(new Date(), { seconds: 5 });
-    } else {
-      newExpiryDate = add(new Date(), { days: parseInt(value, 10) });
-    }
+    const newExpiryDate = add(new Date(), { days: parseInt(value, 10) });
     handleFieldUpdate('expiresAt', newExpiryDate.toISOString());
   };
 
@@ -840,7 +833,6 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                                             <SelectValue placeholder="Change expiration..." />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="test_5s">Delete after 5 seconds (for testing)</SelectItem>
                                             <SelectItem value="7">Delete after 7 days</SelectItem>
                                             <SelectItem value="30">Delete after 30 days</SelectItem>
                                             <SelectItem value="90">Delete after 90 days</SelectItem>
