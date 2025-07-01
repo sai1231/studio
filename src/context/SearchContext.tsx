@@ -35,7 +35,10 @@ interface SearchableDocument {
 const createNewIndex = () => new Document<SearchableDocument, true>({
     document: {
       id: 'id',
-      index: ['title', 'description', 'tags', 'domain', 'contentType'],
+      // Fields for full-text search
+      index: ['title', 'description', 'tags', 'domain'],
+      // Fields for filtering (where clause)
+      tag: ['zoneId', 'contentType'],
       store: true,
     },
     tokenize: 'forward',
@@ -117,9 +120,10 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
     if (filters.contentType) whereClauses.contentType = filters.contentType;
 
     const results = index.search(query, {
-      where: whereClauses,
-      bool: "and",
-      enrich: true,
+        index: ['title', 'description', 'tags', 'domain'],
+        where: whereClauses,
+        bool: "and",
+        enrich: true,
     });
 
     const idSet = new Set<string>();
