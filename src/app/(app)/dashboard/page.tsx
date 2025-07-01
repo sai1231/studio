@@ -136,7 +136,7 @@ function DashboardPageContent() {
   const isSearching = !!query.trim();
 
   // Search state
-  const { searchResults, isLoading: isSearchLoading, isInitialized } = useSearch();
+  const { search, searchResults, isLoading: isSearchLoading, isInitialized } = useSearch();
 
   // Dashboard state (for non-search view)
   const [displayedItems, setDisplayedItems] = useState<ContentItem[]>([]);
