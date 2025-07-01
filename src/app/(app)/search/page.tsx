@@ -118,7 +118,7 @@ function SearchResultsPageContent() {
       const lowerCaseQuery = query.toLowerCase();
       filtered = filtered.filter(item => 
         item.title.toLowerCase().includes(lowerCaseQuery) ||
-        (item.description && item.description.toLowerCase().includes(lowerCaseQuery)) ||
+        (item.description && typeof item.description === 'string' && item.description.toLowerCase().includes(lowerCaseQuery)) ||
         item.tags.some(tag => tag.name.toLowerCase().includes(lowerCaseQuery)) ||
         (item.contentType && item.contentType.toLowerCase().includes(lowerCaseQuery)) ||
         (item.colorPalette && item.colorPalette.some(color => color.toLowerCase().includes(lowerCaseQuery)))
