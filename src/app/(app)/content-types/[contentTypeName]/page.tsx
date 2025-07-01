@@ -186,7 +186,6 @@ export default function ContentTypePage() {
     } else {
       setAllContentForType(prevItems => prevItems.filter(item => item.id !== updatedItem.id));
     }
-    toast({ title: "Item Updated", description: `"${updatedItem.title}" has been updated.` });
   };
 
   const handleDeleteItem = async (itemIdToDelete: string) => {

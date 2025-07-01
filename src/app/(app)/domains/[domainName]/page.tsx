@@ -181,7 +181,6 @@ export default function DomainPage() {
     } else {
       setAllContentForDomain(prevItems => prevItems.filter(item => item.id !== updatedItem.id));
     }
-    toast({ title: "Item Updated", description: `"${updatedItem.title}" has been updated.` });
   };
 
   const handleDeleteItem = async (itemIdToDelete: string) => {

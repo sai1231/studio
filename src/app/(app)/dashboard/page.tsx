@@ -1,3 +1,4 @@
+
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
@@ -135,7 +136,7 @@ function DashboardPageContent() {
   const isSearching = !!query.trim();
 
   // Search state
-  const { searchResults, isLoading: isSearchLoading, search, isInitialized } = useSearch();
+  const { searchResults, isLoading: isSearchLoading, isInitialized } = useSearch();
 
   // Dashboard state (for non-search view)
   const [displayedItems, setDisplayedItems] = useState<ContentItem[]>([]);
@@ -285,7 +286,6 @@ function DashboardPageContent() {
 
   const handleItemUpdateInDialog = (updatedItem: ContentItem) => {
     setDisplayedItems(prevItems => prevItems.map(item => item.id === updatedItem.id ? updatedItem : item));
-    toast({ title: "Item Updated", description: `"${updatedItem.title}" has been updated.`});
   };
 
   const handleDeleteContent = async (itemId: string, itemType: ContentItem['type']) => {

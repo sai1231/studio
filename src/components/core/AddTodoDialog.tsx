@@ -134,14 +134,9 @@ const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange, zones
     );
 
     try {
-      const updatedItem = await updateContentItem(todoId, { status: newStatus });
-      if (updatedItem) {
-        toast({ title: "TODO Updated", description: `"${updatedItem.title}" marked as ${newStatus}.` });
-        // Optionally, call fetchLocalTodos() again if global updates might affect sort order or other properties
-        // For now, local optimistic update is primary for responsiveness.
-      } else {
-        throw new Error("Update failed, item not returned from service.");
-      }
+      await updateContentItem(todoId, { status: newStatus });
+      // Optionally, call fetchLocalTodos() again if global updates might affect sort order or other properties
+      // For now, local optimistic update is primary for responsiveness.
     } catch (error) {
       console.error('Error updating TODO status in dialog:', error);
       toast({ title: "Error", description: "Could not update TODO status.", variant: "destructive" });

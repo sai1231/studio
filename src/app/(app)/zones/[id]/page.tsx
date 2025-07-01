@@ -165,7 +165,6 @@ export default function ZonePage() {
         prev.map(item => item.id === updatedItem.id ? updatedItem : item)
       );
     }
-    toast({ title: "Item Updated", description: `"${updatedItem.title}" has been updated.`});
   };
 
   const handleDeleteItem = async (itemIdToDelete: string) => {

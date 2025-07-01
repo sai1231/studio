@@ -110,12 +110,7 @@ export default function QuickTodoPage() {
     );
 
     try {
-      const updatedItem = await updateContentItem(todoId, { status: newStatus });
-      if (updatedItem) {
-        toast({ title: "TODO Updated", description: `"${updatedItem.title}" marked as ${newStatus}.` });
-      } else {
-        throw new Error("Update failed, item not returned");
-      }
+      await updateContentItem(todoId, { status: newStatus });
     } catch (error) {
       console.error('Error updating TODO status:', error);
       toast({ title: "Error", description: "Could not update TODO status.", variant: "destructive" });

@@ -186,7 +186,6 @@ export default function TagPage() {
     } else { // Item no longer has the primary tag for this page
       setAllContentForTag(prevItems => prevItems.filter(item => item.id !== updatedItem.id));
     }
-    toast({ title: "Item Updated", description: `"${updatedItem.title}" has been updated.` });
   };
 
   const handleDeleteItem = async (itemIdToDelete: string) => {
