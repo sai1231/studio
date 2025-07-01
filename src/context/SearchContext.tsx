@@ -35,10 +35,8 @@ interface SearchableDocument {
 const createNewIndex = () => new Document<SearchableDocument, true>({
     document: {
       id: 'id',
-      // Fields for full-text search
+      // Fields for full-text search. `where` clauses will be indexed automatically.
       index: ['title', 'description', 'tags', 'domain'],
-      // Fields for filtering (where clause)
-      tag: ['zoneId', 'contentType'],
       store: true,
     },
     tokenize: 'forward',
