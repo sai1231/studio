@@ -1,16 +1,15 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react';
 import Document from 'flexsearch/dist/module/document.js';
-import { set, get, del } from 'idb-keyval';
+import { set, get } from 'idb-keyval';
 import { useAuth } from './AuthContext';
 import { subscribeToContentItems } from '@/services/contentService';
 import type { ContentItem, Tag, SearchFilters } from '@/types';
 import type { Unsubscribe } from 'firebase/firestore';
 
 const CONTENT_CACHE_KEY = 'content-cache';
-const CACHE_TIMESTAMP_KEY = 'content-cache-timestamp';
 
 interface SearchContextType {
   isInitialized: boolean;
@@ -23,7 +22,6 @@ interface SearchContextType {
 
 const SearchContext = createContext<SearchContextType | undefined>(undefined);
 
-// Define the shape of our document for FlexSearch
 interface SearchableDocument {
   id: string;
   title: string;
@@ -34,6 +32,16 @@ interface SearchableDocument {
   zoneId: string;
 }
 
+const createNewIndex = () => new Document<SearchableDocument, true>({
+    document: {
+      id: 'id',
+      index: ['title', 'description', 'tags', 'domain', 'contentType'],
+      store: true,
+    },
+    tokenize: 'forward',
+    cache: 100,
+});
+
 export const SearchProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [isInitialized, setIsInitialized] = useState(false);
@@ -41,48 +49,38 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
   const [searchResults, setSearchResults] = useState<ContentItem[]>([]);
   const [allItems, setAllItems] = useState<ContentItem[]>([]);
   
-  const [searchIndex, setSearchIndex] = useState<Document<SearchableDocument, true> | null>(null);
+  const searchIndexRef = useRef<Document<SearchableDocument, true>>(createNewIndex());
 
   useEffect(() => {
-    // Initialize FlexSearch Document
-    const index = new Document<SearchableDocument, true>({
-      document: {
-        id: 'id',
-        index: ['title', 'description', 'tags', 'domain', 'contentType'],
-        store: true, // Store the document so we can retrieve full items
-      },
-      tokenize: 'forward',
-      cache: 100,
-    });
-    setSearchIndex(index);
-  }, []);
+    if (!user) return;
 
-  useEffect(() => {
+    let isMounted = true;
     let unsubscribe: Unsubscribe | null = null;
 
     const initialize = async () => {
-      if (!user || !searchIndex) return;
-
-      setIsInitialized(false);
-      
-      // Try to load from IndexedDB first
+      // Load from cache first
       const cachedItems = await get<ContentItem[]>(CONTENT_CACHE_KEY);
-      if (cachedItems) {
+      if (isMounted && cachedItems) {
         setAllItems(cachedItems);
+        const index = searchIndexRef.current;
         for (const item of cachedItems) {
-          searchIndex.add(formatForIndex(item));
+          index.add(formatForIndex(item));
         }
         setIsInitialized(true);
       }
 
-      // Set up real-time listener
+      // Then subscribe for real-time updates
       unsubscribe = subscribeToContentItems(user.uid, (items) => {
+        if (!isMounted) return;
         setAllItems(items);
-        // Full re-index on every update for simplicity and consistency
-        searchIndex.clear();
+        
+        // Re-create the index and populate it
+        const newIndex = createNewIndex();
         for (const item of items) {
-          searchIndex.add(formatForIndex(item));
+            newIndex.add(formatForIndex(item));
         }
+        searchIndexRef.current = newIndex;
+
         set(CONTENT_CACHE_KEY, items); // Update cache
         if (!isInitialized) {
           setIsInitialized(true);
@@ -93,11 +91,10 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
     initialize();
 
     return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
+      isMounted = false;
+      unsubscribe?.();
     };
-  }, [user, searchIndex, isInitialized]);
+  }, [user, isInitialized]);
 
   const formatForIndex = (item: ContentItem): SearchableDocument => ({
     id: item.id,
@@ -110,17 +107,18 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
   });
 
   const search = useCallback((query: string, filters: SearchFilters) => {
-    if (!searchIndex || !isInitialized) return;
+    if (!searchIndexRef.current || !isInitialized) return;
     setIsLoading(true);
 
-    const whereClauses: Record<string, string> = {};
+    const index = searchIndexRef.current;
+    const whereClauses: { [key: string]: string } = {};
     if (filters.zoneId) whereClauses.zoneId = filters.zoneId;
     if (filters.contentType) whereClauses.contentType = filters.contentType;
     if (filters.tagNames && filters.tagNames.length > 0) {
-        whereClauses.tags = filters.tagNames[0]; // FlexSearch `where` only supports one value for array field
+        whereClauses.tags = filters.tagNames[0];
     }
 
-    const results = searchIndex.search(query, {
+    const results = index.search(query, {
       index: ['title', 'description'],
       where: whereClauses,
       bool: "and",
@@ -130,7 +128,6 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
     let finalItems: ContentItem[] = [];
 
     if (results.length > 0) {
-      // Flatten results from multiple fields
       const idSet = new Set<string>();
       results.forEach(fieldResult => {
         fieldResult.result.forEach((doc: SearchableDocument) => {
@@ -140,7 +137,6 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
       finalItems = allItems.filter(item => idSet.has(item.id));
     }
     
-    // Additional client-side filtering for multiple tags if necessary
     if (filters.tagNames && filters.tagNames.length > 1) {
         const remainingTags = filters.tagNames.slice(1);
         finalItems = finalItems.filter(item => {
@@ -151,7 +147,7 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
 
     setSearchResults(finalItems);
     setIsLoading(false);
-  }, [searchIndex, isInitialized, allItems]);
+  }, [isInitialized, allItems]);
   
   const availableTags = useMemo(() => {
     const tagsMap = new Map<string, Tag>();
