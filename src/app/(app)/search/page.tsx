@@ -56,6 +56,7 @@ function SearchResultsPageContent() {
   const [clientLoadingMessage, setClientLoadingMessage] = useState<string | null>(null);
   const [selectedItemIdForDetail, setSelectedItemIdForDetail] = useState<string | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
 
   // Pending filter states
   const [pendingSelectedZoneId, setPendingSelectedZoneId] = useState<string>(zoneId);
@@ -71,36 +72,61 @@ function SearchResultsPageContent() {
     }
   }, [isLoading]);
 
-  const fetchData = useCallback(async () => {
-    if (!user) {
-      setIsLoading(false);
-      return;
-    }
-    
-    setIsLoading(true);
-    setError(null);
-    try {
-      const [items, zones] = await Promise.all([
-        getContentItems(user.uid),
-        getZones(user.uid)
-      ]);
-      setAllItems(items);
-      setAvailableZones(zones);
-      setAvailableContentTypes(getUniqueContentTypesFromItems(items));
-      setAvailableTags(getUniqueTagsFromItems(items));
-    } catch (err) {
-      console.error("Error fetching search data:", err);
-      setError("Failed to load search data. Please try again.");
-      toast({ title: "Error", description: "Could not fetch data for search page.", variant: "destructive" });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user, toast]);
-
+  // Effect to fetch filter options that don't depend on all content (i.e., zones)
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (!user) return;
+    
+    const fetchFilterData = async () => {
+        try {
+            const zones = await getZones(user.uid);
+            setAvailableZones(zones);
+        } catch (e) {
+            console.error("Error fetching zones for filters", e);
+            toast({ title: "Error", description: "Could not load filter options.", variant: "destructive" });
+        }
+    };
+    fetchFilterData();
+  }, [user, toast]);
   
+  // Effect to fetch content and derived filters ONLY when a search is active
+  useEffect(() => {
+    if (!user) {
+        setIsLoading(false);
+        return;
+    }
+
+    if (query.trim()) {
+      setInitialLoad(false);
+      setIsLoading(true);
+      setError(null);
+
+      const fetchContent = async () => {
+          try {
+              const items = await getContentItems(user.uid);
+              setAllItems(items);
+              // Now that we have items, we can populate the rest of the filters
+              setAvailableContentTypes(getUniqueContentTypesFromItems(items));
+              setAvailableTags(getUniqueTagsFromItems(items));
+          } catch (err) {
+              console.error("Error fetching search data:", err);
+              setError("Failed to load search data. Please try again.");
+              toast({ title: "Error", description: "Could not fetch data for search.", variant: "destructive" });
+          } finally {
+              setIsLoading(false);
+          }
+      };
+      fetchContent();
+    } else {
+      // If query is cleared, reset to initial state
+      setIsLoading(false);
+      setInitialLoad(true);
+      setAllItems([]);
+      setSearchResults([]);
+      setAvailableContentTypes([]);
+      setAvailableTags([]);
+    }
+  }, [query, user, toast]);
+
   useEffect(() => {
     if (isFilterPopoverOpen) {
       setPendingSelectedZoneId(zoneId);
@@ -110,7 +136,7 @@ function SearchResultsPageContent() {
   }, [isFilterPopoverOpen, zoneId, contentType, tagIds]);
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || initialLoad) return;
 
     let filtered = [...allItems];
     
@@ -142,7 +168,7 @@ function SearchResultsPageContent() {
     
     setSearchResults(filtered);
 
-  }, [allItems, query, zoneId, contentType, tagIds, isLoading]);
+  }, [allItems, query, zoneId, contentType, tagIds, isLoading, initialLoad]);
 
   const handleApplyFilters = () => {
     const params = new URLSearchParams(searchParams.toString());
@@ -181,7 +207,8 @@ function SearchResultsPageContent() {
   };
 
   const handleItemUpdateInDialog = (updatedItem: ContentItem) => {
-    fetchData();
+    // Re-filter the current set of items to reflect the change
+    setAllItems(prev => prev.map(item => item.id === updatedItem.id ? updatedItem : item));
     toast({ title: "Item Updated", description: `"${updatedItem.title}" has been updated.`});
   };
 
@@ -195,13 +222,10 @@ function SearchResultsPageContent() {
     } catch (e) {
       console.error("Error deleting content:", e);
       toast({ id: toastId, title: "Error Deleting", description: `Could not delete "${itemTitle}".`, variant: "destructive" });
-      fetchData();
+      // No re-fetch, just rely on local state removal. A full re-fetch would be slow.
     }
   };
   
-  const hasActiveFilters = zoneId !== ALL_FILTER_VALUE || contentType !== ALL_FILTER_VALUE || tagIds.length > 0;
-  const hasActiveSearch = query.trim().length > 0 || hasActiveFilters;
-
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (zoneId !== ALL_FILTER_VALUE) count++;
@@ -216,7 +240,7 @@ function SearchResultsPageContent() {
         <div className="flex-grow">
           <h1 className="text-3xl font-headline font-semibold text-foreground flex items-center">
             <SearchIcon className="h-7 w-7 mr-3 text-primary" />
-            {hasActiveSearch ? "Search Results" : "Explore All Content"}
+            Search
           </h1>
           {query && <p className="text-muted-foreground mt-1">Showing results for: <span className="font-semibold text-foreground">&quot;{query}&quot;</span></p>}
         </div>
@@ -251,7 +275,7 @@ function SearchResultsPageContent() {
 
                 <div className="space-y-1">
                     <Label htmlFor="content-type-filter-search" className="text-sm font-medium">Content Type</Label>
-                    <Select value={pendingSelectedContentType} onValueChange={setPendingSelectedContentType}>
+                    <Select value={pendingSelectedContentType} onValueChange={setPendingSelectedContentType} disabled={!query.trim()}>
                         <SelectTrigger id="content-type-filter-search">
                             <SelectValue placeholder="All Content Types" />
                         </SelectTrigger>
@@ -262,27 +286,32 @@ function SearchResultsPageContent() {
                             ))}
                         </SelectContent>
                     </Select>
+                    {!query.trim() && <p className="text-xs text-muted-foreground">Search first to filter by type.</p>}
                 </div>
 
                 <div className="space-y-2">
                     <Label className="text-sm font-medium">Tags</Label>
-                    {availableTags.length > 0 ? (
-                        <ScrollArea className="h-32 rounded-md border p-2">
-                            <div className="space-y-1.5">
-                            {availableTags.map(tag => (
-                                <div key={tag.id} className="flex items-center space-x-2">
-                                    <Checkbox 
-                                        id={`tag-search-${tag.id}`} 
-                                        checked={pendingSelectedTagIds.includes(tag.id)}
-                                        onCheckedChange={(checked) => handleTagSelectionChange(tag.id, !!checked)}
-                                    />
-                                    <Label htmlFor={`tag-search-${tag.id}`} className="text-sm font-normal cursor-pointer">{tag.name}</Label>
+                    {query.trim() ? (
+                        availableTags.length > 0 ? (
+                            <ScrollArea className="h-32 rounded-md border p-2">
+                                <div className="space-y-1.5">
+                                {availableTags.map(tag => (
+                                    <div key={tag.id} className="flex items-center space-x-2">
+                                        <Checkbox 
+                                            id={`tag-search-${tag.id}`} 
+                                            checked={pendingSelectedTagIds.includes(tag.id)}
+                                            onCheckedChange={(checked) => handleTagSelectionChange(tag.id, !!checked)}
+                                        />
+                                        <Label htmlFor={`tag-search-${tag.id}`} className="text-sm font-normal cursor-pointer">{tag.name}</Label>
+                                    </div>
+                                ))}
                                 </div>
-                            ))}
-                            </div>
-                        </ScrollArea>
+                            </ScrollArea>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">No tags found for these results.</p>
+                        )
                     ) : (
-                        <p className="text-sm text-muted-foreground">No tags available.</p>
+                       <p className="text-xs text-muted-foreground">Search first to filter by tags.</p>
                     )}
                 </div>
                 <div className="flex justify-end gap-2 pt-4 border-t mt-4">
@@ -311,6 +340,16 @@ function SearchResultsPageContent() {
           <div className="text-center py-12">
             <FolderOpen className="h-12 w-12 mx-auto text-destructive mb-4" />
             <h2 className="text-xl font-medium text-destructive">{error}</h2>
+          </div>
+        ) : initialLoad ? (
+          <div className="text-center py-12">
+            <SearchIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h2 className="text-xl font-medium text-muted-foreground">
+              Search Your Memories
+            </h2>
+            <p className="text-muted-foreground mt-2">
+              Enter a term in the search bar above to begin.
+            </p>
           </div>
         ) : searchResults.length === 0 ? (
           <div className="text-center py-12">
