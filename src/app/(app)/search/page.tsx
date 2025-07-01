@@ -2,11 +2,11 @@
 'use client';
 
 import type React from 'react';
-import { useState, useEffect, useCallback, Suspense, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import ContentCard from '@/components/core/link-card';
 import ContentDetailDialog from '@/components/core/ContentDetailDialog';
-import type { ContentItem, Zone, Tag as AppTag } from '@/types';
+import type { ContentItem, Zone, Tag as AppTag, SearchFilters } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -18,8 +18,11 @@ import { useToast } from '@/hooks/use-toast';
 import {
   deleteContentItem,
   getZones,
+  getUniqueContentTypesFromItems,
+  getUniqueTagsFromItems,
+  getContentItems,
+  searchContentItems,
 } from '@/services/contentService';
-import { searchMeili } from '@/services/meilisearchService';
 import { useAuth } from '@/context/AuthContext';
 
 const ALL_FILTER_VALUE = "__ALL__";
@@ -41,15 +44,10 @@ function SearchResultsPageContent() {
   const [availableTags, setAvailableTags] = useState<AppTag[]>([]);
   
   const [isLoading, setIsLoading] = useState(false);
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
-  const [offset, setOffset] = useState(0);
-  const [estimatedTotalHits, setEstimatedTotalHits] = useState(0);
-  
   const [error, setError] = useState<string | null>(null);
   
   const [selectedItemIdForDetail, setSelectedItemIdForDetail] = useState<string | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
-  const loaderRef = useRef<HTMLDivElement | null>(null);
 
   // Pending filter states
   const [pendingSelectedZoneId, setPendingSelectedZoneId] = useState<string>(zoneId);
@@ -57,101 +55,58 @@ function SearchResultsPageContent() {
   const [pendingSelectedTagIds, setPendingSelectedTagIds] = useState<string[]>(tagIds);
   const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
 
-  // Fetch static filter options like zones
+  // Fetch static filter options (zones, contentTypes, tags) once
   useEffect(() => {
     if (!user) return;
     const fetchFilterOptions = async () => {
         try {
-            const zones = await getZones(user.uid);
+            const [zones, allItems] = await Promise.all([
+                getZones(user.uid),
+                getContentItems(user.uid) 
+            ]);
             setAvailableZones(zones);
+            setAvailableContentTypes(getUniqueContentTypesFromItems(allItems));
+            setAvailableTags(getUniqueTagsFromItems(allItems));
         } catch (e) {
-            console.error("Error fetching zones for filter:", e);
+            console.error("Error fetching filter options:", e);
+            toast({title: "Error", description: "Could not load filter options.", variant: "destructive"});
         }
     };
     fetchFilterOptions();
-  }, [user]);
-  
-  const performSearch = useCallback(async (isNewSearch: boolean) => {
-    if (!user || !query.trim()) {
+  }, [user, toast]);
+
+  // Perform search when query or filters change
+  useEffect(() => {
+    if (!user) return;
+
+    // Do not search if query is empty and no filters are applied
+    if (!query.trim() && zoneId === ALL_FILTER_VALUE && contentType === ALL_FILTER_VALUE && tagIds.length === 0) {
         setSearchResults([]);
-        setIsLoading(false);
         return;
     }
-    
-    if (isNewSearch) {
+
+    const performSearch = async () => {
         setIsLoading(true);
-        setSearchResults([]);
-        setOffset(0);
-        setEstimatedTotalHits(0);
-    } else {
-        setIsFetchingMore(true);
-    }
-    setError(null);
-
-    try {
-        const filters = {
-            zoneId: zoneId !== ALL_FILTER_VALUE ? zoneId : undefined,
-            contentType: contentType !== ALL_FILTER_VALUE ? contentType : undefined,
-            tagNames: tagIds,
-        };
-
-        const searchOffset = isNewSearch ? 0 : offset;
-        const { hits, estimatedTotalHits: total, facetDistribution } = await searchMeili(
-            user.uid,
-            query,
-            filters,
-            20, // Page size
-            searchOffset,
-        );
-
-        setEstimatedTotalHits(total);
-        setSearchResults(prev => isNewSearch ? hits : [...prev, ...hits]);
-        setOffset(searchOffset + hits.length);
-
-        if (isNewSearch && facetDistribution) {
-            setAvailableContentTypes(Object.keys(facetDistribution.contentType || {}));
-            setAvailableTags(
-                Object.keys(facetDistribution['tags.name'] || {}).map(name => ({ id: name, name }))
-            );
-        }
-
-    } catch (err) {
-        console.error("Error fetching search data:", err);
-        setError("Failed to load search results. Please try again.");
-    } finally {
-        setIsLoading(false);
-        setIsFetchingMore(false);
-    }
-  }, [user, query, zoneId, contentType, tagIds, offset]);
-
-  // Effect to trigger a new search when query or filters change
-  useEffect(() => {
-    performSearch(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, zoneId, contentType, tagIds]);
-
-
-  // Effect for infinite scroll
-  useEffect(() => {
-    const hasMore = offset < estimatedTotalHits;
-    if (!hasMore || isFetchingMore) return;
-
-    const observer = new IntersectionObserver(entries => {
-        if (entries[0].isIntersecting) {
-            performSearch(false);
-        }
-    });
-
-    const currentLoader = loaderRef.current;
-    if (currentLoader) {
-        observer.observe(currentLoader);
-    }
-    return () => {
-        if (currentLoader) {
-            observer.unobserve(currentLoader);
+        setError(null);
+        try {
+            const filters: SearchFilters = {
+                zoneId: zoneId !== ALL_FILTER_VALUE ? zoneId : undefined,
+                contentType: contentType !== ALL_FILTER_VALUE ? contentType : undefined,
+                tagNames: tagIds,
+            };
+            const results = await searchContentItems(user.uid, query, filters);
+            setSearchResults(results);
+        } catch (err) {
+            console.error("Error fetching search data:", err);
+            setError("Failed to load search results. Please try again.");
+            toast({ title: "Error", description: "Could not load search results.", variant: "destructive" });
+        } finally {
+            setIsLoading(false);
         }
     };
-  }, [isFetchingMore, offset, estimatedTotalHits, performSearch]);
+
+    performSearch();
+  }, [user, query, zoneId, contentType, tagIds, toast]);
 
   // Update pending filters when popover opens
   useEffect(() => {
@@ -211,8 +166,6 @@ function SearchResultsPageContent() {
     if (tagIds.length > 0) count++;
     return count;
   }, [zoneId, contentType, tagIds]);
-
-  const hasMore = offset < estimatedTotalHits;
 
   return (
     <div className="container mx-auto py-2">
@@ -277,8 +230,8 @@ function SearchResultsPageContent() {
                                     <div key={tag.id} className="flex items-center space-x-2">
                                         <Checkbox 
                                             id={`tag-search-${tag.id}`} 
-                                            checked={pendingSelectedTagIds.includes(tag.id)}
-                                            onCheckedChange={(checked) => setPendingSelectedTagIds(prev => checked ? [...prev, tag.id] : prev.filter(id => id !== tag.id))}
+                                            checked={pendingSelectedTagIds.includes(tag.name)}
+                                            onCheckedChange={(checked) => setPendingSelectedTagIds(prev => checked ? [...prev, tag.name] : prev.filter(name => name !== tag.name))}
                                         />
                                         <Label htmlFor={`tag-search-${tag.id}`} className="text-sm font-normal cursor-pointer">{tag.name}</Label>
                                     </div>
@@ -286,7 +239,7 @@ function SearchResultsPageContent() {
                                 </div>
                             </ScrollArea>
                         ) : (
-                            <p className="text-sm text-muted-foreground">No tags found for this search.</p>
+                            <p className="text-sm text-muted-foreground">No tags found.</p>
                         )}
                     </div>
                     <div className="flex justify-end gap-2 pt-4 border-t mt-4">
@@ -314,7 +267,7 @@ function SearchResultsPageContent() {
             <FolderOpen className="h-12 w-12 mx-auto text-destructive mb-4" />
             <h2 className="text-xl font-medium text-destructive">{error}</h2>
           </div>
-        ) : !query.trim() ? (
+        ) : !query.trim() && activeFilterCount === 0 ? (
             <div className="text-center py-12">
                 <SearchIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <h2 className="text-xl font-medium text-muted-foreground">Search Your Memories</h2>
@@ -337,12 +290,6 @@ function SearchResultsPageContent() {
                     onDelete={handleDeleteItem}
                 />
                 ))}
-            </div>
-            <div ref={loaderRef} className="flex justify-center items-center h-16">
-                {isFetchingMore && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
-                {!hasMore && searchResults.length > 0 && (
-                    <p className="text-muted-foreground">You've reached the end!</p>
-                )}
             </div>
            </>
         )}

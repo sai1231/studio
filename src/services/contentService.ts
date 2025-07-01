@@ -22,7 +22,6 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { ContentItem, Zone, Tag, MovieDetails, SearchFilters } from '@/types';
 import { enrichContent } from '@/ai/flows/enrich-content-flow';
 import { addLog } from '@/services/loggingService';
-import { syncItemWithMeili, deleteItemFromMeili } from '@/services/meilisearchService';
 
 // Firestore collection references
 const contentCollection = collection(db, 'content');
@@ -230,9 +229,6 @@ export async function addContentItem(
       enrichContent(docRef.id).catch(err => {
         console.error(`Failed to trigger enrichment for ${docRef.id}:`, err);
       });
-    } else {
-        // If not going for enrichment, sync to Meilisearch now.
-        await syncItemWithMeili(finalItem);
     }
 
     return finalItem;
@@ -246,7 +242,6 @@ export async function addContentItem(
 // Function to delete a content item
 export async function deleteContentItem(itemId: string): Promise<void> {
   try {
-    await deleteItemFromMeili(itemId); // Sync with Meilisearch
     await deleteDoc(doc(db, 'content', itemId));
   } catch(error) {
     console.error(`Failed to delete content item with ID ${itemId}:`, error);
@@ -271,9 +266,6 @@ export async function updateContentItem(
 
     await updateDoc(docRef, updateData);
     const updatedItem = await getContentItemById(itemId);
-    if(updatedItem) {
-        await syncItemWithMeili(updatedItem); // Sync with Meilisearch
-    }
     return updatedItem;
   } catch(error) {
     console.error(`Failed to update content item with ID ${itemId}:`, error);
@@ -346,6 +338,61 @@ export async function addZone(name: string, userId: string): Promise<Zone> {
     console.error(`Failed to add zone "${name}" to Firestore:`, error);
     throw error;
   }
+}
+
+// --- Search Functions ---
+
+export async function searchContentItems(
+  userId: string,
+  searchQuery: string,
+  filters: SearchFilters = {}
+): Promise<ContentItem[]> {
+  if (!userId) return [];
+  if (
+    !searchQuery.trim() &&
+    !filters.zoneId &&
+    !filters.contentType &&
+    (!filters.tagNames || filters.tagNames.length === 0)
+  ) {
+    return []; // Return empty if no search query or filters
+  }
+
+  let q = query(contentCollection, where('userId', '==', userId));
+
+  // Apply Firestore-compatible filters
+  if (searchQuery.trim()) {
+    q = query(q, where('searchableKeywords', 'array-contains', searchQuery.toLowerCase().trim()));
+  }
+  if (filters.zoneId) {
+    q = query(q, where('zoneId', '==', filters.zoneId));
+  }
+  if (filters.contentType) {
+    q = query(q, where('contentType', '==', filters.contentType));
+  }
+  
+  // Note: Firestore does not support multiple 'array-contains' or a mix of 'array-contains' with most other clauses on different fields in a single query.
+  // We will apply the tag filter client-side after fetching.
+
+  const querySnapshot = await getDocs(q);
+  let items: ContentItem[] = [];
+  querySnapshot.forEach((doc) => {
+    const data = doc.data();
+    items.push({
+      id: doc.id,
+      ...data,
+      createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
+    } as ContentItem);
+  });
+
+  // Client-side filtering for tags
+  if (filters.tagNames && filters.tagNames.length > 0) {
+    items = items.filter(item => {
+      const itemTagNames = item.tags.map(tag => tag.name);
+      return filters.tagNames!.every(filterTagName => itemTagNames.includes(filterTagName));
+    });
+  }
+
+  return items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 // --- Utility & File Functions ---

@@ -15,7 +15,6 @@ import { z } from 'zod';
 import { collection, doc, getDoc, updateDoc, type Firestore, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase'; // Keep using client 'db' for consistency here
 import { addLog } from '@/services/loggingService';
-import { syncItemWithMeili } from '@/services/meilisearchService';
 import type { ContentItem } from '@/types';
 
 const contentCollectionRef = collection(db, 'content');
@@ -253,24 +252,37 @@ const enrichContentFlow = ai.defineFlow(
       await updateDoc(docRef, updatePayload);
       await addLog('INFO', `[${contentId}] ✅ Successfully updated document with payload:`, { payload: updatePayload });
 
-      // After all updates, sync the final state to Meilisearch
-      const finalItemForSync: ContentItem = {
-        ...contentData,
-        ...updatePayload,
-        id: contentId,
-        createdAt: (contentData.createdAt as Timestamp).toDate().toISOString(),
-      };
-      await syncItemWithMeili(finalItemForSync);
-
     } else {
       await addLog('INFO', `[${contentId}] ⏭️ Skipping enrichment, status is '${contentData.status}', not 'pending-analysis'.`);
     }
 
   } catch (error: any) {
-    await addLog('ERROR', `[${contentId}] ❌ CRITICAL ERROR during enrichment flow:`, { error: error.message });
+    await addLog('ERROR', `[${contentId}] ❌ CRITICAL ERROR during enrichment flow:`, { error: error.message, details: cleanObjectForFirestore(error) });
     await updateDoc(docRef, {
       status: 'failed-analysis'
     }).catch(e => addLog('ERROR', `[${contentId}] ❌ Failed to update status to 'failed-analysis' after critical error`, { error: (e as Error).message }));
   }
   }
 );
+
+// Helper to recursively remove undefined values from an object, as Firestore doesn't support them.
+function cleanObjectForFirestore(obj: any): any {
+    if (obj === null || typeof obj !== 'object') {
+        return obj;
+    }
+
+    if (Array.isArray(obj)) {
+        return obj.map(item => cleanObjectForFirestore(item));
+    }
+
+    const newObj: { [key: string]: any } = {};
+    for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+            const value = obj[key];
+            if (value !== undefined) {
+                newObj[key] = cleanObjectForFirestore(value);
+            }
+        }
+    }
+    return newObj;
+}
