@@ -1,4 +1,3 @@
-
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -23,6 +22,7 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const { user, isLoading: isAuthLoading } = useAuth();
+  const router = useRouter();
   const { 
     isAddContentDialogOpen, 
     setIsAddContentDialogOpen, 
@@ -39,9 +39,9 @@ export default function AppLayout({
 
   useEffect(() => {
     if (!isAuthLoading && !user) {
-      useRouter().replace('/login');
+      router.replace('/login');
     }
-  }, [user, isAuthLoading]);
+  }, [user, isAuthLoading, router]);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
