@@ -30,6 +30,7 @@ import { addContentItem, addZone, uploadFile } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ScrollArea } from '../ui/scroll-area';
 
 const mainContentSchema = z.object({
   mainContent: z.string(), // This will be optional if a file is uploaded
@@ -76,9 +77,8 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const [isZonePopoverOpen, setIsZonePopoverOpen] = useState(false);
   const [zoneSearchText, setZoneSearchText] = useState('');
 
-  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
-  const [uploadedFileInfo, setUploadedFileInfo] = useState<{name: string, type: 'image' | 'pdf'} | null>(null);
-
+  const [uploadedFiles, setUploadedFiles] = useState<{name: string, type: 'image' | 'pdf', url: string}[]>([]);
+  
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -99,8 +99,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       setCurrentTags([]);
       setTagInput('');
       setInternalZones(zones);
-      setUploadedFileUrl(null);
-      setUploadedFileInfo(null);
+      setUploadedFiles([]);
       setIsUploading(false);
       setIsDragging(false);
     }
@@ -119,42 +118,48 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     setIsRecordVoiceDialogOpen(true);
   };
   
-  const handleFileSelected = useCallback(async (file: File) => {
+  const handleFilesSelected = useCallback(async (files: File[]) => {
     if (!user) return;
-    const isImage = file.type.startsWith('image/');
-    const isPdf = file.type === 'application/pdf';
-
-    if (!isImage && !isPdf) {
-      toast({ title: "Unsupported File", description: "You can only upload images or PDF files.", variant: "destructive" });
-      return;
-    }
-
-    const fileTypeForUpload = isImage ? 'image' : 'pdf';
+    
     setIsUploading(true);
-    setUploadedFileUrl(null);
-    setUploadedFileInfo(null);
     form.clearErrors('mainContent');
 
-    const currentToast = toast({
-      title: `Uploading ${fileTypeForUpload}...`,
-      description: "Please wait.",
+    const uploadPromises = files.map(async (file) => {
+      const isImage = file.type.startsWith('image/');
+      const isPdf = file.type === 'application/pdf';
+
+      if (!isImage && !isPdf) {
+        toast({ title: `Unsupported File: ${file.name}`, description: "You can only upload images or PDF files.", variant: "destructive" });
+        return null;
+      }
+
+      const fileTypeForUpload = isImage ? 'image' : 'pdf';
+      const currentToast = toast({
+        title: `Uploading ${file.name}...`,
+        description: "Please wait.",
+      });
+
+      try {
+        const folder = isImage ? 'contentImages' : 'contentPdfs';
+        const path = `${folder}/${user.uid}/${Date.now()}_${file.name}`;
+        const downloadUrl = await uploadFile(file, path);
+        
+        currentToast.update({ id: currentToast.id, title: "Upload Complete", description: `"${file.name}" is ready to be saved.` });
+
+        return { name: file.name, type: fileTypeForUpload, url: downloadUrl };
+
+      } catch (error: any) {
+        currentToast.update({ id: currentToast.id, title: `Upload Failed for ${file.name}`, description: error.message || 'Could not upload file.', variant: "destructive" });
+        return null;
+      }
     });
 
-    try {
-      const folder = isImage ? 'contentImages' : 'contentPdfs';
-      const path = `${folder}/${user.uid}/${Date.now()}_${file.name}`;
-      const downloadUrl = await uploadFile(file, path);
+    const results = await Promise.all(uploadPromises);
+    const successfulUploads = results.filter(r => r !== null) as {name: string, type: 'image' | 'pdf', url: string}[];
 
-      currentToast.update({ id: currentToast.id, title: "Upload Complete", description: "Add details and save.", variant: "default" });
-
-      setUploadedFileUrl(downloadUrl);
-      setUploadedFileInfo({ name: file.name, type: fileTypeForUpload });
-
-    } catch (error: any) {
-      currentToast.update({ id: currentToast.id, title: "Upload Failed", description: error.message || 'Could not upload file.', variant: "destructive" });
-    } finally {
-      setIsUploading(false);
-    }
+    setUploadedFiles(prev => [...prev, ...successfulUploads]);
+    
+    setIsUploading(false);
   }, [user, toast, form]);
 
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); };
@@ -163,18 +168,22 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault(); e.stopPropagation();
     setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) handleFileSelected(file);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+        handleFilesSelected(Array.from(files));
+    }
   };
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) handleFileSelected(file);
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleFilesSelected(Array.from(files));
+    }
     if (e.target) e.target.value = ''; // Reset file input
   };
-  const handleUploadAreaClick = () => { if (!isUploading && !uploadedFileUrl) fileInputRef.current?.click(); };
-  const clearUploadedFile = () => { 
-    setUploadedFileUrl(null);
-    setUploadedFileInfo(null);
+  const handleUploadAreaClick = () => { if (!isUploading) fileInputRef.current?.click(); };
+  
+  const clearUploadedFile = (urlToRemove: string) => { 
+    setUploadedFiles(prev => prev.filter(f => f.url !== urlToRemove));
   };
 
   const handleCreateZone = async (zoneName: string) => {
@@ -223,7 +232,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     setIsSaving(true);
     const { mainContent, zoneId } = values;
 
-    if (!uploadedFileUrl && !mainContent.trim()) {
+    if (uploadedFiles.length === 0 && !mainContent.trim()) {
         form.setError("mainContent", { type: "manual", message: "Please drop a file or enter a link/note." });
         setIsSaving(false);
         return;
@@ -231,24 +240,28 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     
     form.clearErrors('mainContent');
 
-    let contentData: Partial<Omit<ContentItem, 'id' | 'createdAt'>>;
-
-    if (uploadedFileUrl && uploadedFileInfo) {
+    if (uploadedFiles.length > 0) {
         const mindNoteFromInput = mainContent.trim() ? mainContent.trim() : undefined;
-        contentData = uploadedFileInfo.type === 'image'
-        ? {
-            type: 'image', title: uploadedFileInfo.name, imageUrl: uploadedFileUrl,
-            mindNote: mindNoteFromInput,
-            tags: [{id: 'upload', name: 'upload'}, ...currentTags], zoneId: zoneId || undefined, status: 'pending-analysis',
-          }
-        : {
-            type: 'link', title: uploadedFileInfo.name, url: uploadedFileUrl, contentType: 'PDF',
-            mindNote: mindNoteFromInput,
-            domain: 'mati.internal.storage', tags: [{ id: 'upload', name: 'upload' }, ...currentTags],
-            zoneId: zoneId || undefined, status: 'pending-analysis',
-          };
+        
+        for (const uploadedFile of uploadedFiles) {
+            const contentData = uploadedFile.type === 'image'
+            ? {
+                type: 'image' as const, title: uploadedFile.name, imageUrl: uploadedFile.url,
+                mindNote: mindNoteFromInput,
+                tags: [{id: 'upload', name: 'upload'}, ...currentTags], zoneId: zoneId || undefined, status: 'pending-analysis' as const,
+              }
+            : {
+                type: 'link' as const, title: uploadedFile.name, url: uploadedFile.url, contentType: 'PDF',
+                mindNote: mindNoteFromInput,
+                domain: 'mati.internal.storage', tags: [{ id: 'upload', name: 'upload' }, ...currentTags],
+                zoneId: zoneId || undefined, status: 'pending-analysis' as const,
+              };
+            
+            onContentAdd(contentData); // Let layout handle toast and async logic
+        }
     } else {
         const extractedUrl = extractUrl(mainContent);
+        let contentData: Partial<Omit<ContentItem, 'id' | 'createdAt'>>;
         if (extractedUrl) {
             let metadata = { title: '', description: '', faviconUrl: '', imageUrl: '' };
             try {
@@ -273,23 +286,18 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                 zoneId: zoneId || undefined, tags: currentTags, contentType: 'Note', status: 'pending-analysis',
             };
         }
+        onContentAdd(contentData as Omit<ContentItem, 'id' | 'createdAt'>);
     }
 
-    try {
-        await onContentAdd(contentData as Omit<ContentItem, 'id' | 'createdAt'>);
-        if (onOpenChange) onOpenChange(false);
-    } catch (error) {
-       // Handled by caller
-    } finally {
-        setIsSaving(false);
-    }
+    if (onOpenChange) onOpenChange(false);
+    setIsSaving(false);
   }
 
   const selectedZone = internalZones.find(z => z.id === watchedZoneId);
   const ZoneDisplayIcon = getIconComponent(selectedZone?.icon);
   const zoneDisplayName = selectedZone?.name || 'Select a zone';
   const filteredZones = zoneSearchText ? internalZones.filter(z => z.name.toLowerCase().includes(zoneSearchText.toLowerCase())) : internalZones;
-  const isSubmitDisabled = isSaving || isUploading || (!uploadedFileUrl && !watchedMainContent.trim());
+  const isSubmitDisabled = isSaving || isUploading || (uploadedFiles.length === 0 && !watchedMainContent.trim());
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -305,7 +313,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
             <Textarea
               id="mainContent"
               {...form.register('mainContent')}
-              placeholder="Paste a link, type a note, or add a thought..."
+              placeholder="Paste a link, type a note, or add a thought for your uploads..."
               className={cn("min-h-[100px] text-base focus-visible:ring-accent bg-muted/50", form.formState.errors.mainContent && "border-destructive focus-visible:ring-destructive")}
             />
             {form.formState.errors.mainContent && <p className="text-sm text-destructive">{form.formState.errors.mainContent.message}</p>}
@@ -320,7 +328,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
               <div 
                 className={cn("relative flex flex-col items-center justify-center p-4 rounded-lg border-2 border-dashed transition-colors h-full min-h-[110px]", 
                   isDragging ? "border-primary bg-primary/10" : "border-border hover:border-primary/50",
-                  isUploading || uploadedFileUrl ? "cursor-default" : "cursor-pointer"
+                  isUploading ? "cursor-default" : "cursor-pointer"
                 )}
                 onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}
                 onClick={handleUploadAreaClick}
@@ -330,28 +338,34 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <p className="mt-2 text-sm text-muted-foreground">Uploading...</p>
                   </div>
-                ) : uploadedFileInfo ? (
-                  <div className="flex items-center gap-3 w-full">
-                      {uploadedFileInfo.type === 'image' ? (
-                          <ImageIcon className="h-8 w-8 text-primary shrink-0" />
-                      ) : (
-                          <FileIcon className="h-8 w-8 text-primary shrink-0" />
-                      )}
-                      <div className="text-left flex-grow truncate">
-                          <p className="font-medium truncate text-sm">{uploadedFileInfo.name}</p>
-                          <p className="text-xs text-muted-foreground">{uploadedFileInfo.type === 'image' ? 'Image ready' : 'PDF ready'}</p>
-                      </div>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={clearUploadedFile}><X className="h-4 w-4" /></Button>
-                  </div>
+                ) : uploadedFiles.length > 0 ? (
+                  <ScrollArea className="w-full max-h-32">
+                    <div className="space-y-2 p-1">
+                      {uploadedFiles.map(file => (
+                        <div key={file.url} className="flex items-center gap-3 w-full bg-background p-2 rounded-md border">
+                            {file.type === 'image' ? (
+                                <ImageIcon className="h-6 w-6 text-primary shrink-0" />
+                            ) : (
+                                <FileIcon className="h-6 w-6 text-primary shrink-0" />
+                            )}
+                            <div className="text-left flex-grow truncate">
+                                <p className="font-medium truncate text-sm">{file.name}</p>
+                                <p className="text-xs text-muted-foreground">{file.type === 'image' ? 'Image ready' : 'PDF ready'}</p>
+                            </div>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={(e) => { e.stopPropagation(); clearUploadedFile(file.url); }}><X className="h-4 w-4" /></Button>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 ) : (
                   <div className="flex flex-col items-center justify-center text-center">
                     <FileUp className="h-8 w-8 text-muted-foreground" />
-                    <p className="mt-2 text-sm font-medium">Upload File</p>
+                    <p className="mt-2 text-sm font-medium">Upload Files</p>
                     <p className="text-xs text-muted-foreground">Image or PDF</p>
                   </div>
                 )}
               </div>
-              <input type="file" ref={fileInputRef} onChange={handleFileInputChange} accept="image/*,application/pdf" className="hidden" />
+              <input type="file" ref={fileInputRef} onChange={handleFileInputChange} accept="image/*,application/pdf" className="hidden" multiple />
 
               <Button
                 type="button"

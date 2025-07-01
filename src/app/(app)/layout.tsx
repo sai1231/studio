@@ -126,40 +126,64 @@ export default function AppLayout({
 
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      const file = files[0];
-      const isImage = file.type.startsWith('image/');
-      const isPdf = file.type === 'application/pdf';
+      for (const file of Array.from(files)) {
+        const isImage = file.type.startsWith('image/');
+        const isPdf = file.type === 'application/pdf';
 
-      if (!isImage && !isPdf) {
-        toast({ title: "Unsupported File", description: "You can only upload images or PDF files.", variant: "destructive" });
-        return;
-      }
-      
-      const fileTypeForUpload = isImage ? 'image' : 'pdf';
-      const toastId = toast({
-        title: `Uploading ${fileTypeForUpload}...`,
-        description: file.name,
-      }).id;
+        if (!isImage && !isPdf) {
+          toast({ title: `Unsupported File: ${file.name}`, description: "You can only upload images or PDF files.", variant: "destructive" });
+          continue; // Skip this file and go to the next
+        }
+        
+        const fileTypeForUpload = isImage ? 'image' : 'pdf';
+        
+        const uploadToast = toast({
+          title: `Uploading ${fileTypeForUpload}...`,
+          description: file.name,
+        });
 
-      try {
-        const folder = isImage ? 'contentImages' : 'contentPdfs';
-        const path = `${folder}/${user.uid}/${Date.now()}_${file.name}`;
-        const uploadedFileUrl = await uploadFile(file, path);
+        try {
+          const folder = isImage ? 'contentImages' : 'contentPdfs';
+          const path = `${folder}/${user.uid}/${Date.now()}_${file.name}`;
+          const uploadedFileUrl = await uploadFile(file, path);
 
-        const contentData = isImage
-          ? {
-              type: 'image', title: file.name, imageUrl: uploadedFileUrl,
-              tags: [{id: 'dnd-drop', name: 'dropped'}], status: 'pending-analysis',
-            } as Omit<ContentItem, 'id' | 'createdAt'>
-          : {
-              type: 'link', title: file.name, url: uploadedFileUrl, contentType: 'PDF',
-              domain: 'mati.internal.storage', tags: [{id: 'dnd-drop', name: 'dropped'}],
-              status: 'pending-analysis',
-            } as Omit<ContentItem, 'id' | 'createdAt'>;
+          uploadToast.update({
+             id: uploadToast.id,
+             title: `Saving ${file.name}...`,
+             description: 'Upload complete, now adding to your collection.',
+          });
 
-        await handleAddContentAndRefresh(contentData);
-      } catch (error: any) {
-        toast({ id: toastId, title: "Upload Failed", description: error.message || "An unknown error occurred.", variant: 'destructive' });
+          const contentData = isImage
+            ? {
+                type: 'image', title: file.name, imageUrl: uploadedFileUrl,
+                tags: [{id: 'dnd-drop', name: 'dropped'}], status: 'pending-analysis',
+              } as Omit<ContentItem, 'id' | 'createdAt'>
+            : {
+                type: 'link', title: file.name, url: uploadedFileUrl, contentType: 'PDF',
+                domain: 'mati.internal.storage', tags: [{id: 'dnd-drop', name: 'dropped'}],
+                status: 'pending-analysis',
+              } as Omit<ContentItem, 'id' | 'createdAt'>;
+
+          const contentWithUser = { ...contentData, userId: user.uid };
+          const addedItem = await addContentItem(contentWithUser);
+          
+          uploadToast.update({
+            id: uploadToast.id,
+            title: `Saved: ${addedItem.title}`,
+            description: `Your ${fileTypeForUpload} has been saved.`,
+            variant: 'default',
+          });
+
+          setNewlyAddedItem(addedItem);
+
+        } catch (error: any) {
+          uploadToast.update({
+            id: uploadToast.id,
+            title: `Failed to save ${file.name}`,
+            description: error.message || "An unknown error occurred.",
+            variant: 'destructive'
+          });
+        }
       }
       return;
     }
