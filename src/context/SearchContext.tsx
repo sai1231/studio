@@ -111,37 +111,30 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
 
     const index = searchIndexRef.current;
+
     const whereClauses: { [key: string]: string } = {};
     if (filters.zoneId) whereClauses.zoneId = filters.zoneId;
     if (filters.contentType) whereClauses.contentType = filters.contentType;
-    if (filters.tagNames && filters.tagNames.length > 0) {
-        whereClauses.tags = filters.tagNames[0];
-    }
 
     const results = index.search(query, {
-      index: ['title', 'description'],
       where: whereClauses,
       bool: "and",
       enrich: true,
     });
 
-    let finalItems: ContentItem[] = [];
-
-    if (results.length > 0) {
-      const idSet = new Set<string>();
-      results.forEach(fieldResult => {
-        fieldResult.result.forEach((doc: SearchableDocument) => {
-          idSet.add(doc.id);
-        });
+    const idSet = new Set<string>();
+    results.forEach(fieldResult => {
+      fieldResult.result.forEach((doc: SearchableDocument) => {
+        idSet.add(doc.id);
       });
-      finalItems = allItems.filter(item => idSet.has(item.id));
-    }
+    });
     
-    if (filters.tagNames && filters.tagNames.length > 1) {
-        const remainingTags = filters.tagNames.slice(1);
+    let finalItems = allItems.filter(item => idSet.has(item.id));
+    
+    if (filters.tagNames && filters.tagNames.length > 0) {
         finalItems = finalItems.filter(item => {
-            const itemTagNames = item.tags.map(t => t.name);
-            return remainingTags.every(t => itemTagNames.includes(t));
+            const itemTagNames = item.tags.map(t => t.name.toLowerCase());
+            return filters.tagNames!.every(t => itemTagNames.includes(t.toLowerCase()));
         });
     }
 
