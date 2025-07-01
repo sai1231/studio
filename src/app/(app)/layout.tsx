@@ -30,7 +30,7 @@ export default function AppLayout({
     setIsAddTodoDialogOpen,
     isRecordVoiceDialogOpen,
     setIsRecordVoiceDialogOpen,
-    triggerRefresh,
+    setNewlyAddedItem,
   } = useDialog();
 
   const [zones, setZones] = useState<Zone[]>([]);
@@ -83,7 +83,7 @@ export default function AppLayout({
 
       if (isAddContentDialogOpen) setIsAddContentDialogOpen(false);
       
-      triggerRefresh();
+      setNewlyAddedItem(addedItem);
 
     } catch (error) {
       console.error("Error saving content from layout:", error);

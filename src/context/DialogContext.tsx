@@ -2,6 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, type ReactNode } from 'react';
+import type { ContentItem } from '@/types';
 
 interface DialogContextType {
   isAddContentDialogOpen: boolean;
@@ -10,8 +11,8 @@ interface DialogContextType {
   setIsAddTodoDialogOpen: (open: boolean) => void;
   isRecordVoiceDialogOpen: boolean;
   setIsRecordVoiceDialogOpen: (open: boolean) => void;
-  refreshKey: number;
-  triggerRefresh: () => void;
+  newlyAddedItem: ContentItem | null;
+  setNewlyAddedItem: (item: ContentItem | null) => void;
 }
 
 const DialogContext = createContext<DialogContextType | undefined>(undefined);
@@ -20,8 +21,7 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
   const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
   const [isAddTodoDialogOpen, setIsAddTodoDialogOpen] = useState(false);
   const [isRecordVoiceDialogOpen, setIsRecordVoiceDialogOpen] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const triggerRefresh = () => setRefreshKey(prev => prev + 1);
+  const [newlyAddedItem, setNewlyAddedItem] = useState<ContentItem | null>(null);
 
   return (
     <DialogContext.Provider value={{ 
@@ -31,8 +31,8 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
         setIsAddTodoDialogOpen, 
         isRecordVoiceDialogOpen, 
         setIsRecordVoiceDialogOpen,
-        refreshKey,
-        triggerRefresh,
+        newlyAddedItem,
+        setNewlyAddedItem,
     }}>
       {children}
     </DialogContext.Provider>

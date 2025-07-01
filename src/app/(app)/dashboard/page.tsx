@@ -130,7 +130,7 @@ const TodoListCard: React.FC<{
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { setIsAddTodoDialogOpen, refreshKey } = useDialog();
+  const { setIsAddTodoDialogOpen, newlyAddedItem, setNewlyAddedItem } = useDialog();
 
   const [displayedItems, setDisplayedItems] = useState<ContentItem[]>([]);
   const [todoItems, setTodoItems] = useState<ContentItem[]>([]);
@@ -223,8 +223,32 @@ export default function DashboardPage() {
     };
     initialFetch();
 
-  }, [user, fetchTodos, refreshKey]);
+  }, [user, fetchTodos]);
   
+  useEffect(() => {
+    if (newlyAddedItem) {
+      if (newlyAddedItem.type === 'todo') {
+        // Add new todo and re-sort the list to maintain order
+        setTodoItems(prevItems => 
+          [newlyAddedItem, ...prevItems].sort((a, b) => {
+            if (a.status === 'pending' && b.status === 'completed') return -1;
+            if (a.status === 'completed' && b.status === 'pending') return 1;
+            if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+            if (a.dueDate && !b.dueDate) return -1;
+            if (!a.dueDate && b.dueDate) return 1;
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          })
+        );
+      } else {
+        // For other content, prepending is fine as it's sorted by creation date desc.
+        setDisplayedItems(prevItems => [newlyAddedItem, ...prevItems]);
+      }
+      
+      // Reset the context state to prevent adding the item again on re-renders
+      setNewlyAddedItem(null);
+    }
+  }, [newlyAddedItem, setNewlyAddedItem]);
+
   useEffect(() => {
     if (isFetchingMore || !hasMore || !user) return;
 
