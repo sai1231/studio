@@ -15,15 +15,9 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Search as SearchIcon, FolderOpen, ListFilter, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import {
-  deleteContentItem,
-  getZones,
-  getUniqueContentTypesFromItems,
-  getUniqueTagsFromItems,
-  getContentItems,
-  searchContentItems,
-} from '@/services/contentService';
+import { deleteContentItem, getZones, getContentItems } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
+import { useSearch } from '@/context/SearchContext';
 
 const ALL_FILTER_VALUE = "__ALL__";
 
@@ -36,15 +30,18 @@ function SearchResultsPageContent() {
   const query = searchParams.get('q') || '';
   const zoneId = searchParams.get('zoneId') || ALL_FILTER_VALUE;
   const contentType = searchParams.get('contentType') || ALL_FILTER_VALUE;
-  const tagIds = useMemo(() => searchParams.get('tags')?.split(',').filter(Boolean) || [], [searchParams]);
+  const tagNames = useMemo(() => searchParams.get('tags')?.split(',').filter(Boolean) || [], [searchParams]);
 
-  const [searchResults, setSearchResults] = useState<ContentItem[]>([]);
+  const {
+    searchResults,
+    isLoading: isSearchLoading,
+    isInitialized,
+    search,
+    availableTags,
+    availableContentTypes,
+  } = useSearch();
+
   const [availableZones, setAvailableZones] = useState<Zone[]>([]);
-  const [availableContentTypes, setAvailableContentTypes] = useState<string[]>([]);
-  const [availableTags, setAvailableTags] = useState<AppTag[]>([]);
-  
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   
   const [selectedItemIdForDetail, setSelectedItemIdForDetail] = useState<string | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
@@ -52,24 +49,19 @@ function SearchResultsPageContent() {
   // Pending filter states
   const [pendingSelectedZoneId, setPendingSelectedZoneId] = useState<string>(zoneId);
   const [pendingSelectedContentType, setPendingSelectedContentType] = useState<string>(contentType);
-  const [pendingSelectedTagIds, setPendingSelectedTagIds] = useState<string[]>(tagIds);
+  const [pendingSelectedTagNames, setPendingSelectedTagNames] = useState<string[]>(tagNames);
   const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
 
-  // Fetch static filter options (zones, contentTypes, tags) once
+  // Fetch static filter options (zones) once
   useEffect(() => {
     if (!user) return;
     const fetchFilterOptions = async () => {
         try {
-            const [zones, allItems] = await Promise.all([
-                getZones(user.uid),
-                getContentItems(user.uid) 
-            ]);
+            const zones = await getZones(user.uid);
             setAvailableZones(zones);
-            setAvailableContentTypes(getUniqueContentTypesFromItems(allItems));
-            setAvailableTags(getUniqueTagsFromItems(allItems));
         } catch (e) {
             console.error("Error fetching filter options:", e);
-            toast({title: "Error", description: "Could not load filter options.", variant: "destructive"});
+            toast({title: "Error", description: "Could not load zone filter options.", variant: "destructive"});
         }
     };
     fetchFilterOptions();
@@ -77,52 +69,37 @@ function SearchResultsPageContent() {
 
   // Perform search when query or filters change
   useEffect(() => {
-    if (!user) return;
+    if (!user || !isInitialized) return;
 
     // Do not search if query is empty and no filters are applied
-    if (!query.trim() && zoneId === ALL_FILTER_VALUE && contentType === ALL_FILTER_VALUE && tagIds.length === 0) {
-        setSearchResults([]);
+    if (!query.trim() && zoneId === ALL_FILTER_VALUE && contentType === ALL_FILTER_VALUE && tagNames.length === 0) {
+        search('', {}); // Clear results if no query/filters
         return;
     }
-
-    const performSearch = async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const filters: SearchFilters = {
-                zoneId: zoneId !== ALL_FILTER_VALUE ? zoneId : undefined,
-                contentType: contentType !== ALL_FILTER_VALUE ? contentType : undefined,
-                tagNames: tagIds,
-            };
-            const results = await searchContentItems(user.uid, query, filters);
-            setSearchResults(results);
-        } catch (err) {
-            console.error("Error fetching search data:", err);
-            setError("Failed to load search results. Please try again.");
-            toast({ title: "Error", description: "Could not load search results.", variant: "destructive" });
-        } finally {
-            setIsLoading(false);
-        }
+    
+    const filters: SearchFilters = {
+        zoneId: zoneId !== ALL_FILTER_VALUE ? zoneId : undefined,
+        contentType: contentType !== ALL_FILTER_VALUE ? contentType : undefined,
+        tagNames: tagNames,
     };
-
-    performSearch();
-  }, [user, query, zoneId, contentType, tagIds, toast]);
+    search(query, filters);
+  }, [user, query, zoneId, contentType, tagNames, isInitialized, search]);
 
   // Update pending filters when popover opens
   useEffect(() => {
     if (isFilterPopoverOpen) {
       setPendingSelectedZoneId(zoneId);
       setPendingSelectedContentType(contentType);
-      setPendingSelectedTagIds(tagIds);
+      setPendingSelectedTagNames(tagNames);
     }
-  }, [isFilterPopoverOpen, zoneId, contentType, tagIds]);
+  }, [isFilterPopoverOpen, zoneId, contentType, tagNames]);
 
   const handleApplyFilters = () => {
     const params = new URLSearchParams(searchParams.toString());
     
     if (pendingSelectedZoneId === ALL_FILTER_VALUE) params.delete('zoneId'); else params.set('zoneId', pendingSelectedZoneId);
     if (pendingSelectedContentType === ALL_FILTER_VALUE) params.delete('contentType'); else params.set('contentType', pendingSelectedContentType);
-    if (pendingSelectedTagIds.length === 0) params.delete('tags'); else params.set('tags', pendingSelectedTagIds.join(','));
+    if (pendingSelectedTagNames.length === 0) params.delete('tags'); else params.set('tags', pendingSelectedTagNames.join(','));
 
     router.push(`/search?${params.toString()}`);
     setIsFilterPopoverOpen(false);
@@ -143,15 +120,16 @@ function SearchResultsPageContent() {
   };
 
   const handleItemUpdateInDialog = (updatedItem: ContentItem) => {
-    setSearchResults(prev => prev.map(item => item.id === updatedItem.id ? updatedItem : item));
+    // The search context handles the update automatically via the real-time listener.
+    // No need to manually update search results here.
     toast({ title: "Item Updated", description: `"${updatedItem.title}" has been updated.`});
   };
 
   const handleDeleteItem = async (itemIdToDelete: string) => {
-    setSearchResults(prev => prev.filter(item => item.id !== itemIdToDelete));
     const { id: toastId } = toast({ title: "Deleting Item...", description: `Removing item.` });
     try {
       await deleteContentItem(itemIdToDelete);
+      // The search context handles the removal automatically.
       toast({ id: toastId, title: "Item Deleted", description: `Item has been removed.`, variant: "default" });
     } catch (e) {
       console.error("Error deleting content:", e);
@@ -163,9 +141,9 @@ function SearchResultsPageContent() {
     let count = 0;
     if (zoneId !== ALL_FILTER_VALUE) count++;
     if (contentType !== ALL_FILTER_VALUE) count++;
-    if (tagIds.length > 0) count++;
+    if (tagNames.length > 0) count++;
     return count;
-  }, [zoneId, contentType, tagIds]);
+  }, [zoneId, contentType, tagNames]);
 
   return (
     <div className="container mx-auto py-2">
@@ -230,8 +208,8 @@ function SearchResultsPageContent() {
                                     <div key={tag.id} className="flex items-center space-x-2">
                                         <Checkbox 
                                             id={`tag-search-${tag.id}`} 
-                                            checked={pendingSelectedTagIds.includes(tag.name)}
-                                            onCheckedChange={(checked) => setPendingSelectedTagIds(prev => checked ? [...prev, tag.name] : prev.filter(name => name !== tag.name))}
+                                            checked={pendingSelectedTagNames.includes(tag.name)}
+                                            onCheckedChange={(checked) => setPendingSelectedTagNames(prev => checked ? [...prev, tag.name] : prev.filter(name => name !== tag.name))}
                                         />
                                         <Label htmlFor={`tag-search-${tag.id}`} className="text-sm font-normal cursor-pointer">{tag.name}</Label>
                                     </div>
@@ -257,15 +235,10 @@ function SearchResultsPageContent() {
       </div>
 
       <main className="flex-1 min-w-0">
-        {isLoading ? (
+        {!isInitialized ? (
            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-20rem)]">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="mt-4 text-muted-foreground">Searching...</p>
-          </div>
-        ) : error ? (
-          <div className="text-center py-12">
-            <FolderOpen className="h-12 w-12 mx-auto text-destructive mb-4" />
-            <h2 className="text-xl font-medium text-destructive">{error}</h2>
+            <p className="mt-4 text-muted-foreground">Preparing search engine...</p>
           </div>
         ) : !query.trim() && activeFilterCount === 0 ? (
             <div className="text-center py-12">
@@ -273,6 +246,11 @@ function SearchResultsPageContent() {
                 <h2 className="text-xl font-medium text-muted-foreground">Search Your Memories</h2>
                 <p className="text-muted-foreground mt-2">Enter a term in the search bar above to begin.</p>
             </div>
+        ) : isSearchLoading ? (
+            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-20rem)]">
+             <Loader2 className="h-12 w-12 animate-spin text-primary" />
+             <p className="mt-4 text-muted-foreground">Searching...</p>
+           </div>
         ) : searchResults.length === 0 ? (
           <div className="text-center py-12">
             <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />

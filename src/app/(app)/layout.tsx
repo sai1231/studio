@@ -1,3 +1,4 @@
+
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -15,6 +16,7 @@ import { Plus, UploadCloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
+import { SearchProvider } from '@/context/SearchContext';
 
 export default function AppLayout({
   children,
@@ -207,53 +209,55 @@ export default function AppLayout({
   }
 
   return (
-    <div className="flex min-h-screen w-full relative">
-      <AppSidebar />
-      <div className="flex flex-col flex-1 min-w-0 md:ml-20">
-        <AppHeader />
-        <main
-          className="flex-1 p-4 md:p-6 lg:p-8 bg-background overflow-auto relative"
-          onDragEnter={handleDragEnter}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          {children}
-          {isDraggingOver && (
-            <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm flex flex-col items-center justify-center z-50 pointer-events-none rounded-lg border-2 border-dashed border-primary">
-              <UploadCloud className="h-16 w-16 text-primary mb-4" />
-              <p className="text-lg font-semibold text-primary">Drop here to save</p>
-            </div>
-          )}
-        </main>
-      </div>
-      <AddContentDialog
-        open={isAddContentDialogOpen}
-        onOpenChange={setIsAddContentDialogOpen}
-        zones={zones}
-        onContentAdd={handleAddContentAndRefresh}
-      />
-      <AddTodoDialog
-        open={isAddTodoDialogOpen}
-        onOpenChange={setIsAddTodoDialogOpen}
-        zones={zones}
-        onTodoAdd={handleAddContentAndRefresh} 
-      />
-      <RecordVoiceDialog
-        open={isRecordVoiceDialogOpen}
-        onOpenChange={setIsRecordVoiceDialogOpen}
-        onRecordingSave={handleAddContentAndRefresh}
-      />
+    <SearchProvider>
+      <div className="flex min-h-screen w-full relative">
+        <AppSidebar />
+        <div className="flex flex-col flex-1 min-w-0 md:ml-20">
+          <AppHeader />
+          <main
+            className="flex-1 p-4 md:p-6 lg:p-8 bg-background overflow-auto relative"
+            onDragEnter={handleDragEnter}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            {children}
+            {isDraggingOver && (
+              <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm flex flex-col items-center justify-center z-50 pointer-events-none rounded-lg border-2 border-dashed border-primary">
+                <UploadCloud className="h-16 w-16 text-primary mb-4" />
+                <p className="text-lg font-semibold text-primary">Drop here to save</p>
+              </div>
+            )}
+          </main>
+        </div>
+        <AddContentDialog
+          open={isAddContentDialogOpen}
+          onOpenChange={setIsAddContentDialogOpen}
+          zones={zones}
+          onContentAdd={handleAddContentAndRefresh}
+        />
+        <AddTodoDialog
+          open={isAddTodoDialogOpen}
+          onOpenChange={setIsAddTodoDialogOpen}
+          zones={zones}
+          onTodoAdd={handleAddContentAndRefresh} 
+        />
+        <RecordVoiceDialog
+          open={isRecordVoiceDialogOpen}
+          onOpenChange={setIsRecordVoiceDialogOpen}
+          onRecordingSave={handleAddContentAndRefresh}
+        />
 
-      <Button
-        size="lg"
-        className="fixed bottom-6 right-6 md:bottom-8 md:right-8 rounded-full h-16 w-16 shadow-xl z-40 bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center"
-        aria-label="Add Content"
-        disabled={isAuthLoading}
-        onClick={() => setIsAddContentDialogOpen(true)}
-      >
-        <Plus className="h-7 w-7" />
-      </Button>
-    </div>
+        <Button
+          size="lg"
+          className="fixed bottom-6 right-6 md:bottom-8 md:right-8 rounded-full h-16 w-16 shadow-xl z-40 bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center"
+          aria-label="Add Content"
+          disabled={isAuthLoading}
+          onClick={() => setIsAddContentDialogOpen(true)}
+        >
+          <Plus className="h-7 w-7" />
+        </Button>
+      </div>
+    </SearchProvider>
   );
 }

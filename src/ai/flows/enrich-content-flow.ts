@@ -188,62 +188,6 @@ const enrichContentFlow = ai.defineFlow(
         await addLog('INFO', `[${contentId}] 📝ℹ️ Skipping keyword extraction: description is empty or not a string.`);
       }
 
-      // Generate searchable keywords array
-      const keywords = new Set<string>();
-      const stopWords = new Set(['a', 'an', 'and', 'the', 'is', 'in', 'it', 'of', 'for', 'on', 'with', 'to', 'was', 'i', 'you', 'he', 'she', 'they', 'we', 'about', 'as', 'at', 'by', 'from', 'how', 'what', 'when', 'where', 'why', 'which']);
-      
-      const generatePrefixes = (word: string): string[] => {
-        if (!word) return [];
-        const prefixes = new Set<string>();
-        // For short words, just add the word itself
-        if (word.length <= 2) {
-          prefixes.add(word);
-        } else {
-          // For longer words, generate prefixes from length 2 up to the full word length
-          for (let i = 2; i <= word.length; i++) {
-            prefixes.add(word.substring(0, i));
-          }
-        }
-        return Array.from(prefixes);
-      };
-
-      const processTextForKeywords = (text: string) => {
-          if (!text) return;
-          text.toLowerCase().split(/[\s,.\-!?"'()]+/).forEach(word => {
-              if (word && !stopWords.has(word)) {
-                  generatePrefixes(word).forEach(p => keywords.add(p));
-              }
-          });
-      };
-      
-      const textToProcess = [
-        contentData.title,
-        updatePayload.title,
-        contentData.description,
-        updatePayload.description,
-        contentData.domain,
-        contentData.contentType,
-        updatePayload.contentType
-      ].filter(Boolean).join(' ');
-      
-      processTextForKeywords(textToProcess);
-
-      const tagsToProcess = updatePayload.tags || contentData.tags || [];
-      tagsToProcess.forEach((tag: any) => {
-        if (tag.name) {
-          processTextForKeywords(tag.name);
-        }
-      });
-
-      const colorsToProcess = updatePayload.colorPalette || contentData.colorPalette || [];
-      colorsToProcess.forEach((color: string) => keywords.add(color.toLowerCase()));
-
-      if (keywords.size > 0) {
-        updatePayload.searchableKeywords = Array.from(keywords);
-        await addLog('INFO', `[${contentId}] 📝✅ Generated searchable keywords.`, { count: keywords.size });
-      }
-
-
       if (enrichmentFailed) {
         updatePayload.status = 'failed-analysis';
         await addLog('WARN', `[${contentId}] ⚠️ Setting status to 'failed-analysis' due to errors.`);

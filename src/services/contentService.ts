@@ -340,61 +340,6 @@ export async function addZone(name: string, userId: string): Promise<Zone> {
   }
 }
 
-// --- Search Functions ---
-
-export async function searchContentItems(
-  userId: string,
-  searchQuery: string,
-  filters: SearchFilters = {}
-): Promise<ContentItem[]> {
-  if (!userId) return [];
-  if (
-    !searchQuery.trim() &&
-    !filters.zoneId &&
-    !filters.contentType &&
-    (!filters.tagNames || filters.tagNames.length === 0)
-  ) {
-    return []; // Return empty if no search query or filters
-  }
-
-  let q = query(contentCollection, where('userId', '==', userId));
-
-  // Apply Firestore-compatible filters
-  if (searchQuery.trim()) {
-    q = query(q, where('searchableKeywords', 'array-contains', searchQuery.toLowerCase().trim()));
-  }
-  if (filters.zoneId) {
-    q = query(q, where('zoneId', '==', filters.zoneId));
-  }
-  if (filters.contentType) {
-    q = query(q, where('contentType', '==', filters.contentType));
-  }
-  
-  // Note: Firestore does not support multiple 'array-contains' or a mix of 'array-contains' with most other clauses on different fields in a single query.
-  // We will apply the tag filter client-side after fetching.
-
-  const querySnapshot = await getDocs(q);
-  let items: ContentItem[] = [];
-  querySnapshot.forEach((doc) => {
-    const data = doc.data();
-    items.push({
-      id: doc.id,
-      ...data,
-      createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
-    } as ContentItem);
-  });
-
-  // Client-side filtering for tags
-  if (filters.tagNames && filters.tagNames.length > 0) {
-    items = items.filter(item => {
-      const itemTagNames = item.tags.map(tag => tag.name);
-      return filters.tagNames!.every(filterTagName => itemTagNames.includes(filterTagName));
-    });
-  }
-
-  return items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-}
-
 // --- Utility & File Functions ---
 
 // Function for file upload to Firebase Storage, returns the public download URL

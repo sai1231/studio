@@ -6,7 +6,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/core/theme-provider";
 import { AuthProvider } from '@/context/AuthContext';
 import { DialogProvider } from '@/context/DialogContext';
-import { SecondarySidebarProvider } from '@/context/SecondarySidebarContext';
 
 export const metadata: Metadata = {
   title: 'Mati - Save and Organize Your Thoughts', // Changed Klipped to Mati
