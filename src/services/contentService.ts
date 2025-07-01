@@ -296,14 +296,17 @@ export async function searchContentItems({
             return { items: [], lastVisibleDoc: null };
         }
 
-        const queryWords = [...new Set(searchQuery.toLowerCase().split(/\s+/).filter(w => w.length > 1))].slice(0, 10);
+        const queryWords = [...new Set(searchQuery.toLowerCase().split(/\s+/).filter(w => w.length > 1))];
         if (queryWords.length === 0) {
             return { items: [], lastVisibleDoc: null };
         }
         
+        // Use 'array-contains' on the first keyword to allow for sorting and pagination.
+        const primaryKeyword = queryWords[0];
+        
         const queryConstraints: any[] = [
             where('userId', '==', userId),
-            where('searchableKeywords', 'array-contains-any', queryWords),
+            where('searchableKeywords', 'array-contains', primaryKeyword),
             orderBy('createdAt', 'desc'),
             limit(pageSize),
         ];
@@ -321,7 +324,7 @@ export async function searchContentItems({
         const q = query(contentCollection, ...queryConstraints);
         const querySnapshot = await getDocs(q);
         
-        const items = querySnapshot.docs.map(doc => {
+        let items = querySnapshot.docs.map(doc => {
             const data = doc.data();
             const createdAt = data.createdAt;
             return {
@@ -330,12 +333,20 @@ export async function searchContentItems({
                 createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : new Date().toISOString(),
             } as ContentItem;
         });
+        
+        // Client-side filtering for remaining keywords and tags
+        const remainingKeywords = queryWords.slice(1);
+        if (remainingKeywords.length > 0) {
+            items = items.filter(item => 
+                remainingKeywords.every(kw => 
+                    item.searchableKeywords?.includes(kw)
+                )
+            );
+        }
 
-        // Client-side filtering for tags, as a workaround for Firestore limitations
-        let finalItems = items;
         if (filters.tagNames && filters.tagNames.length > 0) {
             const filterTagNamesLower = filters.tagNames.map(t => t.toLowerCase());
-            finalItems = items.filter(item => {
+            items = items.filter(item => {
                 const itemTagNames = item.tags.map(tag => tag.name.toLowerCase());
                 return filterTagNamesLower.every(filterTag => itemTagNames.includes(filterTag));
             });
@@ -343,7 +354,7 @@ export async function searchContentItems({
         
         const lastVisibleDoc = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
 
-        return { items: finalItems, lastVisibleDoc };
+        return { items, lastVisibleDoc };
     } catch (error) {
         console.error("Failed to search content items from Firestore:", error);
         throw error;
