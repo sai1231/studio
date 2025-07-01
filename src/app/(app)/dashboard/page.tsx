@@ -179,7 +179,7 @@ export default function DashboardPage() {
     try {
       const { items, lastVisibleDoc: newLastDoc } = await getContentItemsPaginated({
         userId,
-        pageSize: 10,
+        pageSize: 100,
         lastDoc: lastVisibleDoc || undefined,
       });
       
@@ -211,7 +211,7 @@ export default function DashboardPage() {
     const initialFetch = async () => {
       try {
         await fetchTodos(user.uid);
-        const { items, lastVisibleDoc: newLastDoc } = await getContentItemsPaginated({ userId: user.uid, pageSize: 10 });
+        const { items, lastVisibleDoc: newLastDoc } = await getContentItemsPaginated({ userId: user.uid, pageSize: 100 });
         setDisplayedItems(items);
         setLastVisibleDoc(newLastDoc);
         setHasMore(!!newLastDoc);

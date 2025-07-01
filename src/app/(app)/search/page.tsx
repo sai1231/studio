@@ -113,7 +113,7 @@ function SearchResultsPageContent() {
             userId: user.uid,
             searchQuery: query,
             filters,
-            pageSize: 12,
+            pageSize: 50,
             lastDoc: isNewSearch ? undefined : lastVisibleDoc || undefined,
         });
 
@@ -138,7 +138,7 @@ function SearchResultsPageContent() {
   // Effect to trigger a new search when query or filters change
   useEffect(() => {
     performSearch(true);
-  }, [query, zoneId, contentType]); // Rerun search on primary filter changes. Tag changes are client-side for now.
+  }, [query, zoneId, contentType, tagIds, performSearch]);
 
 
   // Effect for infinite scroll
