@@ -131,6 +131,20 @@ const enrichContentFlow = ai.defineFlow(
                 await addLog('WARN', `[${contentId}] 🎨❌ Error analyzing image colors:`, { error: e.message });
             }
         }
+        
+        if (contentData.imageUrl && !updatePayload.imageDimensions) {
+            try {
+                const imageResponse = await fetch(contentData.imageUrl);
+                if (imageResponse.ok) {
+                    const buffer = await imageResponse.arrayBuffer();
+                    // This is a placeholder for a real image size calculation library
+                    // For now, we will assume we can't get dimensions server-side easily
+                    // and rely on client-side aspect ratio.
+                }
+            } catch(e) {
+                 await addLog('WARN', `[${contentId}] Could not get image dimensions:`, { error: (e as Error).message });
+            }
+        }
 
       // Keyword and Key Phrase Extraction
       const descriptionToAnalyze = updatePayload.description || contentData.description;
@@ -176,7 +190,31 @@ const enrichContentFlow = ai.defineFlow(
       // Generate searchable keywords array
       const keywords = new Set<string>();
       const stopWords = new Set(['a', 'an', 'and', 'the', 'is', 'in', 'it', 'of', 'for', 'on', 'with', 'to', 'was', 'i', 'you', 'he', 'she', 'they', 'we', 'about', 'as', 'at', 'by', 'from', 'how', 'what', 'when', 'where', 'why', 'which']);
+      
+      const generatePrefixes = (word: string): string[] => {
+        if (!word) return [];
+        const prefixes = new Set<string>();
+        // For short words, just add the word itself
+        if (word.length <= 2) {
+          prefixes.add(word);
+        } else {
+          // For longer words, generate prefixes from length 2 up to the full word length
+          for (let i = 2; i <= word.length; i++) {
+            prefixes.add(word.substring(0, i));
+          }
+        }
+        return Array.from(prefixes);
+      };
 
+      const processTextForKeywords = (text: string) => {
+          if (!text) return;
+          text.toLowerCase().split(/[\s,.\-!?"'()]+/).forEach(word => {
+              if (word && !stopWords.has(word)) {
+                  generatePrefixes(word).forEach(p => keywords.add(p));
+              }
+          });
+      };
+      
       const textToProcess = [
         contentData.title,
         updatePayload.title,
@@ -186,19 +224,13 @@ const enrichContentFlow = ai.defineFlow(
         contentData.contentType,
         updatePayload.contentType
       ].filter(Boolean).join(' ');
-
-      textToProcess.toLowerCase().split(/[\s,.\-!?"'()]+/).forEach(word => {
-        if (word.length > 2 && !stopWords.has(word)) {
-          keywords.add(word);
-        }
-      });
+      
+      processTextForKeywords(textToProcess);
 
       const tagsToProcess = updatePayload.tags || contentData.tags || [];
       tagsToProcess.forEach((tag: any) => {
         if (tag.name) {
-          tag.name.toLowerCase().split(/\s+/).forEach((word: string) => {
-            if (word.length > 2 && !stopWords.has(word)) keywords.add(word);
-          })
+          processTextForKeywords(tag.name);
         }
       });
 
