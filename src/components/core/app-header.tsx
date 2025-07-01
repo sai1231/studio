@@ -1,7 +1,8 @@
+
 'use client';
 import type React from 'react';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { UserCircle, Settings, LogOut, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -21,17 +22,49 @@ import { useToast } from '@/hooks/use-toast';
 
 const AppHeader: React.FC = () => {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const { user } = useAuth();
   const auth = getAuth();
-  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Local state for the input field to allow for debouncing
+  const [inputValue, setInputValue] = useState(searchParams.get('q') || '');
+
+  // Effect to update the input's value if the URL query changes (e.g., from browser back/forward)
+  useEffect(() => {
+    setInputValue(searchParams.get('q') || '');
+  }, [searchParams]);
+
+  // Effect to debounce user input and update the URL
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      // Don't do anything if the user is not on the search page and the input is empty
+      if (pathname !== '/search' && !inputValue) {
+        return;
+      }
+      
+      const newParams = new URLSearchParams(searchParams.toString());
+      
+      if (!inputValue.trim()) {
+        newParams.delete('q');
+      } else {
+        newParams.set('q', inputValue.trim());
+      }
+      
+      // Navigate to the search page with the new query.
+      // `router.push` is smart enough to not cause a full page reload if only search params change.
+      router.push(`/search?${newParams.toString()}`);
+     
+    }, 300); // 300ms delay
+
+    return () => clearTimeout(debounceTimer);
+  }, [inputValue, pathname, router, searchParams]);
+
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchQuery(''); // Clear search after submit
-    }
+    // The debounced effect handles the logic, so we just prevent default form submission.
   };
   
   const handleLogout = async () => {
@@ -59,8 +92,8 @@ const AppHeader: React.FC = () => {
                 type="search"
                 placeholder="Search my memories..."
                 className="w-full rounded-lg bg-muted pl-9"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
             />
         </form>
       </div>
