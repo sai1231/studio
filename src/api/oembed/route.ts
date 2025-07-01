@@ -67,31 +67,6 @@ export async function GET(request: NextRequest) {
     try {
         const urlObj = new URL(url);
 
-        // Special handling for Instagram
-        if (urlObj.hostname.includes('instagram.com')) {
-            const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID;
-            const appSecret = process.env.FACEBOOK_APP_SECRET;
-
-            if (appId && appSecret) {
-                const accessToken = `${appId}|${appSecret}`;
-                const instagramOembedUrl = `https://graph.facebook.com/v19.0/instagram_oembed?url=${encodeURIComponent(url)}&access_token=${accessToken}`;
-
-                try {
-                    const igResponse = await fetch(instagramOembedUrl, { signal: AbortSignal.timeout(8000) });
-                    if (igResponse.ok) {
-                        const igData = await igResponse.json();
-                        igData.html = `<div class="instagram-embed-wrapper">${igData.html}</div>`;
-                        return NextResponse.json(igData);
-                    }
-                } catch (igError) {
-                    console.error('Failed to fetch Instagram oEmbed, falling back...', igError);
-                    // Fallback to generic method if IG-specific fetch fails.
-                }
-            } else {
-                 console.warn("Instagram link detected, but Facebook App ID/Secret are not configured in environment variables.");
-            }
-        }
-        
         let endpointUrl: string | null = null;
         
         // Check known providers first
