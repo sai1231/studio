@@ -32,13 +32,12 @@ interface SearchableDocument {
   zoneId: string;
 }
 
+// FIX: Removed the `tag` property from the index definition to prevent config errors.
 const createNewIndex = () => new Document<SearchableDocument, true>({
     document: {
       id: 'id',
       index: ['title', 'description', 'tags', 'domain'],
-      store: ['id', 'title', 'description', 'tags', 'domain', 'contentType', 'zoneId'],
-      // We will tag fields for filtering
-      tag: ['zoneId', 'contentType'],
+      store: true, // Store the full document for easier filtering and retrieval
     },
     tokenize: 'forward',
     cache: 100,
@@ -60,12 +59,10 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
     let unsubscribe: Unsubscribe | null = null;
 
     const initialize = async () => {
-      // Run cleanup for expired items in the background.
       deleteExpiredContent(user.uid).catch(err => {
         console.error("Background cleanup of expired items failed:", err);
       });
 
-      // Load from cache first
       const cachedItems = await get<ContentItem[]>(CONTENT_CACHE_KEY);
       if (isMounted && cachedItems) {
         setAllItems(cachedItems);
@@ -76,19 +73,17 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
         setIsInitialized(true);
       }
 
-      // Then subscribe for real-time updates
       unsubscribe = subscribeToContentItems(user.uid, (items) => {
         if (!isMounted) return;
         setAllItems(items);
         
-        // Re-create the index and populate it
         const newIndex = createNewIndex();
         for (const item of items) {
             newIndex.add(formatForIndex(item));
         }
         searchIndexRef.current = newIndex;
 
-        set(CONTENT_CACHE_KEY, items); // Update cache
+        set(CONTENT_CACHE_KEY, items);
         if (!isInitialized) {
           setIsInitialized(true);
         }
@@ -113,36 +108,43 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
     zoneId: item.zoneId || '',
   });
 
+  // FIX: Reworked the search logic to use the `where` clause for filtering and handle results correctly.
   const search = useCallback((query: string, filters: SearchFilters) => {
     if (!searchIndexRef.current || !isInitialized) return;
     setIsLoading(true);
 
     const index = searchIndexRef.current;
     
-    // Build the where clause for filtering
-    const whereClause: { [key: string]: string } = {};
-    if (filters.zoneId) whereClause.zoneId = filters.zoneId;
-    if (filters.contentType) whereClause.contentType = filters.contentType;
-
-    const searchOptions: any = {
-      index: ['title', 'description', 'tags', 'domain'],
-      enrich: true,
-      tag: [], // Use tag for filtering
+    const whereClause = (doc: SearchableDocument) => {
+      if (filters.zoneId && doc.zoneId !== filters.zoneId) return false;
+      if (filters.contentType && doc.contentType !== filters.contentType) return false;
+      return true;
     };
+
+    const searchResults = index.search(query, {
+      enrich: true,
+      where: whereClause
+    });
     
-    if (filters.zoneId) searchOptions.tag.push(`zoneId:${filters.zoneId}`);
-    if (filters.contentType) searchOptions.tag.push(`contentType:${filters.contentType}`);
+    const idSet = new Set<string>();
     
-    const searchResults = query ? index.search(query, searchOptions) : index.search(searchOptions);
-   
-    let finalItems: ContentItem[] = [];
-    if(searchResults.length > 0) {
-      const idSet = new Set<string>();
-      searchResults[0].result.forEach((doc: SearchableDocument) => idSet.add(doc.id));
-      finalItems = allItems.filter(item => idSet.has(item.id));
-    } else if (!query) {
-      finalItems = allItems;
+    if (query) {
+        searchResults.forEach(fieldResult => {
+          fieldResult.result.forEach((doc: {id: string, doc: SearchableDocument}) => {
+            idSet.add(doc.id);
+          });
+        });
+    } else {
+        // If no query, search returns empty. We filter all items manually.
+        allItems.forEach(item => {
+            const searchableItem = formatForIndex(item);
+            if (whereClause(searchableItem)) {
+                idSet.add(item.id);
+            }
+        });
     }
+
+    let finalItems = allItems.filter(item => idSet.has(item.id));
     
     if (filters.tagNames && filters.tagNames.length > 0) {
         finalItems = finalItems.filter(item => {
