@@ -263,6 +263,11 @@ export async function updateContentItem(
     } else if (updateData.dueDate) {
       updateData.dueDate = updateData.dueDate;
     }
+    
+    // Allow explicitly setting expiresAt to undefined to remove it
+    if (Object.prototype.hasOwnProperty.call(updates, 'expiresAt') && updates.expiresAt === undefined) {
+        updateData.expiresAt = null; // Use null to delete the field
+    }
 
     await updateDoc(docRef, updateData);
     const updatedItem = await getContentItemById(itemId);
@@ -341,6 +346,41 @@ export async function addZone(name: string, userId: string): Promise<Zone> {
 }
 
 // --- Utility & File Functions ---
+
+// New function to delete expired content
+export async function deleteExpiredContent(userId: string): Promise<void> {
+    try {
+        if (!userId) {
+            console.warn('deleteExpiredContent called without a userId.');
+            return;
+        }
+        
+        const now = new Date().toISOString();
+        const q = query(contentCollection, where('userId', '==', userId), where('expiresAt', '<=', now));
+        
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+            return; // No expired items to delete
+        }
+
+        const deletePromises: Promise<void>[] = [];
+        querySnapshot.forEach((doc) => {
+            console.log(`Deleting expired item: ${doc.id}`);
+            addLog('INFO', `Auto-deleting expired content item: ${doc.id}`);
+            deletePromises.push(deleteDoc(doc.ref));
+        });
+
+        await Promise.all(deletePromises);
+        console.log(`Successfully deleted ${querySnapshot.size} expired items.`);
+
+    } catch (error) {
+        console.error('Failed to delete expired content items from Firestore:', error);
+        addLog('ERROR', 'Failed to run expired content cleanup', { error: (error as Error).message });
+        // We don't throw here as this is a background cleanup task
+    }
+}
+
 
 // Function for file upload to Firebase Storage, returns the public download URL
 export async function uploadFile(file: File, path: string): Promise<string> {

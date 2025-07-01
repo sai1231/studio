@@ -20,8 +20,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { X, Loader2, Check, Plus, ChevronDown, Bookmark, Briefcase, Home, Library, FileUp, Image as ImageIcon, File as FileIcon, Mic } from 'lucide-react';
+import { X, Loader2, Check, Plus, ChevronDown, Bookmark, Briefcase, Home, Library, FileUp, Image as ImageIcon, File as FileIcon, Mic, AlarmClock } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import type { Zone, ContentItem, Tag } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -29,7 +31,7 @@ import { cn } from '@/lib/utils';
 import { addContentItem, addZone, uploadFile } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { add } from 'date-fns';
 import { ScrollArea } from '../ui/scroll-area';
 
 const mainContentSchema = z.object({
@@ -82,6 +84,9 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [isTemporary, setIsTemporary] = useState(false);
+  const [expiryDays, setExpiryDays] = useState('30');
 
   const form = useForm<z.infer<typeof mainContentSchema>>({
     resolver: zodResolver(mainContentSchema),
@@ -102,6 +107,8 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       setUploadedFiles([]);
       setIsUploading(false);
       setIsDragging(false);
+      setIsTemporary(false);
+      setExpiryDays('30');
     }
   }, [open, form, zones]);
 
@@ -173,13 +180,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
         handleFilesSelected(Array.from(files));
     }
   };
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      handleFilesSelected(Array.from(files));
-    }
-    if (e.target) e.target.value = ''; // Reset file input
-  };
   const handleUploadAreaClick = () => { if (!isUploading) fileInputRef.current?.click(); };
   
   const clearUploadedFile = (urlToRemove: string) => { 
@@ -240,6 +240,12 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     
     form.clearErrors('mainContent');
 
+    const commonData = {
+      tags: currentTags,
+      zoneId: zoneId || undefined,
+      expiresAt: isTemporary ? add(new Date(), { days: parseInt(expiryDays, 10) }).toISOString() : undefined,
+    };
+
     if (uploadedFiles.length > 0) {
         const mindNoteFromInput = mainContent.trim() ? mainContent.trim() : undefined;
         
@@ -247,14 +253,14 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
             const contentData = uploadedFile.type === 'image'
             ? {
                 type: 'image' as const, title: uploadedFile.name, imageUrl: uploadedFile.url,
-                mindNote: mindNoteFromInput,
-                tags: [{id: 'upload', name: 'upload'}, ...currentTags], zoneId: zoneId || undefined, status: 'pending-analysis' as const,
+                mindNote: mindNoteFromInput, status: 'pending-analysis' as const,
+                ...commonData
               }
             : {
                 type: 'link' as const, title: uploadedFile.name, url: uploadedFile.url, contentType: 'PDF',
-                mindNote: mindNoteFromInput,
-                domain: 'mati.internal.storage', tags: [{ id: 'upload', name: 'upload' }, ...currentTags],
-                zoneId: zoneId || undefined, status: 'pending-analysis' as const,
+                mindNote: mindNoteFromInput, domain: 'mati.internal.storage',
+                status: 'pending-analysis' as const,
+                ...commonData
               };
             
             onContentAdd(contentData); // Let layout handle toast and async logic
@@ -273,17 +279,19 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                 catch { metadata.title = "Untitled Link"; }
             }
             contentData = {
-                type: 'link', url: extractedUrl, mindNote: mainContent, zoneId: zoneId || undefined,
-                tags: currentTags, domain: new URL(extractedUrl).hostname.replace(/^www\./, ''),
+                type: 'link', url: extractedUrl, mindNote: mainContent,
+                domain: new URL(extractedUrl).hostname.replace(/^www\./, ''),
                 status: 'pending-analysis', title: metadata.title, description: metadata.description,
                 faviconUrl: metadata.faviconUrl, imageUrl: metadata.imageUrl,
+                ...commonData
             };
         } else {
             const textContent = mainContent.trim();
             const generatedTitle = textContent.split(/\s+/).slice(0, 5).join(' ') + (textContent.split(/\s+/).length > 5 ? '...' : '');
             contentData = {
                 type: 'note', title: generatedTitle || 'Untitled Note', description: textContent,
-                zoneId: zoneId || undefined, tags: currentTags, contentType: 'Note', status: 'pending-analysis',
+                contentType: 'Note', status: 'pending-analysis',
+                ...commonData
             };
         }
         onContentAdd(contentData as Omit<ContentItem, 'id' | 'createdAt'>);
@@ -379,7 +387,30 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
             </div>
             
             <div className="space-y-4 rounded-lg border bg-muted/50 p-4">
-              <div className="space-y-2">
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                        <Label htmlFor="temporary" className="flex items-center gap-2 font-medium">
+                            <AlarmClock className="h-4 w-4" />
+                            Temporary Content
+                        </Label>
+                        <Switch id="temporary" checked={isTemporary} onCheckedChange={setIsTemporary} />
+                    </div>
+                    {isTemporary && (
+                        <Select value={expiryDays} onValueChange={setExpiryDays}>
+                            <SelectTrigger className="w-full bg-background focus:ring-accent">
+                                <SelectValue placeholder="Select expiration period" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="7">Delete after 7 days</SelectItem>
+                                <SelectItem value="30">Delete after 30 days</SelectItem>
+                                <SelectItem value="90">Delete after 90 days</SelectItem>
+                                <SelectItem value="365">Delete after 1 year</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    )}
+                </div>
+
+                <div className="space-y-2">
                 <Label htmlFor="zoneId">Zone</Label>
                  <Popover open={isZonePopoverOpen} onOpenChange={setIsZonePopoverOpen}>
                   <PopoverTrigger asChild>

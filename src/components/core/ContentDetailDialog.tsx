@@ -10,15 +10,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-// Card imports are not strictly necessary for Dialog layout but kept if used for structure within
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil, ChevronDown, Ban, Briefcase, Home, Library, Star, Film, Users, Clapperboard, Glasses } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil, ChevronDown, Ban, Briefcase, Home, Library, Star, Film, Users, Clapperboard, Glasses, AlarmClock } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import ReadableArticleView from '@/components/core/ReadableArticleView';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow, add } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
@@ -158,6 +159,8 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   const [isFetchingOembed, setIsFetchingOembed] = useState(false);
   const [imageError, setImageError] = useState(false);
 
+  const [isTemporary, setIsTemporary] = useState(false);
+
   useEffect(() => {
     if (open && itemId && user) {
       setIsLoading(true); 
@@ -173,6 +176,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       setOembedHtml(null);
       setImageError(false);
       setIsDescriptionExpanded(false);
+      setIsTemporary(false);
       
       const randomIndex = Math.floor(Math.random() * loadingMessages.length);
       setCurrentLoadingMessage(loadingMessages[randomIndex]);
@@ -182,6 +186,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
           const fetchedItem = await getContentItemById(itemId);
           if (fetchedItem) {
             setItem(fetchedItem);
+            setIsTemporary(!!fetchedItem.expiresAt);
             if (fetchedItem.type === 'link' && fetchedItem.url) {
                 setIsFetchingOembed(true);
                 setOembedHtml(null);
@@ -239,6 +244,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       setEditableMindNote(item.mindNote || '');
       setEditableZoneId(item.zoneId);
       setEditableTags(item.tags || []);
+      setIsTemporary(!!item.expiresAt);
     }
   }, [item]);
 
@@ -259,7 +265,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
     }
   }, [isAddingTag]);
 
-  const handleFieldUpdate = async (fieldName: keyof Pick<ContentItem, 'title' | 'description' | 'mindNote' | 'zoneId'>, value: any) => {
+  const handleFieldUpdate = async (fieldName: keyof Pick<ContentItem, 'title' | 'description' | 'mindNote' | 'zoneId' | 'expiresAt'>, value: any) => {
     if (!item || isSavingField) return;
     setIsSavingField(true);
 
@@ -415,6 +421,24 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
     setNewTagInput('');
     setIsAddingTag(false);
   }
+  
+  const handleTemporaryToggle = (checked: boolean) => {
+      setIsTemporary(checked);
+      if (checked) {
+          // Default to 30 days when toggled on
+          const newExpiryDate = add(new Date(), { days: 30 });
+          handleFieldUpdate('expiresAt', newExpiryDate.toISOString());
+      } else {
+          // Remove expiry when toggled off
+          handleFieldUpdate('expiresAt', undefined);
+      }
+  };
+  
+  const handleExpiryChange = (days: string) => {
+      const newExpiryDate = add(new Date(), { days: parseInt(days, 10) });
+      handleFieldUpdate('expiresAt', newExpiryDate.toISOString());
+  };
+
 
   const handleOpenSimplifiedView = async () => {
     if (!item || !item.url) return;
@@ -792,6 +816,22 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                                 />
                             </div>
                         )}
+                        
+                        <div className="bg-muted/50 dark:bg-muted/20 p-4 rounded-lg mt-2 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <label htmlFor="temporary-switch" className="flex items-center gap-2 font-medium text-foreground">
+                                    <AlarmClock className="h-4 w-4 text-muted-foreground" />
+                                    Temporary Content
+                                </label>
+                                <Switch id="temporary-switch" checked={isTemporary} onCheckedChange={handleTemporaryToggle} />
+                            </div>
+                            {isTemporary && item.expiresAt && (
+                                <div className="text-sm text-muted-foreground pl-6">
+                                    Expires in {formatDistanceToNow(new Date(item.expiresAt), { addSuffix: false })} on {format(new Date(item.expiresAt), 'MMM d, yyyy')}
+                                </div>
+                            )}
+                        </div>
+
                     </div> 
                   </div> 
                 );

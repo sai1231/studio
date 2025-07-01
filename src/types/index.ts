@@ -28,6 +28,7 @@ export interface ContentItem {
   userId?: string;
   createdAt: string; // ISO date string
   dueDate?: string; // ISO date string for TODO due dates
+  expiresAt?: string; // ISO date string for when the content should be deleted
   domain?: string;
   contentType?: string;
   movieDetails?: MovieDetails; // Added for movie type

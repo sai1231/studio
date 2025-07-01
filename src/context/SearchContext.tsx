@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import Document from 'flexsearch/dist/module/document.js';
 import { set, get } from 'idb-keyval';
 import { useAuth } from './AuthContext';
-import { subscribeToContentItems } from '@/services/contentService';
+import { subscribeToContentItems, deleteExpiredContent } from '@/services/contentService';
 import type { ContentItem, Tag, SearchFilters } from '@/types';
 import type { Unsubscribe } from 'firebase/firestore';
 
@@ -35,10 +35,10 @@ interface SearchableDocument {
 const createNewIndex = () => new Document<SearchableDocument, true>({
     document: {
       id: 'id',
-      // Fields for full-text search
       index: ['title', 'description', 'tags', 'domain'],
-      // We will store the full document to make filtering easier
-      store: true,
+      store: ['id', 'title', 'description', 'tags', 'domain', 'contentType', 'zoneId'],
+      // We will tag fields for filtering
+      tag: ['zoneId', 'contentType'],
     },
     tokenize: 'forward',
     cache: 100,
@@ -60,6 +60,11 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
     let unsubscribe: Unsubscribe | null = null;
 
     const initialize = async () => {
+      // Run cleanup for expired items in the background.
+      deleteExpiredContent(user.uid).catch(err => {
+        console.error("Background cleanup of expired items failed:", err);
+      });
+
       // Load from cache first
       const cachedItems = await get<ContentItem[]>(CONTENT_CACHE_KEY);
       if (isMounted && cachedItems) {
@@ -114,25 +119,31 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
 
     const index = searchIndexRef.current;
     
-    // Perform the text search first. If no query, we start with all items.
-    const searchResults = query ? index.search(query, { enrich: true }) : [{ result: allItems.map(formatForIndex) }];
+    // Build the where clause for filtering
+    const whereClause: { [key: string]: string } = {};
+    if (filters.zoneId) whereClause.zoneId = filters.zoneId;
+    if (filters.contentType) whereClause.contentType = filters.contentType;
 
-    const idSet = new Set<string>();
-    searchResults.forEach(fieldResult => {
-      fieldResult.result.forEach((doc: SearchableDocument) => {
-        idSet.add(doc.id);
-      });
-    });
+    const searchOptions: any = {
+      index: ['title', 'description', 'tags', 'domain'],
+      enrich: true,
+      tag: [], // Use tag for filtering
+    };
     
-    let finalItems = allItems.filter(item => idSet.has(item.id));
+    if (filters.zoneId) searchOptions.tag.push(`zoneId:${filters.zoneId}`);
+    if (filters.contentType) searchOptions.tag.push(`contentType:${filters.contentType}`);
     
-    // Now apply filters to the search results
-    if (filters.zoneId) {
-        finalItems = finalItems.filter(item => item.zoneId === filters.zoneId);
+    const searchResults = query ? index.search(query, searchOptions) : index.search(searchOptions);
+   
+    let finalItems: ContentItem[] = [];
+    if(searchResults.length > 0) {
+      const idSet = new Set<string>();
+      searchResults[0].result.forEach((doc: SearchableDocument) => idSet.add(doc.id));
+      finalItems = allItems.filter(item => idSet.has(item.id));
+    } else if (!query) {
+      finalItems = allItems;
     }
-    if (filters.contentType) {
-        finalItems = finalItems.filter(item => item.contentType === filters.contentType);
-    }
+    
     if (filters.tagNames && filters.tagNames.length > 0) {
         finalItems = finalItems.filter(item => {
             const itemTagNames = item.tags.map(t => t.name.toLowerCase());
