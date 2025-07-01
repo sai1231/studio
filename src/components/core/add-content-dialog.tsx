@@ -182,6 +182,14 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   };
   const handleUploadAreaClick = () => { if (!isUploading) fileInputRef.current?.click(); };
   
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleFilesSelected(Array.from(files));
+      e.target.value = ''; // Reset input to allow re-selecting the same file
+    }
+  };
+
   const clearUploadedFile = (urlToRemove: string) => { 
     setUploadedFiles(prev => prev.filter(f => f.url !== urlToRemove));
   };
