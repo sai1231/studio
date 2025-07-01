@@ -84,7 +84,7 @@ function SearchResultsPageContent() {
     fetchFilterOptions();
   }, [user, toast]);
   
-  const performSearch = useCallback(async (isNewSearch: boolean) => {
+  const performSearch = useCallback(async (isNewSearch: boolean, currentLastDoc?: DocumentSnapshot | null) => {
     if (!user || !query.trim()) {
         setSearchResults([]);
         setIsLoading(false);
@@ -97,7 +97,6 @@ function SearchResultsPageContent() {
         setLastVisibleDoc(null);
         setHasMore(true);
     } else {
-        if (!hasMore || isFetchingMore) return;
         setIsFetchingMore(true);
     }
     setError(null);
@@ -114,7 +113,7 @@ function SearchResultsPageContent() {
             searchQuery: query,
             filters,
             pageSize: 50,
-            lastDoc: isNewSearch ? undefined : lastVisibleDoc || undefined,
+            lastDoc: isNewSearch ? undefined : currentLastDoc || undefined,
         });
 
         if (isNewSearch) {
@@ -133,7 +132,7 @@ function SearchResultsPageContent() {
         setIsLoading(false);
         setIsFetchingMore(false);
     }
-  }, [user, query, zoneId, contentType, tagIds, hasMore, isFetchingMore, lastVisibleDoc]);
+  }, [user, query, zoneId, contentType, tagIds, toast]);
 
   // Effect to trigger a new search when query or filters change
   useEffect(() => {
@@ -143,10 +142,9 @@ function SearchResultsPageContent() {
 
   // Effect for infinite scroll
   useEffect(() => {
-    if (isFetchingMore || !hasMore) return;
     const observer = new IntersectionObserver(entries => {
-        if (entries[0].isIntersecting) {
-            performSearch(false);
+        if (entries[0].isIntersecting && hasMore && !isFetchingMore) {
+            performSearch(false, lastVisibleDoc);
         }
     });
 
@@ -159,7 +157,7 @@ function SearchResultsPageContent() {
             observer.unobserve(currentLoader);
         }
     };
-  }, [isFetchingMore, hasMore, performSearch]);
+  }, [isFetchingMore, hasMore, lastVisibleDoc, performSearch]);
 
   // Update pending filters when popover opens
   useEffect(() => {
