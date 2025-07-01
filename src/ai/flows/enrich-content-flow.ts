@@ -119,7 +119,7 @@ const enrichContentFlow = ai.defineFlow(
             }
             const arrayBuffer = await imageResponse.arrayBuffer();
             const imageBuffer = Buffer.from(arrayBuffer);
-            
+
             const colorPalette = await fetchImageColors(imageBuffer);
             updatePayload.colorPalette = colorPalette;
             await addLog('INFO', `[${contentId}] 🎨✅ Successfully fetched color palette. ${colorPalette}`);
@@ -133,13 +133,29 @@ const enrichContentFlow = ai.defineFlow(
 
         if (descriptionToAnalyze && typeof descriptionToAnalyze === 'string') {
           await addLog('INFO', `[${contentId}] 📝 Extracting keywords and key phrases...`);
+
           try {
             const formattedTags = await extractTagsFromText(descriptionToAnalyze);
 
             if (formattedTags.length > 0) {
+
+              // Get existing tags from contentData, default to empty array if none
+              const existingTags = contentData.tags || [];
+
+              // Combine existing and new tags
+              const combinedTags = [...existingTags, ...formattedTags];
+              await addLog('INFO', `[${contentId}] 📝 combinedTags tags:`, { combinedTags });
+
+              // Remove duplicates based on tag name (assuming name is unique identifier)
+              const uniqueTags = combinedTags.filter((tag, index, self) =>
+                index === self.findIndex((t) => (
+                  t.name === tag.name
+                ))
+              );
+
               updatePayload = {
                 ...updatePayload,
-                tags: [...(updatePayload.tags || []), ...formattedTags],
+                tags: [...(updatePayload.tags || []), ...uniqueTags],
               };
               await addLog('INFO', `[${contentId}] 📝✅ Successfully extracted keywords.`, { formattedTags });
             } else {

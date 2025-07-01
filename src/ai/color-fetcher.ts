@@ -23,8 +23,16 @@ export async function fetchImageColors(buffer: Buffer, contentId: string): Promi
       return [];
     }
 
-    // Extract top 10 hex codes
-    const top10HexCodes = colors.slice(0, 10).map(color => color.hex);
+ // 1. Filter out invalid colors (e.g., where red/green/blue is null)
+ const validColors = colors.filter(
+  color => color.red !== null && color.green !== null && color.blue !== null
+);
+
+// 2. Sort by area (descending)
+const sortedByArea = [...validColors].sort((a, b) => b.area - a.area);
+
+// 3. Extract top 10 hex codes
+const top10HexCodes = sortedByArea.slice(0, 10).map(color => color.hex);
     
     await addLog('INFO', `[${contentId}] Extracted top 10 hex codes: ${JSON.stringify(top10HexCodes)}`);
     return top10HexCodes;

@@ -81,6 +81,35 @@ const getTagStyles = (tagName: string): string => {
   return tagColorPalettes[index];
 };
 
+const ColorPalette: React.FC<{ palette: string[] | undefined }> = ({ palette }) => {
+  if (!palette || palette.length === 0) {
+    return null;
+  }
+  return (
+    <div className="pt-2">
+      <div className="flex h-2.5 items-center gap-0 overflow-hidden rounded-full shadow-inner">
+        {palette.slice(0, 10).map((color, index) => (
+          <TooltipProvider key={`${color}-${index}`} delayDuration={100}>
+            <Tooltip>
+              <TooltipTrigger
+                className="h-full w-full flex-1 transition-transform hover:scale-110"
+                style={{ backgroundColor: color }}
+                aria-label={color}
+              />
+              <TooltipContent>
+                <div className="flex items-center gap-2">
+                  <div className="h-4 w-4 rounded-full border" style={{ backgroundColor: color }} />
+                  <p className="font-mono text-xs">{color}</p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const loadingMessages = [
   "Organizing your thoughts...",
   "Fetching your inspirations...",
@@ -742,6 +771,8 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                                 )}
                             </div>
                         </div>
+
+                        {item.colorPalette && item.colorPalette.length > 0 && <ColorPalette palette={item.colorPalette} />}
 
                         {showMindNote && (
                             <div className="bg-muted/50 dark:bg-muted/20 p-4 rounded-lg mt-2">

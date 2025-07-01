@@ -56,35 +56,6 @@ const domainIconMap: { [key: string]: React.ElementType } = {
   'spotify.com': SpotifyIcon,
 };
 
-const ColorPalette: React.FC<{ palette: string[] | undefined }> = ({ palette }) => {
-  if (!palette || palette.length === 0) {
-    return null;
-  }
-  return (
-    <div className="px-4 pb-3 pt-2">
-      <div className="flex h-2 items-center gap-0 overflow-hidden rounded-full shadow-inner">
-        {palette.slice(0, 10).map((color, index) => (
-          <TooltipProvider key={`${color}-${index}`}>
-            <Tooltip>
-              <TooltipTrigger
-                className="h-full w-full flex-1"
-                style={{ backgroundColor: color }}
-                aria-label={color}
-              />
-              <TooltipContent>
-                <div className="flex items-center gap-2">
-                  <div className="h-4 w-4 rounded-full border" style={{ backgroundColor: color }} />
-                  <p className="font-mono text-xs">{color}</p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => {
   const [faviconError, setFaviconError] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -279,7 +250,6 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
           </>
         )}
       </div>
-      <ColorPalette palette={item.colorPalette} />
     </Card>
   );
 };
