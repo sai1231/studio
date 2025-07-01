@@ -9,6 +9,7 @@ import type { ContentItem } from '@/types';
 import { cn } from '@/lib/utils';
 import { format, isSameYear, parseISO } from 'date-fns';
 import PdfIcon from '@/components/core/PdfIcon';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ContentCardProps {
   item: ContentItem;
@@ -59,14 +60,15 @@ const domainIconMap: { [key: string]: React.ElementType } = {
 const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => {
   const [faviconError, setFaviconError] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [isImageLoading, setIsImageLoading] = useState(true);
   
   useEffect(() => {
     setFaviconError(false);
     setImageError(false);
+    setIsImageLoading(true);
   }, [item.id]);
 
   const specifics = getTypeSpecifics(item);
-  const hasImage = !!item.imageUrl && !imageError;
 
   const handleActionClick = (e: React.MouseEvent) => {
     e.stopPropagation(); 
@@ -104,6 +106,8 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
     return item.title || "Untitled";
   }, [item]);
 
+  const hasImage = !!item.imageUrl && !imageError;
+
   const TitleIcon = React.useMemo(() => {
     if (item.type !== 'link') {
         if (hasImage) return null;
@@ -123,6 +127,27 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
     }
     return React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) });
   }, [item, specifics, hasImage, faviconError]);
+
+  const ImageComponent = ({ className }: { className?: string }) => (
+    <div className={cn("relative w-full overflow-hidden aspect-video bg-muted", className)}>
+      {isImageLoading && <Skeleton className="absolute inset-0 h-full w-full" />}
+      <img
+        src={item.imageUrl!}
+        alt={item.title}
+        data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
+        className={cn(
+          "w-full h-full object-cover group-hover:scale-105 transition-transform duration-300",
+          isImageLoading ? "opacity-0" : "opacity-100"
+        )}
+        loading="lazy"
+        onLoad={() => setIsImageLoading(false)}
+        onError={() => {
+          setIsImageLoading(false);
+          setImageError(true);
+        }}
+      />
+    </div>
+  );
 
   return (
     <Card
@@ -186,16 +211,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         </div>
 
         {item.type === 'image' && hasImage ? (
-          <div className="relative w-full overflow-hidden">
-              <img
-                src={item.imageUrl!}
-                alt={item.title}
-                data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
-                className="w-full h-auto group-hover:scale-105 transition-transform duration-300"
-                loading="lazy"
-                onError={() => setImageError(true)}
-              />
-          </div>
+          <ImageComponent className="aspect-auto" />
         ) : item.type === 'note' ? (
           <div className="p-4 flex flex-col relative flex-grow">
             <span className="text-6xl text-muted-foreground/20 absolute top-2 left-2 font-serif leading-none select-none">“</span>
@@ -212,20 +228,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
           </div>
         ) : (
           <>
-            {hasImage && (
-              <div 
-                className="relative w-full overflow-hidden"
-              >
-                <img
-                  src={item.imageUrl!}
-                  alt={item.title}
-                  data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
-                  className="w-full h-auto group-hover:scale-105 transition-transform duration-300"
-                  loading="lazy"
-                  onError={() => setImageError(true)}
-                />
-              </div>
-            )}
+            {hasImage && <ImageComponent />}
             <div className="p-4 flex flex-col flex-grow relative">
               <div className="flex-grow space-y-2 mb-4">
                 <h3 className="font-semibold leading-tight group-hover:text-primary transition-colors flex items-start gap-3">
