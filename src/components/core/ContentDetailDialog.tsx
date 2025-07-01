@@ -514,7 +514,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                     showMediaColumn ? "md:grid md:grid-cols-[minmax(0,_3fr)_minmax(0,_2fr)] gap-8" : ""
                   )}>
                     {showMediaColumn && (
-                       <div className="relative w-full overflow-hidden rounded-xl shadow-sm max-h-[70vh] flex items-center justify-center">
+                       <div className="relative w-full overflow-hidden rounded-xl flex items-center justify-center">
                         {isFetchingOembed ? (
                           <div className="w-full aspect-video flex items-center justify-center">
                             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
