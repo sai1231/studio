@@ -60,12 +60,10 @@ const domainIconMap: { [key: string]: React.ElementType } = {
 const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => {
   const [faviconError, setFaviconError] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const [isImageLoading, setIsImageLoading] = useState(true);
   
   useEffect(() => {
     setFaviconError(false);
     setImageError(false);
-    setIsImageLoading(true);
   }, [item.id]);
 
   const specifics = getTypeSpecifics(item);
@@ -128,37 +126,6 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
     return React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) });
   }, [item, specifics, hasImage, faviconError]);
 
-  const ImageComponent = ({ className }: { className?: string }) => {
-    // Calculate aspect ratio. Use a default if dimensions aren't available.
-    const aspectRatio = (item.imageWidth && item.imageHeight) 
-      ? (item.imageHeight / item.imageWidth) * 100 
-      : 56.25; // Default to 16:9 aspect ratio (9 / 16 * 100) if no dimensions
-
-    return (
-        <div className={cn("relative w-full overflow-hidden bg-muted", className)}>
-            {/* This div reserves the space */}
-            <div style={{ paddingTop: `${aspectRatio}%` }}>
-                {isImageLoading && <Skeleton className="absolute inset-0 h-full w-full" />}
-            </div>
-            <img
-                src={item.imageUrl!}
-                alt={item.title}
-                data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
-                className={cn(
-                    "absolute inset-0 w-full h-full object-contain transition-opacity duration-300",
-                    isImageLoading ? "opacity-0" : "opacity-100"
-                )}
-                loading="lazy"
-                onLoad={() => setIsImageLoading(false)}
-                onError={() => {
-                    setIsImageLoading(false);
-                    setImageError(true);
-                }}
-            />
-        </div>
-    );
-  };
-
   return (
     <Card
       draggable="true"
@@ -220,9 +187,18 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
           </TooltipProvider>
         </div>
 
-        {item.type === 'image' && hasImage ? (
-          <ImageComponent />
-        ) : item.type === 'note' ? (
+        {hasImage && <div className="relative w-full overflow-hidden bg-muted">
+             <img
+                src={item.imageUrl!}
+                alt={item.title}
+                data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
+                className="w-full h-auto object-cover transition-opacity duration-300"
+                loading="lazy"
+                onError={() => setImageError(true)}
+              />
+          </div>}
+
+        {item.type === 'note' ? (
           <div className="p-4 flex flex-col relative flex-grow">
             <span className="text-6xl text-muted-foreground/20 absolute top-2 left-2 font-serif leading-none select-none">“</span>
             <p className="text-base text-foreground line-clamp-6 pt-4 pl-2 z-10 relative pb-6">
@@ -237,8 +213,6 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
               <p className="text-sm text-muted-foreground mt-1">PDF Document</p>
           </div>
         ) : (
-          <>
-            {hasImage && <ImageComponent />}
             <div className="p-4 flex flex-col flex-grow relative">
               <div className="flex-grow space-y-2 mb-4">
                 <h3 className="font-semibold leading-tight group-hover:text-primary transition-colors flex items-start gap-3">
@@ -260,7 +234,6 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                 )}
               </div>
             </div>
-          </>
         )}
       </div>
     </Card>

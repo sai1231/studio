@@ -15,7 +15,6 @@ import { z } from 'zod';
 import { collection, doc, getDoc, updateDoc, type Firestore, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase'; // Keep using client 'db' for consistency here
 import { addLog } from '@/services/loggingService';
-import { JSDOM } from 'jsdom';
 
 const contentCollectionRef = collection(db, 'content');
 
@@ -24,30 +23,6 @@ export type EnrichContentInput = z.infer<typeof EnrichContentInputSchema>;
 
 export async function enrichContent(contentId: EnrichContentInput): Promise<void> {
   await enrichContentFlow(contentId);
-}
-
-// Helper function to get image dimensions from a buffer
-async function getImageDimensions(buffer: Buffer, mimeType: string): Promise<{ width: number; height: number }> {
-  return new Promise((resolve, reject) => {
-    // We are in a Node.js environment, so we need to use JSDOM to simulate browser APIs
-    const dom = new JSDOM();
-    const Image = dom.window.Image;
-    const img = new Image();
-
-    img.onload = () => {
-      resolve({ width: img.width, height: img.height });
-    };
-
-    img.onerror = (err) => {
-      // JSDOM's Image.onerror gives an Event, not a detailed error object.
-      // We'll reject with a generic message.
-      reject(new Error('Failed to load image in JSDOM to get dimensions.'));
-    };
-
-    // Create a data URI to set as the image source
-    const dataUri = `data:${mimeType};base64,${buffer.toString('base64')}`;
-    img.src = dataUri;
-  });
 }
 
 const enrichContentFlow = ai.defineFlow(
@@ -133,48 +108,28 @@ const enrichContentFlow = ai.defineFlow(
             await addLog('WARN', `[${contentId}] 🖼️❌ Error generating caption:`, { error: e.message });
           }
         }
-
-        // Fetch and save image dimensions and colors
+        
+        // Fetch and save image colors
         if ((contentData.type === 'image' || contentData.type === 'link') && contentData.imageUrl && contentData.contentType !== 'PDF') {
-          await addLog('INFO', `[${contentId}] 🖼️ Image found. Starting analysis...`);
-          try {
-            // Download the image into a buffer
-            const imageResponse = await fetch(contentData.imageUrl);
-            if (!imageResponse.ok) {
-              throw new Error(`Failed to fetch image for analysis: ${imageResponse.statusText}`);
-            }
-            const arrayBuffer = await imageResponse.arrayBuffer();
-            const imageBuffer = Buffer.from(arrayBuffer);
-            const mimeType = imageResponse.headers.get('content-type');
+            await addLog('INFO', `[${contentId}] 🖼️ Image found. Starting color analysis...`);
+            try {
+                const imageResponse = await fetch(contentData.imageUrl);
+                if (!imageResponse.ok) {
+                    throw new Error(`Failed to fetch image for analysis: ${imageResponse.statusText}`);
+                }
+                const arrayBuffer = await imageResponse.arrayBuffer();
+                const imageBuffer = Buffer.from(arrayBuffer);
 
-            if (!mimeType || !mimeType.startsWith('image/')) {
-              throw new Error(`Invalid content-type for image analysis: ${mimeType}`);
+                const colors = await fetchImageColors(imageBuffer, contentId);
+                if (colors && colors.length > 0) {
+                    updatePayload.colorPalette = colors;
+                    await addLog('INFO', `[${contentId}] 🎨✅ Successfully fetched color palette.`);
+                } else {
+                    await addLog('WARN', `[${contentId}] 🎨⚠️ No color palette extracted.`);
+                }
+            } catch (e: any) {
+                await addLog('WARN', `[${contentId}] 🎨❌ Error analyzing image colors:`, { error: e.message });
             }
-
-            // Get image dimensions and color palette in parallel
-            const [dimensionsResult, colorsResult] = await Promise.allSettled([
-                getImageDimensions(imageBuffer, mimeType),
-                fetchImageColors(imageBuffer, contentId)
-            ]);
-
-            if (dimensionsResult.status === 'fulfilled') {
-                const { width, height } = dimensionsResult.value;
-                updatePayload.imageWidth = width;
-                updatePayload.imageHeight = height;
-                await addLog('INFO', `[${contentId}] 📏✅ Successfully read image dimensions: ${width}x${height}.`);
-            } else {
-                await addLog('WARN', `[${contentId}] 📏❌ Error reading image dimensions:`, { error: (dimensionsResult.reason as Error)?.message || dimensionsResult.reason });
-            }
-
-            if (colorsResult.status === 'fulfilled') {
-              updatePayload.colorPalette = colorsResult.value;
-              await addLog('INFO', `[${contentId}] 🎨✅ Successfully fetched color palette. ${colorsResult.value}`);
-            } else {
-              await addLog('WARN', `[${contentId}] 🎨❌ Error fetching or saving color palette:`, { error: (colorsResult.reason as Error)?.message || colorsResult.reason });
-            }
-          } catch (e: any) {
-            await addLog('WARN', `[${contentId}] 🎨❌ Error analyzing image:`, { error: e.message });
-          }
         }
 
       // Keyword and Key Phrase Extraction

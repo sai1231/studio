@@ -21,8 +21,6 @@ export interface ContentItem {
   mindNote?: string;
   url?: string;
   imageUrl?: string;
-  imageWidth?: number;
-  imageHeight?: number;
   audioUrl?: string;
   faviconUrl?: string;
   tags: Tag[];
