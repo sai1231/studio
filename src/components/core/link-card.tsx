@@ -145,7 +145,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                 alt={item.title}
                 data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
                 className={cn(
-                    "absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-300",
+                    "absolute inset-0 w-full h-full object-contain transition-opacity duration-300",
                     isImageLoading ? "opacity-0" : "opacity-100"
                 )}
                 loading="lazy"

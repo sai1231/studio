@@ -43,7 +43,7 @@ async function getImageDimensions(buffer: Buffer, mimeType: string): Promise<{ w
       // We'll reject with a generic message.
       reject(new Error('Failed to load image in JSDOM to get dimensions.'));
     };
-    
+
     // Create a data URI to set as the image source
     const dataUri = `data:${mimeType};base64,${buffer.toString('base64')}`;
     img.src = dataUri;
@@ -148,7 +148,7 @@ const enrichContentFlow = ai.defineFlow(
             const mimeType = imageResponse.headers.get('content-type');
 
             if (!mimeType || !mimeType.startsWith('image/')) {
-                throw new Error(`Invalid content-type for image analysis: ${mimeType}`);
+              throw new Error(`Invalid content-type for image analysis: ${mimeType}`);
             }
 
             // Get image dimensions and color palette in parallel
@@ -156,7 +156,7 @@ const enrichContentFlow = ai.defineFlow(
                 getImageDimensions(imageBuffer, mimeType),
                 fetchImageColors(imageBuffer, contentId)
             ]);
-            
+
             if (dimensionsResult.status === 'fulfilled') {
                 const { width, height } = dimensionsResult.value;
                 updatePayload.imageWidth = width;
@@ -167,113 +167,112 @@ const enrichContentFlow = ai.defineFlow(
             }
 
             if (colorsResult.status === 'fulfilled') {
-                updatePayload.colorPalette = colorsResult.value;
-                await addLog('INFO', `[${contentId}] 🎨✅ Successfully fetched color palette.`, { count: colorsResult.value.length });
+              updatePayload.colorPalette = colorsResult.value;
+              await addLog('INFO', `[${contentId}] 🎨✅ Successfully fetched color palette. ${colorsResult.value}`);
             } else {
-                await addLog('WARN', `[${contentId}] 🎨❌ Error fetching color palette:`, { error: (colorsResult.reason as Error)?.message || colorsResult.reason });
+              await addLog('WARN', `[${contentId}] 🎨❌ Error fetching or saving color palette:`, { error: (colorsResult.reason as Error)?.message || colorsResult.reason });
             }
-
           } catch (e: any) {
-            await addLog('WARN', `[${contentId}] 🖼️❌ Error during image analysis:`, { error: e.message });
+            await addLog('WARN', `[${contentId}] 🎨❌ Error analyzing image:`, { error: e.message });
           }
         }
 
-        // Keyword and Key Phrase Extraction
-        const descriptionToAnalyze = updatePayload.description || contentData.description;
+      // Keyword and Key Phrase Extraction
+      const descriptionToAnalyze = updatePayload.description || contentData.description;
 
-        if (descriptionToAnalyze && typeof descriptionToAnalyze === 'string') {
-          await addLog('INFO', `[${contentId}] 📝 Extracting keywords and key phrases...`);
+      if (descriptionToAnalyze && typeof descriptionToAnalyze === 'string') {
+        await addLog('INFO', `[${contentId}] 📝 Extracting keywords and key phrases...`);
 
-          try {
-            const formattedTags = await extractTagsFromText(descriptionToAnalyze);
+        try {
+          const formattedTags = await extractTagsFromText(descriptionToAnalyze);
 
-            if (formattedTags.length > 0) {
+          if (formattedTags.length > 0) {
 
-              // Get existing tags from contentData, default to empty array if none
-              const existingTags = contentData.tags || [];
+            // Get existing tags from contentData, default to empty array if none
+            const existingTags = contentData.tags || [];
 
-              // Combine existing and new tags
-              const combinedTags = [...existingTags, ...formattedTags];
-              await addLog('INFO', `[${contentId}] 📝 combinedTags tags:`, { combinedTags });
+            // Combine existing and new tags
+            const combinedTags = [...existingTags, ...formattedTags];
+            await addLog('INFO', `[${contentId}] 📝 combinedTags tags:`, { combinedTags });
 
-              // Remove duplicates based on tag name (assuming name is unique identifier)
-              const uniqueTags = combinedTags.filter((tag, index, self) =>
-                index === self.findIndex((t) => (
-                  t.name === tag.name
-                ))
-              );
+            // Remove duplicates based on tag name (assuming name is unique identifier)
+            const uniqueTags = combinedTags.filter((tag, index, self) =>
+              index === self.findIndex((t) => (
+                t.name === tag.name
+              ))
+            );
 
-              updatePayload = {
-                ...updatePayload,
-                tags: [...(updatePayload.tags || []), ...uniqueTags],
-              };
-              await addLog('INFO', `[${contentId}] 📝✅ Successfully extracted keywords.`, { formattedTags });
-            } else {
-              await addLog('INFO', `[${contentId}] 📝ℹ️ No keywords extracted.`);
-            }
-
-          } catch (e: any) {
-            await addLog('ERROR', `[${contentId}] 📝❌ Error during keyword extraction:`, { error: e.message });
+            updatePayload = {
+              ...updatePayload,
+              tags: [...(updatePayload.tags || []), ...uniqueTags],
+            };
+            await addLog('INFO', `[${contentId}] 📝✅ Successfully extracted keywords.`, { formattedTags });
+          } else {
+            await addLog('INFO', `[${contentId}] 📝ℹ️ No keywords extracted.`);
           }
-        } else {
-          await addLog('INFO', `[${contentId}] 📝ℹ️ Skipping keyword extraction: description is empty or not a string.`);
+
+        } catch (e: any) {
+          await addLog('ERROR', `[${contentId}] 📝❌ Error during keyword extraction:`, { error: e.message });
         }
-
-        // Generate searchable keywords array
-        const keywords = new Set<string>();
-        const stopWords = new Set(['a', 'an', 'and', 'the', 'is', 'in', 'it', 'of', 'for', 'on', 'with', 'to', 'was', 'i', 'you', 'he', 'she', 'they', 'we', 'about', 'as', 'at', 'by', 'from', 'how', 'what', 'when', 'where', 'why', 'which']);
-
-        const textToProcess = [
-            contentData.title,
-            updatePayload.title,
-            contentData.description,
-            updatePayload.description,
-            contentData.domain,
-            contentData.contentType,
-            updatePayload.contentType
-        ].filter(Boolean).join(' ');
-
-        textToProcess.toLowerCase().split(/[\s,.\-!?"'()]+/).forEach(word => {
-            if (word.length > 2 && !stopWords.has(word)) {
-                keywords.add(word);
-            }
-        });
-
-        const tagsToProcess = updatePayload.tags || contentData.tags || [];
-        tagsToProcess.forEach((tag: any) => {
-            if (tag.name) {
-                tag.name.toLowerCase().split(/\s+/).forEach((word: string) => {
-                    if (word.length > 2 && !stopWords.has(word)) keywords.add(word);
-                })
-            }
-        });
-
-        const colorsToProcess = updatePayload.colorPalette || contentData.colorPalette || [];
-        colorsToProcess.forEach((color: string) => keywords.add(color.toLowerCase()));
-
-        if (keywords.size > 0) {
-            updatePayload.searchableKeywords = Array.from(keywords);
-            await addLog('INFO', `[${contentId}] 📝✅ Generated searchable keywords.`, { count: keywords.size });
-        }
-
-
-        if (enrichmentFailed) {
-          updatePayload.status = 'failed-analysis';
-          await addLog('WARN', `[${contentId}] ⚠️ Setting status to 'failed-analysis' due to errors.`);
-        }
-
-        await updateDoc(docRef, updatePayload);
-        await addLog('INFO', `[${contentId}] ✅ Successfully updated document with payload:`, { payload: updatePayload });
-
       } else {
-        await addLog('INFO', `[${contentId}] ⏭️ Skipping enrichment, status is '${contentData.status}', not 'pending-analysis'.`);
+        await addLog('INFO', `[${contentId}] 📝ℹ️ Skipping keyword extraction: description is empty or not a string.`);
       }
 
-    } catch (error: any) {
-      await addLog('ERROR', `[${contentId}] ❌ CRITICAL ERROR during enrichment flow:`, { error: error.message });
-      await updateDoc(docRef, {
-        status: 'failed-analysis'
-      }).catch(e => addLog('ERROR', `[${contentId}] ❌ Failed to update status to 'failed-analysis' after critical error`, { error: (e as Error).message }));
+      // Generate searchable keywords array
+      const keywords = new Set<string>();
+      const stopWords = new Set(['a', 'an', 'and', 'the', 'is', 'in', 'it', 'of', 'for', 'on', 'with', 'to', 'was', 'i', 'you', 'he', 'she', 'they', 'we', 'about', 'as', 'at', 'by', 'from', 'how', 'what', 'when', 'where', 'why', 'which']);
+
+      const textToProcess = [
+        contentData.title,
+        updatePayload.title,
+        contentData.description,
+        updatePayload.description,
+        contentData.domain,
+        contentData.contentType,
+        updatePayload.contentType
+      ].filter(Boolean).join(' ');
+
+      textToProcess.toLowerCase().split(/[\s,.\-!?"'()]+/).forEach(word => {
+        if (word.length > 2 && !stopWords.has(word)) {
+          keywords.add(word);
+        }
+      });
+
+      const tagsToProcess = updatePayload.tags || contentData.tags || [];
+      tagsToProcess.forEach((tag: any) => {
+        if (tag.name) {
+          tag.name.toLowerCase().split(/\s+/).forEach((word: string) => {
+            if (word.length > 2 && !stopWords.has(word)) keywords.add(word);
+          })
+        }
+      });
+
+      const colorsToProcess = updatePayload.colorPalette || contentData.colorPalette || [];
+      colorsToProcess.forEach((color: string) => keywords.add(color.toLowerCase()));
+
+      if (keywords.size > 0) {
+        updatePayload.searchableKeywords = Array.from(keywords);
+        await addLog('INFO', `[${contentId}] 📝✅ Generated searchable keywords.`, { count: keywords.size });
+      }
+
+
+      if (enrichmentFailed) {
+        updatePayload.status = 'failed-analysis';
+        await addLog('WARN', `[${contentId}] ⚠️ Setting status to 'failed-analysis' due to errors.`);
+      }
+
+      await updateDoc(docRef, updatePayload);
+      await addLog('INFO', `[${contentId}] ✅ Successfully updated document with payload:`, { payload: updatePayload });
+
+    } else {
+      await addLog('INFO', `[${contentId}] ⏭️ Skipping enrichment, status is '${contentData.status}', not 'pending-analysis'.`);
     }
+
+  } catch (error: any) {
+    await addLog('ERROR', `[${contentId}] ❌ CRITICAL ERROR during enrichment flow:`, { error: error.message });
+    await updateDoc(docRef, {
+      status: 'failed-analysis'
+    }).catch(e => addLog('ERROR', `[${contentId}] ❌ Failed to update status to 'failed-analysis' after critical error`, { error: (e as Error).message }));
+  }
   }
 );

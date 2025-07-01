@@ -5,8 +5,16 @@ export async function fetchImageColors(buffer: Buffer, contentId: string): Promi
   try {
     await addLog('INFO', `[${contentId}] Attempting to extract colors from image buffer.`);
 
+
+    const imageData = {
+      data: new Uint8Array(buffer),
+      width: 100,  // Replace with actual dimensions if known
+      height: 100,
+    };
+
+
     // Extract colors (already sorted by dominance)
-    const colors = await extractColors(buffer, {
+    const colors = await extractColors(imageData, {
       pixels: 64000,
       distance: 0.22,
     });
