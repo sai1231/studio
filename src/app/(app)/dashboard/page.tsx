@@ -1,7 +1,7 @@
 
 'use client';
 import type React from 'react';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import ContentCard from '@/components/core/link-card';
 import ContentDetailDialog from '@/components/core/ContentDetailDialog';
@@ -13,12 +13,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { PlusCircle, Loader2, FolderOpen, ListChecks, AlarmClock, Clapperboard, MessagesSquare, FileImage, Globe, BookOpen, StickyNote, Github, FileText, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { subscribeToContentItems, deleteContentItem, getZones, updateContentItem } from '@/services/contentService';
+import { getContentItemsPaginated, getTodoItems, deleteContentItem, getZones, updateContentItem } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
 import { cn } from '@/lib/utils';
 import { format, isPast } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import type { DocumentSnapshot } from 'firebase/firestore';
 
 
 const pageLoadingMessages = [
@@ -129,13 +130,16 @@ const TodoListCard: React.FC<{
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const router = useRouter();
   const { setIsAddTodoDialogOpen } = useDialog();
 
-  const [allContentItems, setAllContentItems] = useState<ContentItem[]>([]);
-  const [zones, setZones] = useState<AppZone[]>([]);
+  const [displayedItems, setDisplayedItems] = useState<ContentItem[]>([]);
+  const [todoItems, setTodoItems] = useState<ContentItem[]>([]);
+  
+  const [lastVisibleDoc, setLastVisibleDoc] = useState<DocumentSnapshot | null>(null);
+  const [hasMore, setHasMore] = useState(true);
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [isUpdatingTodoStatus, setIsUpdatingTodoStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -144,79 +148,103 @@ export default function DashboardPage() {
   
   const { toast } = useToast();
   const [clientLoadingMessage, setClientLoadingMessage] = useState<string | null>(null);
+  const loaderRef = useRef<HTMLDivElement | null>(null);
 
-  const handleAddTodoClick = () => {
-    setIsAddTodoDialogOpen(true);
-  };
+  const handleAddTodoClick = () => setIsAddTodoDialogOpen(true);
 
   useEffect(() => {
     if (isLoading) {
-      const randomIndex = Math.floor(Math.random() * pageLoadingMessages.length);
-      setClientLoadingMessage(pageLoadingMessages[randomIndex]);
+      setClientLoadingMessage(pageLoadingMessages[Math.floor(Math.random() * pageLoadingMessages.length)]);
     }
   }, [isLoading]);
 
-  useEffect(() => {
-    if (!user) {
-        setIsLoading(false);
-        return;
-    };
-
-    setIsLoading(true);
-    setError(null);
-    let initialDataLoaded = false;
-
-    // Fetch zones once
-    const fetchZonesData = async () => {
-        try {
-            const fetchedZones = await getZones(user.uid);
-            setZones(fetchedZones);
-        } catch (err) {
-            console.error("Error fetching zones:", err);
-            setError("Failed to load dashboard components.");
-            toast({ title: "Error", description: "Could not fetch essential data like zones.", variant: "destructive" });
-        }
-    };
-    fetchZonesData();
-
-    // Subscribe to content items for real-time updates
-    const unsubscribe = subscribeToContentItems(user.uid, (items, err) => {
-        if (err) {
-            setError("Failed to load content. Please try refreshing the page.");
-            toast({ title: "Real-time Error", description: "Could not listen for content updates.", variant: "destructive" });
-            setIsLoading(false);
-            return;
-        }
-
-        setAllContentItems(items);
-        
-        if (!initialDataLoaded) {
-            setIsLoading(false);
-            initialDataLoaded = true;
-        }
-    });
-
-    return () => {
-      unsubscribe(); // Cleanup subscription on component unmount
-    };
-  }, [user, toast]);
-
-  const todoItems = useMemo(() => {
-    return allContentItems
-      .filter(item => item.type === 'todo')
-      .sort((a, b) => {
+  const fetchTodos = useCallback(async (userId: string) => {
+    try {
+      const todos = await getTodoItems(userId);
+      setTodoItems(todos.sort((a, b) => {
         if (a.status === 'pending' && b.status === 'completed') return -1;
         if (a.status === 'completed' && b.status === 'pending') return 1;
         if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        if (a.dueDate && !b.dueDate) return -1;
-        if (!a.dueDate && b.dueDate) return 1;
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }));
+    } catch (err) {
+      console.error("Error fetching todos:", err);
+      toast({ title: "Error", description: "Could not fetch your tasks.", variant: "destructive" });
+    }
+  }, [toast]);
+  
+  const fetchMoreContent = useCallback(async (userId: string) => {
+    if (!hasMore || isFetchingMore) return;
+    setIsFetchingMore(true);
+    try {
+      const { items, lastVisibleDoc: newLastDoc } = await getContentItemsPaginated({
+        userId,
+        pageSize: 10,
+        lastDoc: lastVisibleDoc || undefined,
       });
-  }, [allContentItems]);
+      
+      setDisplayedItems(prev => [...prev, ...items]);
+      setLastVisibleDoc(newLastDoc);
+      setHasMore(!!newLastDoc);
+    } catch (err) {
+      setError("Failed to load more content.");
+      toast({ title: "Error", description: "Could not fetch more content.", variant: "destructive" });
+    } finally {
+      setIsFetchingMore(false);
+    }
+  }, [hasMore, isFetchingMore, lastVisibleDoc, toast]);
 
-  const displayedItems = useMemo(() => {
-    return allContentItems.filter(item => item.type !== 'todo');
-  }, [allContentItems]);
+
+  useEffect(() => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setDisplayedItems([]);
+    setTodoItems([]);
+    setLastVisibleDoc(null);
+    setHasMore(true);
+
+    const initialFetch = async () => {
+      try {
+        await fetchTodos(user.uid);
+        const { items, lastVisibleDoc: newLastDoc } = await getContentItemsPaginated({ userId: user.uid, pageSize: 10 });
+        setDisplayedItems(items);
+        setLastVisibleDoc(newLastDoc);
+        setHasMore(!!newLastDoc);
+      } catch (err) {
+        setError("Failed to load initial content.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    initialFetch();
+
+  }, [user, fetchTodos]);
+  
+  useEffect(() => {
+    if (isFetchingMore || !hasMore || !user) return;
+
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        fetchMoreContent(user.uid);
+      }
+    });
+
+    const currentLoader = loaderRef.current;
+    if (currentLoader) {
+      observer.observe(currentLoader);
+    }
+
+    return () => {
+      if (currentLoader) {
+        observer.unobserve(currentLoader);
+      }
+    };
+  }, [isFetchingMore, hasMore, user, fetchMoreContent]);
 
   const handleOpenDetailDialog = (item: ContentItem) => {
     setSelectedItemIdForDetail(item.id);
@@ -224,12 +252,16 @@ export default function DashboardPage() {
   };
 
   const handleItemUpdateInDialog = (updatedItem: ContentItem) => {
+    setDisplayedItems(prevItems => prevItems.map(item => item.id === updatedItem.id ? updatedItem : item));
     toast({ title: "Item Updated", description: `"${updatedItem.title}" has been updated.`});
   };
 
-  const handleDeleteContent = async (itemId: string) => {
-    const originalItems = [...allContentItems];
-    setAllContentItems(prevItems => prevItems.filter(item => item.id !== itemId));
+  const handleDeleteContent = async (itemId: string, itemType: ContentItem['type']) => {
+    if(itemType === 'todo') {
+      setTodoItems(prevItems => prevItems.filter(item => item.id !== itemId));
+    } else {
+      setDisplayedItems(prevItems => prevItems.filter(item => item.id !== itemId));
+    }
     const {id: toastId} = toast({ title: "Deleting Item...", description: "Removing content item."});
     try {
       await deleteContentItem(itemId);
@@ -237,7 +269,6 @@ export default function DashboardPage() {
     } catch (e) {
       console.error("Error deleting content:", e);
       toast({id: toastId, title: "Error Deleting", description: "Could not delete item. Restoring.", variant: "destructive"});
-      setAllContentItems(originalItems);
     }
   };
 
@@ -246,7 +277,7 @@ export default function DashboardPage() {
     setIsUpdatingTodoStatus(todoId);
     const newStatus = (currentStatus === 'completed') ? 'pending' : 'completed';
 
-    setAllContentItems(prevAllItems =>
+    setTodoItems(prevAllItems =>
       prevAllItems.map(item =>
         item.id === todoId ? { ...item, status: newStatus } : item
       )
@@ -262,7 +293,7 @@ export default function DashboardPage() {
     }
   };
 
-  if (isLoading && allContentItems.length === 0) {
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -286,7 +317,7 @@ export default function DashboardPage() {
 
   return (
     <div className="container mx-auto py-2">
-      {(allContentItems.length === 0 && !isLoading) ? (
+      {(displayedItems.length === 0 && todoItems.length === 0) ? (
         <div className="text-center py-12">
           <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h2 className="text-xl font-medium text-muted-foreground">No content saved yet.</h2>
@@ -322,60 +353,54 @@ export default function DashboardPage() {
         </div>
       ) : (
         <div>
-          { (todoItems.length === 0 && displayedItems.length === 0) ? (
-            <div className="text-center py-16 rounded-lg bg-muted/50">
-              <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h2 className="text-xl font-medium text-muted-foreground">
-                  Your saved memories will appear here.
-              </h2>
-              <p className="text-muted-foreground mt-2">
-                  Save some new links, notes, or images!
-              </p>
-            </div>
-          ) : (
-            <div className={'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
-              {todoItems.length > 0 ? (
-                <TodoListCard
-                  items={todoItems}
-                  onToggleStatus={handleToggleTodoStatus}
-                  onDeleteItem={handleDeleteContent}
-                  isUpdatingStatus={isUpdatingTodoStatus}
-                  onAddTodoClick={handleAddTodoClick}
-                />
-              ) : (
-                <Card 
-                  draggable="true"
-                  onDragStart={(e: React.DragEvent) => e.dataTransfer.setData('application/x-mati-internal', 'true')}
-                  className="shadow-lg flex flex-col w-full break-inside-avoid mb-4"
-                >
-                    <CardContent className="p-6 flex-grow flex flex-col items-center justify-center text-center min-h-[150px]">
-                        <ListChecks className="h-10 w-10 text-muted-foreground mb-3" />
-                        <p className="font-medium text-foreground">You're all caught up!</p>
-                        <p className="text-sm text-muted-foreground">No pending tasks.</p>
-                    </CardContent>
-                    <div className="border-t p-2 flex-shrink-0">
-                        <Button
-                            variant="link"
-                            size="sm"
-                            className="w-full text-muted-foreground hover:text-primary"
-                            onClick={handleAddTodoClick}
-                        >
-                            <PlusCircle className="h-4 w-4 mr-2" />
-                            Add a task
-                        </Button>
-                    </div>
-                </Card>
-              )}
-              {displayedItems.map(item => (
-                <ContentCard
-                  key={item.id}
-                  item={item}
-                  onEdit={handleOpenDetailDialog}
-                  onDelete={handleDeleteContent}
-                />
-              ))}
-            </div>
-          )}
+          <div className={'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
+            {todoItems.length > 0 ? (
+              <TodoListCard
+                items={todoItems}
+                onToggleStatus={handleToggleTodoStatus}
+                onDeleteItem={(id) => handleDeleteContent(id, 'todo')}
+                isUpdatingStatus={isUpdatingTodoStatus}
+                onAddTodoClick={handleAddTodoClick}
+              />
+            ) : (
+              <Card 
+                draggable="true"
+                onDragStart={(e: React.DragEvent) => e.dataTransfer.setData('application/x-mati-internal', 'true')}
+                className="shadow-lg flex flex-col w-full break-inside-avoid mb-4"
+              >
+                  <CardContent className="p-6 flex-grow flex flex-col items-center justify-center text-center min-h-[150px]">
+                      <ListChecks className="h-10 w-10 text-muted-foreground mb-3" />
+                      <p className="font-medium text-foreground">You're all caught up!</p>
+                      <p className="text-sm text-muted-foreground">No pending tasks.</p>
+                  </CardContent>
+                  <div className="border-t p-2 flex-shrink-0">
+                      <Button
+                          variant="link"
+                          size="sm"
+                          className="w-full text-muted-foreground hover:text-primary"
+                          onClick={handleAddTodoClick}
+                      >
+                          <PlusCircle className="h-4 w-4 mr-2" />
+                          Add a task
+                      </Button>
+                  </div>
+              </Card>
+            )}
+            {displayedItems.map(item => (
+              <ContentCard
+                key={item.id}
+                item={item}
+                onEdit={handleOpenDetailDialog}
+                onDelete={(id) => handleDeleteContent(id, item.type)}
+              />
+            ))}
+          </div>
+          <div ref={loaderRef} className="flex justify-center items-center h-16">
+            {isFetchingMore && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
+            {!hasMore && displayedItems.length > 0 && (
+                <p className="text-muted-foreground">You've reached the end!</p>
+            )}
+          </div>
         </div>
       )}
 

@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -120,7 +121,7 @@ const enrichContentFlow = ai.defineFlow(
             const arrayBuffer = await imageResponse.arrayBuffer();
             const imageBuffer = Buffer.from(arrayBuffer);
 
-            const colorPalette = await fetchImageColors(imageBuffer);
+            const colorPalette = await fetchImageColors(imageBuffer, contentId);
             updatePayload.colorPalette = colorPalette;
             await addLog('INFO', `[${contentId}] 🎨✅ Successfully fetched color palette. ${colorPalette}`);
           } catch (e: any) {
@@ -168,6 +169,44 @@ const enrichContentFlow = ai.defineFlow(
         } else {
           await addLog('INFO', `[${contentId}] 📝ℹ️ Skipping keyword extraction: description is empty or not a string.`);
         }
+
+        // Generate searchable keywords array
+        const keywords = new Set<string>();
+        const stopWords = new Set(['a', 'an', 'and', 'the', 'is', 'in', 'it', 'of', 'for', 'on', 'with', 'to', 'was', 'i', 'you', 'he', 'she', 'they', 'we', 'about', 'as', 'at', 'by', 'from', 'how', 'what', 'when', 'where', 'why', 'which']);
+
+        const textToProcess = [
+            contentData.title,
+            updatePayload.title,
+            contentData.description,
+            updatePayload.description,
+            contentData.domain,
+            contentData.contentType,
+            updatePayload.contentType
+        ].filter(Boolean).join(' ');
+
+        textToProcess.toLowerCase().split(/[\s,.\-!?"'()]+/).forEach(word => {
+            if (word.length > 2 && !stopWords.has(word)) {
+                keywords.add(word);
+            }
+        });
+
+        const tagsToProcess = updatePayload.tags || contentData.tags || [];
+        tagsToProcess.forEach((tag: any) => {
+            if (tag.name) {
+                tag.name.toLowerCase().split(/\s+/).forEach((word: string) => {
+                    if (word.length > 2 && !stopWords.has(word)) keywords.add(word);
+                })
+            }
+        });
+
+        const colorsToProcess = updatePayload.colorPalette || contentData.colorPalette || [];
+        colorsToProcess.forEach((color: string) => keywords.add(color.toLowerCase()));
+
+        if (keywords.size > 0) {
+            updatePayload.searchableKeywords = Array.from(keywords);
+            await addLog('INFO', `[${contentId}] 📝✅ Generated searchable keywords.`, { count: keywords.size });
+        }
+
 
         if (enrichmentFailed) {
           updatePayload.status = 'failed-analysis';

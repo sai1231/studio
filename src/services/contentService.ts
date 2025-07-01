@@ -1,5 +1,4 @@
 
-
 import { db, storage } from '@/lib/firebase';
 import {
   collection,
@@ -15,6 +14,9 @@ import {
   Timestamp,
   onSnapshot,
   type Unsubscribe,
+  limit,
+  startAfter,
+  type DocumentSnapshot,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { ContentItem, Zone, Tag, MovieDetails } from '@/types';
@@ -25,6 +27,80 @@ const contentCollection = collection(db, 'content');
 const zonesCollection = collection(db, 'zones');
 
 // --- ContentItem Functions ---
+
+export async function getContentItemsPaginated({
+  userId,
+  pageSize,
+  lastDoc,
+}: {
+  userId: string;
+  pageSize: number;
+  lastDoc?: DocumentSnapshot;
+}): Promise<{ items: ContentItem[]; lastVisibleDoc: DocumentSnapshot | null }> {
+  try {
+    if (!userId) {
+      console.warn('getContentItemsPaginated called without a userId.');
+      return { items: [], lastVisibleDoc: null };
+    }
+    
+    const queryConstraints: any[] = [
+      where('userId', '==', userId),
+      where('type', '!=', 'todo'), // Exclude todos from main feed
+      orderBy('createdAt', 'desc'),
+      limit(pageSize),
+    ];
+
+    if (lastDoc) {
+      queryConstraints.push(startAfter(lastDoc));
+    }
+
+    const q = query(contentCollection, ...queryConstraints);
+    const querySnapshot = await getDocs(q);
+
+    const items = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      const createdAt = data.createdAt;
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : new Date().toISOString(),
+      } as ContentItem;
+    });
+
+    const lastVisibleDoc = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
+
+    return { items, lastVisibleDoc };
+  } catch (error) {
+    console.error('Failed to get paginated content items from Firestore:', error);
+    throw error;
+  }
+}
+
+export async function getTodoItems(userId: string): Promise<ContentItem[]> {
+  try {
+    if (!userId) {
+        console.warn("getTodoItems called without a userId. Returning empty array.");
+        return [];
+    }
+    const q = query(contentCollection, where("userId", "==", userId), where("type", "==", "todo"));
+    const querySnapshot = await getDocs(q);
+    const items: ContentItem[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const createdAt = data.createdAt;
+      items.push({
+        id: doc.id,
+        ...data,
+        createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : new Date().toISOString(),
+      } as ContentItem);
+    });
+    return items;
+  } catch (error) {
+    console.error("Failed to get todo items from Firestore:", error);
+    throw error;
+  }
+}
+
 
 // Function to get all content items for a specific user
 export async function getContentItems(userId: string): Promise<ContentItem[]> {
@@ -201,60 +277,77 @@ export interface SearchFilters {
   tagNames?: string[];
 }
 
-// Updated search function that fetches all items and filters on the client with advanced criteria
-export async function searchContentItems(
-  userId: string,
-  searchQuery: string,
-  filters: SearchFilters = {}
-): Promise<ContentItem[]> {
-  try {
-    if (!userId) {
-      return [];
+
+export async function searchContentItems({
+  userId,
+  searchQuery,
+  filters = {},
+  pageSize,
+  lastDoc,
+}: {
+  userId: string;
+  searchQuery: string;
+  filters?: SearchFilters;
+  pageSize: number;
+  lastDoc?: DocumentSnapshot;
+}): Promise<{ items: ContentItem[]; lastVisibleDoc: DocumentSnapshot | null }> {
+    try {
+        if (!userId || !searchQuery.trim()) {
+            return { items: [], lastVisibleDoc: null };
+        }
+
+        const queryWords = [...new Set(searchQuery.toLowerCase().split(/\s+/).filter(w => w.length > 1))].slice(0, 10);
+        if (queryWords.length === 0) {
+            return { items: [], lastVisibleDoc: null };
+        }
+        
+        const queryConstraints: any[] = [
+            where('userId', '==', userId),
+            where('searchableKeywords', 'array-contains-any', queryWords),
+            orderBy('createdAt', 'desc'),
+            limit(pageSize),
+        ];
+
+        if (filters.zoneId) {
+            queryConstraints.push(where('zoneId', '==', filters.zoneId));
+        }
+        if (filters.contentType) {
+            queryConstraints.push(where('contentType', '==', filters.contentType));
+        }
+        if (lastDoc) {
+            queryConstraints.push(startAfter(lastDoc));
+        }
+
+        const q = query(contentCollection, ...queryConstraints);
+        const querySnapshot = await getDocs(q);
+        
+        const items = querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            const createdAt = data.createdAt;
+            return {
+                id: doc.id,
+                ...data,
+                createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : new Date().toISOString(),
+            } as ContentItem;
+        });
+
+        // Client-side filtering for tags, as a workaround for Firestore limitations
+        let finalItems = items;
+        if (filters.tagNames && filters.tagNames.length > 0) {
+            const filterTagNamesLower = filters.tagNames.map(t => t.toLowerCase());
+            finalItems = items.filter(item => {
+                const itemTagNames = item.tags.map(tag => tag.name.toLowerCase());
+                return filterTagNamesLower.every(filterTag => itemTagNames.includes(filterTag));
+            });
+        }
+        
+        const lastVisibleDoc = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
+
+        return { items: finalItems, lastVisibleDoc };
+    } catch (error) {
+        console.error("Failed to search content items from Firestore:", error);
+        throw error;
     }
-
-    const allItems = await getContentItems(userId);
-    const lowerCaseQuery = searchQuery.toLowerCase();
-
-    const filteredItems = allItems.filter(item => {
-      // Text search (if query exists)
-      if (searchQuery.trim()) {
-        const titleMatch = item.title.toLowerCase().includes(lowerCaseQuery);
-        const descriptionMatch = item.description ? item.description.toLowerCase().includes(lowerCaseQuery) : false;
-        const tagMatch = item.tags.some(tag => tag.name.toLowerCase().includes(lowerCaseQuery));
-        if (!(titleMatch || descriptionMatch || tagMatch)) {
-          return false;
-        }
-      }
-
-      // Zone filter
-      if (filters.zoneId && item.zoneId !== filters.zoneId) {
-        return false;
-      }
-      
-      // Content Type filter
-      if (filters.contentType && item.contentType !== filters.contentType) {
-        return false;
-      }
-      
-      // Tags filter (item must have ALL selected tags)
-      if (filters.tagNames && filters.tagNames.length > 0) {
-        const itemTagNames = item.tags.map(tag => tag.name.toLowerCase());
-        const filterTagNamesLower = filters.tagNames.map(t => t.toLowerCase());
-        const hasAllTags = filterTagNamesLower.every(filterTag => itemTagNames.includes(filterTag));
-        if (!hasAllTags) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-
-    return filteredItems;
-
-  } catch (error) {
-    console.error("Failed to search content items:", error);
-    throw error;
-  }
 }
 
 

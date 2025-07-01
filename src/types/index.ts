@@ -33,6 +33,7 @@ export interface ContentItem {
   movieDetails?: MovieDetails; // Added for movie type
   status?: 'pending' | 'completed' | 'pending-analysis';
   colorPalette?: string[];
+  searchableKeywords?: string[];
 }
 
 export interface MovieDetails {
