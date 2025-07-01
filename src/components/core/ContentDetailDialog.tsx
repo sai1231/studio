@@ -55,47 +55,41 @@ const getIconComponent = (iconName?: string): React.ElementType => {
   return Bookmark; // Default icon
 };
 
-const tagColorPalettes = [
-  'bg-blue-100 text-blue-800 dark:bg-blue-700 dark:text-blue-100',
-  'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100',
-  'bg-purple-100 text-purple-800 dark:bg-purple-700 dark:text-purple-100',
-  'bg-pink-100 text-pink-800 dark:bg-pink-700 dark:text-pink-100',
-  'bg-yellow-100 text-yellow-800 dark:bg-yellow-600 dark:text-yellow-100',
-  'bg-indigo-100 text-indigo-800 dark:bg-indigo-700 dark:text-indigo-100',
-  'bg-teal-100 text-teal-800 dark:bg-teal-700 dark:text-teal-100',
-  'bg-sky-100 text-sky-800 dark:bg-sky-700 dark:text-sky-100',
-  'bg-red-100 text-red-800 dark:bg-red-700 dark:text-red-100',
-  'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-100',
-];
-
-const getTagStyles = (tagName: string): string => {
-  let hash = 0;
-  if (!tagName || tagName.length === 0) {
-    return tagColorPalettes[0];
-  }
-  for (let i = 0; i < tagName.length; i++) {
-    hash = tagName.charCodeAt(i) + ((hash << 5) - hash);
-    hash = hash & hash;
-  }
-  const index = Math.abs(hash) % tagColorPalettes.length;
-  return tagColorPalettes[index];
-};
-
 const ColorPalette: React.FC<{ palette: string[] | undefined }> = ({ palette }) => {
+  const { toast } = useToast();
+
+  const handleColorCopy = (color: string) => {
+    navigator.clipboard.writeText(color);
+    toast({
+      title: "Color Copied!",
+      description: (
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-4 rounded-full border" style={{ backgroundColor: color }} />
+          <span>{color} has been copied to your clipboard.</span>
+        </div>
+      )
+    });
+  };
+
   if (!palette || palette.length === 0) {
     return null;
   }
+
   return (
     <div className="pt-2">
       <div className="flex h-2.5 items-center gap-0 overflow-hidden rounded-full shadow-inner">
         {palette.slice(0, 10).map((color, index) => (
           <TooltipProvider key={`${color}-${index}`} delayDuration={100}>
             <Tooltip>
-              <TooltipTrigger
-                className="h-full w-full flex-1 transition-transform hover:scale-110"
-                style={{ backgroundColor: color }}
-                aria-label={color}
-              />
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="h-full w-full flex-1 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ring focus:z-10 rounded"
+                  style={{ backgroundColor: color }}
+                  aria-label={`Copy color ${color}`}
+                  onClick={() => handleColorCopy(color)}
+                />
+              </TooltipTrigger>
               <TooltipContent>
                 <div className="flex items-center gap-2">
                   <div className="h-4 w-4 rounded-full border" style={{ backgroundColor: color }} />
@@ -109,6 +103,7 @@ const ColorPalette: React.FC<{ palette: string[] | undefined }> = ({ palette }) 
     </div>
   );
 };
+
 
 const loadingMessages = [
   "Organizing your thoughts...",
@@ -139,6 +134,8 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   const [editableDescription, setEditableDescription] = useState('');
   const [editableMindNote, setEditableMindNote] = useState('');
   const [editableZoneId, setEditableZoneId] = useState<string | undefined>(undefined);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+
 
   const [allZones, setAllZones] = useState<Zone[]>([]);
   const [isSavingField, setIsSavingField] = useState(false);
@@ -175,6 +172,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       setIsArticleViewOpen(false);
       setOembedHtml(null);
       setImageError(false);
+      setIsDescriptionExpanded(false);
       
       const randomIndex = Math.floor(Math.random() * loadingMessages.length);
       setCurrentLoadingMessage(loadingMessages[randomIndex]);
@@ -509,14 +507,14 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                 const currentZoneObject = editableZoneId ? allZones.find(z => z.id === editableZoneId) : undefined;
                 const ZoneDisplayIcon = getIconComponent(currentZoneObject?.icon);
                 const zoneDisplayName = currentZoneObject?.name || "No Zone Assigned";
-                const tagBaseClasses = "px-3 py-1 text-xs rounded-full font-medium group relative";
+                const needsTruncation = editableDescription.length > 280;
 
                 return (
                   <div className={cn(
                     showMediaColumn ? "md:grid md:grid-cols-[minmax(0,_3fr)_minmax(0,_2fr)] gap-8" : ""
                   )}>
                     {showMediaColumn && (
-                       <div className="relative w-full overflow-hidden rounded-xl shadow-sm max-h-[70vh] flex items-center justify-center bg-black/5 dark:bg-black/20">
+                       <div className="relative w-full overflow-hidden rounded-xl shadow-sm max-h-[70vh] flex items-center justify-center">
                         {isFetchingOembed ? (
                           <div className="w-full aspect-video flex items-center justify-center">
                             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -528,7 +526,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                             src={item.imageUrl}
                             alt={editableTitle || 'Content Image'}
                             data-ai-hint={item.title || "image"}
-                            className="w-auto h-auto max-w-full max-h-[70vh] object-contain rounded-xl"
+                            className="w-full h-full object-cover rounded-xl"
                             loading="lazy"
                             onError={() => setImageError(true)}
                           />
@@ -611,13 +609,18 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                         {item.contentType !== 'PDF' && (
                             <div>
                                 {isDescriptionReadOnly ? (
-                                    <div className={cn(
-                                        "prose dark:prose-invert prose-sm max-w-none py-2 px-1 min-h-[60px]",
-                                        "text-sm text-gray-500 dark:text-gray-400"
-                                      )}
-                                    >
+                                    <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground">
                                         {editableDescription ? (
-                                            <div dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
+                                            <>
+                                                <p className={cn(!isDescriptionExpanded && "line-clamp-4")}>
+                                                    <span dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
+                                                </p>
+                                                {needsTruncation && (
+                                                    <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
+                                                        {isDescriptionExpanded ? "Show less" : "Show more"}
+                                                    </Button>
+                                                )}
+                                            </>
                                         ) : (
                                             <p className="italic">No description provided.</p>
                                         )}
@@ -719,7 +722,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                             <div>
                                 <div className="flex flex-wrap items-center gap-2">
                                 {editableTags.map(tag => (
-                                    <Badge key={tag.id} className={cn(tagBaseClasses, getTagStyles(tag.name))}>
+                                    <Badge key={tag.id} variant="secondary" className="px-3 py-1 text-xs rounded-full font-medium group relative">
                                     {tag.name}
                                     <Button
                                         variant="ghost"
