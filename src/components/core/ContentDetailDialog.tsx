@@ -825,9 +825,24 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                                 </label>
                                 <Switch id="temporary-switch" checked={isTemporary} onCheckedChange={handleTemporaryToggle} />
                             </div>
-                            {isTemporary && item.expiresAt && (
-                                <div className="text-sm text-muted-foreground pl-6">
-                                    Expires in {formatDistanceToNow(new Date(item.expiresAt), { addSuffix: false })} on {format(new Date(item.expiresAt), 'MMM d, yyyy')}
+                            {isTemporary && (
+                                <div className="pl-6 space-y-2">
+                                    {item.expiresAt && (
+                                        <div className="text-sm text-muted-foreground">
+                                            Expires in {formatDistanceToNow(new Date(item.expiresAt), { addSuffix: false })} on {format(new Date(item.expiresAt), 'MMM d, yyyy')}
+                                        </div>
+                                    )}
+                                    <Select onValueChange={handleExpiryChange}>
+                                        <SelectTrigger className="w-full bg-background focus:ring-accent">
+                                            <SelectValue placeholder="Change expiration..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="7">Delete after 7 days</SelectItem>
+                                            <SelectItem value="30">Delete after 30 days</SelectItem>
+                                            <SelectItem value="90">Delete after 90 days</SelectItem>
+                                            <SelectItem value="365">Delete after 1 year</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             )}
                         </div>
