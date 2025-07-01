@@ -35,8 +35,9 @@ interface SearchableDocument {
 const createNewIndex = () => new Document<SearchableDocument, true>({
     document: {
       id: 'id',
-      // Fields for full-text search. `where` clauses will be indexed automatically.
+      // Fields for full-text search
       index: ['title', 'description', 'tags', 'domain'],
+      // We will store the full document to make filtering easier
       store: true,
     },
     tokenize: 'forward',
@@ -112,20 +113,12 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
 
     const index = searchIndexRef.current;
-
-    const whereClauses: { [key: string]: string } = {};
-    if (filters.zoneId) whereClauses.zoneId = filters.zoneId;
-    if (filters.contentType) whereClauses.contentType = filters.contentType;
-
-    const results = index.search(query, {
-        index: ['title', 'description', 'tags', 'domain'],
-        where: whereClauses,
-        bool: "and",
-        enrich: true,
-    });
+    
+    // Perform the text search first. If no query, we start with all items.
+    const searchResults = query ? index.search(query, { enrich: true }) : [{ result: allItems.map(formatForIndex) }];
 
     const idSet = new Set<string>();
-    results.forEach(fieldResult => {
+    searchResults.forEach(fieldResult => {
       fieldResult.result.forEach((doc: SearchableDocument) => {
         idSet.add(doc.id);
       });
@@ -133,6 +126,13 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
     
     let finalItems = allItems.filter(item => idSet.has(item.id));
     
+    // Now apply filters to the search results
+    if (filters.zoneId) {
+        finalItems = finalItems.filter(item => item.zoneId === filters.zoneId);
+    }
+    if (filters.contentType) {
+        finalItems = finalItems.filter(item => item.contentType === filters.contentType);
+    }
     if (filters.tagNames && filters.tagNames.length > 0) {
         finalItems = finalItems.filter(item => {
             const itemTagNames = item.tags.map(t => t.name.toLowerCase());
