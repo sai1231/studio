@@ -130,7 +130,7 @@ const TodoListCard: React.FC<{
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { setIsAddTodoDialogOpen } = useDialog();
+  const { setIsAddTodoDialogOpen, refreshKey } = useDialog();
 
   const [displayedItems, setDisplayedItems] = useState<ContentItem[]>([]);
   const [todoItems, setTodoItems] = useState<ContentItem[]>([]);
@@ -223,7 +223,7 @@ export default function DashboardPage() {
     };
     initialFetch();
 
-  }, [user, fetchTodos]);
+  }, [user, fetchTodos, refreshKey]);
   
   useEffect(() => {
     if (isFetchingMore || !hasMore || !user) return;

@@ -1,3 +1,4 @@
+
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -22,7 +23,6 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const router = useRouter();
   const { 
     isAddContentDialogOpen, 
     setIsAddContentDialogOpen, 
@@ -30,6 +30,7 @@ export default function AppLayout({
     setIsAddTodoDialogOpen,
     isRecordVoiceDialogOpen,
     setIsRecordVoiceDialogOpen,
+    triggerRefresh,
   } = useDialog();
 
   const [zones, setZones] = useState<Zone[]>([]);
@@ -38,9 +39,9 @@ export default function AppLayout({
 
   useEffect(() => {
     if (!isAuthLoading && !user) {
-      router.replace('/login');
+      useRouter().replace('/login');
     }
-  }, [user, isAuthLoading, router]);
+  }, [user, isAuthLoading]);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -82,7 +83,7 @@ export default function AppLayout({
 
       if (isAddContentDialogOpen) setIsAddContentDialogOpen(false);
       
-      router.refresh();
+      triggerRefresh();
 
     } catch (error) {
       console.error("Error saving content from layout:", error);
