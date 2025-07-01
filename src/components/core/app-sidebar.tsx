@@ -1,7 +1,8 @@
+
 'use client';
 import type React from 'react';
 import { useState, useEffect } from 'react';
-import { Home, Tag, Settings, LogOut, Users, ChevronDown, Plus, Globe, ClipboardList, Bookmark, Newspaper, Film, Baseline, Github, MessageSquare, MessagesSquare, BookOpen, LucideIcon, StickyNote, Briefcase, Library, FileText, Sparkles, Layers, Code, Server, Moon, Sun, Brain } from 'lucide-react';
+import { Home, Tag, Settings, LogOut, Users, ChevronDown, Plus, Globe, ClipboardList, Bookmark, Newspaper, Film, Baseline, Github, MessageSquare, MessagesSquare, BookOpen, LucideIcon, StickyNote, Briefcase, Library, FileText, Sparkles, Layers, Code, Server, Moon, Sun, Brain, Database, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -194,6 +195,10 @@ const AppSidebar: React.FC = () => {
                   <Link href="/admin/logs" className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
                       <Server className="h-4 w-4 opacity-70" />
                       <span className="truncate">Logs</span>
+                  </Link>
+                   <Link href="/admin/meili-sync" className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                      <Zap className="h-4 w-4 opacity-70" />
+                      <span className="truncate">Sync Search</span>
                   </Link>
               </HoverNavButton>
             </nav>

@@ -4,6 +4,7 @@
 import { MeiliSearch } from 'meilisearch';
 import type { ContentItem, SearchFilters } from '@/types';
 import { addLog } from './loggingService';
+import { getContentItems } from './contentService';
 
 const host = process.env.MEILISEARCH_HOST;
 const apiKey = process.env.MEILISEARCH_MASTER_KEY;
@@ -144,5 +145,38 @@ export async function searchMeili(
     await addLog('ERROR', `[${searchId}] Meilisearch search failed`, { error: (error as Error).message });
     console.error(`[${searchId}] Meilisearch search failed:`, error);
     return { hits: [], estimatedTotalHits: 0 };
+  }
+}
+
+export async function resyncAllData(userId: string): Promise<{ count: number }> {
+  if (!isMeiliConfigured) {
+    await addLog('WARN', '[Meili] Resync called but Meilisearch is not configured.');
+    return { count: 0 };
+  }
+
+  await addLog('INFO', `[Meili] Starting full data resync for user: ${userId}`);
+  try {
+    const allItems = await getContentItems(userId);
+    if (allItems.length === 0) {
+      await addLog('INFO', `[Meili] No items found for user ${userId} to sync.`);
+      return { count: 0 };
+    }
+
+    const documentsToIndex = allItems.map(item => ({
+      ...item,
+      'tags.name': item.tags.map(t => t.name), // Ensure tags are flattened for filtering
+    }));
+    
+    const index = client.index(indexName);
+    const task = await index.addDocuments(documentsToIndex, { primaryKey: 'id' });
+
+    await addLog('INFO', `[Meili] Submitted ${allItems.length} documents for indexing. Task ID: ${task.taskUid}`);
+    
+    return { count: allItems.length };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    await addLog('ERROR', `[Meili] Full data resync failed for user ${userId}`, { error: errorMessage });
+    console.error(`[Meili] Full data resync failed for user ${userId}:`, error);
+    throw error;
   }
 }
