@@ -136,7 +136,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         alt={item.title}
         data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
         className={cn(
-          "w-full h-full object-cover group-hover:scale-105 transition-transform duration-300",
+          "w-full h-full object-cover group-hover:scale-105 transition-all duration-300",
           isImageLoading ? "opacity-0" : "opacity-100"
         )}
         loading="lazy"
@@ -211,7 +211,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         </div>
 
         {item.type === 'image' && hasImage ? (
-          <ImageComponent className="aspect-auto" />
+          <ImageComponent />
         ) : item.type === 'note' ? (
           <div className="p-4 flex flex-col relative flex-grow">
             <span className="text-6xl text-muted-foreground/20 absolute top-2 left-2 font-serif leading-none select-none">“</span>
