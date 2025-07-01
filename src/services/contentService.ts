@@ -21,6 +21,7 @@ import {
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { ContentItem, Zone, Tag, MovieDetails } from '@/types';
 import { enrichContent } from '@/ai/flows/enrich-content-flow';
+import { addLog } from '@/services/loggingService';
 
 // Firestore collection references
 const contentCollection = collection(db, 'content');
@@ -291,18 +292,23 @@ export async function searchContentItems({
   pageSize: number;
   lastDoc?: DocumentSnapshot;
 }): Promise<{ items: ContentItem[]; lastVisibleDoc: DocumentSnapshot | null }> {
+    const searchId = `search-${Date.now()}`;
+    await addLog('INFO', `[${searchId}] Search initiated for user ${userId}`, { searchQuery, filters, pageSize });
+
     try {
         if (!userId || !searchQuery.trim()) {
+            await addLog('WARN', `[${searchId}] Search aborted: missing user ID or search query.`);
             return { items: [], lastVisibleDoc: null };
         }
 
         const queryWords = [...new Set(searchQuery.toLowerCase().split(/\s+/).filter(w => w.length > 1))];
         if (queryWords.length === 0) {
+            await addLog('WARN', `[${searchId}] Search aborted: no valid query words.`);
             return { items: [], lastVisibleDoc: null };
         }
         
-        // Use 'array-contains' on the first keyword to allow for sorting and pagination.
         const primaryKeyword = queryWords[0];
+        await addLog('INFO', `[${searchId}] Primary keyword for Firestore query: '${primaryKeyword}'`);
         
         const queryConstraints: any[] = [
             where('userId', '==', userId),
@@ -320,9 +326,11 @@ export async function searchContentItems({
         if (lastDoc) {
             queryConstraints.push(startAfter(lastDoc));
         }
-
+        
+        await addLog('INFO', `[${searchId}] Executing Firestore query.`);
         const q = query(contentCollection, ...queryConstraints);
         const querySnapshot = await getDocs(q);
+        await addLog('INFO', `[${searchId}] Firestore query returned ${querySnapshot.docs.length} documents.`);
         
         let items = querySnapshot.docs.map(doc => {
             const data = doc.data();
@@ -334,7 +342,8 @@ export async function searchContentItems({
             } as ContentItem;
         });
         
-        // Client-side filtering for remaining keywords and tags
+        const preFilterCount = items.length;
+
         const remainingKeywords = queryWords.slice(1);
         if (remainingKeywords.length > 0) {
             items = items.filter(item => 
@@ -352,11 +361,15 @@ export async function searchContentItems({
             });
         }
         
+        await addLog('INFO', `[${searchId}] Client-side filtering complete. Pre-filter count: ${preFilterCount}, Post-filter count: ${items.length}.`);
+
         const lastVisibleDoc = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
 
+        await addLog('INFO', `[${searchId}] Search successful. Returning ${items.length} items.`);
         return { items, lastVisibleDoc };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to search content items from Firestore:", error);
+        await addLog('ERROR', `[${searchId}] Search failed catastrophically.`, { error: error.message, stack: error.stack });
         throw error;
     }
 }
