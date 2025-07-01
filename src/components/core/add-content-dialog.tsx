@@ -248,10 +248,19 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     
     form.clearErrors('mainContent');
 
+    let expiresAtDate: Date | undefined = undefined;
+    if (isTemporary) {
+      if (expiryDays === 'test_5s') {
+        expiresAtDate = add(new Date(), { seconds: 5 });
+      } else {
+        expiresAtDate = add(new Date(), { days: parseInt(expiryDays, 10) });
+      }
+    }
+
     const commonData = {
       tags: currentTags,
       zoneId: zoneId || undefined,
-      expiresAt: isTemporary ? add(new Date(), { days: parseInt(expiryDays, 10) }).toISOString() : undefined,
+      expiresAt: expiresAtDate ? expiresAtDate.toISOString() : undefined,
     };
 
     if (uploadedFiles.length > 0) {
@@ -409,6 +418,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                                 <SelectValue placeholder="Select expiration period" />
                             </SelectTrigger>
                             <SelectContent>
+                                <SelectItem value="test_5s">Delete after 5 seconds (for testing)</SelectItem>
                                 <SelectItem value="7">Delete after 7 days</SelectItem>
                                 <SelectItem value="30">Delete after 30 days</SelectItem>
                                 <SelectItem value="90">Delete after 90 days</SelectItem>
@@ -488,3 +498,5 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
 };
 
 export default AddContentDialog;
+
+    

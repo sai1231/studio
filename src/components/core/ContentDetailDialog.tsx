@@ -206,12 +206,10 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
             }
           } else {
             setError('Content item not found.');
-            toast({ title: "Error", description: "Content item not found.", variant: "destructive" });
           }
         } catch (e) {
           console.error('Error fetching content details for dialog:', e);
           setError('Failed to load content details.');
-          toast({ title: "Error", description: "Failed to load content details.", variant: "destructive" });
         } finally {
           setIsLoading(false);
         }
@@ -235,7 +233,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       setIsArticleViewOpen(false);
       setOembedHtml(null);
     }
-  }, [itemId, open, toast, user]); 
+  }, [itemId, open, user]); 
 
   useEffect(() => {
     if (item) {
@@ -434,9 +432,14 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       }
   };
   
-  const handleExpiryChange = (days: string) => {
-      const newExpiryDate = add(new Date(), { days: parseInt(days, 10) });
-      handleFieldUpdate('expiresAt', newExpiryDate.toISOString());
+  const handleExpiryChange = (value: string) => {
+    let newExpiryDate: Date;
+    if (value === 'test_5s') {
+      newExpiryDate = add(new Date(), { seconds: 5 });
+    } else {
+      newExpiryDate = add(new Date(), { days: parseInt(value, 10) });
+    }
+    handleFieldUpdate('expiresAt', newExpiryDate.toISOString());
   };
 
 
@@ -837,6 +840,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                                             <SelectValue placeholder="Change expiration..." />
                                         </SelectTrigger>
                                         <SelectContent>
+                                            <SelectItem value="test_5s">Delete after 5 seconds (for testing)</SelectItem>
                                             <SelectItem value="7">Delete after 7 days</SelectItem>
                                             <SelectItem value="30">Delete after 30 days</SelectItem>
                                             <SelectItem value="90">Delete after 90 days</SelectItem>
@@ -887,3 +891,5 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
     </>
   );
 }
+
+    
