@@ -28,7 +28,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { Zone, ContentItem, Tag } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { addContentItem, addZone, uploadFile } from '@/services/contentService';
+import { addZone, uploadFile } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
 import { add } from 'date-fns';
