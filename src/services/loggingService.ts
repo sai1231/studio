@@ -11,12 +11,35 @@ export interface LogEntry {
 
 const logsCollection = collection(db, 'logs');
 
+// Helper to recursively remove undefined values from an object, as Firestore doesn't support them.
+function cleanObjectForFirestore(obj: any): any {
+    if (obj === null || typeof obj !== 'object') {
+        return obj;
+    }
+
+    if (Array.isArray(obj)) {
+        return obj.map(item => cleanObjectForFirestore(item));
+    }
+
+    const newObj: { [key: string]: any } = {};
+    for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+            const value = obj[key];
+            if (value !== undefined) {
+                newObj[key] = cleanObjectForFirestore(value);
+            }
+        }
+    }
+    return newObj;
+}
+
+
 export async function addLog(level: LogEntry['level'], message: string, details?: LogEntry['details']): Promise<void> {
     try {
         await addDoc(logsCollection, {
             level,
             message,
-            details: details || null,
+            details: details ? cleanObjectForFirestore(details) : null,
             timestamp: Timestamp.now(),
         });
     } catch (error) {
