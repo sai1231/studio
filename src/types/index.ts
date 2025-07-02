@@ -51,6 +51,22 @@ export interface SearchFilters {
   tagNames?: string[];
 }
 
+export interface PlanFeatures {
+  [key: string]: number | boolean;
+  contentLimit: number;
+  maxZones: number;
+  aiSuggestions: number;
+  accessAdvancedEnrichment: boolean;
+  accessDeclutterTool: boolean;
+}
+
+export interface Plan {
+  id: string;
+  name: string;
+  features: PlanFeatures;
+}
+
+
 // Specific type for Link items, if needed for type guarding
 export type LinkItem = ContentItem & {
   type: 'link';

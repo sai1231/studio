@@ -196,6 +196,10 @@ const AppSidebar: React.FC = () => {
                       <Server className="h-4 w-4 opacity-70" />
                       <span className="truncate">Logs</span>
                   </Link>
+                   <Link href="/admin/plans" className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                      <Zap className="h-4 w-4 opacity-70" />
+                      <span className="truncate">Plans</span>
+                  </Link>
               </HoverNavButton>
             </nav>
           </ScrollArea>
