@@ -1,193 +1,212 @@
-
 'use client';
-
-import React, { useState, useEffect, useCallback } from 'react';
-import { getPlans, updatePlan, createDefaultPlans } from '@/services/subscriptionService';
-import type { Plan, PlanFeatures } from '@/types';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import type React from 'react';
+import { useState, useEffect } from 'react';
+import { Home, Tag, LogOut, Globe, ClipboardList, Bookmark, Newspaper, Film, Github, MessagesSquare, BookOpen, LucideIcon, StickyNote, Sparkles, Shield, Brain } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Loader2, Zap, AlertTriangle } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import type { Zone, Tag as TagType } from '@/types';
+import { ThemeToggle } from './theme-toggle';
+import { subscribeToZones, subscribeToContentItems, getUniqueDomainsFromItems, getUniqueContentTypesFromItems, getUniqueTagsFromItems } from '@/services/contentService';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { getAuth, signOut } from 'firebase/auth';
+import { useAuth } from '@/context/AuthContext';
 
-interface PlanEditorCardProps {
-  plan: Plan;
-  onPlanUpdate: () => void;
-}
 
-const PlanEditorCard: React.FC<PlanEditorCardProps> = ({ plan, onPlanUpdate }) => {
-  const [features, setFeatures] = useState<PlanFeatures>(plan.features);
-  const [isSaving, setIsSaving] = useState(false);
+const predefinedContentTypes: Record<string, { icon: LucideIcon, name: string }> = {
+  Post: { icon: Newspaper, name: 'Post' },
+  Reel: { icon: Film, name: 'Reel' },
+  Note: { icon: StickyNote, name: 'Note' },
+  Repositories: { icon: Github, name: 'Repositories' },
+  Tweet: { icon: MessagesSquare, name: 'Tweet' },
+  Thread: { icon: MessagesSquare, name: 'Thread' },
+  Article: { icon: BookOpen, name: 'Article' },
+  PDF: { icon: BookOpen, name: 'PDF' },
+};
+
+const iconMap: { [key: string]: React.ElementType } = {
+  Briefcase: StickyNote,
+  Home: Home,
+  Library: BookOpen,
+  Bookmark: Bookmark,
+};
+
+const SidebarLink = ({ href, icon: Icon, children, ...props }: { href: string, icon: LucideIcon, children: React.ReactNode, [key: string]: any }) => (
+  <Link href={href} className="flex flex-col items-center justify-center text-center gap-1 rounded-lg p-2 text-sidebar-foreground transition-all w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" {...props}>
+    <Icon className="h-5 w-5" />
+    <span className="text-[10px] font-medium leading-none">{children}</span>
+  </Link>
+);
+
+
+const HoverNavButton = ({ icon: Icon, label, children }: { icon: React.ElementType, label: string, children: React.ReactNode }) => (
+    <HoverCard openDelay={100} closeDelay={100}>
+        <HoverCardTrigger asChild>
+            <Button
+                variant="ghost"
+                className="flex flex-col items-center justify-center text-center gap-1 rounded-lg p-2 text-sidebar-foreground transition-all w-full h-auto hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            >
+                <Icon className="h-5 w-5" />
+                <span className="text-[10px] font-medium leading-none">{label}</span>
+            </Button>
+        </HoverCardTrigger>
+        <HoverCardContent side="right" align="start" className="w-64 p-2 ml-2">
+            <div className="text-lg font-semibold p-2 border-b mb-2">{label}</div>
+            <div className="max-h-[70vh] overflow-y-auto">
+                <div className="flex flex-col gap-1 p-1">
+                    {children}
+                </div>
+            </div>
+        </HoverCardContent>
+    </HoverCard>
+);
+
+
+const AppSidebar: React.FC = () => {
+  const [zones, setZones] = useState<Zone[]>([]);
+  const [domains, setDomains] = useState<string[]>([]);
+  const [contentTypes, setContentTypes] = useState<string[]>([]);
+  const [actualTags, setActualTags] = useState<TagType[]>([]);
   const { toast } = useToast();
+  const router = useRouter();
+  const auth = getAuth();
+  const { user } = useAuth();
 
   useEffect(() => {
-    setFeatures(plan.features);
-  }, [plan]);
+    if (!user) return;
 
-  const handleFeatureChange = (key: keyof PlanFeatures, value: string | boolean) => {
-    setFeatures(prev => ({ ...prev, [key]: value }));
-  };
+    const unsubscribeZones = subscribeToZones(user.uid, (fetchedZones, error) => {
+      if (error) {
+        console.error("Error subscribing to zones in sidebar:", error);
+        toast({ title: "Real-time Error", description: "Could not update zones list.", variant: "destructive" });
+        return;
+      }
+      setZones(fetchedZones);
+    });
 
-  const handleSave = async () => {
-    setIsSaving(true);
+    const unsubscribeContent = subscribeToContentItems(user.uid, (items, error) => {
+        if (error) {
+            console.error("Error subscribing to content items in sidebar:", error);
+            toast({ title: "Real-time Error", description: "Could not update sidebar content.", variant: "destructive" });
+            return;
+        }
+
+        const fetchedDomains = getUniqueDomainsFromItems(items);
+        const fetchedContentTypes = getUniqueContentTypesFromItems(items);
+        const fetchedTags = getUniqueTagsFromItems(items);
+        
+        setDomains(fetchedDomains);
+        setActualTags(fetchedTags);
+        const availablePredefinedTypes = fetchedContentTypes.filter(type => predefinedContentTypes[type]);
+        setContentTypes(availablePredefinedTypes);
+    });
+
+    return () => {
+      unsubscribeZones();
+      unsubscribeContent();
+    };
+  }, [user, toast]);
+
+  const handleLogout = async () => {
     try {
-      await updatePlan(plan.id, features);
-      toast({
-        title: 'Plan Updated',
-        description: `The "${plan.name}" plan has been successfully updated.`,
-      });
-      onPlanUpdate();
+      await signOut(auth);
+      toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
+      router.push('/login');
     } catch (error) {
-      console.error(`Error updating plan ${plan.id}:`, error);
-      toast({
-        title: 'Update Failed',
-        description: `Could not update the "${plan.name}" plan.`,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSaving(false);
+      console.error("Logout error:", error);
+      toast({ title: 'Logout Failed', description: 'Could not log you out. Please try again.', variant: 'destructive' });
     }
   };
 
+  const formatDomainName = (domain: string): string => {
+    const nameWithoutTld = domain.replace(/\.(com|net|org|io|dev|co|ai|app|me|xyz|info|biz|blog|tech|co\.uk|org\.uk|ac\.uk|gov\.uk)$/i, '');
+    return nameWithoutTld.charAt(0).toUpperCase() + nameWithoutTld.slice(1);
+  };
+
+  const getIconComponent = (iconName?: string): React.ElementType => {
+    if (iconName && iconMap[iconName]) return iconMap[iconName];
+    return Bookmark;
+  };
+
   return (
-    <Card className="shadow-lg">
-      <CardHeader>
-        <CardTitle className="text-2xl font-headline">{plan.name} Plan</CardTitle>
-        <CardDescription>
-          Configure the features and limits for the {plan.name.toLowerCase()} tier. Use -1 for unlimited.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-        {Object.entries(features).map(([key, value]) => (
-          <div key={key} className="space-y-2">
-            <Label htmlFor={`${plan.id}-${key}`} className="capitalize font-medium">
-              {key.replace(/([A-Z])/g, ' $1')}
-            </Label>
-            {typeof value === 'boolean' ? (
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id={`${plan.id}-${key}`}
-                  checked={value}
-                  onCheckedChange={(checked) => handleFeatureChange(key as keyof PlanFeatures, checked)}
-                />
-                 <span className="text-sm text-muted-foreground">{value ? 'Enabled' : 'Disabled'}</span>
-              </div>
-            ) : (
-              <Input
-                id={`${plan.id}-${key}`}
-                type="number"
-                value={value}
-                onChange={(e) => handleFeatureChange(key as keyof PlanFeatures, e.target.value === '' ? '' : Number(e.target.value))}
-                placeholder="Enter value..."
-              />
-            )}
+    <>
+      <aside className="hidden border-r bg-sidebar text-sidebar-foreground md:block w-20 fixed top-0 left-0 h-full z-30">
+        <div className="flex h-full max-h-screen flex-col">
+          <div className="flex h-16 items-center justify-center border-b border-sidebar-border px-2">
+            <Link href="/dashboard" aria-label="Home">
+                <Brain size={28} className="text-primary" />
+            </Link>
           </div>
-        ))}
-      </CardContent>
-      <CardFooter>
-        <Button onClick={handleSave} disabled={isSaving} className="ml-auto bg-primary hover:bg-primary/90 text-primary-foreground">
-          {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Save Changes
-        </Button>
-      </CardFooter>
-    </Card>
+
+          <ScrollArea className="flex-1 py-2 px-2">
+            <nav className="flex flex-col items-center gap-2 text-sm font-medium">
+              <SidebarLink href="/dashboard" icon={Home}>Home</SidebarLink>
+              <SidebarLink href="/declutter" icon={Sparkles}>Declutter</SidebarLink>
+              
+              <HoverNavButton icon={Bookmark} label="Zones">
+                {zones.length > 0 ? zones.map(zone => {
+                  const Icon = getIconComponent(zone.icon);
+                  return (
+                      <Link key={zone.id} href={`/zones/${zone.id}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                          <Icon className="h-4 w-4 opacity-70" />
+                          <span className="truncate">{zone.name}</span>
+                      </Link>
+                  );
+                }) : <p className="p-2 text-xs text-muted-foreground">No zones found.</p>}
+              </HoverNavButton>
+
+              <HoverNavButton icon={Tag} label="Tags">
+                {actualTags.length > 0 ? actualTags.map(tag => (
+                  <Link key={tag.name} href={`/tags/${encodeURIComponent(tag.name)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                      <span className="text-muted-foreground">#</span>
+                      <span className="truncate">{tag.name}</span>
+                  </Link>
+                )) : <p className="p-2 text-xs text-muted-foreground">No tags found.</p>}
+              </HoverNavButton>
+
+              <HoverNavButton icon={Globe} label="Domains">
+                {domains.length > 0 ? domains.map(domain => (
+                  <Link key={domain} href={`/domains/${encodeURIComponent(domain)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                      <Globe className="h-4 w-4 opacity-70" />
+                      <span className="truncate">{formatDomainName(domain)}</span>
+                  </Link>
+                )) : <p className="p-2 text-muted-foreground">No domains found.</p>}
+              </HoverNavButton>
+
+              <HoverNavButton icon={ClipboardList} label="Types">
+                {contentTypes.length > 0 ? contentTypes.map(typeKey => {
+                   const typeDetails = predefinedContentTypes[typeKey];
+                   if (!typeDetails) return null;
+                   const Icon = typeDetails.icon;
+                   return (
+                      <Link key={typeKey} href={`/content-types/${encodeURIComponent(typeKey)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                          <Icon className="h-4 w-4 opacity-70" />
+                          <span className="truncate">{typeDetails.name}</span>
+                      </Link>
+                   )
+                }) : <p className="p-2 text-xs text-muted-foreground">No content types found.</p>}
+              </HoverNavButton>
+            </nav>
+          </ScrollArea>
+          
+          <div className="mt-auto flex flex-col items-center gap-2 p-2">
+            <a href="/admin/dashboard" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center text-center gap-1 rounded-lg p-2 text-sidebar-foreground transition-all w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                <Shield className="h-5 w-5" />
+                <span className="text-[10px] font-medium leading-none">Admin</span>
+            </a>
+            <ThemeToggle />
+            <Button variant="ghost" onClick={handleLogout} className="flex w-full flex-col items-center justify-center h-auto gap-1 rounded-lg p-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+               <LogOut className="h-5 w-5" />
+               <span className="text-[10px] font-medium leading-none">Logout</span>
+            </Button>
+          </div>
+        </div>
+      </aside>
+    </>
   );
 };
 
-
-export default function PlansPage() {
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isCreatingDefaults, setIsCreatingDefaults] = useState(false);
-  const { toast } = useToast();
-
-  const fetchPlans = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const fetchedPlans = await getPlans();
-      setPlans(fetchedPlans);
-    } catch (error) {
-      console.error('Error fetching plans:', error);
-      toast({
-        title: 'Error',
-        description: 'Could not fetch subscription plans.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    fetchPlans();
-  }, [fetchPlans]);
-
-  const handleCreateDefaultPlans = async () => {
-    setIsCreatingDefaults(true);
-    try {
-      await createDefaultPlans();
-      toast({
-        title: 'Default Plans Created',
-        description: 'The "Free" and "Pro" plans have been added to Firestore.',
-      });
-      fetchPlans();
-    } catch (error) {
-       console.error('Error creating default plans:', error);
-       toast({
-        title: 'Creation Failed',
-        description: 'Could not create default plans.',
-        variant: 'destructive',
-      });
-    } finally {
-        setIsCreatingDefaults(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-20rem)]">
-        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-        <p className="text-lg text-muted-foreground">Loading Plan Configuration...</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-       <div className="flex items-center">
-        <h1 className="text-2xl font-headline font-semibold text-foreground">
-          Subscription Plan Management
-        </h1>
-      </div>
-
-      {plans.length === 0 ? (
-        <Card className="max-w-lg mx-auto text-center">
-          <CardHeader>
-             <div className="mx-auto bg-muted/50 rounded-full p-3 w-fit">
-                <AlertTriangle className="h-10 w-10 text-amber-500" />
-            </div>
-            <CardTitle className="mt-4">No Plans Found</CardTitle>
-            <CardDescription>
-                Your Firestore database doesn't have any subscription plans defined yet. You can create the default "Free" and "Pro" plans to get started.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={handleCreateDefaultPlans} disabled={isCreatingDefaults}>
-              {isCreatingDefaults ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Create Default Plans
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-8">
-          {plans.sort((a,b) => a.name === 'Free' ? -1 : 1).map(plan => (
-            <PlanEditorCard key={plan.id} plan={plan} onPlanUpdate={fetchPlans} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+export default AppSidebar;

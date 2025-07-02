@@ -2,7 +2,7 @@
 'use client';
 import type React from 'react';
 import { useState, useEffect } from 'react';
-import { Home, Tag, LogOut, Globe, ClipboardList, Bookmark, Newspaper, Film, Github, MessagesSquare, BookOpen, LucideIcon, StickyNote, Sparkles, LayoutDashboard, Users, Zap, Server, ToggleRight, Megaphone, Brain } from 'lucide-react';
+import { Home, Tag, LogOut, Globe, ClipboardList, Bookmark, Newspaper, Film, Github, MessagesSquare, BookOpen, LucideIcon, StickyNote, Sparkles, Shield, Brain } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -35,8 +35,8 @@ const iconMap: { [key: string]: React.ElementType } = {
   Bookmark: Bookmark,
 };
 
-const SidebarLink = ({ href, icon: Icon, children }: { href: string, icon: LucideIcon, children: React.ReactNode }) => (
-  <Link href={href} className="flex flex-col items-center justify-center text-center gap-1 rounded-lg p-2 text-sidebar-foreground transition-all w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+const SidebarLink = ({ href, icon: Icon, children, ...props }: { href: string, icon: LucideIcon, children: React.ReactNode, [key: string]: any }) => (
+  <Link href={href} className="flex flex-col items-center justify-center text-center gap-1 rounded-lg p-2 text-sidebar-foreground transition-all w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" {...props}>
     <Icon className="h-5 w-5" />
     <span className="text-[10px] font-medium leading-none">{children}</span>
   </Link>
@@ -190,42 +190,19 @@ const AppSidebar: React.FC = () => {
                    )
                 }) : <p className="p-2 text-xs text-muted-foreground">No content types found.</p>}
               </HoverNavButton>
-              
-              <HoverNavButton icon={LayoutDashboard} label="Admin">
-                  <Link href="/admin/dashboard" className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
-                      <LayoutDashboard className="h-4 w-4 opacity-70" />
-                      <span className="truncate">Dashboard</span>
-                  </Link>
-                   <Link href="/admin/users" className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
-                      <Users className="h-4 w-4 opacity-70" />
-                      <span className="truncate">Users</span>
-                  </Link>
-                   <Link href="/admin/plans" className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
-                      <Zap className="h-4 w-4 opacity-70" />
-                      <span className="truncate">Plans</span>
-                  </Link>
-                   <Link href="/admin/logs" className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
-                      <Server className="h-4 w-4 opacity-70" />
-                      <span className="truncate">Logs</span>
-                  </Link>
-                   <Link href="/admin/feature-flags" className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
-                      <ToggleRight className="h-4 w-4 opacity-70" />
-                      <span className="truncate">Feature Flags</span>
-                  </Link>
-                   <Link href="/admin/announcements" className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
-                      <Megaphone className="h-4 w-4 opacity-70" />
-                      <span className="truncate">Announcements</span>
-                  </Link>
-              </HoverNavButton>
             </nav>
           </ScrollArea>
           
           <div className="mt-auto flex flex-col items-center gap-2 p-2">
-             <ThemeToggle />
-             <Button variant="ghost" onClick={handleLogout} className="flex w-full flex-col items-center justify-center h-auto gap-1 rounded-lg p-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+            <a href="/admin/dashboard" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center text-center gap-1 rounded-lg p-2 text-sidebar-foreground transition-all w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                <Shield className="h-5 w-5" />
+                <span className="text-[10px] font-medium leading-none">Admin</span>
+            </a>
+            <ThemeToggle />
+            <Button variant="ghost" onClick={handleLogout} className="flex w-full flex-col items-center justify-center h-auto gap-1 rounded-lg p-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                <LogOut className="h-5 w-5" />
                <span className="text-[10px] font-medium leading-none">Logout</span>
-             </Button>
+            </Button>
           </div>
         </div>
       </aside>
