@@ -2,7 +2,7 @@
 'use client';
 import type React from 'react';
 import { useState, useEffect } from 'react';
-import { Home, Tag, LogOut, Globe, ClipboardList, Bookmark, Newspaper, Film, Github, MessagesSquare, BookOpen, LucideIcon, StickyNote, Sparkles, LayoutDashboard, Users, Zap, Server, ToggleRight, Megaphone } from 'lucide-react';
+import { Home, Tag, LogOut, Globe, ClipboardList, Bookmark, Newspaper, Film, Github, MessagesSquare, BookOpen, LucideIcon, StickyNote, Sparkles, LayoutDashboard, Users, Zap, Server, ToggleRight, Megaphone, Brain } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
