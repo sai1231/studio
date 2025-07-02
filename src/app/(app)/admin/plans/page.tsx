@@ -148,7 +148,7 @@ export default function PlansPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-8">
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-20rem)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
         <p className="text-lg text-muted-foreground">Loading Plan Configuration...</p>
       </div>
@@ -156,16 +156,12 @@ export default function PlansPage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex items-center mb-6">
-        <Zap className="h-8 w-8 mr-3 text-primary" />
-        <h1 className="text-3xl font-headline font-semibold text-foreground">
+    <div className="space-y-6">
+       <div className="flex items-center">
+        <h1 className="text-2xl font-headline font-semibold text-foreground">
           Subscription Plan Management
         </h1>
       </div>
-       <p className="text-muted-foreground mb-8 max-w-3xl">
-        This page allows you to dynamically control the features and limits for each subscription tier. Changes saved here are reflected across the application without needing a new deployment.
-      </p>
 
       {plans.length === 0 ? (
         <Card className="max-w-lg mx-auto text-center">

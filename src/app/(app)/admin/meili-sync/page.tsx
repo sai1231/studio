@@ -9,7 +9,7 @@ export default function DeprecatedSyncPage() {
     const router = useRouter();
 
     return (
-        <div className="container mx-auto py-8 flex items-center justify-center min-h-[calc(100vh-12rem)]">
+        <div className="container mx-auto py-8 flex items-center justify-center">
             <Card className="max-w-lg text-center shadow-lg">
                 <CardHeader>
                     <div className="mx-auto bg-muted/50 rounded-full p-3 w-fit">
@@ -18,12 +18,12 @@ export default function DeprecatedSyncPage() {
                     <CardTitle className="mt-4">Search Sync Page Removed</CardTitle>
                     <CardDescription>
                         This page was part of a previous search implementation that has since been replaced.
-                        The search system now updates automatically and no longer requires manual syncing.
+                        The application no longer requires a manual search sync.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Button onClick={() => router.push('/dashboard')}>
-                        Back to Dashboard
+                    <Button onClick={() => router.push('/admin/dashboard')}>
+                        Back to Admin Dashboard
                     </Button>
                 </CardContent>
             </Card>

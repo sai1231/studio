@@ -2,7 +2,7 @@
 'use client';
 import type React from 'react';
 import { useState, useEffect } from 'react';
-import { Home, Tag, Settings, LogOut, Users, ChevronDown, Plus, Globe, ClipboardList, Bookmark, Newspaper, Film, Baseline, Github, MessageSquare, MessagesSquare, BookOpen, LucideIcon, StickyNote, Briefcase, Library, FileText, Sparkles, Layers, Code, Server, Moon, Sun, Brain, Database, Zap } from 'lucide-react';
+import { Home, Tag, LogOut, Globe, ClipboardList, Bookmark, Newspaper, Film, Github, MessagesSquare, BookOpen, LucideIcon, StickyNote, Sparkles, LayoutDashboard, Users, Zap, Server, ToggleRight, Megaphone } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -22,17 +22,17 @@ const predefinedContentTypes: Record<string, { icon: LucideIcon, name: string }>
   Reel: { icon: Film, name: 'Reel' },
   Note: { icon: StickyNote, name: 'Note' },
   Repositories: { icon: Github, name: 'Repositories' },
-  Tweet: { icon: MessageSquare, name: 'Tweet' },
+  Tweet: { icon: MessagesSquare, name: 'Tweet' },
   Thread: { icon: MessagesSquare, name: 'Thread' },
   Article: { icon: BookOpen, name: 'Article' },
-  PDF: { icon: FileText, name: 'PDF' },
+  PDF: { icon: BookOpen, name: 'PDF' },
 };
 
 const iconMap: { [key: string]: React.ElementType } = {
-  Briefcase,
-  Home,
-  Library,
-  Bookmark,
+  Briefcase: StickyNote,
+  Home: Home,
+  Library: BookOpen,
+  Bookmark: Bookmark,
 };
 
 const SidebarLink = ({ href, icon: Icon, children }: { href: string, icon: LucideIcon, children: React.ReactNode }) => (
@@ -191,14 +191,30 @@ const AppSidebar: React.FC = () => {
                 }) : <p className="p-2 text-xs text-muted-foreground">No content types found.</p>}
               </HoverNavButton>
               
-              <HoverNavButton icon={Code} label="Developer">
-                  <Link href="/admin/logs" className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
-                      <Server className="h-4 w-4 opacity-70" />
-                      <span className="truncate">Logs</span>
+              <HoverNavButton icon={LayoutDashboard} label="Admin">
+                  <Link href="/admin/dashboard" className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                      <LayoutDashboard className="h-4 w-4 opacity-70" />
+                      <span className="truncate">Dashboard</span>
+                  </Link>
+                   <Link href="/admin/users" className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                      <Users className="h-4 w-4 opacity-70" />
+                      <span className="truncate">Users</span>
                   </Link>
                    <Link href="/admin/plans" className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
                       <Zap className="h-4 w-4 opacity-70" />
                       <span className="truncate">Plans</span>
+                  </Link>
+                   <Link href="/admin/logs" className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                      <Server className="h-4 w-4 opacity-70" />
+                      <span className="truncate">Logs</span>
+                  </Link>
+                   <Link href="/admin/feature-flags" className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                      <ToggleRight className="h-4 w-4 opacity-70" />
+                      <span className="truncate">Feature Flags</span>
+                  </Link>
+                   <Link href="/admin/announcements" className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                      <Megaphone className="h-4 w-4 opacity-70" />
+                      <span className="truncate">Announcements</span>
                   </Link>
               </HoverNavButton>
             </nav>
