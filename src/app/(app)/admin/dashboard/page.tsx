@@ -12,7 +12,7 @@ export default function AdminPageMoved() {
         For improved security and performance, the admin portal is now a separate application.
       </p>
       <Button asChild className="mt-6">
-        <a href="/admin/dashboard" target="_blank" rel="noopener noreferrer">
+        <a href="/admin" target="_blank" rel="noopener noreferrer">
           Open Admin Portal
         </a>
       </Button>

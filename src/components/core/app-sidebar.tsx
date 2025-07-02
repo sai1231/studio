@@ -1,4 +1,3 @@
-
 'use client';
 import type React from 'react';
 import { useState, useEffect } from 'react';
@@ -194,7 +193,7 @@ const AppSidebar: React.FC = () => {
           </ScrollArea>
           
           <div className="mt-auto flex flex-col items-center gap-2 p-2">
-            <a href="/admin/dashboard" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center text-center gap-1 rounded-lg p-2 text-sidebar-foreground transition-all w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+            <a href="/admin" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center text-center gap-1 rounded-lg p-2 text-sidebar-foreground transition-all w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                 <Shield className="h-5 w-5" />
                 <span className="text-[10px] font-medium leading-none">Admin</span>
             </a>
