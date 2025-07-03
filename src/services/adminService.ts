@@ -44,6 +44,9 @@ export async function createRole(name: string): Promise<Role> {
       aiSuggestions: 25,
       accessAdvancedEnrichment: false,
       accessDeclutterTool: false,
+      allowPdfUploads: false,
+      allowVoiceNotes: false,
+      allowTemporaryContent: false,
     };
     const newRole = { name, features: defaultFeatures };
     const docRef = await addDoc(rolesCollection, newRole);
@@ -184,6 +187,9 @@ export async function createDefaultRoles(): Promise<void> {
         aiSuggestions: 10,
         accessAdvancedEnrichment: false,
         accessDeclutterTool: false,
+        allowPdfUploads: false,
+        allowVoiceNotes: false,
+        allowTemporaryContent: false,
       }
     },
     {
@@ -194,6 +200,9 @@ export async function createDefaultRoles(): Promise<void> {
         aiSuggestions: -1,
         accessAdvancedEnrichment: true,
         accessDeclutterTool: true,
+        allowPdfUploads: true,
+        allowVoiceNotes: true,
+        allowTemporaryContent: true,
       }
     },
     {
@@ -204,6 +213,9 @@ export async function createDefaultRoles(): Promise<void> {
         aiSuggestions: -1,
         accessAdvancedEnrichment: true,
         accessDeclutterTool: true,
+        allowPdfUploads: true,
+        allowVoiceNotes: true,
+        allowTemporaryContent: true,
       }
     }
   ];

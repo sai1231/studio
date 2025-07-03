@@ -27,6 +27,9 @@ export interface PlanFeatures {
   aiSuggestions: number;
   accessAdvancedEnrichment: boolean;
   accessDeclutterTool: boolean;
+  allowPdfUploads: boolean;
+  allowVoiceNotes: boolean;
+  allowTemporaryContent: boolean;
 }
 
 // Data structure used in the application code
