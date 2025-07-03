@@ -1,15 +1,15 @@
 
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input';
-import { Label } from "@/components/ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table';
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2, Plus, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getAdminRoles, createAdminRole, type AdminRole } from '@/services/adminService';
+import { getAdminRoles, createAdminRole, type AdminRole } from "@/services/adminService";
 
 export default function AdminRolesPage() {
     const [roles, setRoles] = useState<AdminRole[]>([]);
@@ -25,7 +25,7 @@ export default function AdminRolesPage() {
             setRoles(fetchedRoles);
         } catch (error) {
             console.error("Failed to fetch roles:", error);
-            toast({ title: 'Error', description: 'Could not fetch admin roles.', variant: 'destructive' });
+            toast({ title: "Error", description: "Could not fetch admin roles.", variant: "destructive" });
         } finally {
             setIsLoading(false);
         }
@@ -37,18 +37,18 @@ export default function AdminRolesPage() {
 
     const handleCreateRole = async () => {
         if (!newRoleName.trim()) {
-            toast({ title: 'Error', description: 'Role name cannot be empty.', variant: 'destructive' });
+            toast({ title: "Error", description: "Role name cannot be empty.", variant: "destructive" });
             return;
         }
         setIsCreating(true);
         try {
             await createAdminRole(newRoleName.trim());
-            toast({ title: 'Role Created', description: `The role "${newRoleName.trim()}" has been created.` });
+            toast({ title: "Role Created", description: `The role "${newRoleName.trim()}" has been created.` });
             setNewRoleName('');
             await fetchRoles(); // Refresh the list
         } catch (error) {
             console.error("Failed to create role:", error);
-            toast({ title: 'Creation Failed', description: 'Could not create the new role.', variant: 'destructive' });
+            toast({ title: "Creation Failed", description: "Could not create the new role.", variant: "destructive" });
         } finally {
             setIsCreating(false);
         }
