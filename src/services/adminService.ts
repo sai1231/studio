@@ -101,6 +101,20 @@ export async function updateUserRole(userId: string, roleId: string | null): Pro
     await updateDoc(userDocRef, { roleId: roleId });
 }
 
+export async function getRoleById(roleId: string): Promise<Role | null> {
+    if (!roleId) return null;
+    const roleDoc = await getDoc(doc(db, 'roles', roleId));
+    if (roleDoc.exists()) {
+        const data = roleDoc.data();
+        return {
+            id: roleDoc.id,
+            name: data.name,
+            features: { ...defaultFeatures, ...(data.features || {}) },
+        } as Role;
+    }
+    return null;
+}
+
 
 export async function getUsersWithDetails(): Promise<AdminUser[]> {
     await new Promise(resolve => setTimeout(resolve, 1000));

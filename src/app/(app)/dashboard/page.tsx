@@ -13,7 +13,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { PlusCircle, Loader2, FolderOpen, ListChecks, AlarmClock, Clapperboard, MessagesSquare, FileImage, Globe, BookOpen, StickyNote, Github, FileText, Trash2, Search as SearchIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getContentItemsPaginated, getTodoItems, deleteContentItem, getZones, updateContentItem } from '@/services/contentService';
+import { getContentItems, getContentItemsPaginated, getTodoItems, deleteContentItem, getZones, updateContentItem } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
 import { cn } from '@/lib/utils';
@@ -129,7 +129,7 @@ const TodoListCard: React.FC<{
 
 
 function DashboardPageContent() {
-  const { user } = useAuth();
+  const { user, role, isLoading: isAuthLoading } = useAuth();
   const { setIsAddTodoDialogOpen, newlyAddedItem, setNewlyAddedItem } = useDialog();
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
@@ -181,6 +181,13 @@ function DashboardPageContent() {
   
   const fetchMoreContent = useCallback(async (userId: string) => {
     if (!hasMore || isFetchingMore) return;
+
+    const contentLimit = role?.features.contentLimit;
+    if (contentLimit !== -1 && displayedItems.length >= contentLimit) {
+        setHasMore(false);
+        return;
+    }
+
     setIsFetchingMore(true);
     try {
       const { items, lastVisibleDoc: newLastDoc } = await getContentItemsPaginated({
@@ -189,7 +196,14 @@ function DashboardPageContent() {
         lastDoc: lastVisibleDoc || undefined,
       });
       
-      setDisplayedItems(prev => [...prev, ...items]);
+      setDisplayedItems(prev => {
+          const newItems = [...prev, ...items];
+          if (contentLimit !== -1 && newItems.length >= contentLimit) {
+              setHasMore(false);
+              return newItems.slice(0, contentLimit);
+          }
+          return newItems;
+      });
       setLastVisibleDoc(newLastDoc);
       setHasMore(!!newLastDoc);
     } catch (err) {
@@ -198,7 +212,7 @@ function DashboardPageContent() {
     } finally {
       setIsFetchingMore(false);
     }
-  }, [hasMore, isFetchingMore, lastVisibleDoc, toast]);
+  }, [hasMore, isFetchingMore, lastVisibleDoc, toast, role, displayedItems.length]);
 
 
   // Effect for initial data load (only runs when not searching)
@@ -207,8 +221,8 @@ function DashboardPageContent() {
       setIsLoading(false);
       return;
     }
-    if (!user) {
-      setIsLoading(false);
+    if (!user || !role) { // Wait for user and role to be loaded
+      setIsLoading(true);
       return;
     }
 
@@ -222,10 +236,20 @@ function DashboardPageContent() {
     const initialFetch = async () => {
       try {
         await fetchTodos(user.uid);
-        const { items, lastVisibleDoc: newLastDoc } = await getContentItemsPaginated({ userId: user.uid, pageSize: 100 });
-        setDisplayedItems(items);
-        setLastVisibleDoc(newLastDoc);
-        setHasMore(!!newLastDoc);
+        const contentLimit = role.features.contentLimit;
+
+        if (contentLimit !== -1) {
+            // User has a content limit. Fetch all up to the limit, no pagination.
+            setHasMore(false);
+            const limitedItems = await getContentItems(user.uid, contentLimit);
+            setDisplayedItems(limitedItems);
+        } else {
+            // Unlimited user, use pagination.
+            const { items, lastVisibleDoc: newLastDoc } = await getContentItemsPaginated({ userId: user.uid, pageSize: 100 });
+            setDisplayedItems(items);
+            setLastVisibleDoc(newLastDoc);
+            setHasMore(!!newLastDoc);
+        }
       } catch (err) {
         setError("Failed to load initial content.");
       } finally {
@@ -234,7 +258,7 @@ function DashboardPageContent() {
     };
     initialFetch();
 
-  }, [user, fetchTodos, isSearching]);
+  }, [user, role, fetchTodos, isSearching]);
   
   // Effect to add newly created items to the view
   useEffect(() => {
@@ -259,7 +283,7 @@ function DashboardPageContent() {
 
   // Effect for infinite scroll (only runs when not searching)
   useEffect(() => {
-    if (isSearching || isFetchingMore || !hasMore || !user) return;
+    if (isSearching || isFetchingMore || !hasMore || !user || (role?.features.contentLimit !== -1)) return;
 
     const observer = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting) {
@@ -277,7 +301,7 @@ function DashboardPageContent() {
         observer.unobserve(currentLoader);
       }
     };
-  }, [isSearching, isFetchingMore, hasMore, user, fetchMoreContent]);
+  }, [isSearching, isFetchingMore, hasMore, user, fetchMoreContent, role]);
 
   const handleOpenDetailDialog = (item: ContentItem) => {
     setSelectedItemIdForDetail(item.id);
@@ -329,7 +353,7 @@ function DashboardPageContent() {
     setClientLoadingMessage(pageLoadingMessages[Math.floor(Math.random() * pageLoadingMessages.length)]);
   }, []);
 
-  const isPageLoading = isLoading || (isSearching && (isSearchLoading || !isInitialized));
+  const isPageLoading = isLoading || (isSearching && (isSearchLoading || !isInitialized)) || (!role && !isAuthLoading);
 
   if (isPageLoading) {
     const message = isSearching ? "Searching your memories..." : (clientLoadingMessage || pageLoadingMessages[0]);

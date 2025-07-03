@@ -104,13 +104,23 @@ export async function getTodoItems(userId: string): Promise<ContentItem[]> {
 
 
 // Function to get all content items for a specific user
-export async function getContentItems(userId: string): Promise<ContentItem[]> {
+export async function getContentItems(userId: string, contentLimit?: number): Promise<ContentItem[]> {
   try {
     if (!userId) {
         console.warn("getContentItems called without a userId. Returning empty array.");
         return [];
     }
-    const q = query(contentCollection, where("userId", "==", userId), orderBy('createdAt', 'desc'));
+    const qConstraints: any[] = [
+        where("userId", "==", userId),
+        where('type', '!=', 'todo'),
+        orderBy('createdAt', 'desc')
+    ];
+
+    if (contentLimit && contentLimit > 0) {
+        qConstraints.push(limit(contentLimit));
+    }
+
+    const q = query(contentCollection, ...qConstraints);
     const querySnapshot = await getDocs(q);
     const items: ContentItem[] = [];
     querySnapshot.forEach((doc) => {
