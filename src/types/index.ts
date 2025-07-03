@@ -31,6 +31,7 @@ export interface PlanFeatures {
   allowPdfUploads: boolean;
   allowVoiceNotes: boolean;
   allowTemporaryContent: boolean;
+  hasAdminAccess: boolean;
 }
 
 // Data structure used in the application code

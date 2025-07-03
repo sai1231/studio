@@ -1,4 +1,5 @@
 
+
 import { db } from '@/lib/firebase';
 import {
   collection,
@@ -26,6 +27,7 @@ const defaultFeatures: PlanFeatures = {
   allowPdfUploads: false,
   allowVoiceNotes: false,
   allowTemporaryContent: false,
+  hasAdminAccess: false,
 };
 
 
@@ -112,6 +114,7 @@ export async function createRole(name: string): Promise<Role> {
       allowPdfUploads: false,
       allowVoiceNotes: false,
       allowTemporaryContent: false,
+      hasAdminAccess: false,
     };
     const newRole = { name, features: newRoleFeatures };
     const docRef = await addDoc(rolesCollection, newRole);
@@ -273,6 +276,7 @@ export async function createDefaultRoles(): Promise<void> {
         contentLimit: 100,
         maxZones: 2,
         aiSuggestions: 10,
+        hasAdminAccess: false,
       }
     },
     {
@@ -287,6 +291,7 @@ export async function createDefaultRoles(): Promise<void> {
         allowPdfUploads: true,
         allowVoiceNotes: true,
         allowTemporaryContent: true,
+        hasAdminAccess: false,
       }
     },
     {
@@ -301,6 +306,7 @@ export async function createDefaultRoles(): Promise<void> {
         allowPdfUploads: true,
         allowVoiceNotes: true,
         allowTemporaryContent: true,
+        hasAdminAccess: true,
       }
     }
   ];

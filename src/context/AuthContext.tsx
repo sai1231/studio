@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
@@ -64,18 +65,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             await setDoc(userDocRef, docData, { merge: true });
           }
           
+          let fetchedRole: Role | null = null;
           if (userRoleId) {
-            const fetchedRole = await getRoleById(userRoleId);
+            fetchedRole = await getRoleById(userRoleId);
             setRole(fetchedRole || null);
           } else {
             setRole(null);
           }
+          
+          // Set admin status based on the role's features
+          setIsAdmin(fetchedRole?.features?.hasAdminAccess || false);
 
         } catch (error) {
             console.error("Error in AuthContext during user setup:", error);
+            setIsAdmin(false); // Default to not admin on error
         }
-        
-        setIsAdmin(true); 
       } else {
         setIsAdmin(false);
         setRole(null);
