@@ -1,3 +1,4 @@
+
 import { db } from '@/lib/firebase';
 import {
   collection,
@@ -12,6 +13,13 @@ import {
 } from 'firebase/firestore';
 import type { Plan } from '@/types';
 
+const adminRolesCollection = collection(db, 'adminRoles');
+
+export interface AdminRole {
+    id: string;
+    name: string;
+}
+
 export interface AdminUser {
     id: string;
     email: string;
@@ -23,6 +31,22 @@ export interface AdminUser {
     };
     contentCount: number;
     zonesCreated: number;
+    role?: AdminRole;
+}
+
+export async function getAdminRoles(): Promise<AdminRole[]> {
+    const rolesSnapshot = await getDocs(adminRolesCollection);
+    return rolesSnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name } as AdminRole)).sort((a,b) => a.name.localeCompare(b.name));
+}
+
+export async function createAdminRole(name: string): Promise<AdminRole> {
+    const docRef = await addDoc(adminRolesCollection, { name });
+    return { id: docRef.id, name };
+}
+
+export async function updateUserRole(userId: string, roleId: string | null): Promise<void> {
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, { adminRoleId: roleId });
 }
 
 
@@ -78,6 +102,20 @@ export async function getUsersWithSubscription(): Promise<AdminUser[]> {
             console.error(`Could not fetch zones count for user ${userId}:`, e);
         }
 
+        // 4. Fetch admin role
+        let role: AdminRole | undefined = undefined;
+        const adminRoleId = userData.adminRoleId;
+        if (adminRoleId) {
+            try {
+                const roleDoc = await getDoc(doc(db, 'adminRoles', adminRoleId));
+                if (roleDoc.exists()) {
+                    role = { id: roleDoc.id, ...roleDoc.data() } as AdminRole;
+                }
+            } catch(e) {
+                console.error(`Could not fetch role for user ${userId}:`, e);
+            }
+        }
+
         const createdAt = userData.createdAt; // Firestore Timestamp or ISO string
 
         return {
@@ -89,6 +127,7 @@ export async function getUsersWithSubscription(): Promise<AdminUser[]> {
             subscription: { tier: subscriptionTier },
             contentCount: contentCount,
             zonesCreated: zonesCreated,
+            role,
         };
     });
 
@@ -141,6 +180,21 @@ export async function getUserById(id: string): Promise<AdminUser | undefined> {
         console.error(`Could not fetch zones count for user ${id}:`, e);
     }
 
+    // Fetch admin role
+    let role: AdminRole | undefined = undefined;
+    const adminRoleId = userData.adminRoleId;
+    if (adminRoleId) {
+        try {
+            const roleDoc = await getDoc(doc(db, 'adminRoles', adminRoleId));
+            if (roleDoc.exists()) {
+                role = { id: roleDoc.id, ...roleDoc.data() } as AdminRole;
+            }
+        } catch(e) {
+            console.error(`Could not fetch role for user ${id}:`, e);
+        }
+    }
+
+
     const createdAt = userData.createdAt;
 
     return {
@@ -152,6 +206,7 @@ export async function getUserById(id: string): Promise<AdminUser | undefined> {
         subscription: { tier: subscriptionTier },
         contentCount: contentCount,
         zonesCreated: zonesCreated,
+        role,
     };
 }
 

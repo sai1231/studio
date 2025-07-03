@@ -26,18 +26,11 @@ const UserRowSkeleton = () => (
                 </div>
             </div>
         </TableCell>
-        <TableCell>
-            <Skeleton className="h-6 w-16 rounded-full" />
-        </TableCell>
-        <TableCell>
-            <Skeleton className="h-4 w-12" />
-        </TableCell>
-        <TableCell>
-            <Skeleton className="h-4 w-20" />
-        </TableCell>
-        <TableCell>
-            <Skeleton className="h-8 w-20 rounded-md" />
-        </TableCell>
+        <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+        <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+        <TableCell><Skeleton className="h-8 w-20 rounded-md" /></TableCell>
     </TableRow>
 );
 
@@ -117,6 +110,7 @@ export default function AdminUsersPage() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>User</TableHead>
+                            <TableHead>Role</TableHead>
                             <TableHead>Subscription</TableHead>
                             <TableHead>Content Count</TableHead>
                             <TableHead>Joined Date</TableHead>
@@ -148,6 +142,11 @@ export default function AdminUsersPage() {
                                         </div>
                                     </TableCell>
                                     <TableCell>
+                                        <Badge variant={user.role ? "default" : "outline"}>
+                                            {user.role?.name || 'N/A'}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
                                         <Badge variant={user.subscription.tier === 'Pro' ? 'default' : 'secondary'} 
                                             className={cn(user.subscription.tier === 'Pro' && 'bg-green-600 hover:bg-green-700 text-white')}>
                                             {user.subscription.tier}
@@ -168,7 +167,7 @@ export default function AdminUsersPage() {
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={5} className="h-24 text-center">
+                                <TableCell colSpan={6} className="h-24 text-center">
                                     <p>No users found.</p>
                                     {searchTerm && <p className="text-sm text-muted-foreground">Try adjusting your search or filters.</p>}
                                 </TableCell>
