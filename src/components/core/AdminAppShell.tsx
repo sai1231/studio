@@ -20,15 +20,15 @@ export default function AdminAppShell({ children }: { children: React.ReactNode 
   const pathname = usePathname();
 
   return (
-    <div className="container mx-auto py-2">
-        <div className="flex items-center gap-4 border-b pb-4 mb-8">
-            <Shield className="h-10 w-10 text-primary" />
+    <div className="w-full p-6">
+        <div className="flex items-center gap-3 border-b pb-4 mb-6">
+            <Shield className="h-8 w-8 text-primary" />
             <div>
-                <h1 className="text-3xl font-headline font-semibold">Admin Portal</h1>
-                <p className="text-muted-foreground">Manage users, application settings, and monitor system health.</p>
+                <h1 className="text-2xl font-headline font-semibold">Admin Portal</h1>
+                <p className="text-sm text-muted-foreground">Manage users, application settings, and monitor system health.</p>
             </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-10 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6 items-start">
             <aside className="w-full">
             <nav className="flex flex-col gap-1">
                 {adminNavItems.map((item) => (
