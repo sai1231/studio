@@ -20,36 +20,47 @@ export default function AdminRouteLayout({ children }: { children: React.ReactNo
 
     const isLoginPage = pathname === '/admin/login';
 
-    // If user is not an admin and they are not on the login page, redirect them.
+    // If user is not an admin and trying to access a protected page
     if (!isAdmin && !isLoginPage) {
       router.replace('/admin/login');
     }
     
-    // If user IS an admin and they are on the login page, redirect them to the dashboard.
-    else if (isAdmin && isLoginPage) {
+    // If user IS an admin and they are on the login page
+    if (isAdmin && isLoginPage) {
       router.replace('/admin/dashboard');
     }
   }, [isLoading, isAdmin, pathname, router]);
 
-  // Show a loader while auth is being checked or while a redirect is imminent.
-  // This prevents a "flash" of incorrect content.
-  if (isLoading || (!isAdmin && pathname !== '/admin/login') || (isAdmin && pathname === '/admin/login')) {
+  // Show a loader while auth is being checked
+  if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
-
-  // If user is not an admin, they should only see the login page content.
-  if (!isAdmin && pathname === '/admin/login') {
-    return <>{children}</>;
-  }
   
-  // If we've reached here, the user is an authorized admin on an admin page.
+  const isLoginPage = pathname === '/admin/login';
+
+  // If user is an admin, render the app shell.
+  // The useEffect will handle redirecting away from the login page.
+  if (isAdmin) {
+    return (
+        <AdminAppShell>
+            {children}
+        </AdminAppShell>
+    );
+  }
+
+  // If not admin, only render children if on the login page. Otherwise show a loader while redirecting.
+  if (!isAdmin && isLoginPage) {
+      return <>{children}</>;
+  }
+
+  // Fallback loader for the redirect case (!isAdmin && !isLoginPage)
   return (
-    <AdminAppShell>
-      {children}
-    </AdminAppShell>
+    <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+    </div>
   );
 }
