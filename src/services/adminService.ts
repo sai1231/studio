@@ -10,6 +10,8 @@ import {
   limit,
   updateDoc,
   addDoc,
+  deleteDoc,
+  writeBatch,
 } from 'firebase/firestore';
 import type { Plan } from '@/types';
 
@@ -43,6 +45,36 @@ export async function createAdminRole(name: string): Promise<AdminRole> {
     const docRef = await addDoc(adminRolesCollection, { name });
     return { id: docRef.id, name };
 }
+
+export async function getUsersByRoleId(roleId: string): Promise<AdminUser[]> {
+    const usersCollectionRef = collection(db, 'users');
+    const q = query(usersCollectionRef, where("adminRoleId", "==", roleId));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        email: doc.data().email,
+        displayName: doc.data().displayName,
+    } as AdminUser));
+}
+
+export async function deleteAdminRole(roleId: string): Promise<void> {
+    const affectedUsers = await getUsersByRoleId(roleId);
+    
+    const batch = writeBatch(db);
+
+    // Un-assign the role from all affected users
+    affectedUsers.forEach(user => {
+        const userRef = doc(db, 'users', user.id);
+        batch.update(userRef, { adminRoleId: null });
+    });
+
+    // Delete the role document itself
+    const roleRef = doc(db, 'adminRoles', roleId);
+    batch.delete(roleRef);
+
+    await batch.commit();
+}
+
 
 export async function updateUserRole(userId: string, roleId: string | null): Promise<void> {
     const userDocRef = doc(db, 'users', userId);
