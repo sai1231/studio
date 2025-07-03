@@ -183,7 +183,7 @@ function DashboardPageContent() {
     if (!hasMore || isFetchingMore) return;
 
     const contentLimit = role?.features.contentLimit;
-    if (contentLimit !== -1 && displayedItems.length >= contentLimit) {
+    if (contentLimit !== -1) {
         setHasMore(false);
         return;
     }
@@ -196,14 +196,7 @@ function DashboardPageContent() {
         lastDoc: lastVisibleDoc || undefined,
       });
       
-      setDisplayedItems(prev => {
-          const newItems = [...prev, ...items];
-          if (contentLimit !== -1 && newItems.length >= contentLimit) {
-              setHasMore(false);
-              return newItems.slice(0, contentLimit);
-          }
-          return newItems;
-      });
+      setDisplayedItems(prev => [...prev, ...items]);
       setLastVisibleDoc(newLastDoc);
       setHasMore(!!newLastDoc);
     } catch (err) {
@@ -212,17 +205,20 @@ function DashboardPageContent() {
     } finally {
       setIsFetchingMore(false);
     }
-  }, [hasMore, isFetchingMore, lastVisibleDoc, toast, role, displayedItems.length]);
+  }, [hasMore, isFetchingMore, lastVisibleDoc, toast, role]);
 
 
   // Effect for initial data load (only runs when not searching)
   useEffect(() => {
-    if (isSearching) {
-      setIsLoading(false);
+    if (isSearching || isAuthLoading) {
+      if (!isAuthLoading) setIsLoading(false);
       return;
     }
-    if (!user || !role) { // Wait for user and role to be loaded
-      setIsLoading(true);
+
+    if (!user) {
+      setIsLoading(false);
+      setDisplayedItems([]);
+      setTodoItems([]);
       return;
     }
 
@@ -236,15 +232,23 @@ function DashboardPageContent() {
     const initialFetch = async () => {
       try {
         await fetchTodos(user.uid);
+        
+        if (!role?.features) {
+          setHasMore(false);
+          setDisplayedItems([]);
+          return;
+        }
+
         const contentLimit = role.features.contentLimit;
 
-        if (contentLimit !== -1) {
-            // User has a content limit. Fetch all up to the limit, no pagination.
+        if (contentLimit === 0) {
+            setHasMore(false);
+            setDisplayedItems([]);
+        } else if (contentLimit > 0) {
             setHasMore(false);
             const limitedItems = await getContentItems(user.uid, contentLimit);
             setDisplayedItems(limitedItems);
         } else {
-            // Unlimited user, use pagination.
             const { items, lastVisibleDoc: newLastDoc } = await getContentItemsPaginated({ userId: user.uid, pageSize: 100 });
             setDisplayedItems(items);
             setLastVisibleDoc(newLastDoc);
@@ -256,9 +260,10 @@ function DashboardPageContent() {
         setIsLoading(false);
       }
     };
+
     initialFetch();
 
-  }, [user, role, fetchTodos, isSearching]);
+  }, [user, role, fetchTodos, isSearching, isAuthLoading]);
   
   // Effect to add newly created items to the view
   useEffect(() => {
@@ -283,7 +288,7 @@ function DashboardPageContent() {
 
   // Effect for infinite scroll (only runs when not searching)
   useEffect(() => {
-    if (isSearching || isFetchingMore || !hasMore || !user || (role?.features.contentLimit !== -1)) return;
+    if (isSearching || isFetchingMore || !hasMore || !user) return;
 
     const observer = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting) {
@@ -301,7 +306,7 @@ function DashboardPageContent() {
         observer.unobserve(currentLoader);
       }
     };
-  }, [isSearching, isFetchingMore, hasMore, user, fetchMoreContent, role]);
+  }, [isSearching, isFetchingMore, hasMore, user, fetchMoreContent]);
 
   const handleOpenDetailDialog = (item: ContentItem) => {
     setSelectedItemIdForDetail(item.id);
@@ -353,7 +358,7 @@ function DashboardPageContent() {
     setClientLoadingMessage(pageLoadingMessages[Math.floor(Math.random() * pageLoadingMessages.length)]);
   }, []);
 
-  const isPageLoading = isLoading || (isSearching && (isSearchLoading || !isInitialized)) || (!role && !isAuthLoading);
+  const isPageLoading = isAuthLoading || isLoading || (isSearching && (isSearchLoading || !isInitialized));
 
   if (isPageLoading) {
     const message = isSearching ? "Searching your memories..." : (clientLoadingMessage || pageLoadingMessages[0]);
