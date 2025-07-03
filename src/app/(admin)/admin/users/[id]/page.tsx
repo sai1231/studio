@@ -8,7 +8,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { getUserById, updateUserSubscriptionTier, getAdminRoles, updateUserRole, type AdminUser, type AdminRole } from "@/services/adminService";
+import { getUserById, updateUserSubscriptionTier, getRoles, updateUserRole, type AdminUser, type Role } from "@/services/adminService";
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -57,7 +57,7 @@ export default function AdminUserDetailPage() {
     const [isUpdatingTier, setIsUpdatingTier] = useState(false);
 
     // Role state
-    const [roles, setRoles] = useState<AdminRole[]>([]);
+    const [roles, setRoles] = useState<Role[]>([]);
     const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
     const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
     const [isUpdatingRole, setIsUpdatingRole] = useState(false);
@@ -69,7 +69,7 @@ export default function AdminUserDetailPage() {
         try {
             const [fetchedUser, fetchedRoles] = await Promise.all([
                 getUserById(userId),
-                getAdminRoles()
+                getRoles()
             ]);
             
             if (fetchedUser) {
@@ -124,7 +124,7 @@ export default function AdminUserDetailPage() {
             const roleName = roles.find(r => r.id === selectedRoleId)?.name || "No Role";
             toast({
                 title: 'Role Updated',
-                description: `${user.displayName || 'User'}'s admin role is now ${roleName}.`,
+                description: `${user.displayName || 'User'}'s role is now ${roleName}.`,
             });
             await fetchUserAndRoles();
             setIsRoleDialogOpen(false);
@@ -155,7 +155,7 @@ export default function AdminUserDetailPage() {
             <div className="text-center">
                 <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
                 <h2 className="mt-4 text-xl font-semibold">User Not Found</h2>
-                <p className="mt-2 text-muted-foreground">
+                <p className="text-muted-foreground">
                     The user with this ID could not be found.
                 </p>
                 <Button variant="outline" onClick={() => router.back()} className="mt-6">
@@ -199,7 +199,7 @@ export default function AdminUserDetailPage() {
 
                     <Card>
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-xl"><ShieldCheck /> Admin Role</CardTitle>
+                            <CardTitle className="flex items-center gap-2 text-xl"><ShieldCheck /> Role</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex justify-between items-center">
@@ -215,9 +215,9 @@ export default function AdminUserDetailPage() {
                                 </DialogTrigger>
                                 <DialogContent>
                                     <DialogHeader>
-                                        <DialogTitle>Change Admin Role</DialogTitle>
+                                        <DialogTitle>Change Role</DialogTitle>
                                         <DialogDescription>
-                                            Select a new admin role for {user.displayName}.
+                                            Select a new role for {user.displayName}.
                                         </DialogDescription>
                                     </DialogHeader>
                                     <div className="py-4">

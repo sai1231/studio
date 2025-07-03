@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getAdminRoles, createAdminRole, deleteAndReassignRole, getUsersByRoleId, type AdminRole, type AdminUser } from "@/services/adminService";
+import { getRoles, createRole, deleteAndReassignRole, getUsersByRoleId, type Role, type AdminUser } from "@/services/adminService";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,7 +23,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function AdminRolesPage() {
-    const [roles, setRoles] = useState<AdminRole[]>([]);
+    const [roles, setRoles] = useState<Role[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [newRoleName, setNewRoleName] = useState("");
     const [isCreating, setIsCreating] = useState(false);
@@ -31,7 +31,7 @@ export default function AdminRolesPage() {
     
     // State for the delete confirmation dialog
     const [isAlertOpen, setIsAlertOpen] = useState(false);
-    const [roleToDelete, setRoleToDelete] = useState<AdminRole | null>(null);
+    const [roleToDelete, setRoleToDelete] = useState<Role | null>(null);
     const [affectedUsers, setAffectedUsers] = useState<AdminUser[]>([]);
     const [isDeleting, setIsDeleting] = useState(false);
     const [reassignments, setReassignments] = useState<Map<string, string | null>>(new Map());
@@ -40,11 +40,11 @@ export default function AdminRolesPage() {
     const fetchRoles = useCallback(async () => {
         setIsLoading(true);
         try {
-            const fetchedRoles = await getAdminRoles();
+            const fetchedRoles = await getRoles();
             setRoles(fetchedRoles);
         } catch (error) {
             console.error("Failed to fetch roles:", error);
-            toast({ title: "Error", description: "Could not fetch admin roles.", variant: "destructive" });
+            toast({ title: "Error", description: "Could not fetch roles.", variant: "destructive" });
         } finally {
             setIsLoading(false);
         }
@@ -61,7 +61,7 @@ export default function AdminRolesPage() {
         }
         setIsCreating(true);
         try {
-            await createAdminRole(newRoleName.trim());
+            await createRole(newRoleName.trim());
             toast({ title: "Role Created", description: `The role "${newRoleName.trim()}" has been created.` });
             setNewRoleName("");
             await fetchRoles(); // Refresh the list
@@ -73,7 +73,7 @@ export default function AdminRolesPage() {
         }
     };
     
-    const handleDeleteClick = async (role: AdminRole) => {
+    const handleDeleteClick = async (role: Role) => {
         setRoleToDelete(role);
         setIsDeleting(true); 
         setIsAlertOpen(true);
@@ -121,7 +121,7 @@ export default function AdminRolesPage() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Plus /> Create New Role</CardTitle>
                     <CardDescription>
-                        Define a new administrative role for your application users.
+                        Define a new role for your application users (e.g., admin, manager, pro_user).
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">

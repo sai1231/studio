@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
@@ -32,14 +33,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
           const userDocSnap = await getDoc(userDocRef);
 
-          // If the user document doesn't exist, or if profile info has updated, save it.
+          // If the user document doesn't exist, create it with essential info.
           if (!userDocSnap.exists()) {
             await setDoc(userDocRef, {
               email: currentUser.email,
               displayName: currentUser.displayName,
               photoURL: currentUser.photoURL,
               createdAt: Timestamp.now(),
-            });
+              roleId: null, // Initialize with no role
+            }, { merge: true });
+          } else {
+            // If the document exists, ensure roleId field is present
+            if (!userDocSnap.data().hasOwnProperty('roleId')) {
+              await setDoc(userDocRef, { roleId: null }, { merge: true });
+            }
           }
         } catch (error) {
             console.error("Error creating or checking user document in Firestore:", error);

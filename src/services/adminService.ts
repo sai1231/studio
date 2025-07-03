@@ -15,9 +15,9 @@ import {
 } from 'firebase/firestore';
 import type { Plan } from '@/types';
 
-const adminRolesCollection = collection(db, 'adminRoles');
+const rolesCollection = collection(db, 'roles');
 
-export interface AdminRole {
+export interface Role {
     id: string;
     name: string;
 }
@@ -33,22 +33,22 @@ export interface AdminUser {
     };
     contentCount: number;
     zonesCreated: number;
-    role?: AdminRole;
+    role?: Role;
 }
 
-export async function getAdminRoles(): Promise<AdminRole[]> {
-    const rolesSnapshot = await getDocs(adminRolesCollection);
-    return rolesSnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name } as AdminRole)).sort((a,b) => a.name.localeCompare(b.name));
+export async function getRoles(): Promise<Role[]> {
+    const rolesSnapshot = await getDocs(rolesCollection);
+    return rolesSnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name } as Role)).sort((a,b) => a.name.localeCompare(b.name));
 }
 
-export async function createAdminRole(name: string): Promise<AdminRole> {
-    const docRef = await addDoc(adminRolesCollection, { name });
+export async function createRole(name: string): Promise<Role> {
+    const docRef = await addDoc(rolesCollection, { name });
     return { id: docRef.id, name };
 }
 
 export async function getUsersByRoleId(roleId: string): Promise<AdminUser[]> {
     const usersCollectionRef = collection(db, 'users');
-    const q = query(usersCollectionRef, where("adminRoleId", "==", roleId));
+    const q = query(usersCollectionRef, where("roleId", "==", roleId));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({
         id: doc.id,
@@ -63,11 +63,11 @@ export async function deleteAndReassignRole(roleIdToDelete: string, reassignment
     // Update roles for all affected users based on the reassignments map
     for (const [userId, newRoleId] of reassignments.entries()) {
         const userRef = doc(db, 'users', userId);
-        batch.update(userRef, { adminRoleId: newRoleId }); // newRoleId can be string or null
+        batch.update(userRef, { roleId: newRoleId }); // newRoleId can be string or null
     }
 
     // Delete the role document itself
-    const roleRef = doc(db, 'adminRoles', roleIdToDelete);
+    const roleRef = doc(db, 'roles', roleIdToDelete);
     batch.delete(roleRef);
 
     await batch.commit();
@@ -76,7 +76,7 @@ export async function deleteAndReassignRole(roleIdToDelete: string, reassignment
 
 export async function updateUserRole(userId: string, roleId: string | null): Promise<void> {
     const userDocRef = doc(db, 'users', userId);
-    await updateDoc(userDocRef, { adminRoleId: roleId });
+    await updateDoc(userDocRef, { roleId: roleId });
 }
 
 
@@ -132,14 +132,14 @@ export async function getUsersWithSubscription(): Promise<AdminUser[]> {
             console.error(`Could not fetch zones count for user ${userId}:`, e);
         }
 
-        // 4. Fetch admin role
-        let role: AdminRole | undefined = undefined;
-        const adminRoleId = userData.adminRoleId;
-        if (adminRoleId) {
+        // 4. Fetch role
+        let role: Role | undefined = undefined;
+        const roleId = userData.roleId;
+        if (roleId) {
             try {
-                const roleDoc = await getDoc(doc(db, 'adminRoles', adminRoleId));
+                const roleDoc = await getDoc(doc(db, 'roles', roleId));
                 if (roleDoc.exists()) {
-                    role = { id: roleDoc.id, ...roleDoc.data() } as AdminRole;
+                    role = { id: roleDoc.id, ...roleDoc.data() } as Role;
                 }
             } catch(e) {
                 console.error(`Could not fetch role for user ${userId}:`, e);
@@ -210,14 +210,14 @@ export async function getUserById(id: string): Promise<AdminUser | undefined> {
         console.error(`Could not fetch zones count for user ${id}:`, e);
     }
 
-    // Fetch admin role
-    let role: AdminRole | undefined = undefined;
-    const adminRoleId = userData.adminRoleId;
-    if (adminRoleId) {
+    // Fetch role
+    let role: Role | undefined = undefined;
+    const roleId = userData.roleId;
+    if (roleId) {
         try {
-            const roleDoc = await getDoc(doc(db, 'adminRoles', adminRoleId));
+            const roleDoc = await getDoc(doc(db, 'roles', roleId));
             if (roleDoc.exists()) {
-                role = { id: roleDoc.id, ...roleDoc.data() } as AdminRole;
+                role = { id: roleDoc.id, ...roleDoc.data() } as Role;
             }
         } catch(e) {
             console.error(`Could not fetch role for user ${id}:`, e);
