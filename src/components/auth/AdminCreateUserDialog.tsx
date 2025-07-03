@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -17,7 +17,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { createUser } from '@/services/adminService';
+import { createUser, getRolesWithFeatures, type Role } from '@/services/adminService';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface AdminCreateUserDialogProps {
   open: boolean;
@@ -29,15 +30,18 @@ const formSchema = z.object({
   displayName: z.string().min(2, { message: 'Name is required.' }),
   email: z.string().email({ message: 'A valid email is required.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  roleId: z.string().optional(),
 });
 
 export function AdminCreateUserDialog({ open, onOpenChange, onUserCreated }: AdminCreateUserDialogProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [roles, setRoles] = useState<Role[]>([]);
   
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
     reset,
   } = useForm<z.infer<typeof formSchema>>({
@@ -46,8 +50,23 @@ export function AdminCreateUserDialog({ open, onOpenChange, onUserCreated }: Adm
       displayName: '',
       email: '',
       password: '',
+      roleId: undefined,
     },
   });
+
+  useEffect(() => {
+    if (open) {
+      const fetchRoles = async () => {
+        try {
+          const fetchedRoles = await getRolesWithFeatures();
+          setRoles(fetchedRoles);
+        } catch (error) {
+          toast({ title: 'Error', description: 'Could not fetch roles for selection.', variant: 'destructive' });
+        }
+      };
+      fetchRoles();
+    }
+  }, [open, toast]);
 
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
@@ -84,7 +103,7 @@ export function AdminCreateUserDialog({ open, onOpenChange, onUserCreated }: Adm
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
           <DialogDescription>
-            Fill in the details below to create a new user account. They will be assigned the default role.
+            Fill in the details below to create a new user account and assign them a role.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} id="create-user-form" className="space-y-4 py-4">
@@ -102,6 +121,19 @@ export function AdminCreateUserDialog({ open, onOpenChange, onUserCreated }: Adm
             <Label htmlFor="password">Password</Label>
             <Input id="password" type="password" {...register('password')} />
             {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="roleId">Role</Label>
+            <Select onValueChange={(value) => control.setValue('roleId', value)} defaultValue="">
+              <SelectTrigger id="roleId">
+                <SelectValue placeholder="Select a role" />
+              </SelectTrigger>
+              <SelectContent>
+                {roles.map(role => (
+                  <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </form>
         <DialogFooter>

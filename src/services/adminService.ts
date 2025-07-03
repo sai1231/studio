@@ -45,8 +45,8 @@ export interface AdminUser {
 
 const mockUsers: AdminUser[] = []; // In-memory store for newly created users
 
-export async function createUser(details: { email: string; password?: string; displayName: string }): Promise<AdminUser> {
-    console.log(`[MOCK] Creating user:`, { email: details.email, displayName: details.displayName });
+export async function createUser(details: { email: string; password?: string; displayName: string; roleId?: string | null }): Promise<AdminUser> {
+    console.log(`[MOCK] Creating user:`, { email: details.email, displayName: details.displayName, roleId: details.roleId });
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -60,13 +60,17 @@ export async function createUser(details: { email: string; password?: string; di
         createdAt: new Date().toISOString(),
         contentCount: 0,
         zonesCreated: 0,
-        role: undefined, // Or a default role
+        role: undefined, // Will be resolved by getUsersWithDetails
     };
     
     // This is a client-side mock, so we add to an in-memory array.
     // A real implementation would not need this.
     mockUsers.unshift(newUser);
 
+    // In a real app, you would also create a document in the 'users' collection here
+    // with the assigned roleId.
+    // e.g., await setDoc(doc(db, 'users', newUser.id), { ...otherData, roleId: details.roleId });
+    
     return newUser;
 }
 
@@ -104,6 +108,9 @@ export async function createRole(name: string): Promise<Role> {
       contentLimit: 100,
       maxZones: 5,
       aiSuggestions: 25,
+      allowPdfUploads: false,
+      allowVoiceNotes: false,
+      allowTemporaryContent: false,
     };
     const newRole = { name, features: newRoleFeatures };
     const docRef = await addDoc(rolesCollection, newRole);
@@ -175,7 +182,7 @@ export async function getUsersWithDetails(): Promise<AdminUser[]> {
           const contentQuery = query(collection(db, 'content'), where('userId', '==', userId));
           const zonesQuery = query(collection(db, 'zones'), where('userId', '==', userId));
           
-          const [contentSnapshot, zonesSnapshot] = await Promise.all([getDocs(contentQuery), getDocs(zonesQuery)]);
+          const [contentSnapshot, zonesSnapshot] = await Promise.all([getDocs(contentQuery), getDocs(zonesSnapshot)]);
 
           let role: Role | undefined = undefined;
           if (userData.roleId) {
@@ -261,19 +268,16 @@ export async function createDefaultRoles(): Promise<void> {
     {
       name: 'free_user',
       features: {
+        ...defaultFeatures,
         contentLimit: 100,
         maxZones: 2,
         aiSuggestions: 10,
-        accessAdvancedEnrichment: false,
-        accessDeclutterTool: false,
-        allowPdfUploads: false,
-        allowVoiceNotes: false,
-        allowTemporaryContent: false,
       }
     },
     {
       name: 'pro_user',
       features: {
+        ...defaultFeatures,
         contentLimit: -1,
         maxZones: -1,
         aiSuggestions: -1,
@@ -287,6 +291,7 @@ export async function createDefaultRoles(): Promise<void> {
     {
       name: 'admin',
       features: {
+        ...defaultFeatures,
         contentLimit: -1,
         maxZones: -1,
         aiSuggestions: -1,
