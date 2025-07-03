@@ -72,9 +72,8 @@ export default function AdminAnnouncementsPage() {
                             </TableRow>
                         </TableBody>
                     </Table>
-                </Table>
-            </CardContent>
-        </Card>
-    </div>
+                </CardContent>
+            </Card>
+        </div>
     )
 }

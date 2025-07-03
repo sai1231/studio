@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Users, Zap, Server, ToggleRight, Megaphone, Shield, LogOut, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Users, Server, Megaphone, Shield, LogOut, ShieldCheck } from 'lucide-react';
 import type React from 'react';
 import { getAuth, signOut } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -16,7 +16,6 @@ const adminNavItems = [
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/roles', label: 'Roles', icon: ShieldCheck },
   { href: '/admin/logs', label: 'Logs', icon: Server },
-  { href: '/admin/feature-flags', label: 'Feature Flags', icon: ToggleRight },
   { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
 ];
 
