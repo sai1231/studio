@@ -2,7 +2,7 @@
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, CreditCard, BarChart2, Mail, Calendar, Eye, Loader2, AlertTriangle, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CreditCard, BarChart2, Mail, Calendar, Eye, Loader2, AlertTriangle, ShieldCheck, KeyRound, Shield } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import React, { useEffect, useState, useCallback } from "react";
 import { Separator } from "@/components/ui/separator";
@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { AdminChangePasswordDialog } from "@/components/auth/AdminChangePasswordDialog";
 
 
 const getInitials = (name?: string | null) => {
@@ -55,6 +56,7 @@ export default function AdminUserDetailPage() {
     const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
     const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
     const [isUpdatingRole, setIsUpdatingRole] = useState(false);
+    const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
 
 
     const fetchUserAndRoles = useCallback(async () => {
@@ -244,6 +246,28 @@ export default function AdminUserDetailPage() {
                     </Card>
                 </div>
             </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-destructive flex items-center gap-2"><Shield /> Admin Actions</CardTitle>
+                    <CardDescription>Use these actions with caution. Changes are irreversible.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-wrap gap-4">
+                   <Button variant="outline" disabled>Impersonate User</Button>
+                   <Button variant="outline" onClick={() => setIsPasswordDialogOpen(true)}>
+                       <KeyRound className="mr-2 h-4 w-4" />
+                       Change Password
+                   </Button>
+                   <Button variant="destructive" disabled>
+                       <Trash2 className="mr-2 h-4 w-4" />
+                       Delete User
+                   </Button>
+                </CardContent>
+             </Card>
+            <AdminChangePasswordDialog
+                user={user}
+                open={isPasswordDialogOpen}
+                onOpenChange={setIsPasswordDialogOpen}
+            />
         </div>
     )
 }

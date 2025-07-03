@@ -1,11 +1,11 @@
 
 'use client';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Search, PlusCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -14,6 +14,8 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { getUsersWithDetails, type AdminUser } from '@/services/adminService';
 import { cn } from '@/lib/utils';
+import { AdminCreateUserDialog } from '@/components/auth/AdminCreateUserDialog';
+
 
 const UserRowSkeleton = () => (
     <TableRow>
@@ -47,21 +49,23 @@ export default function AdminUsersPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [roleFilter, setRoleFilter] = useState('all');
+    const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
+
+    const fetchUsers = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const fetchedUsers = await getUsersWithDetails();
+            setUsers(fetchedUsers);
+        } catch (error) {
+            console.error("Failed to fetch users:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
-        const fetchUsers = async () => {
-            setIsLoading(true);
-            try {
-                const fetchedUsers = await getUsersWithDetails();
-                setUsers(fetchedUsers);
-            } catch (error) {
-                console.error("Failed to fetch users:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
         fetchUsers();
-    }, []);
+    }, [fetchUsers]);
 
     const filteredUsers = useMemo(() => {
         return users.filter(user => {
@@ -82,95 +86,110 @@ export default function AdminUsersPage() {
     }, [users]);
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>User Management</CardTitle>
-                <CardDescription>Search, view, and manage user accounts.</CardDescription>
-                <div className="flex flex-col sm:flex-row gap-4 pt-2">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                            placeholder="Search users by name or email..." 
-                            className="pl-9" 
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+        <>
+            <Card>
+                <CardHeader>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <CardTitle>User Management</CardTitle>
+                            <CardDescription>Search, view, and manage user accounts.</CardDescription>
+                        </div>
+                        <Button onClick={() => setIsCreateUserOpen(true)}>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Create User
+                        </Button>
                     </div>
-                    <Select value={roleFilter} onValueChange={setRoleFilter}>
-                        <SelectTrigger className="w-full sm:w-[180px]">
-                            <SelectValue placeholder="Filter by role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Roles</SelectItem>
-                            {availableRoles.map(role => (
-                                <SelectItem key={role} value={role.toLowerCase()}>{role}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>User</TableHead>
-                            <TableHead>Role</TableHead>
-                            <TableHead>Content Count</TableHead>
-                            <TableHead>Joined Date</TableHead>
-                            <TableHead>Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {isLoading ? (
-                            <>
-                                <UserRowSkeleton />
-                                <UserRowSkeleton />
-                                <UserRowSkeleton />
-                            </>
-                        ) : filteredUsers.length > 0 ? (
-                            filteredUsers.map(user => (
-                                <TableRow key={user.id}>
-                                    <TableCell>
-                                        <div className="flex items-center gap-3">
-                                            <Avatar>
-                                                <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'User Avatar'} data-ai-hint="person face" />
-                                                <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <div className="font-medium">{user.displayName || 'N/A'}</div>
-                                                <div className="text-sm text-muted-foreground">{user.email}</div>
+                    <div className="flex flex-col sm:flex-row gap-4 pt-2">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                                placeholder="Search users by name or email..." 
+                                className="pl-9" 
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <Select value={roleFilter} onValueChange={setRoleFilter}>
+                            <SelectTrigger className="w-full sm:w-[180px]">
+                                <SelectValue placeholder="Filter by role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Roles</SelectItem>
+                                {availableRoles.map(role => (
+                                    <SelectItem key={role} value={role.toLowerCase()}>{role}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>User</TableHead>
+                                <TableHead>Role</TableHead>
+                                <TableHead>Content Count</TableHead>
+                                <TableHead>Joined Date</TableHead>
+                                <TableHead>Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                <>
+                                    <UserRowSkeleton />
+                                    <UserRowSkeleton />
+                                    <UserRowSkeleton />
+                                </>
+                            ) : filteredUsers.length > 0 ? (
+                                filteredUsers.map(user => (
+                                    <TableRow key={user.id}>
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <Avatar>
+                                                    <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'User Avatar'} data-ai-hint="person face" />
+                                                    <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <div className="font-medium">{user.displayName || 'N/A'}</div>
+                                                    <div className="text-sm text-muted-foreground">{user.email}</div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant={user.role ? "default" : "secondary"}>
-                                            {user.role?.name || 'No Role'}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        {user.contentCount}
-                                    </TableCell>
-                                    <TableCell>
-                                        {format(new Date(user.createdAt), 'yyyy-MM-dd')}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Button variant="outline" size="sm" asChild>
-                                            <Link href={`/admin/users/${user.id}`}>Manage</Link>
-                                        </Button>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant={user.role ? "default" : "secondary"}>
+                                                {user.role?.name || 'No Role'}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            {user.contentCount}
+                                        </TableCell>
+                                        <TableCell>
+                                            {format(new Date(user.createdAt), 'yyyy-MM-dd')}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Button variant="outline" size="sm" asChild>
+                                                <Link href={`/admin/users/${user.id}`}>Manage</Link>
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="h-24 text-center">
+                                        <p>No users found.</p>
+                                        {searchTerm && <p className="text-sm text-muted-foreground">Try adjusting your search or filters.</p>}
                                     </TableCell>
                                 </TableRow>
-                            ))
-                        ) : (
-                            <TableRow>
-                                <TableCell colSpan={5} className="h-24 text-center">
-                                    <p>No users found.</p>
-                                    {searchTerm && <p className="text-sm text-muted-foreground">Try adjusting your search or filters.</p>}
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+            <AdminCreateUserDialog
+                open={isCreateUserOpen}
+                onOpenChange={setIsCreateUserOpen}
+                onUserCreated={fetchUsers}
+            />
+        </>
     )
 }

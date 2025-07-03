@@ -1,4 +1,3 @@
-
 import { db } from '@/lib/firebase';
 import {
   collection,
@@ -39,6 +38,51 @@ export interface AdminUser {
     zonesCreated: number;
     role?: Role;
 }
+
+// IMPORTANT: These are mock implementations for client-side development.
+// In a real production app, these actions MUST be performed on a secure backend
+// (e.g., Firebase Functions) using the Firebase Admin SDK to ensure security.
+
+const mockUsers: AdminUser[] = []; // In-memory store for newly created users
+
+export async function createUser(details: { email: string; password?: string; displayName: string }): Promise<AdminUser> {
+    console.log(`[MOCK] Creating user:`, { email: details.email, displayName: details.displayName });
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // This is NOT how you would do it in production.
+    // The Admin SDK would be used to create the user in Firebase Auth.
+    const newUser: AdminUser = {
+        id: `mock_user_${Date.now()}`,
+        email: details.email,
+        displayName: details.displayName,
+        photoURL: null,
+        createdAt: new Date().toISOString(),
+        contentCount: 0,
+        zonesCreated: 0,
+        role: undefined, // Or a default role
+    };
+    
+    // This is a client-side mock, so we add to an in-memory array.
+    // A real implementation would not need this.
+    mockUsers.unshift(newUser);
+
+    return newUser;
+}
+
+export async function changeUserPassword(userId: string, newPassword?: string): Promise<void> {
+    console.log(`[MOCK] Changing password for user ${userId} to "${newPassword}"`);
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // In a real production app, you would use the Firebase Admin SDK's
+    // updateUser method.
+    // e.g., admin.auth().updateUser(userId, { password: newPassword });
+    
+    // Since this is a mock, we just resolve successfully.
+    return Promise.resolve();
+}
+
 
 export async function getRolesWithFeatures(): Promise<Role[]> {
     const rolesSnapshot = await getDocs(rolesCollection);
@@ -121,47 +165,55 @@ export async function getUsersWithDetails(): Promise<AdminUser[]> {
     const usersCollectionRef = collection(db, 'users');
     const usersSnapshot = await getDocs(usersCollectionRef);
 
-    if (usersSnapshot.empty) {
-        return [];
+    let allUsersFromDb: AdminUser[] = [];
+
+    if (!usersSnapshot.empty) {
+      const userPromises = usersSnapshot.docs.map(async (userDoc) => {
+          const userData = userDoc.data();
+          const userId = userDoc.id;
+
+          const contentQuery = query(collection(db, 'content'), where('userId', '==', userId));
+          const zonesQuery = query(collection(db, 'zones'), where('userId', '==', userId));
+          
+          const [contentSnapshot, zonesSnapshot] = await Promise.all([getDocs(contentQuery), getDocs(zonesQuery)]);
+
+          let role: Role | undefined = undefined;
+          if (userData.roleId) {
+              try {
+                  const roleDoc = await getDoc(doc(db, 'roles', userData.roleId));
+                  if (roleDoc.exists()) {
+                      role = { id: roleDoc.id, ...roleDoc.data() } as Role;
+                  }
+              } catch(e) {
+                  console.error(`Could not fetch role for user ${userId}:`, e);
+              }
+          }
+
+          return {
+              id: userId,
+              email: userData.email || '',
+              displayName: userData.displayName || null,
+              photoURL: userData.photoURL || null,
+              createdAt: userData.createdAt?.toDate ? userData.createdAt.toDate().toISOString() : new Date().toISOString(),
+              contentCount: contentSnapshot.size,
+              zonesCreated: zonesSnapshot.size,
+              role,
+          };
+      });
+      allUsersFromDb = await Promise.all(userPromises);
     }
-
-    const userPromises = usersSnapshot.docs.map(async (userDoc) => {
-        const userData = userDoc.data();
-        const userId = userDoc.id;
-
-        const contentQuery = query(collection(db, 'content'), where('userId', '==', userId));
-        const zonesQuery = query(collection(db, 'zones'), where('userId', '==', userId));
-        
-        const [contentSnapshot, zonesSnapshot] = await Promise.all([getDocs(contentQuery), getDocs(zonesQuery)]);
-
-        let role: Role | undefined = undefined;
-        if (userData.roleId) {
-            try {
-                const roleDoc = await getDoc(doc(db, 'roles', userData.roleId));
-                if (roleDoc.exists()) {
-                    role = { id: roleDoc.id, ...roleDoc.data() } as Role;
-                }
-            } catch(e) {
-                console.error(`Could not fetch role for user ${userId}:`, e);
-            }
-        }
-
-        return {
-            id: userId,
-            email: userData.email || '',
-            displayName: userData.displayName || null,
-            photoURL: userData.photoURL || null,
-            createdAt: userData.createdAt?.toDate ? userData.createdAt.toDate().toISOString() : new Date().toISOString(),
-            contentCount: contentSnapshot.size,
-            zonesCreated: zonesSnapshot.size,
-            role,
-        };
-    });
-
-    return Promise.all(userPromises);
+    
+    // Combine mock users (for newly created ones) with DB users
+    return [...mockUsers, ...allUsersFromDb];
 }
 
 export async function getUserById(id: string): Promise<AdminUser | undefined> {
+    // Check mock users first
+    const mockUser = mockUsers.find(u => u.id === id);
+    if (mockUser) {
+        return mockUser;
+    }
+  
     await new Promise(resolve => setTimeout(resolve, 500));
     const userDocRef = doc(db, 'users', id);
     const userDocSnap = await getDoc(userDocRef);
