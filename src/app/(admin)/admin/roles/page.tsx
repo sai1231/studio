@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getAdminRoles, createAdminRole, deleteAdminRole, getUsersByRoleId, type AdminRole, type AdminUser } from "@/services/adminService";
+import { getAdminRoles, createAdminRole, deleteAndReassignRole, getUsersByRoleId, type AdminRole, type AdminUser } from "@/services/adminService";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function AdminRolesPage() {
     const [roles, setRoles] = useState<AdminRole[]>([]);
@@ -33,7 +34,8 @@ export default function AdminRolesPage() {
     const [roleToDelete, setRoleToDelete] = useState<AdminRole | null>(null);
     const [affectedUsers, setAffectedUsers] = useState<AdminUser[]>([]);
     const [isDeleting, setIsDeleting] = useState(false);
-
+    const [reassignments, setReassignments] = useState<Map<string, string | null>>(new Map());
+    const [bulkAssignRoleId, setBulkAssignRoleId] = useState<string>('remove');
 
     const fetchRoles = useCallback(async () => {
         setIsLoading(true);
@@ -73,11 +75,17 @@ export default function AdminRolesPage() {
     
     const handleDeleteClick = async (role: AdminRole) => {
         setRoleToDelete(role);
-        setIsDeleting(true); // Show loader while we fetch users
+        setIsDeleting(true); 
         setIsAlertOpen(true);
         try {
             const users = await getUsersByRoleId(role.id);
             setAffectedUsers(users);
+            
+            // Initialize reassignments, defaulting to removing the role for each user
+            const initialReassignments = new Map<string, string | null>();
+            users.forEach(user => initialReassignments.set(user.id, null));
+            setReassignments(initialReassignments);
+            setBulkAssignRoleId('remove'); // Set bulk dropdown default
         } catch (error) {
             toast({ title: "Error", description: "Could not check for users with this role.", variant: "destructive" });
             setIsAlertOpen(false);
@@ -90,8 +98,8 @@ export default function AdminRolesPage() {
         if (!roleToDelete) return;
         setIsDeleting(true);
         try {
-            await deleteAdminRole(roleToDelete.id);
-            toast({ title: "Role Deleted", description: `The role "${roleToDelete.name}" has been deleted.` });
+            await deleteAndReassignRole(roleToDelete.id, reassignments);
+            toast({ title: "Role Deleted", description: `The role "${roleToDelete.name}" has been successfully deleted and users have been reassigned.` });
             await fetchRoles();
         } catch (error) {
             console.error("Failed to delete role:", error);
@@ -101,8 +109,11 @@ export default function AdminRolesPage() {
             setIsAlertOpen(false);
             setRoleToDelete(null);
             setAffectedUsers([]);
+            setReassignments(new Map());
         }
     };
+
+    const otherRoles = roleToDelete ? roles.filter(r => r.id !== roleToDelete.id) : [];
 
     return (
         <div className="grid gap-6 lg:grid-cols-2">
@@ -176,24 +187,71 @@ export default function AdminRolesPage() {
                     </Table>
                 </CardContent>
             </Card>
-             <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-                <AlertDialogContent>
+            <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+                <AlertDialogContent className="max-w-xl">
                     <AlertDialogHeader>
                         <AlertDialogTitle>Are you sure you want to delete "{roleToDelete?.name}"?</AlertDialogTitle>
-                        {isDeleting && !affectedUsers.length ? (
+                        {isDeleting && affectedUsers.length === 0 ? (
                             <div className="flex items-center justify-center py-4">
                                 <Loader2 className="h-6 w-6 animate-spin" />
                                 <span className="ml-3">Checking for assigned users...</span>
                             </div>
                         ) : affectedUsers.length > 0 ? (
-                            <AlertDialogDescription>
-                                This role is currently assigned to the following {affectedUsers.length} user(s). Deleting it will remove their role assignment. This action cannot be undone.
-                                <ul className="mt-3 list-disc list-inside bg-muted/50 p-3 rounded-md max-h-40 overflow-y-auto">
+                            <div className="space-y-4">
+                                <AlertDialogDescription>
+                                    This role is assigned to {affectedUsers.length} user(s). You must reassign them or remove their role before deleting.
+                                </AlertDialogDescription>
+                                <div className="space-y-2">
+                                     <Label>Bulk assign all users to:</Label>
+                                     <Select
+                                        value={bulkAssignRoleId}
+                                        onValueChange={(newRoleId) => {
+                                            setBulkAssignRoleId(newRoleId);
+                                            const newReassignments = new Map<string, string | null>();
+                                            const roleValue = newRoleId === 'remove' ? null : newRoleId;
+                                            affectedUsers.forEach(user => {
+                                                newReassignments.set(user.id, roleValue);
+                                            });
+                                            setReassignments(newReassignments);
+                                        }}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Choose an action..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="remove">Remove Role Assignment</SelectItem>
+                                            {otherRoles.map(role => (
+                                                <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2 rounded-md border max-h-48 overflow-y-auto p-3">
                                     {affectedUsers.map(user => (
-                                        <li key={user.id} className="text-sm text-foreground">{user.displayName || user.email}</li>
+                                        <div key={user.id} className="flex items-center justify-between">
+                                            <span className="text-sm font-medium text-foreground">{user.displayName || user.email}</span>
+                                            <Select
+                                                value={reassignments.get(user.id) || 'remove'}
+                                                onValueChange={(newRoleId) => {
+                                                    const newMap = new Map(reassignments);
+                                                    newMap.set(user.id, newRoleId === 'remove' ? null : newRoleId);
+                                                    setReassignments(newMap);
+                                                }}
+                                            >
+                                                <SelectTrigger className="w-[180px]">
+                                                    <SelectValue placeholder="Select new role" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="remove">Remove Role</SelectItem>
+                                                    {otherRoles.map(role => (
+                                                        <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
                                     ))}
-                                </ul>
-                            </AlertDialogDescription>
+                                </div>
+                            </div>
                         ) : (
                              <AlertDialogDescription>
                                 This role is not assigned to any users. This action cannot be undone.

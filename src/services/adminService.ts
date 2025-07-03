@@ -57,19 +57,17 @@ export async function getUsersByRoleId(roleId: string): Promise<AdminUser[]> {
     } as AdminUser));
 }
 
-export async function deleteAdminRole(roleId: string): Promise<void> {
-    const affectedUsers = await getUsersByRoleId(roleId);
-    
+export async function deleteAndReassignRole(roleIdToDelete: string, reassignments: Map<string, string | null>): Promise<void> {
     const batch = writeBatch(db);
 
-    // Un-assign the role from all affected users
-    affectedUsers.forEach(user => {
-        const userRef = doc(db, 'users', user.id);
-        batch.update(userRef, { adminRoleId: null });
-    });
+    // Update roles for all affected users based on the reassignments map
+    for (const [userId, newRoleId] of reassignments.entries()) {
+        const userRef = doc(db, 'users', userId);
+        batch.update(userRef, { adminRoleId: newRoleId }); // newRoleId can be string or null
+    }
 
     // Delete the role document itself
-    const roleRef = doc(db, 'adminRoles', roleId);
+    const roleRef = doc(db, 'adminRoles', roleIdToDelete);
     batch.delete(roleRef);
 
     await batch.commit();
