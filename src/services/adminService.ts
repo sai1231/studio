@@ -17,6 +17,18 @@ import type { Role, PlanFeatures } from '@/types';
 
 const rolesCollection = collection(db, 'roles');
 
+const defaultFeatures: PlanFeatures = {
+  contentLimit: 0,
+  maxZones: 0,
+  aiSuggestions: 0,
+  accessAdvancedEnrichment: false,
+  accessDeclutterTool: false,
+  allowPdfUploads: false,
+  allowVoiceNotes: false,
+  allowTemporaryContent: false,
+};
+
+
 export interface AdminUser {
     id: string;
     email: string;
@@ -30,25 +42,26 @@ export interface AdminUser {
 
 export async function getRolesWithFeatures(): Promise<Role[]> {
     const rolesSnapshot = await getDocs(rolesCollection);
-    return rolesSnapshot.docs.map(doc => ({
-      id: doc.id,
-      name: doc.data().name,
-      features: doc.data().features || {},
-    } as Role)).sort((a,b) => a.name.localeCompare(b.name));
+    return rolesSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        name: data.name,
+        // Merge fetched features with defaults to ensure all keys are present
+        features: { ...defaultFeatures, ...(data.features || {}) },
+      } as Role
+    }).sort((a,b) => a.name.localeCompare(b.name));
 }
 
 export async function createRole(name: string): Promise<Role> {
-    const defaultFeatures: PlanFeatures = {
+    // When creating a new role, start with a slightly more generous default set.
+    const newRoleFeatures: PlanFeatures = {
+      ...defaultFeatures,
       contentLimit: 100,
       maxZones: 5,
       aiSuggestions: 25,
-      accessAdvancedEnrichment: false,
-      accessDeclutterTool: false,
-      allowPdfUploads: false,
-      allowVoiceNotes: false,
-      allowTemporaryContent: false,
     };
-    const newRole = { name, features: defaultFeatures };
+    const newRole = { name, features: newRoleFeatures };
     const docRef = await addDoc(rolesCollection, newRole);
     return { id: docRef.id, ...newRole };
 }
