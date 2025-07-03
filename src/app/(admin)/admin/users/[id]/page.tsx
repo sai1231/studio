@@ -2,16 +2,35 @@
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, CreditCard, BarChart2, Mail, Calendar, Eye, Loader2, AlertTriangle } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { getUserById, type AdminUser } from "@/services/adminService";
+import { getUserById, updateUserSubscriptionTier, type AdminUser } from "@/services/adminService";
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+
 
 const getInitials = (name?: string | null) => {
     if (!name) return '??';
@@ -27,31 +46,61 @@ export default function AdminUserDetailPage() {
     const router = useRouter();
     const params = useParams();
     const userId = params.id as string;
+    const { toast } = useToast();
 
     const [user, setUser] = useState<AdminUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        if (userId) {
-            const fetchUser = async () => {
-                setIsLoading(true);
-                try {
-                    const fetchedUser = await getUserById(userId);
-                    if (fetchedUser) {
-                        setUser(fetchedUser);
-                    } else {
-                        setUser(null);
-                    }
-                } catch (error) {
-                    console.error("Failed to fetch user:", error);
-                    setUser(null);
-                } finally {
-                    setIsLoading(false);
-                }
-            };
-            fetchUser();
+    const [isTierDialogOpen, setIsTierDialogOpen] = useState(false);
+    const [selectedTier, setSelectedTier] = useState<'Free' | 'Pro'>('Free');
+    const [isUpdatingTier, setIsUpdatingTier] = useState(false);
+
+    const fetchUser = useCallback(async () => {
+        if (!userId) return;
+        setIsLoading(true);
+        try {
+            const fetchedUser = await getUserById(userId);
+            if (fetchedUser) {
+                setUser(fetchedUser);
+                setSelectedTier(fetchedUser.subscription.tier);
+            } else {
+                setUser(null);
+            }
+        } catch (error) {
+            console.error("Failed to fetch user:", error);
+            setUser(null);
+        } finally {
+            setIsLoading(false);
         }
     }, [userId]);
+
+    useEffect(() => {
+        fetchUser();
+    }, [fetchUser]);
+
+    const handleTierChange = async () => {
+        if (!user) return;
+        setIsUpdatingTier(true);
+        try {
+            await updateUserSubscriptionTier(user.id, selectedTier);
+            toast({
+                title: 'Tier Updated',
+                description: `${user.displayName || 'User'}'s subscription tier is now ${selectedTier}.`,
+            });
+            await fetchUser();
+            setIsTierDialogOpen(false);
+        } catch (error) {
+            console.error("Failed to update tier:", error);
+            toast({
+                title: 'Update Failed',
+                description: 'Could not update the subscription tier. Please try again.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsUpdatingTier(false);
+        }
+    };
+
 
     if (isLoading) {
         return (
@@ -126,7 +175,40 @@ export default function AdminUserDetailPage() {
                                 <span className="font-medium text-green-600">Active</span>
                             </div>
                             <Separator />
-                            <Button disabled>Change Tier</Button>
+                            <Dialog open={isTierDialogOpen} onOpenChange={setIsTierDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button>Change Tier</Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Change Subscription Tier</DialogTitle>
+                                        <DialogDescription>
+                                            Select a new subscription tier for {user.displayName}. This will affect their feature access.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="py-4">
+                                        <Label htmlFor="tier-select" className="mb-2 block">New Tier</Label>
+                                        <Select value={selectedTier} onValueChange={(value: 'Free' | 'Pro') => setSelectedTier(value)}>
+                                            <SelectTrigger id="tier-select">
+                                                <SelectValue placeholder="Select a tier" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Free">Free</SelectItem>
+                                                <SelectItem value="Pro">Pro</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <DialogFooter>
+                                        <DialogClose asChild>
+                                            <Button variant="outline" disabled={isUpdatingTier}>Cancel</Button>
+                                        </DialogClose>
+                                        <Button onClick={handleTierChange} disabled={isUpdatingTier}>
+                                            {isUpdatingTier && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                            Save Changes
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
                         </CardContent>
                     </Card>
                     <Card>

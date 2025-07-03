@@ -7,7 +7,10 @@ import {
   query,
   where,
   limit,
+  updateDoc,
+  addDoc,
 } from 'firebase/firestore';
+import type { Plan } from '@/types';
 
 export interface AdminUser {
     id: string;
@@ -47,7 +50,7 @@ export async function getUsersWithSubscription(): Promise<AdminUser[]> {
             const subSnapshot = await getDocs(subQuery);
             if (!subSnapshot.empty) {
                 const subData = subSnapshot.docs[0].data();
-                if ((subData.plan && typeof subData.plan === 'string' && subData.plan.includes('pro')) || subData.tier === 'Pro' || subData.status === 'active') {
+                if (subData.tier === 'Pro') {
                    subscriptionTier = 'Pro';
                 }
             }
@@ -110,7 +113,7 @@ export async function getUserById(id: string): Promise<AdminUser | undefined> {
         const subSnapshot = await getDocs(subQuery);
         if (!subSnapshot.empty) {
             const subData = subSnapshot.docs[0].data();
-             if ((subData.plan && typeof subData.plan === 'string' && subData.plan.includes('pro')) || subData.tier === 'Pro' || subData.status === 'active') {
+             if (subData.tier === 'Pro') {
                subscriptionTier = 'Pro';
             }
         }
@@ -150,4 +153,32 @@ export async function getUserById(id: string): Promise<AdminUser | undefined> {
         contentCount: contentCount,
         zonesCreated: zonesCreated,
     };
+}
+
+
+export async function updateUserSubscriptionTier(userId: string, newTier: 'Free' | 'Pro'): Promise<void> {
+    const subscriptionsRef = collection(db, 'users', userId, 'subscriptions');
+    const q = query(subscriptionsRef, limit(1));
+    const subscriptionSnapshot = await getDocs(q);
+
+    const planId = newTier.toLowerCase();
+    const planRef = doc(db, 'plans', planId);
+    
+    const planSnap = await getDoc(planRef);
+    if (!planSnap.exists()) {
+        throw new Error(`Plan document for tier "${newTier}" does not exist in the 'plans' collection.`);
+    }
+
+    const subscriptionData = {
+        plan: planRef,
+        status: newTier === 'Pro' ? 'active' : 'free_tier',
+        tier: newTier,
+    };
+
+    if (subscriptionSnapshot.empty) {
+        await addDoc(subscriptionsRef, subscriptionData);
+    } else {
+        const subscriptionDocRef = subscriptionSnapshot.docs[0].ref;
+        await updateDoc(subscriptionDocRef, subscriptionData);
+    }
 }
