@@ -301,7 +301,19 @@ export async function getOrCreateTaskList(userId: string): Promise<TaskList> {
 
 export async function updateTaskList(userId: string, tasks: Task[]): Promise<void> {
   const docRef = doc(taskListsCollection, userId);
-  const sortedTasks = tasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  // Firestore doesn't allow 'undefined' values. We clean the tasks array to remove them.
+  const cleanedTasks = tasks.map(task => {
+    const taskObject: { [key: string]: any } = { ...task };
+    Object.keys(taskObject).forEach(key => {
+      if (taskObject[key] === undefined) {
+        delete taskObject[key];
+      }
+    });
+    return taskObject as Task;
+  });
+
+  const sortedTasks = cleanedTasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   await updateDoc(docRef, { tasks: sortedTasks });
 }
 
@@ -317,9 +329,8 @@ export function subscribeToTaskList(
   const unsubscribe = onSnapshot(docRef, (docSnap) => {
     if (docSnap.exists()) {
       const data = docSnap.data();
-      // FIX: Ensure data.tasks is an array and filter out any invalid task objects.
       const tasks: Task[] = (Array.isArray(data.tasks) ? data.tasks : []).filter(
-        (task: any) => task && typeof task === 'object' && task.createdAt
+        (task: any): task is Task => task && typeof task === 'object' && task.createdAt
       );
       
       const sortedTasks = tasks.sort((a, b) => {
@@ -328,12 +339,10 @@ export function subscribeToTaskList(
           if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
           if (a.dueDate && !b.dueDate) return -1;
           if (!a.dueDate && b.dueDate) return 1;
-          // Note: The filter above ensures createdAt exists.
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
       callback({ id: docSnap.id, userId, tasks: sortedTasks });
     } else {
-      // Document doesn't exist, create it. The listener will then pick up the new document.
       getOrCreateTaskList(userId).catch(err => callback(null, err));
     }
   }, (error) => {
