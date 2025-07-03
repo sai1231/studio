@@ -14,7 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { PlusCircle, Loader2, FolderOpen, ListChecks, AlarmClock, Clapperboard, MessagesSquare, FileImage, Globe, BookOpen, StickyNote, Github, FileText, Trash2, Search as SearchIcon, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getContentItemsPaginated, deleteContentItem, updateTaskList, getContentCount, subscribeToTaskList } from '@/services/contentService';
+import { getContentItems, getContentItemsPaginated, deleteContentItem, updateTaskList, getContentCount, subscribeToTaskList } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
 import { cn } from '@/lib/utils';
