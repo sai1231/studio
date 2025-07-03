@@ -2,40 +2,45 @@
 'use client';
 
 import type React from 'react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Loader2 } from 'lucide-react';
+import { getAuth } from 'firebase/auth';
+import { Loader2, ShieldAlert } from 'lucide-react';
 import AdminAppShell from '@/components/core/AdminAppShell';
+import { Button } from '@/components/ui/button';
 
 export default function AdminRouteLayout({ children }: { children: React.ReactNode }) {
-  const { isAdmin, isLoading } = useAuth();
+  const { user, isAdmin, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  
+  // This state helps prevent rendering a component just before a redirect happens.
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
-    // Don't perform any redirects until the auth state is fully resolved.
-    if (isLoading) {
-      return;
-    }
+    if (isLoading) return; // Wait for auth state to be resolved
 
-    const isLoginPage = pathname === '/admin/login';
+    let shouldRedirect = false;
 
-    // If the user IS an admin but they have landed on the login page,
-    // they should be redirected to the dashboard.
-    if (isAdmin && isLoginPage) {
+    // Case 1: Logged in, admin, but on the login page -> go to dashboard
+    if (isAdmin && pathname === '/admin/login') {
+      shouldRedirect = true;
       router.replace('/admin/dashboard');
     }
     
-    // If the user is NOT an admin and they are trying to access a protected page,
-    // send them to the login page.
-    if (!isAdmin && !isLoginPage) {
+    // Case 2: Not logged in and trying to access a protected page -> go to login
+    if (!user && pathname !== '/admin/login') {
+      shouldRedirect = true;
       router.replace('/admin/login');
     }
-  }, [isLoading, isAdmin, pathname, router]);
+    
+    setIsRedirecting(shouldRedirect);
 
-  // While checking auth status, show a full-screen loader.
-  if (isLoading) {
+  }, [isLoading, user, isAdmin, pathname, router]);
+
+  // Render a full-page loader if auth state is loading OR if a redirect is in progress.
+  if (isLoading || isRedirecting) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -43,29 +48,39 @@ export default function AdminRouteLayout({ children }: { children: React.ReactNo
     );
   }
   
-  const isLoginPage = pathname === '/admin/login';
+  // If user is an admin, show the admin app shell.
+  if (isAdmin) {
+    return <AdminAppShell>{children}</AdminAppShell>;
+  }
 
-  // If the user is an admin and not on the login page, show the app shell.
-  // The useEffect handles redirecting them away from the login page if necessary.
-  if (isAdmin && !isLoginPage) {
+  // If user is not logged in and is on the login page, show it.
+  if (!user && pathname === '/admin/login') {
+    return <>{children}</>;
+  }
+
+  // If user is logged in but NOT an admin, show the "Access Denied" message.
+  if (user && !isAdmin) {
     return (
-        <AdminAppShell>
-            {children}
-        </AdminAppShell>
+        <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4 text-center">
+            <ShieldAlert className="h-16 w-16 text-destructive mb-4" />
+            <h1 className="text-2xl font-bold text-foreground">Access Denied</h1>
+            <p className="mt-2 text-muted-foreground">You do not have permission to view the admin portal.</p>
+            <div className="mt-6 flex flex-wrap justify-center gap-4">
+                <Button onClick={() => router.push('/dashboard')}>Go to App Dashboard</Button>
+                <Button variant="outline" onClick={async () => {
+                    await getAuth().signOut();
+                }}>
+                    Logout & Sign in as Admin
+                </Button>
+            </div>
+        </div>
     );
   }
 
-  // If the user is NOT an admin and IS on the login page, show the login page content.
-  if (!isAdmin && isLoginPage) {
-      return <>{children}</>;
-  }
-
-  // This is the crucial fallback. During a state transition (e.g., redirecting
-  // from /login to /dashboard), none of the above conditions might be met for a
-  // single render cycle. This loader prevents a flash of incorrect content.
+  // Fallback loader for any other transient state.
   return (
     <div className="flex h-screen w-full items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      <Loader2 className="h-12 w-12 animate-spin text-primary" />
     </div>
   );
 }
