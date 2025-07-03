@@ -1,6 +1,6 @@
 
 
-import { db } from '@/lib/firebase';
+import { db, app as firebaseApp } from '@/lib/firebase';
 import {
   collection,
   getDocs,
@@ -13,8 +13,13 @@ import {
   addDoc,
   deleteDoc,
   writeBatch,
+  Timestamp,
+  setDoc,
 } from 'firebase/firestore';
 import type { Role, PlanFeatures } from '@/types';
+import { initializeApp, deleteApp } from 'firebase/app';
+import { getAuth, createUserWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
+
 
 const rolesCollection = collection(db, 'roles');
 
@@ -48,45 +53,46 @@ export interface AdminUser {
 
 const mockUsers: AdminUser[] = []; // In-memory store for newly created users
 
-export async function createUser(details: { email: string; password?: string; displayName: string; roleId?: string | null }): Promise<AdminUser> {
-    console.log(`[MOCK] Creating user:`, { email: details.email, displayName: details.displayName, roleId: details.roleId });
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // This is NOT how you would do it in production.
-    // The Admin SDK would be used to create the user in Firebase Auth.
-    const newUser: AdminUser = {
-        id: `mock_user_${Date.now()}`,
-        email: details.email,
-        displayName: details.displayName,
-        photoURL: null,
-        createdAt: new Date().toISOString(),
-        contentCount: 0,
-        zonesCreated: 0,
-        role: undefined, // Will be resolved by getUsersWithDetails
-    };
+export async function createUser(details: { email: string; password?: string; displayName: string; roleId?: string | null }): Promise<void> {
+    if (!details.password) {
+        throw new Error("Password is required to create a user from the client.");
+    }
     
-    // This is a client-side mock, so we add to an in-memory array.
-    // A real implementation would not need this.
-    mockUsers.unshift(newUser);
+    // Use a secondary Firebase app instance to create the user.
+    // This prevents the admin from being signed out.
+    const secondaryApp = initializeApp(firebaseApp.options, `secondary-app-${Date.now()}`);
+    const secondaryAuth = getAuth(secondaryApp);
 
-    // In a real app, you would also create a document in the 'users' collection here
-    // with the assigned roleId.
-    // e.g., await setDoc(doc(db, 'users', newUser.id), { ...otherData, roleId: details.roleId });
-    
-    return newUser;
+    try {
+        const newUserCredential = await createUserWithEmailAndPassword(secondaryAuth, details.email, details.password);
+        
+        await updateProfile(newUserCredential.user, { displayName: details.displayName });
+
+        const userDocRef = doc(db, 'users', newUserCredential.user.uid);
+        await setDoc(userDocRef, {
+            email: details.email,
+            displayName: details.displayName,
+            photoURL: null,
+            createdAt: Timestamp.now(),
+            roleId: details.roleId || null,
+        }, { merge: true });
+
+    } catch (error) {
+        console.error("Error creating user with secondary app:", error);
+        throw error; // re-throw to be handled by the dialog
+    } finally {
+        // Sign out from the secondary app and clean it up
+        await signOut(secondaryAuth);
+        await deleteApp(secondaryApp);
+    }
 }
 
 export async function changeUserPassword(userId: string, newPassword?: string): Promise<void> {
     console.log(`[MOCK] Changing password for user ${userId} to "${newPassword}"`);
-    // Simulate network delay
+    // NOTE: This is a mock function. Changing another user's password requires
+    // the Firebase Admin SDK and must be done on a secure backend (e.g., Firebase Functions).
+    // It cannot be implemented securely on the client-side.
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // In a real production app, you would use the Firebase Admin SDK's
-    // updateUser method.
-    // e.g., admin.auth().updateUser(userId, { password: newPassword });
-    
-    // Since this is a mock, we just resolve successfully.
     return Promise.resolve();
 }
 
