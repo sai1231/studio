@@ -138,7 +138,7 @@ export default function AdminUsersPage() {
                                     <TableCell>
                                         <div className="flex items-center gap-3">
                                             <Avatar>
-                                                <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'User Avatar'} />
+                                                <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'User Avatar'} data-ai-hint="person face" />
                                                 <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
                                             </Avatar>
                                             <div>

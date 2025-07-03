@@ -9,7 +9,7 @@ import React, { useEffect, useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { getUserById, type AdminUser } from "../../../services/adminService";
+import { getUserById, type AdminUser } from "../../../../services/adminService";
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
 
