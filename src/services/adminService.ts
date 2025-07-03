@@ -19,6 +19,7 @@ export interface AdminUser {
         tier: 'Free' | 'Pro';
     };
     contentCount: number;
+    zonesCreated: number;
 }
 
 
@@ -64,6 +65,16 @@ export async function getUsersWithSubscription(): Promise<AdminUser[]> {
             console.error(`Could not fetch content count for user ${userId}:`, e);
         }
 
+        // 3. Fetch zones count
+        let zonesCreated = 0;
+        try {
+            const zonesQuery = query(collection(db, 'zones'), where('userId', '==', userId));
+            const zonesSnapshot = await getDocs(zonesQuery);
+            zonesCreated = zonesSnapshot.size;
+        } catch (e) {
+            console.error(`Could not fetch zones count for user ${userId}:`, e);
+        }
+
         const createdAt = userData.createdAt; // Firestore Timestamp or ISO string
 
         return {
@@ -74,6 +85,7 @@ export async function getUsersWithSubscription(): Promise<AdminUser[]> {
             createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : (createdAt || new Date().toISOString()),
             subscription: { tier: subscriptionTier },
             contentCount: contentCount,
+            zonesCreated: zonesCreated,
         };
     });
 
@@ -116,6 +128,16 @@ export async function getUserById(id: string): Promise<AdminUser | undefined> {
         console.error(`Could not fetch content count for user ${id}:`, e);
     }
 
+    // Fetch zones count
+    let zonesCreated = 0;
+    try {
+        const zonesQuery = query(collection(db, 'zones'), where('userId', '==', id));
+        const zonesSnapshot = await getDocs(zonesQuery);
+        zonesCreated = zonesSnapshot.size;
+    } catch (e) {
+        console.error(`Could not fetch zones count for user ${id}:`, e);
+    }
+
     const createdAt = userData.createdAt;
 
     return {
@@ -126,5 +148,6 @@ export async function getUserById(id: string): Promise<AdminUser | undefined> {
         createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : (createdAt || new Date().toISOString()),
         subscription: { tier: subscriptionTier },
         contentCount: contentCount,
+        zonesCreated: zonesCreated,
     };
 }

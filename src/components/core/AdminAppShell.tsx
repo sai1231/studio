@@ -1,11 +1,14 @@
 'use client';
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Users, Zap, Server, ToggleRight, Megaphone, Shield } from 'lucide-react';
+import { LayoutDashboard, Users, Zap, Server, ToggleRight, Megaphone, Shield, LogOut } from 'lucide-react';
 import type React from 'react';
+import { getAuth, signOut } from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
+import { ThemeToggle } from "@/components/core/theme-toggle";
 
 const adminNavItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -18,14 +21,34 @@ const adminNavItems = [
 
 export default function AdminAppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { toast } = useToast();
+  const auth = getAuth();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
+      router.push('/admin/login');
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast({ title: 'Logout Failed', description: 'Could not log you out. Please try again.', variant: 'destructive' });
+    }
+  };
 
   return (
-    <div className="w-full p-6">
-        <div className="flex items-center gap-3 border-b pb-4 mb-6">
-            <Shield className="h-8 w-8 text-primary" />
+    <div className="w-full p-2">
+        <div className="flex items-center gap-3 border-b pb-2 mb-4">
+            <Shield className="h-6 w-6 text-primary" />
             <div>
-                <h1 className="text-2xl font-headline font-semibold">Admin Portal</h1>
-                <p className="text-sm text-muted-foreground">Manage users, application settings, and monitor system health.</p>
+                <h1 className="text-xl font-headline font-semibold">Admin Portal</h1>
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+                <ThemeToggle />
+                <Button variant="outline" size="sm" onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                </Button>
             </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6 items-start">
