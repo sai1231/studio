@@ -31,100 +31,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from '@/components/ui/skeleton';
-
-
-interface RoleEditorCardProps {
-  role: Role;
-  onRoleUpdate: () => void;
-  onDeleteClick: (role: Role) => void;
-}
-
-const RoleEditorCard: React.FC<RoleEditorCardProps> = ({ role, onRoleUpdate, onDeleteClick }) => {
-  const [features, setFeatures] = useState<PlanFeatures>(role.features);
-  const [isSaving, setIsSaving] = useState(false);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    setFeatures(role.features);
-  }, [role]);
-
-  const handleFeatureChange = (key: keyof PlanFeatures, value: string | boolean) => {
-    setFeatures(prev => ({ ...prev, [key]: value }));
-  };
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      await updateRoleFeatures(role.id, features);
-      toast({
-        title: 'Role Updated',
-        description: `The "${role.name}" role has been successfully updated.`,
-      });
-      onRoleUpdate();
-    } catch (error) {
-      console.error(`Error updating role ${role.id}:`, error);
-      toast({
-        title: 'Update Failed',
-        description: `Could not update the "${role.name}" role.`,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  return (
-    <Card className="shadow-lg">
-      <CardHeader>
-        <div className="flex justify-between items-start">
-            <div>
-                <CardTitle className="text-2xl font-headline">{role.name}</CardTitle>
-                <CardDescription>
-                Configure features for this role. Use -1 for unlimited.
-                </CardDescription>
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => onDeleteClick(role)} title={`Delete ${role.name}`}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-        {Object.entries(features).map(([key, value]) => (
-          <div key={key} className="space-y-2">
-            <Label htmlFor={`${role.id}-${key}`} className="capitalize font-medium">
-              {key.replace(/([A-Z])/g, ' $1')}
-            </Label>
-            {typeof value === 'boolean' ? (
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id={`${role.id}-${key}`}
-                  checked={value}
-                  onCheckedChange={(checked) => handleFeatureChange(key as keyof PlanFeatures, checked)}
-                />
-                 <span className="text-sm text-muted-foreground">{value ? 'Enabled' : 'Disabled'}</span>
-              </div>
-            ) : (
-              <Input
-                id={`${role.id}-${key}`}
-                type="number"
-                value={value}
-                onChange={(e) => handleFeatureChange(key as keyof PlanFeatures, e.target.value === '' ? '' : Number(e.target.value))}
-                placeholder="Enter value..."
-              />
-            )}
-          </div>
-        ))}
-      </CardContent>
-      <CardFooter>
-        <Button onClick={handleSave} disabled={isSaving} className="ml-auto bg-primary hover:bg-primary/90 text-primary-foreground">
-          {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Save Changes
-        </Button>
-      </CardFooter>
-    </Card>
-  );
-};
+import { cn } from '@/lib/utils';
 
 
 export default function RolesPage() {
@@ -134,7 +41,11 @@ export default function RolesPage() {
   const [newRoleName, setNewRoleName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
-  
+
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
+  const [editableFeatures, setEditableFeatures] = useState<PlanFeatures | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<Role | null>(null);
   const [affectedUsers, setAffectedUsers] = useState<AdminUser[]>([]);
@@ -142,30 +53,48 @@ export default function RolesPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [reassignments, setReassignments] = useState<Map<string, string | null>>(new Map());
   const [bulkAssignRoleId, setBulkAssignRoleId] = useState<string>('remove');
+  
+  const selectedRole = roles.find(r => r.id === selectedRoleId);
 
   const fetchRoles = useCallback(async () => {
     setIsLoading(true);
     try {
       const fetchedRoles = await getRolesWithFeatures();
       setRoles(fetchedRoles);
+      if (fetchedRoles.length > 0) {
+        if (!selectedRoleId || !fetchedRoles.find(r => r.id === selectedRoleId)) {
+          setSelectedRoleId(fetchedRoles[0].id);
+        }
+      } else {
+        setSelectedRoleId(null);
+      }
     } catch (error) {
       console.error('Error fetching roles:', error);
       toast({ title: 'Error', description: 'Could not fetch roles.', variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, selectedRoleId]);
 
   useEffect(() => {
     fetchRoles();
-  }, [fetchRoles]);
+  }, []); // Only on initial mount
+
+  useEffect(() => {
+    if (selectedRole) {
+      setEditableFeatures(selectedRole.features);
+    } else {
+      setEditableFeatures(null);
+    }
+  }, [selectedRole]);
+
 
   const handleCreateDefaultRoles = async () => {
     setIsCreatingDefaults(true);
     try {
       await createDefaultRoles();
       toast({ title: 'Default Roles Checked/Created', description: 'The "free_user" and "pro_user" roles are available.' });
-      fetchRoles();
+      await fetchRoles();
     } catch (error) {
        console.error('Error creating default roles:', error);
        toast({ title: 'Creation Failed', description: 'Could not create default roles.', variant: 'destructive' });
@@ -192,12 +121,13 @@ export default function RolesPage() {
     }
   };
 
-  const handleDeleteClick = async (role: Role) => {
-    setRoleToDelete(role);
+  const handleDeleteClick = async () => {
+    if (!selectedRole) return;
+    setRoleToDelete(selectedRole);
     setIsCheckingUsers(true); 
     setIsAlertOpen(true);
     try {
-        const users = await getUsersByRoleId(role.id);
+        const users = await getUsersByRoleId(selectedRole.id);
         setAffectedUsers(users);
         const initialReassignments = new Map<string, string | null>();
         users.forEach(user => initialReassignments.set(user.id, null));
@@ -216,8 +146,9 @@ export default function RolesPage() {
     setIsDeleting(true);
     try {
         await deleteAndReassignRole(roleToDelete.id, reassignments);
-        toast({ title: "Role Deleted", description: `The role "${roleToDelete.name}" has been successfully deleted and users have been reassigned.` });
-        fetchRoles();
+        toast({ title: "Role Deleted", description: `The role "${roleToDelete.name}" has been successfully deleted.` });
+        setSelectedRoleId(null); // Reset selection
+        await fetchRoles();
     } catch (error) {
         toast({ title: "Deletion Failed", description: "Could not delete the role.", variant: "destructive" });
     } finally {
@@ -226,6 +157,25 @@ export default function RolesPage() {
         setRoleToDelete(null);
         setAffectedUsers([]);
         setReassignments(new Map());
+    }
+  };
+  
+  const handleFeatureChange = (key: keyof PlanFeatures, value: string | number | boolean) => {
+    if (!editableFeatures) return;
+    setEditableFeatures(prev => prev ? ({ ...prev, [key]: value }) : null);
+  };
+  
+  const handleSaveChanges = async () => {
+    if (!selectedRole || !editableFeatures) return;
+    setIsSaving(true);
+    try {
+        await updateRoleFeatures(selectedRole.id, editableFeatures);
+        toast({ title: 'Role Updated', description: `The "${selectedRole.name}" role has been successfully updated.` });
+        await fetchRoles();
+    } catch (error) {
+        toast({ title: 'Update Failed', description: `Could not update the "${selectedRole.name}" role.`, variant: 'destructive' });
+    } finally {
+        setIsSaving(false);
     }
   };
 
@@ -278,11 +228,68 @@ export default function RolesPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-8">
-          {roles.map(role => (
-            <RoleEditorCard key={role.id} role={role} onRoleUpdate={fetchRoles} onDeleteClick={handleDeleteClick} />
-          ))}
-        </div>
+         <Card className="shadow-lg">
+            <CardHeader>
+                <CardTitle>Edit Role</CardTitle>
+                <CardDescription>Select a role from the dropdown to configure its features. Use -1 for unlimited.</CardDescription>
+                <div className="flex items-center gap-2 pt-2">
+                    <Select value={selectedRoleId || ''} onValueChange={setSelectedRoleId}>
+                        <SelectTrigger className="flex-grow">
+                            <SelectValue placeholder="Select a role to edit..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {roles.map(role => (
+                                <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                     <Button variant="ghost" size="icon" onClick={handleDeleteClick} disabled={!selectedRole}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                </div>
+            </CardHeader>
+            {selectedRole && editableFeatures ? (
+                <>
+                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                        {Object.entries(editableFeatures).map(([key, value]) => (
+                        <div key={key} className="space-y-2">
+                            <Label htmlFor={`${selectedRole.id}-${key}`} className="capitalize font-medium">
+                            {key.replace(/([A-Z])/g, ' $1')}
+                            </Label>
+                            {typeof value === 'boolean' ? (
+                            <div className="flex items-center space-x-2">
+                                <Switch
+                                id={`${selectedRole.id}-${key}`}
+                                checked={value}
+                                onCheckedChange={(checked) => handleFeatureChange(key as keyof PlanFeatures, checked)}
+                                />
+                                <span className="text-sm text-muted-foreground">{value ? 'Enabled' : 'Disabled'}</span>
+                            </div>
+                            ) : (
+                            <Input
+                                id={`${selectedRole.id}-${key}`}
+                                type="number"
+                                value={value}
+                                onChange={(e) => handleFeatureChange(key as keyof PlanFeatures, e.target.value === '' ? '' : Number(e.target.value))}
+                                placeholder="Enter value..."
+                            />
+                            )}
+                        </div>
+                        ))}
+                    </CardContent>
+                    <CardFooter>
+                        <Button onClick={handleSaveChanges} disabled={isSaving} className="ml-auto bg-primary hover:bg-primary/90 text-primary-foreground">
+                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Save Changes
+                        </Button>
+                    </CardFooter>
+                </>
+            ) : (
+                <CardContent>
+                    <p className="text-muted-foreground text-center py-8">Please select a role to begin editing.</p>
+                </CardContent>
+            )}
+        </Card>
       )}
 
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
