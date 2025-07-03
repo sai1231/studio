@@ -317,7 +317,7 @@ export function subscribeToTaskList(
   const unsubscribe = onSnapshot(docRef, (docSnap) => {
     if (docSnap.exists()) {
       const data = docSnap.data();
-      const sortedTasks = (data.tasks as Task[]).sort((a, b) => {
+      const sortedTasks = ((data.tasks || []) as Task[]).sort((a, b) => {
           if (a.status === 'pending' && b.status === 'completed') return -1;
           if (a.status === 'completed' && b.status === 'pending') return 1;
           if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
