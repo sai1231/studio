@@ -81,3 +81,10 @@ export async function getUsersWithSubscription(): Promise<AdminUser[]> {
     // that invokes a Firebase Function to get user data.
     return mockUsers;
 }
+
+export async function getUserById(id: string): Promise<AdminUser | undefined> {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const user = mockUsers.find(u => u.id === id);
+    return user;
+}
