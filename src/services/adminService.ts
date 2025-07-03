@@ -1,7 +1,13 @@
-// IMPORTANT: This is a placeholder service.
-// In a real application, listing users is a privileged backend operation.
-// You would typically implement this using a Firebase Function that interacts
-// with the Firebase Admin SDK to list all users.
+import { db } from '@/lib/firebase';
+import {
+  collection,
+  getDocs,
+  getDoc,
+  doc,
+  query,
+  where,
+  limit,
+} from 'firebase/firestore';
 
 export interface AdminUser {
     id: string;
@@ -15,76 +21,110 @@ export interface AdminUser {
     contentCount: number;
 }
 
-const mockUsers: AdminUser[] = [
-  {
-    id: 'user1',
-    email: 'alice@example.com',
-    displayName: 'Alice Johnson',
-    photoURL: null,
-    createdAt: '2023-11-20T10:00:00Z',
-    subscription: { tier: 'Pro' },
-    contentCount: 256,
-  },
-  {
-    id: 'user2',
-    email: 'bob.smith@work.net',
-    displayName: 'Bob Smith',
-    photoURL: 'https://placehold.co/40x40.png',
-    createdAt: '2024-01-15T14:30:00Z',
-    subscription: { tier: 'Free' },
-    contentCount: 42,
-  },
-  {
-    id: 'user3',
-    email: 'carol@web.com',
-    displayName: 'Carol White',
-    photoURL: null,
-    createdAt: '2024-03-01T09:15:00Z',
-    subscription: { tier: 'Free' },
-    contentCount: 88,
-  },
-  {
-    id: 'user4',
-    email: 'david.green@mail.io',
-    displayName: 'David Green',
-    photoURL: 'https://placehold.co/40x40.png',
-    createdAt: '2024-05-10T18:45:00Z',
-    subscription: { tier: 'Pro' },
-    contentCount: 1204,
-  },
-  {
-    id: 'user5',
-    email: 'eve.black@domain.org',
-    displayName: 'Eve Black',
-    photoURL: null,
-    createdAt: '2024-06-25T11:20:00Z',
-    subscription: { tier: 'Free' },
-    contentCount: 12,
-  },
-   {
-    id: 'user6',
-    email: 'frank.brown@startup.co',
-    displayName: 'Frank Brown',
-    photoURL: null,
-    createdAt: '2024-07-02T21:00:00Z',
-    subscription: { tier: 'Pro' },
-    contentCount: 543,
-  },
-];
 
-
+// Fetches all users from the 'users' collection and enriches them with subscription and content count.
+// NOTE: This approach fetches associated data for each user individually, which can be inefficient
+// for a large number of users (N+1 query problem). In a production app with many users,
+// this data should be denormalized onto the user document or fetched via a dedicated backend endpoint.
 export async function getUsersWithSubscription(): Promise<AdminUser[]> {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // In a real app, this would be an HTTPS callable function call
-    // that invokes a Firebase Function to get user data.
-    return mockUsers;
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+    const usersCollectionRef = collection(db, 'users');
+    const usersSnapshot = await getDocs(usersCollectionRef);
+
+    if (usersSnapshot.empty) {
+        return [];
+    }
+
+    const userPromises = usersSnapshot.docs.map(async (userDoc) => {
+        const userData = userDoc.data();
+        const userId = userDoc.id;
+
+        // 1. Fetch subscription tier
+        let subscriptionTier: 'Free' | 'Pro' = 'Free'; // Default to Free
+        try {
+            const subQuery = query(collection(db, 'users', userId, 'subscriptions'), limit(1));
+            const subSnapshot = await getDocs(subQuery);
+            if (!subSnapshot.empty) {
+                const subData = subSnapshot.docs[0].data();
+                if ((subData.plan && typeof subData.plan === 'string' && subData.plan.includes('pro')) || subData.tier === 'Pro' || subData.status === 'active') {
+                   subscriptionTier = 'Pro';
+                }
+            }
+        } catch (e) {
+            console.error(`Could not fetch subscription for user ${userId}:`, e);
+        }
+
+        // 2. Fetch content count
+        let contentCount = 0;
+        try {
+            const contentQuery = query(collection(db, 'content'), where('userId', '==', userId));
+            const contentSnapshot = await getDocs(contentQuery);
+            contentCount = contentSnapshot.size;
+        } catch (e) {
+            console.error(`Could not fetch content count for user ${userId}:`, e);
+        }
+
+        const createdAt = userData.createdAt; // Firestore Timestamp or ISO string
+
+        return {
+            id: userId,
+            email: userData.email || '',
+            displayName: userData.displayName || null,
+            photoURL: userData.photoURL || null,
+            createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : (createdAt || new Date().toISOString()),
+            subscription: { tier: subscriptionTier },
+            contentCount: contentCount,
+        };
+    });
+
+    return Promise.all(userPromises);
 }
 
 export async function getUserById(id: string): Promise<AdminUser | undefined> {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const user = mockUsers.find(u => u.id === id);
-    return user;
+    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+    const userDocRef = doc(db, 'users', id);
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (!userDocSnap.exists()) {
+        return undefined;
+    }
+
+    const userData = userDocSnap.data();
+    
+    // Fetch subscription tier
+    let subscriptionTier: 'Free' | 'Pro' = 'Free';
+    try {
+        const subQuery = query(collection(db, 'users', id, 'subscriptions'), limit(1));
+        const subSnapshot = await getDocs(subQuery);
+        if (!subSnapshot.empty) {
+            const subData = subSnapshot.docs[0].data();
+             if ((subData.plan && typeof subData.plan === 'string' && subData.plan.includes('pro')) || subData.tier === 'Pro' || subData.status === 'active') {
+               subscriptionTier = 'Pro';
+            }
+        }
+    } catch (e) {
+        console.error(`Could not fetch subscription for user ${id}:`, e);
+    }
+
+    // Fetch content count
+    let contentCount = 0;
+    try {
+        const contentQuery = query(collection(db, 'content'), where('userId', '==', id));
+        const contentSnapshot = await getDocs(contentQuery);
+        contentCount = contentSnapshot.size;
+    } catch (e) {
+        console.error(`Could not fetch content count for user ${id}:`, e);
+    }
+
+    const createdAt = userData.createdAt;
+
+    return {
+        id: id,
+        email: userData.email || '',
+        displayName: userData.displayName || null,
+        photoURL: userData.photoURL || null,
+        createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : (createdAt || new Date().toISOString()),
+        subscription: { tier: subscriptionTier },
+        contentCount: contentCount,
+    };
 }
