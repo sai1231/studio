@@ -1,3 +1,4 @@
+
 import { db } from '@/lib/firebase';
 import {
   collection,
@@ -182,7 +183,7 @@ export async function getUsersWithDetails(): Promise<AdminUser[]> {
           const contentQuery = query(collection(db, 'content'), where('userId', '==', userId));
           const zonesQuery = query(collection(db, 'zones'), where('userId', '==', userId));
           
-          const [contentSnapshot, zonesSnapshot] = await Promise.all([getDocs(contentQuery), getDocs(zonesSnapshot)]);
+          const [contentSnapshot, zonesSnapshot] = await Promise.all([getDocs(contentQuery), getDocs(zonesQuery)]);
 
           let role: Role | undefined = undefined;
           if (userData.roleId) {
