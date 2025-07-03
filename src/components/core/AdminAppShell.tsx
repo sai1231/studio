@@ -15,7 +15,6 @@ const adminNavItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/roles', label: 'Roles', icon: ShieldCheck },
-  { href: '/admin/plans', label: 'Plans', icon: Zap },
   { href: '/admin/logs', label: 'Logs', icon: Server },
   { href: '/admin/feature-flags', label: 'Feature Flags', icon: ToggleRight },
   { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },

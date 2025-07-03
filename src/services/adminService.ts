@@ -13,14 +13,9 @@ import {
   deleteDoc,
   writeBatch,
 } from 'firebase/firestore';
-import type { Plan } from '@/types';
+import type { Role, PlanFeatures } from '@/types';
 
 const rolesCollection = collection(db, 'roles');
-
-export interface Role {
-    id: string;
-    name: string;
-}
 
 export interface AdminUser {
     id: string;
@@ -28,28 +23,44 @@ export interface AdminUser {
     displayName: string | null;
     photoURL: string | null;
     createdAt: string; // ISO String
-    subscription: {
-        tier: 'Free' | 'Pro';
-    };
     contentCount: number;
     zonesCreated: number;
     role?: Role;
 }
 
-export async function getRoles(): Promise<Role[]> {
+export async function getRolesWithFeatures(): Promise<Role[]> {
     const rolesSnapshot = await getDocs(rolesCollection);
-    return rolesSnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name } as Role)).sort((a,b) => a.name.localeCompare(b.name));
+    return rolesSnapshot.docs.map(doc => ({
+      id: doc.id,
+      name: doc.data().name,
+      features: doc.data().features || {},
+    } as Role)).sort((a,b) => a.name.localeCompare(b.name));
 }
 
 export async function createRole(name: string): Promise<Role> {
-    const docRef = await addDoc(rolesCollection, { name });
-    return { id: docRef.id, name };
+    const defaultFeatures: PlanFeatures = {
+      contentLimit: 100,
+      maxZones: 5,
+      aiSuggestions: 25,
+      accessAdvancedEnrichment: false,
+      accessDeclutterTool: false,
+    };
+    const newRole = { name, features: defaultFeatures };
+    const docRef = await addDoc(rolesCollection, newRole);
+    return { id: docRef.id, ...newRole };
 }
+
+export async function updateRoleFeatures(roleId: string, features: PlanFeatures): Promise<void> {
+  const roleDoc = doc(db, 'roles', roleId);
+  await updateDoc(roleDoc, { features });
+}
+
 
 export async function getUsersByRoleId(roleId: string): Promise<AdminUser[]> {
     const usersCollectionRef = collection(db, 'users');
     const q = query(usersCollectionRef, where("roleId", "==", roleId));
     const querySnapshot = await getDocs(q);
+    // This is a simplified return for the delete dialog, not a full AdminUser
     return querySnapshot.docs.map(doc => ({
         id: doc.id,
         email: doc.data().email,
@@ -59,17 +70,12 @@ export async function getUsersByRoleId(roleId: string): Promise<AdminUser[]> {
 
 export async function deleteAndReassignRole(roleIdToDelete: string, reassignments: Map<string, string | null>): Promise<void> {
     const batch = writeBatch(db);
-
-    // Update roles for all affected users based on the reassignments map
     for (const [userId, newRoleId] of reassignments.entries()) {
         const userRef = doc(db, 'users', userId);
-        batch.update(userRef, { roleId: newRoleId }); // newRoleId can be string or null
+        batch.update(userRef, { roleId: newRoleId });
     }
-
-    // Delete the role document itself
     const roleRef = doc(db, 'roles', roleIdToDelete);
     batch.delete(roleRef);
-
     await batch.commit();
 }
 
@@ -80,12 +86,8 @@ export async function updateUserRole(userId: string, roleId: string | null): Pro
 }
 
 
-// Fetches all users from the 'users' collection and enriches them with subscription and content count.
-// NOTE: This approach fetches associated data for each user individually, which can be inefficient
-// for a large number of users (N+1 query problem). In a production app with many users,
-// this data should be denormalized onto the user document or fetched via a dedicated backend endpoint.
-export async function getUsersWithSubscription(): Promise<AdminUser[]> {
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+export async function getUsersWithDetails(): Promise<AdminUser[]> {
+    await new Promise(resolve => setTimeout(resolve, 1000));
     const usersCollectionRef = collection(db, 'users');
     const usersSnapshot = await getDocs(usersCollectionRef);
 
@@ -97,47 +99,15 @@ export async function getUsersWithSubscription(): Promise<AdminUser[]> {
         const userData = userDoc.data();
         const userId = userDoc.id;
 
-        // 1. Fetch subscription tier
-        let subscriptionTier: 'Free' | 'Pro' = 'Free'; // Default to Free
-        try {
-            const subQuery = query(collection(db, 'users', userId, 'subscriptions'), limit(1));
-            const subSnapshot = await getDocs(subQuery);
-            if (!subSnapshot.empty) {
-                const subData = subSnapshot.docs[0].data();
-                if (subData.tier === 'Pro') {
-                   subscriptionTier = 'Pro';
-                }
-            }
-        } catch (e) {
-            console.error(`Could not fetch subscription for user ${userId}:`, e);
-        }
+        const contentQuery = query(collection(db, 'content'), where('userId', '==', userId));
+        const zonesQuery = query(collection(db, 'zones'), where('userId', '==', userId));
+        
+        const [contentSnapshot, zonesSnapshot] = await Promise.all([getDocs(contentQuery), getDocs(zonesQuery)]);
 
-        // 2. Fetch content count
-        let contentCount = 0;
-        try {
-            const contentQuery = query(collection(db, 'content'), where('userId', '==', userId));
-            const contentSnapshot = await getDocs(contentQuery);
-            contentCount = contentSnapshot.size;
-        } catch (e) {
-            console.error(`Could not fetch content count for user ${userId}:`, e);
-        }
-
-        // 3. Fetch zones count
-        let zonesCreated = 0;
-        try {
-            const zonesQuery = query(collection(db, 'zones'), where('userId', '==', userId));
-            const zonesSnapshot = await getDocs(zonesQuery);
-            zonesCreated = zonesSnapshot.size;
-        } catch (e) {
-            console.error(`Could not fetch zones count for user ${userId}:`, e);
-        }
-
-        // 4. Fetch role
         let role: Role | undefined = undefined;
-        const roleId = userData.roleId;
-        if (roleId) {
+        if (userData.roleId) {
             try {
-                const roleDoc = await getDoc(doc(db, 'roles', roleId));
+                const roleDoc = await getDoc(doc(db, 'roles', userData.roleId));
                 if (roleDoc.exists()) {
                     role = { id: roleDoc.id, ...roleDoc.data() } as Role;
                 }
@@ -146,17 +116,14 @@ export async function getUsersWithSubscription(): Promise<AdminUser[]> {
             }
         }
 
-        const createdAt = userData.createdAt; // Firestore Timestamp or ISO string
-
         return {
             id: userId,
             email: userData.email || '',
             displayName: userData.displayName || null,
             photoURL: userData.photoURL || null,
-            createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : (createdAt || new Date().toISOString()),
-            subscription: { tier: subscriptionTier },
-            contentCount: contentCount,
-            zonesCreated: zonesCreated,
+            createdAt: userData.createdAt?.toDate ? userData.createdAt.toDate().toISOString() : new Date().toISOString(),
+            contentCount: contentSnapshot.size,
+            zonesCreated: zonesSnapshot.size,
             role,
         };
     });
@@ -165,7 +132,7 @@ export async function getUsersWithSubscription(): Promise<AdminUser[]> {
 }
 
 export async function getUserById(id: string): Promise<AdminUser | undefined> {
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 500));
     const userDocRef = doc(db, 'users', id);
     const userDocSnap = await getDoc(userDocRef);
 
@@ -175,47 +142,15 @@ export async function getUserById(id: string): Promise<AdminUser | undefined> {
 
     const userData = userDocSnap.data();
     
-    // Fetch subscription tier
-    let subscriptionTier: 'Free' | 'Pro' = 'Free';
-    try {
-        const subQuery = query(collection(db, 'users', id, 'subscriptions'), limit(1));
-        const subSnapshot = await getDocs(subQuery);
-        if (!subSnapshot.empty) {
-            const subData = subSnapshot.docs[0].data();
-             if (subData.tier === 'Pro') {
-               subscriptionTier = 'Pro';
-            }
-        }
-    } catch (e) {
-        console.error(`Could not fetch subscription for user ${id}:`, e);
-    }
+    const contentQuery = query(collection(db, 'content'), where('userId', '==', id));
+    const zonesQuery = query(collection(db, 'zones'), where('userId', '==', id));
+    
+    const [contentSnapshot, zonesSnapshot] = await Promise.all([getDocs(contentQuery), getDocs(zonesQuery)]);
 
-    // Fetch content count
-    let contentCount = 0;
-    try {
-        const contentQuery = query(collection(db, 'content'), where('userId', '==', id));
-        const contentSnapshot = await getDocs(contentQuery);
-        contentCount = contentSnapshot.size;
-    } catch (e) {
-        console.error(`Could not fetch content count for user ${id}:`, e);
-    }
-
-    // Fetch zones count
-    let zonesCreated = 0;
-    try {
-        const zonesQuery = query(collection(db, 'zones'), where('userId', '==', id));
-        const zonesSnapshot = await getDocs(zonesQuery);
-        zonesCreated = zonesSnapshot.size;
-    } catch (e) {
-        console.error(`Could not fetch zones count for user ${id}:`, e);
-    }
-
-    // Fetch role
     let role: Role | undefined = undefined;
-    const roleId = userData.roleId;
-    if (roleId) {
+    if (userData.roleId) {
         try {
-            const roleDoc = await getDoc(doc(db, 'roles', roleId));
+            const roleDoc = await getDoc(doc(db, 'roles', userData.roleId));
             if (roleDoc.exists()) {
                 role = { id: roleDoc.id, ...roleDoc.data() } as Role;
             }
@@ -224,46 +159,63 @@ export async function getUserById(id: string): Promise<AdminUser | undefined> {
         }
     }
 
-
-    const createdAt = userData.createdAt;
-
     return {
         id: id,
         email: userData.email || '',
         displayName: userData.displayName || null,
         photoURL: userData.photoURL || null,
-        createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : (createdAt || new Date().toISOString()),
-        subscription: { tier: subscriptionTier },
-        contentCount: contentCount,
-        zonesCreated: zonesCreated,
+        createdAt: userData.createdAt?.toDate ? userData.createdAt.toDate().toISOString() : new Date().toISOString(),
+        contentCount: contentSnapshot.size,
+        zonesCreated: zonesSnapshot.size,
         role,
     };
 }
 
 
-export async function updateUserSubscriptionTier(userId: string, newTier: 'Free' | 'Pro'): Promise<void> {
-    const subscriptionsRef = collection(db, 'users', userId, 'subscriptions');
-    const q = query(subscriptionsRef, limit(1));
-    const subscriptionSnapshot = await getDocs(q);
-
-    const planId = newTier.toLowerCase();
-    const planRef = doc(db, 'plans', planId);
-    
-    const planSnap = await getDoc(planRef);
-    if (!planSnap.exists()) {
-        throw new Error(`Plan document for tier "${newTier}" does not exist in the 'plans' collection.`);
+export async function createDefaultRoles(): Promise<void> {
+  const batch = writeBatch(db);
+  
+  const rolesToCheck = [
+    {
+      name: 'free_user',
+      features: {
+        contentLimit: 100,
+        maxZones: 2,
+        aiSuggestions: 10,
+        accessAdvancedEnrichment: false,
+        accessDeclutterTool: false,
+      }
+    },
+    {
+      name: 'pro_user',
+      features: {
+        contentLimit: -1,
+        maxZones: -1,
+        aiSuggestions: -1,
+        accessAdvancedEnrichment: true,
+        accessDeclutterTool: true,
+      }
+    },
+    {
+      name: 'admin',
+      features: {
+        contentLimit: -1,
+        maxZones: -1,
+        aiSuggestions: -1,
+        accessAdvancedEnrichment: true,
+        accessDeclutterTool: true,
+      }
     }
+  ];
 
-    const subscriptionData = {
-        plan: planRef,
-        status: newTier === 'Pro' ? 'active' : 'free_tier',
-        tier: newTier,
-    };
+  for (const role of rolesToCheck) {
+      const q = query(rolesCollection, where("name", "==", role.name), limit(1));
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) {
+          const newRoleRef = doc(rolesCollection);
+          batch.set(newRoleRef, role);
+      }
+  }
 
-    if (subscriptionSnapshot.empty) {
-        await addDoc(subscriptionsRef, subscriptionData);
-    } else {
-        const subscriptionDocRef = subscriptionSnapshot.docs[0].ref;
-        await updateDoc(subscriptionDocRef, subscriptionData);
-    }
+  await batch.commit();
 }

@@ -12,6 +12,23 @@ export interface Zone {
 
 export type ContentItemType = 'link' | 'note' | 'image' | 'todo' | 'voice' | 'movie'; // Added 'movie'
 
+// This is the new Role interface which now includes features
+export interface Role {
+  id: string;
+  name: string;
+  features: PlanFeatures;
+}
+
+// This interface remains, as it's a good structure for features
+export interface PlanFeatures {
+  [key: string]: number | boolean;
+  contentLimit: number;
+  maxZones: number;
+  aiSuggestions: number;
+  accessAdvancedEnrichment: boolean;
+  accessDeclutterTool: boolean;
+}
+
 // Data structure used in the application code
 export interface ContentItem {
   id: string;
@@ -50,22 +67,6 @@ export interface SearchFilters {
   contentType?: string | null;
   tagNames?: string[];
 }
-
-export interface PlanFeatures {
-  [key: string]: number | boolean;
-  contentLimit: number;
-  maxZones: number;
-  aiSuggestions: number;
-  accessAdvancedEnrichment: boolean;
-  accessDeclutterTool: boolean;
-}
-
-export interface Plan {
-  id: string;
-  name: string;
-  features: PlanFeatures;
-}
-
 
 // Specific type for Link items, if needed for type guarding
 export type LinkItem = ContentItem & {

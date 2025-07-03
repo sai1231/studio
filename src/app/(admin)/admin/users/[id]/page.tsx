@@ -2,13 +2,13 @@
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, CreditCard, BarChart2, Mail, Calendar, Eye, Loader2, AlertTriangle, Shield, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CreditCard, BarChart2, Mail, Calendar, Eye, Loader2, AlertTriangle, ShieldCheck } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import React, { useEffect, useState, useCallback } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { getUserById, updateUserSubscriptionTier, getRoles, updateUserRole, type AdminUser, type Role } from "@/services/adminService";
+import { getUserById, getRolesWithFeatures, updateUserRole, type AdminUser, type Role } from "@/services/adminService";
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -51,12 +51,6 @@ export default function AdminUserDetailPage() {
     const [user, setUser] = useState<AdminUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     
-    // Tier state
-    const [isTierDialogOpen, setIsTierDialogOpen] = useState(false);
-    const [selectedTier, setSelectedTier] = useState<'Free' | 'Pro'>('Free');
-    const [isUpdatingTier, setIsUpdatingTier] = useState(false);
-
-    // Role state
     const [roles, setRoles] = useState<Role[]>([]);
     const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
     const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
@@ -69,12 +63,11 @@ export default function AdminUserDetailPage() {
         try {
             const [fetchedUser, fetchedRoles] = await Promise.all([
                 getUserById(userId),
-                getRoles()
+                getRolesWithFeatures()
             ]);
             
             if (fetchedUser) {
                 setUser(fetchedUser);
-                setSelectedTier(fetchedUser.subscription.tier);
                 setSelectedRoleId(fetchedUser.role?.id || null);
             } else {
                 setUser(null);
@@ -92,29 +85,6 @@ export default function AdminUserDetailPage() {
     useEffect(() => {
         fetchUserAndRoles();
     }, [fetchUserAndRoles]);
-
-    const handleTierChange = async () => {
-        if (!user) return;
-        setIsUpdatingTier(true);
-        try {
-            await updateUserSubscriptionTier(user.id, selectedTier);
-            toast({
-                title: 'Tier Updated',
-                description: `${user.displayName || 'User'}'s subscription tier is now ${selectedTier}.`,
-            });
-            await fetchUserAndRoles();
-            setIsTierDialogOpen(false);
-        } catch (error) {
-            console.error("Failed to update tier:", error);
-            toast({
-                title: 'Update Failed',
-                description: 'Could not update the subscription tier. Please try again.',
-                variant: 'destructive',
-            });
-        } finally {
-            setIsUpdatingTier(false);
-        }
-    };
     
     const handleRoleChange = async () => {
         if (!user) return;
@@ -165,6 +135,7 @@ export default function AdminUserDetailPage() {
         )
     }
 
+    const currentRoleName = user.role?.name || "No Role";
 
     return (
         <div className="space-y-6">
@@ -196,16 +167,20 @@ export default function AdminUserDetailPage() {
                             </div>
                         </CardContent>
                     </Card>
+                </div>
 
+                <div className="space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-xl"><ShieldCheck /> Role</CardTitle>
+                            <CardTitle className="flex items-center gap-2 text-xl"><ShieldCheck /> Role & Permissions</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Current Role</span>
-                                <Badge variant={user.role ? "default" : "secondary"}>
-                                    {user.role?.name || "No Role"}
+                                <Badge 
+                                    variant={user.role ? 'default' : 'secondary'} 
+                                    className={cn(user.role?.name.toLowerCase().includes('pro') && 'bg-green-600 hover:bg-green-700 text-white')}>
+                                    {currentRoleName}
                                 </Badge>
                             </div>
                             <Separator />
@@ -217,7 +192,7 @@ export default function AdminUserDetailPage() {
                                     <DialogHeader>
                                         <DialogTitle>Change Role</DialogTitle>
                                         <DialogDescription>
-                                            Select a new role for {user.displayName}.
+                                            Select a new role for {user.displayName}. This will change their feature access.
                                         </DialogDescription>
                                     </DialogHeader>
                                     <div className="py-4">
@@ -241,63 +216,6 @@ export default function AdminUserDetailPage() {
                                         <Button onClick={handleRoleChange} disabled={isUpdatingRole}>
                                             {isUpdatingRole && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                             Save Role
-                                        </Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
-                        </CardContent>
-                    </Card>
-
-                </div>
-
-                <div className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-xl"><CreditCard /> Subscription</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">Current Tier</span>
-                                <Badge variant={user.subscription.tier === 'Pro' ? 'default' : 'secondary'} 
-                                    className={cn(user.subscription.tier === 'Pro' && 'bg-green-600 hover:bg-green-700 text-white')}>
-                                    {user.subscription.tier}
-                                </Badge>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">Status</span>
-                                <span className="font-medium text-green-600">Active</span>
-                            </div>
-                            <Separator />
-                            <Dialog open={isTierDialogOpen} onOpenChange={setIsTierDialogOpen}>
-                                <DialogTrigger asChild>
-                                    <Button>Change Tier</Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>Change Subscription Tier</DialogTitle>
-                                        <DialogDescription>
-                                            Select a new subscription tier for {user.displayName}. This will affect their feature access.
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <div className="py-4">
-                                        <Label htmlFor="tier-select" className="mb-2 block">New Tier</Label>
-                                        <Select value={selectedTier} onValueChange={(value: 'Free' | 'Pro') => setSelectedTier(value)}>
-                                            <SelectTrigger id="tier-select">
-                                                <SelectValue placeholder="Select a tier" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="Free">Free</SelectItem>
-                                                <SelectItem value="Pro">Pro</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <DialogFooter>
-                                        <DialogClose asChild>
-                                            <Button variant="outline" disabled={isUpdatingTier}>Cancel</Button>
-                                        </DialogClose>
-                                        <Button onClick={handleTierChange} disabled={isUpdatingTier}>
-                                            {isUpdatingTier && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                            Save Changes
                                         </Button>
                                     </DialogFooter>
                                 </DialogContent>

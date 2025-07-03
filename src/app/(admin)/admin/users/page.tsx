@@ -12,7 +12,7 @@ import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { getUsersWithSubscription, type AdminUser } from '@/services/adminService';
+import { getUsersWithDetails, type AdminUser } from '@/services/adminService';
 import { cn } from '@/lib/utils';
 
 const UserRowSkeleton = () => (
@@ -27,7 +27,6 @@ const UserRowSkeleton = () => (
             </div>
         </TableCell>
         <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
-        <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
         <TableCell><Skeleton className="h-4 w-12" /></TableCell>
         <TableCell><Skeleton className="h-4 w-20" /></TableCell>
         <TableCell><Skeleton className="h-8 w-20 rounded-md" /></TableCell>
@@ -47,17 +46,16 @@ export default function AdminUsersPage() {
     const [users, setUsers] = useState<AdminUser[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [planFilter, setPlanFilter] = useState('all'); // 'all', 'free', 'pro'
+    const [roleFilter, setRoleFilter] = useState('all');
 
     useEffect(() => {
         const fetchUsers = async () => {
             setIsLoading(true);
             try {
-                const fetchedUsers = await getUsersWithSubscription();
+                const fetchedUsers = await getUsersWithDetails();
                 setUsers(fetchedUsers);
             } catch (error) {
                 console.error("Failed to fetch users:", error);
-                // In a real app, show a toast notification
             } finally {
                 setIsLoading(false);
             }
@@ -71,12 +69,17 @@ export default function AdminUsersPage() {
                 user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 user.email.toLowerCase().includes(searchTerm.toLowerCase());
 
-            const matchesPlan = planFilter === 'all' ||
-                user.subscription.tier.toLowerCase() === planFilter;
+            const matchesRole = roleFilter === 'all' ||
+                user.role?.name.toLowerCase() === roleFilter;
 
-            return matchesSearch && matchesPlan;
+            return matchesSearch && matchesRole;
         });
-    }, [users, searchTerm, planFilter]);
+    }, [users, searchTerm, roleFilter]);
+    
+    const availableRoles = useMemo(() => {
+        const roles = new Set(users.map(u => u.role?.name).filter(Boolean));
+        return Array.from(roles);
+    }, [users]);
 
     return (
         <Card>
@@ -93,14 +96,15 @@ export default function AdminUsersPage() {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <Select value={planFilter} onValueChange={setPlanFilter}>
+                    <Select value={roleFilter} onValueChange={setRoleFilter}>
                         <SelectTrigger className="w-full sm:w-[180px]">
-                            <SelectValue placeholder="Filter by plan" />
+                            <SelectValue placeholder="Filter by role" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Plans</SelectItem>
-                            <SelectItem value="free">Free Tier</SelectItem>
-                            <SelectItem value="pro">Pro Tier</SelectItem>
+                            <SelectItem value="all">All Roles</SelectItem>
+                            {availableRoles.map(role => (
+                                <SelectItem key={role} value={role.toLowerCase()}>{role}</SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                 </div>
@@ -111,7 +115,6 @@ export default function AdminUsersPage() {
                         <TableRow>
                             <TableHead>User</TableHead>
                             <TableHead>Role</TableHead>
-                            <TableHead>Subscription</TableHead>
                             <TableHead>Content Count</TableHead>
                             <TableHead>Joined Date</TableHead>
                             <TableHead>Actions</TableHead>
@@ -120,8 +123,6 @@ export default function AdminUsersPage() {
                     <TableBody>
                         {isLoading ? (
                             <>
-                                <UserRowSkeleton />
-                                <UserRowSkeleton />
                                 <UserRowSkeleton />
                                 <UserRowSkeleton />
                                 <UserRowSkeleton />
@@ -142,14 +143,8 @@ export default function AdminUsersPage() {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant={user.role ? "default" : "outline"}>
-                                            {user.role?.name || 'N/A'}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant={user.subscription.tier === 'Pro' ? 'default' : 'secondary'} 
-                                            className={cn(user.subscription.tier === 'Pro' && 'bg-green-600 hover:bg-green-700 text-white')}>
-                                            {user.subscription.tier}
+                                        <Badge variant={user.role ? "default" : "secondary"}>
+                                            {user.role?.name || 'No Role'}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
@@ -167,7 +162,7 @@ export default function AdminUsersPage() {
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center">
+                                <TableCell colSpan={5} className="h-24 text-center">
                                     <p>No users found.</p>
                                     {searchTerm && <p className="text-sm text-muted-foreground">Try adjusting your search or filters.</p>}
                                 </TableCell>
