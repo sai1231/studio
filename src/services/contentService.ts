@@ -317,21 +317,24 @@ export function subscribeToTaskList(
   const unsubscribe = onSnapshot(docRef, (docSnap) => {
     if (docSnap.exists()) {
       const data = docSnap.data();
-      const sortedTasks = ((data.tasks || []) as Task[]).sort((a, b) => {
+      // FIX: Ensure data.tasks is an array and filter out any invalid task objects.
+      const tasks: Task[] = (Array.isArray(data.tasks) ? data.tasks : []).filter(
+        (task: any) => task && typeof task === 'object' && task.createdAt
+      );
+      
+      const sortedTasks = tasks.sort((a, b) => {
           if (a.status === 'pending' && b.status === 'completed') return -1;
           if (a.status === 'completed' && b.status === 'pending') return 1;
           if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
           if (a.dueDate && !b.dueDate) return -1;
           if (!a.dueDate && b.dueDate) return 1;
+          // Note: The filter above ensures createdAt exists.
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
       callback({ id: docSnap.id, userId, tasks: sortedTasks });
     } else {
-      // Document doesn't exist, create it and then callback
-      getOrCreateTaskList(userId).then(newTaskList => {
-        // The listener will pick up this creation, so we can just callback with the new list
-        // No need to manually call callback here as the listener will fire.
-      }).catch(err => callback(null, err));
+      // Document doesn't exist, create it. The listener will then pick up the new document.
+      getOrCreateTaskList(userId).catch(err => callback(null, err));
     }
   }, (error) => {
     console.error("Failed to subscribe to task list:", error);
