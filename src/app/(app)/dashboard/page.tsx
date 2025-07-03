@@ -11,9 +11,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
-import { PlusCircle, Loader2, FolderOpen, ListChecks, AlarmClock, Clapperboard, MessagesSquare, FileImage, Globe, BookOpen, StickyNote, Github, FileText, Trash2, Search as SearchIcon } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { PlusCircle, Loader2, FolderOpen, ListChecks, AlarmClock, Clapperboard, MessagesSquare, FileImage, Globe, BookOpen, StickyNote, Github, FileText, Trash2, Search as SearchIcon, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getContentItems, getContentItemsPaginated, getTodoItems, deleteContentItem, getZones, updateContentItem } from '@/services/contentService';
+import { getContentItems, getContentItemsPaginated, getTodoItems, deleteContentItem, getZones, updateContentItem, getContentCount } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
 import { cn } from '@/lib/utils';
@@ -145,6 +146,7 @@ function DashboardPageContent() {
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [totalContentCount, setTotalContentCount] = useState<number | null>(null);
   
   // Shared state
   const [isUpdatingTodoStatus, setIsUpdatingTodoStatus] = useState<string | null>(null);
@@ -228,6 +230,7 @@ function DashboardPageContent() {
     setTodoItems([]);
     setLastVisibleDoc(null);
     setHasMore(true);
+    setTotalContentCount(null);
 
     const initialFetch = async () => {
       try {
@@ -244,15 +247,21 @@ function DashboardPageContent() {
         if (contentLimit === 0) {
             setHasMore(false);
             setDisplayedItems([]);
+            setTotalContentCount(0);
         } else if (contentLimit > 0) {
             setHasMore(false);
-            const limitedItems = await getContentItems(user.uid, contentLimit);
+            const [limitedItems, totalCount] = await Promise.all([
+              getContentItems(user.uid, contentLimit),
+              getContentCount(user.uid)
+            ]);
             setDisplayedItems(limitedItems);
+            setTotalContentCount(totalCount);
         } else {
             const { items, lastVisibleDoc: newLastDoc } = await getContentItemsPaginated({ userId: user.uid, pageSize: 100 });
             setDisplayedItems(items);
             setLastVisibleDoc(newLastDoc);
             setHasMore(!!newLastDoc);
+            setTotalContentCount(null);
         }
       } catch (err) {
         setError("Failed to load initial content.");
@@ -382,7 +391,11 @@ function DashboardPageContent() {
   }
   
   const contentToDisplay = isSearching ? searchResults : displayedItems;
-  const noContentOnDashboard = !isSearching && displayedItems.length === 0 && todoItems.length === 0;
+  const hiddenCount = totalContentCount !== null && role?.features.contentLimit > 0
+    ? totalContentCount - displayedItems.length
+    : 0;
+
+  const noContentOnDashboard = !isSearching && displayedItems.length === 0 && todoItems.length === 0 && !(hiddenCount > 0);
 
   return (
     <div className="container mx-auto py-2">
@@ -392,6 +405,17 @@ function DashboardPageContent() {
           <p className="text-muted-foreground">Found {searchResults.length} items for &quot;{query}&quot;</p>
         </div>
       ) : null}
+
+      {hiddenCount > 0 && (
+        <Alert className="mb-6 border-primary/20 bg-primary/5 text-foreground">
+          <Zap className="h-4 w-4" />
+          <AlertTitle className="font-semibold">Content Limit Reached</AlertTitle>
+          <AlertDescription>
+            You have {hiddenCount} more {hiddenCount === 1 ? 'memory is' : 'memories are'} hidden. 
+            <Button variant="link" className="p-1 h-auto text-primary underline" onClick={() => toast({ title: 'Coming Soon!', description: 'Subscription management will be available shortly.' })}>Upgrade to access them</Button>.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {noContentOnDashboard ? (
         <div className="text-center py-12">

@@ -102,6 +102,21 @@ export async function getTodoItems(userId: string): Promise<ContentItem[]> {
   }
 }
 
+export async function getContentCount(userId: string): Promise<number> {
+  try {
+    if (!userId) {
+      console.warn('getContentCount called without a userId.');
+      return 0;
+    }
+    const q = query(contentCollection, where('userId', '==', userId), where('type', '!=', 'todo'));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.size;
+  } catch (error) {
+    console.error('Failed to get content count from Firestore:', error);
+    throw error;
+  }
+}
+
 
 // Function to get all content items for a specific user
 export async function getContentItems(userId: string, contentLimit?: number): Promise<ContentItem[]> {
