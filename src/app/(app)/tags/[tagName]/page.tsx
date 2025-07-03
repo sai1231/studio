@@ -32,7 +32,7 @@ export default function TagPage() {
   const params = useParams() as { tagName: string } | null;
   const router = useRouter();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, role } = useAuth();
 
   const [decodedTagName, setDecodedTagName] = useState<string>('');
   
@@ -89,17 +89,19 @@ export default function TagPage() {
   }, [params, toast]);
 
   const fetchTagPageData = useCallback(async () => {
-    if (!user || !decodedTagName) {
+    if (!user || !decodedTagName || !role) {
       setIsLoading(false);
+      if (!decodedTagName) setError("Tag name is missing.");
+      else if (!user) setError("User not authenticated.");
+      else if (!role) setError("User role not loaded.");
       setAllContentForTag([]);
-      if(!error) setError("Tag name is missing or invalid.");
       return;
     }
     setIsLoading(true);
     setError(null);
     try {
       const [allItems, zones] = await Promise.all([
-        getContentItems(user.uid),
+        getContentItems(user.uid, role.features.contentLimit),
         getZones(user.uid),
       ]);
 
@@ -123,13 +125,13 @@ export default function TagPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [user, decodedTagName, toast, error]);
+  }, [user, role, decodedTagName, toast]);
 
   useEffect(() => {
-    if (user) {
+    if (user && role) {
       fetchTagPageData();
     }
-  }, [user, fetchTagPageData]);
+  }, [user, role, fetchTagPageData]);
   
   useEffect(() => {
     if (isFilterPopoverOpen) {
@@ -238,7 +240,7 @@ export default function TagPage() {
     return count;
   }, [appliedSearchTerm, appliedSelectedZoneId, appliedSelectedContentType, appliedSelectedAdditionalTagIds]);
   
-  if (isLoading || !user) {
+  if (isLoading || !user || !role) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

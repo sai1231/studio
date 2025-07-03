@@ -44,7 +44,7 @@ const createNewIndex = () => new Document<SearchableDocument, true>({
 });
 
 export const SearchProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<ContentItem[]>([]);
@@ -53,10 +53,12 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
   const searchIndexRef = useRef<Document<SearchableDocument, true>>(createNewIndex());
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !role) return;
 
     let isMounted = true;
     let unsubscribe: Unsubscribe | null = null;
+    
+    const contentLimit = role.features.contentLimit;
 
     const initialize = async () => {
       deleteExpiredContent(user.uid).catch(err => {
@@ -65,9 +67,10 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
 
       const cachedItems = await get<ContentItem[]>(CONTENT_CACHE_KEY);
       if (isMounted && cachedItems) {
-        setAllItems(cachedItems);
+        const limitedItems = contentLimit !== -1 ? cachedItems.slice(0, contentLimit) : cachedItems;
+        setAllItems(limitedItems);
         const index = searchIndexRef.current;
-        for (const item of cachedItems) {
+        for (const item of limitedItems) {
           index.add(formatForIndex(item));
         }
         setIsInitialized(true);
@@ -83,11 +86,11 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
         }
         searchIndexRef.current = newIndex;
 
-        set(CONTENT_CACHE_KEY, items);
+        set(CONTENT_CACHE_KEY, items); // Cache the full list, limit on read
         if (!isInitialized) {
           setIsInitialized(true);
         }
-      });
+      }, contentLimit);
     };
 
     initialize();
@@ -96,7 +99,7 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
       isMounted = false;
       unsubscribe?.();
     };
-  }, [user, isInitialized]);
+  }, [user, role, isInitialized]);
 
   const formatForIndex = (item: ContentItem): SearchableDocument => ({
     id: item.id,

@@ -127,11 +127,10 @@ export async function getContentItems(userId: string, contentLimit?: number): Pr
     }
     const qConstraints: any[] = [
         where("userId", "==", userId),
-        where('type', '!=', 'todo'),
         orderBy('createdAt', 'desc')
     ];
 
-    if (contentLimit && contentLimit > 0) {
+    if (contentLimit && contentLimit !== -1) {
         qConstraints.push(limit(contentLimit));
     }
 
@@ -158,14 +157,25 @@ export async function getContentItems(userId: string, contentLimit?: number): Pr
 // New function for real-time updates
 export function subscribeToContentItems(
   userId: string,
-  callback: (items: ContentItem[], error?: any) => void
+  callback: (items: ContentItem[], error?: any) => void,
+  contentLimit?: number,
 ): Unsubscribe {
   if (!userId) {
     console.warn("subscribeToContentItems called without a userId.");
     callback([]);
     return () => {}; // Return a no-op unsubscribe function
   }
-  const q = query(contentCollection, where("userId", "==", userId), orderBy('createdAt', 'desc'));
+  
+  const qConstraints: any[] = [
+      where("userId", "==", userId),
+      orderBy('createdAt', 'desc')
+  ];
+
+  if (contentLimit && contentLimit !== -1) {
+      qConstraints.push(limit(contentLimit));
+  }
+  
+  const q = query(contentCollection, ...qConstraints);
   
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
     const items: ContentItem[] = [];

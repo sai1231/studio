@@ -36,7 +36,7 @@ export default function ContentTypePage() {
   const params = useParams() as { contentTypeName: string } | null;
   const router = useRouter();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, role } = useAuth();
 
   const [decodedContentTypeName, setDecodedContentTypeName] = useState<string>('');
   
@@ -93,17 +93,19 @@ export default function ContentTypePage() {
   }, [params, toast]);
 
   const fetchContentTypePageData = useCallback(async () => {
-    if (!user || !decodedContentTypeName) {
+    if (!user || !decodedContentTypeName || !role) {
       setIsLoading(false);
+      if (!decodedContentTypeName) setError("Content type name is missing.");
+      else if (!user) setError("User not authenticated.");
+      else if (!role) setError("User role not loaded.");
       setAllContentForType([]);
-      if(!error) setError("Content type name is missing or invalid.");
       return;
     }
     setIsLoading(true);
     setError(null);
     try {
       const [allItems, zones] = await Promise.all([
-        getContentItems(user.uid),
+        getContentItems(user.uid, role.features.contentLimit),
         getZones(user.uid),
       ]);
 
@@ -127,13 +129,13 @@ export default function ContentTypePage() {
     } finally {
       setIsLoading(false);
     }
-  }, [user, decodedContentTypeName, toast, error]);
+  }, [user, role, decodedContentTypeName, toast]);
 
   useEffect(() => {
-    if (user) {
+    if (user && role) {
       fetchContentTypePageData();
     }
-  }, [user, fetchContentTypePageData]);
+  }, [user, role, fetchContentTypePageData]);
 
   useEffect(() => {
     if (isFilterPopoverOpen) {
@@ -238,7 +240,7 @@ export default function ContentTypePage() {
     return count;
   }, [appliedSearchTerm, appliedSelectedZoneId, appliedSelectedDomain, appliedSelectedTagIds]);
   
-  if (isLoading || !user) {
+  if (isLoading || !user || !role) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

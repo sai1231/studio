@@ -34,7 +34,7 @@ export default function ZonePage() {
   const zoneId = params.id; 
   const router = useRouter();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, role } = useAuth();
 
   const [allContentInZone, setAllContentInZone] = useState<ContentItem[]>([]);
   const [displayedContentItems, setDisplayedContentItems] = useState<ContentItem[]>([]);
@@ -70,9 +70,11 @@ export default function ZonePage() {
   }, [isLoading]);
 
   const fetchZonePageData = useCallback(async () => {
-    if (!user || !zoneId) {
+    if (!user || !zoneId || !role) {
       setIsLoading(false);
-      setError("Zone ID is missing or user not authenticated.");
+      if (!zoneId) setError("Zone ID is missing.");
+      else if (!user) setError("User not authenticated.");
+      else if (!role) setError("User role not loaded.");
       return;
     }
     setIsLoading(true);
@@ -80,7 +82,7 @@ export default function ZonePage() {
     try {
       const [zoneDetails, allItems] = await Promise.all([
         getZoneById(zoneId),
-        getContentItems(user.uid),
+        getContentItems(user.uid, role.features.contentLimit),
       ]);
 
       if (zoneDetails) {
@@ -106,13 +108,13 @@ export default function ZonePage() {
     } finally {
       setIsLoading(false);
     }
-  }, [zoneId, toast, user]);
+  }, [zoneId, toast, user, role]);
 
   useEffect(() => {
-    if (user) {
+    if (user && role) {
       fetchZonePageData();
     }
-  }, [user, fetchZonePageData]);
+  }, [user, role, fetchZonePageData]);
 
   useEffect(() => {
     if (isFilterPopoverOpen) {
@@ -213,7 +215,7 @@ export default function ZonePage() {
     return count;
   }, [appliedSearchTerm, appliedSelectedContentType, appliedSelectedTagIds]);
 
-  if (isLoading || !user) {
+  if (isLoading || !user || !role) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

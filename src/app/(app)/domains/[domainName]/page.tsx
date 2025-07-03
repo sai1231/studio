@@ -32,7 +32,7 @@ export default function DomainPage() {
   const params = useParams() as { domainName: string } | null;
   const router = useRouter();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, role } = useAuth();
 
   const [decodedDomainName, setDecodedDomainName] = useState<string>('');
   
@@ -89,17 +89,19 @@ export default function DomainPage() {
   }, [params, toast]);
 
   const fetchDomainPageData = useCallback(async () => {
-    if (!user || !decodedDomainName) {
+    if (!user || !decodedDomainName || !role) {
       setIsLoading(false);
+      if (!decodedDomainName) setError("Domain name is missing.");
+      else if (!user) setError("User not authenticated.");
+      else if (!role) setError("User role not loaded.");
       setAllContentForDomain([]);
-      if(!error) setError("Domain name is missing or invalid.");
       return;
     }
     setIsLoading(true);
     setError(null);
     try {
       const [allItems, zones] = await Promise.all([
-        getContentItems(user.uid),
+        getContentItems(user.uid, role.features.contentLimit),
         getZones(user.uid),
       ]);
 
@@ -123,13 +125,13 @@ export default function DomainPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [user, decodedDomainName, toast, error]);
+  }, [user, role, decodedDomainName, toast]);
 
   useEffect(() => {
-    if (user) {
+    if (user && role) {
       fetchDomainPageData();
     }
-  }, [user, fetchDomainPageData]);
+  }, [user, role, fetchDomainPageData]);
 
   useEffect(() => {
     if (isFilterPopoverOpen) {
@@ -233,7 +235,7 @@ export default function DomainPage() {
     return count;
   }, [appliedSearchTerm, appliedSelectedZoneId, appliedSelectedContentType, appliedSelectedTagIds]);
 
-  if (isLoading || !user) {
+  if (isLoading || !user || !role) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
