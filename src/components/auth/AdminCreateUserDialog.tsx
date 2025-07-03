@@ -72,7 +72,11 @@ export function AdminCreateUserDialog({ open, onOpenChange, onUserCreated }: Adm
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     try {
-      await createUser(data);
+      const payload = {
+        ...data,
+        roleId: data.roleId === 'none' || data.roleId === '' ? null : data.roleId,
+      };
+      await createUser(payload);
       toast({
         title: 'User Created',
         description: `Account for ${data.displayName} has been successfully created.`,
@@ -154,7 +158,7 @@ export function AdminCreateUserDialog({ open, onOpenChange, onUserCreated }: Adm
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">No Role</SelectItem>
+                          <SelectItem value="none">No Role</SelectItem>
                            {roles.map(role => (
                             <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
                           ))}
