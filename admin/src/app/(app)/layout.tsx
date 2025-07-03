@@ -2,11 +2,14 @@
 'use client';
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Users, Zap, Server, ToggleRight, Megaphone, Shield } from 'lucide-react';
+import { LayoutDashboard, Users, Zap, Server, ToggleRight, Megaphone, Shield, LogOut } from 'lucide-react';
 import type React from 'react';
+import { getAuth, signOut } from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
+import { ThemeToggle } from "@/components/core/theme-toggle";
 
 const adminNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -19,6 +22,20 @@ const adminNavItems = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { toast } = useToast();
+  const auth = getAuth();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
+      router.push('/login');
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast({ title: 'Logout Failed', description: 'Could not log you out. Please try again.', variant: 'destructive' });
+    }
+  };
 
   return (
     <div className="container mx-auto py-2">
@@ -27,6 +44,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div>
                 <h1 className="text-3xl font-headline font-semibold">Admin Portal</h1>
                 <p className="text-muted-foreground">Manage users, application settings, and monitor system health.</p>
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+                <ThemeToggle />
+                <Button variant="outline" onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                </Button>
             </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-10 items-start">
