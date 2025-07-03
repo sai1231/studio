@@ -11,7 +11,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PlusCircle, Loader2, FolderOpen, ListChecks, AlarmClock, Clapperboard, MessagesSquare, FileImage, Globe, BookOpen, StickyNote, Github, FileText, Trash2, Search as SearchIcon, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getContentItems, getContentItemsPaginated, getTodoItems, deleteContentItem, getZones, updateContentItem, getContentCount } from '@/services/contentService';
@@ -398,137 +397,147 @@ function DashboardPageContent() {
   const noContentOnDashboard = !isSearching && displayedItems.length === 0 && todoItems.length === 0 && !(hiddenCount > 0);
 
   return (
-    <div className="container mx-auto py-2">
-      {isSearching ? (
-        <div className="text-center py-6">
-          <h2 className="text-2xl font-headline font-semibold">Search Results</h2>
-          <p className="text-muted-foreground">Found {searchResults.length} items for &quot;{query}&quot;</p>
-        </div>
-      ) : null}
+    <>
+      <div className="container mx-auto py-2">
+        {isSearching ? (
+          <div className="text-center py-6">
+            <h2 className="text-2xl font-headline font-semibold">Search Results</h2>
+            <p className="text-muted-foreground">Found {searchResults.length} items for &quot;{query}&quot;</p>
+          </div>
+        ) : null}
+
+        {noContentOnDashboard ? (
+          <div className="text-center py-12">
+            <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h2 className="text-xl font-medium text-muted-foreground">No content saved yet.</h2>
+            <p className="text-muted-foreground mt-2">Start by adding your first item!</p>
+            <div className="mt-16 flex flex-col items-center justify-center relative">
+              <svg
+                className="w-48 h-48 text-primary/70"
+                viewBox="0 0 100 100"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M85 15 C 60 50, 40 55, 45 85"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeDasharray="4 8"
+                  className="animate-pulse"
+                />
+                 <path
+                  d="M40 89L45 85L49 89"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <p className="mt-4 text-lg font-medium text-muted-foreground animate-pulse">
+                Click the <span className="text-primary font-semibold">+</span> button to begin!
+              </p>
+            </div>
+          </div>
+        ) : isSearching && contentToDisplay.length === 0 ? (
+           <div className="text-center py-12">
+            <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h2 className="text-xl font-medium text-muted-foreground">No items found.</h2>
+            <p className="text-muted-foreground mt-2">Try a different search term.</p>
+          </div>
+        ) : (
+          <div>
+            <div className={'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
+              {!isSearching && (
+                <>
+                  {todoItems.length > 0 ? (
+                    <TodoListCard
+                      items={todoItems}
+                      onToggleStatus={handleToggleTodoStatus}
+                      onDeleteItem={(id) => handleDeleteContent(id, 'todo')}
+                      isUpdatingStatus={isUpdatingTodoStatus}
+                      onAddTodoClick={handleAddTodoClick}
+                    />
+                  ) : (
+                    <Card 
+                      draggable="true"
+                      onDragStart={(e: React.DragEvent) => e.dataTransfer.setData('application/x-mati-internal', 'true')}
+                      className="shadow-lg flex flex-col w-full break-inside-avoid mb-4"
+                    >
+                        <CardContent className="p-6 flex-grow flex flex-col items-center justify-center text-center min-h-[150px]">
+                            <ListChecks className="h-10 w-10 text-muted-foreground mb-3" />
+                            <p className="font-medium text-foreground">You're all caught up!</p>
+                            <p className="text-sm text-muted-foreground">No pending tasks.</p>
+                        </CardContent>
+                        <div className="border-t p-2 flex-shrink-0">
+                            <Button
+                                variant="link"
+                                size="sm"
+                                className="w-full text-muted-foreground hover:text-primary"
+                                onClick={handleAddTodoClick}
+                            >
+                                <PlusCircle className="h-4 w-4 mr-2" />
+                                Add a task
+                            </Button>
+                        </div>
+                    </Card>
+                  )}
+                </>
+              )}
+
+              {contentToDisplay.map(item => (
+                <ContentCard
+                  key={item.id}
+                  item={item}
+                  onEdit={handleOpenDetailDialog}
+                  onDelete={(id) => handleDeleteContent(id, item.type)}
+                />
+              ))}
+            </div>
+            {!isSearching && (
+              <div ref={loaderRef} className="flex justify-center items-center h-16">
+                {isFetchingMore && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
+                {!hasMore && displayedItems.length > 0 && (
+                    <p className="text-muted-foreground">You've reached the end!</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {selectedItemIdForDetail && (
+          <ContentDetailDialog
+            itemId={selectedItemIdForDetail}
+            open={isDetailDialogOpen}
+            onOpenChange={(open) => {
+              setIsDetailDialogOpen(open);
+              if (!open) setSelectedItemIdForDetail(null);
+            }}
+            onItemUpdate={handleItemUpdateInDialog}
+          />
+        )}
+      </div>
 
       {hiddenCount > 0 && (
-        <Alert className="mb-6 border-primary/20 bg-primary/5 text-foreground">
-          <Zap className="h-4 w-4" />
-          <AlertTitle className="font-semibold">Content Limit Reached</AlertTitle>
-          <AlertDescription>
-            You have {hiddenCount} more {hiddenCount === 1 ? 'memory is' : 'memories are'} hidden. 
-            <Button variant="link" className="p-1 h-auto text-primary underline" onClick={() => toast({ title: 'Coming Soon!', description: 'Subscription management will be available shortly.' })}>Upgrade to access them</Button>.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {noContentOnDashboard ? (
-        <div className="text-center py-12">
-          <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h2 className="text-xl font-medium text-muted-foreground">No content saved yet.</h2>
-          <p className="text-muted-foreground mt-2">Start by adding your first item!</p>
-          <div className="mt-16 flex flex-col items-center justify-center relative">
-            <svg
-              className="w-48 h-48 text-primary/70"
-              viewBox="0 0 100 100"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M85 15 C 60 50, 40 55, 45 85"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeDasharray="4 8"
-                className="animate-pulse"
-              />
-               <path
-                d="M40 89L45 85L49 89"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <p className="mt-4 text-lg font-medium text-muted-foreground animate-pulse">
-              Click the <span className="text-primary font-semibold">+</span> button to begin!
-            </p>
-          </div>
-        </div>
-      ) : isSearching && contentToDisplay.length === 0 ? (
-         <div className="text-center py-12">
-          <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h2 className="text-xl font-medium text-muted-foreground">No items found.</h2>
-          <p className="text-muted-foreground mt-2">Try a different search term.</p>
-        </div>
-      ) : (
-        <div>
-          <div className={'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
-            {!isSearching && (
-              <>
-                {todoItems.length > 0 ? (
-                  <TodoListCard
-                    items={todoItems}
-                    onToggleStatus={handleToggleTodoStatus}
-                    onDeleteItem={(id) => handleDeleteContent(id, 'todo')}
-                    isUpdatingStatus={isUpdatingTodoStatus}
-                    onAddTodoClick={handleAddTodoClick}
-                  />
-                ) : (
-                  <Card 
-                    draggable="true"
-                    onDragStart={(e: React.DragEvent) => e.dataTransfer.setData('application/x-mati-internal', 'true')}
-                    className="shadow-lg flex flex-col w-full break-inside-avoid mb-4"
-                  >
-                      <CardContent className="p-6 flex-grow flex flex-col items-center justify-center text-center min-h-[150px]">
-                          <ListChecks className="h-10 w-10 text-muted-foreground mb-3" />
-                          <p className="font-medium text-foreground">You're all caught up!</p>
-                          <p className="text-sm text-muted-foreground">No pending tasks.</p>
-                      </CardContent>
-                      <div className="border-t p-2 flex-shrink-0">
-                          <Button
-                              variant="link"
-                              size="sm"
-                              className="w-full text-muted-foreground hover:text-primary"
-                              onClick={handleAddTodoClick}
-                          >
-                              <PlusCircle className="h-4 w-4 mr-2" />
-                              Add a task
-                          </Button>
-                      </div>
-                  </Card>
-                )}
-              </>
-            )}
-
-            {contentToDisplay.map(item => (
-              <ContentCard
-                key={item.id}
-                item={item}
-                onEdit={handleOpenDetailDialog}
-                onDelete={(id) => handleDeleteContent(id, item.type)}
-              />
-            ))}
-          </div>
-          {!isSearching && (
-            <div ref={loaderRef} className="flex justify-center items-center h-16">
-              {isFetchingMore && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
-              {!hasMore && displayedItems.length > 0 && (
-                  <p className="text-muted-foreground">You've reached the end!</p>
-              )}
+        <div className="fixed bottom-24 right-6 z-40 max-w-sm rounded-lg border bg-background p-4 shadow-lg animate-in fade-in-0 slide-in-from-bottom-2">
+            <div className="flex items-start gap-3">
+                <div className="mt-1 flex-shrink-0">
+                  <Zap className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-grow">
+                    <p className="font-semibold text-foreground">Content Limit Reached</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        You have {hiddenCount} more {hiddenCount === 1 ? 'memory' : 'memories'} hidden.
+                        <Button variant="link" className="p-0 h-auto ml-1 text-primary underline" onClick={() => toast({ title: 'Coming Soon!', description: 'Subscription management will be available shortly.' })}>
+                          Upgrade to access
+                        </Button>.
+                    </p>
+                </div>
             </div>
-          )}
         </div>
       )}
-
-      {selectedItemIdForDetail && (
-        <ContentDetailDialog
-          itemId={selectedItemIdForDetail}
-          open={isDetailDialogOpen}
-          onOpenChange={(open) => {
-            setIsDetailDialogOpen(open);
-            if (!open) setSelectedItemIdForDetail(null);
-          }}
-          onItemUpdate={handleItemUpdateInDialog}
-        />
-      )}
-    </div>
+    </>
   );
 }
 
