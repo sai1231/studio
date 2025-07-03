@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -69,8 +70,7 @@ export default function DeclutterPage() {
     setIsLoading(true);
     try {
       const allItems = await getContentItems(user.uid);
-      const nonTodoItems = allItems.filter(item => item.type !== 'todo');
-      const sortedItems = nonTodoItems.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      const sortedItems = allItems.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
       setItemsToDeclutter(sortedItems);
       setInitialItemCount(sortedItems.length);
     } catch (error) {

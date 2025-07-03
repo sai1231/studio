@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import type React from 'react';
@@ -17,23 +18,22 @@ import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, ListChecks, Loader2, AlarmClock } from 'lucide-react';
-import type { ContentItem, Zone } from '@/types';
+import type { Task, TaskList } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { format, isPast } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
-import { getContentItems, updateContentItem } from '@/services/contentService';
+import { subscribeToTaskList, updateTaskList } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
+import { Unsubscribe } from 'firebase/firestore';
 
 interface AddTodoDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  zones: Zone[];
-  onTodoAdd: (newTodoData: Omit<ContentItem, 'id' | 'createdAt'>) => Promise<void>;
 }
 
-const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange, zones, onTodoAdd }) => {
+const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange }) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [todoTitle, setTodoTitle] = useState('');
@@ -41,45 +41,32 @@ const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange, zones
   const [isAdding, setIsAdding] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
-  const [displayedTodos, setDisplayedTodos] = useState<ContentItem[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoadingTodos, setIsLoadingTodos] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
 
-  const fetchLocalTodos = useCallback(async () => {
-    if (!user) return;
-    setIsLoadingTodos(true);
-    try {
-      const allContent = await getContentItems(user.uid);
-      const todoItems = allContent
-        .filter(item => item.type === 'todo')
-        .sort((a, b) => {
-            if (a.status === 'pending' && b.status === 'completed') return -1;
-            if (a.status === 'completed' && b.status === 'pending') return 1;
-            if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-            if (a.dueDate && !b.dueDate) return -1;
-            if (!a.dueDate && b.dueDate) return 1;
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        });
-      setDisplayedTodos(todoItems);
-    } catch (error) {
-      console.error('Error fetching TODOs for dialog:', error);
-      toast({ title: "Error", description: "Could not load TODOs.", variant: "destructive" });
-    } finally {
-      setIsLoadingTodos(false);
-    }
-  }, [toast, user]);
-
   useEffect(() => {
-    if (open && user) {
-      fetchLocalTodos();
-      // Only reset fields if not in the middle of adding, to preserve input on re-renders
-      if (!isAdding) {
+    if (!open || !user) return;
+    
+    setIsLoadingTodos(true);
+    const unsubscribe = subscribeToTaskList(user.uid, (taskList, error) => {
+        if (error) {
+            console.error('Error subscribing to tasks in dialog:', error);
+            toast({ title: "Error", description: "Could not load TODOs.", variant: "destructive" });
+        } else if (taskList) {
+            setTasks(taskList.tasks);
+        }
+        setIsLoadingTodos(false);
+    });
+
+    if (!isAdding) {
         setTodoTitle('');
         setSelectedDueDate(undefined);
-      }
-      setTimeout(() => titleInputRef.current?.focus(), 100);
     }
-  }, [open, user, fetchLocalTodos, isAdding]);
+    setTimeout(() => titleInputRef.current?.focus(), 100);
+
+    return () => unsubscribe();
+  }, [open, user, toast, isAdding]);
 
   const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
@@ -94,57 +81,42 @@ const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange, zones
     }
     setIsAdding(true);
 
-    const defaultZoneId = zones.length > 0 ? zones[0].id : undefined;
-
-    const newTodoData: Omit<ContentItem, 'id' | 'createdAt'> = {
-      type: 'todo',
-      title: todoTitle.trim(),
-      description: '',
-      tags: [],
-      zoneId: defaultZoneId,
-      contentType: 'Task',
-      status: 'pending',
-      dueDate: selectedDueDate ? selectedDueDate.toISOString() : undefined,
-      userId: user.uid,
+    const newTask: Task = {
+        id: Date.now().toString(),
+        title: todoTitle.trim(),
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        dueDate: selectedDueDate?.toISOString()
     };
+    
+    const updatedTasks = [newTask, ...tasks];
 
     try {
-      await onTodoAdd(newTodoData); // This calls the layout's function to save globally
-      setTodoTitle(''); // Clear title
-      setSelectedDueDate(undefined); // Clear due date
-      titleInputRef.current?.focus(); // Refocus title input
-      await fetchLocalTodos(); // Re-fetch to update the list inside the dialog
+      await updateTaskList(user.uid, updatedTasks);
+      setTodoTitle(''); 
+      setSelectedDueDate(undefined);
+      titleInputRef.current?.focus(); 
     } catch (error) {
-      // Error toast is (or should be) handled by the onTodoAdd function in the layout
       console.error('Error in AddTodoDialog handleSubmit during onTodoAdd:', error);
+      toast({ title: "Error", description: "Could not save your new task.", variant: "destructive" });
     } finally {
       setIsAdding(false);
     }
   };
 
-  const handleToggleTodoStatusInDialog = async (todoId: string, currentStatus: 'pending' | 'completed' | undefined) => {
-    if (isUpdatingStatus === todoId) return;
-    setIsUpdatingStatus(todoId);
-    const newStatus = (currentStatus === 'completed') ? 'pending' : 'completed';
-
-    setDisplayedTodos(prevTodos =>
-      prevTodos.map(todo =>
-        todo.id === todoId ? { ...todo, status: newStatus } : todo
-      )
+  const handleToggleTodoStatusInDialog = async (taskId: string) => {
+    if (!user || isUpdatingStatus === taskId) return;
+    setIsUpdatingStatus(taskId);
+    
+    const newTasks = tasks.map(t =>
+      t.id === taskId ? { ...t, status: t.status === 'completed' ? 'pending' : 'completed' } : t
     );
-
+    
     try {
-      await updateContentItem(todoId, { status: newStatus });
-      // Optionally, call fetchLocalTodos() again if global updates might affect sort order or other properties
-      // For now, local optimistic update is primary for responsiveness.
+      await updateTaskList(user.uid, newTasks);
     } catch (error) {
       console.error('Error updating TODO status in dialog:', error);
       toast({ title: "Error", description: "Could not update TODO status.", variant: "destructive" });
-      setDisplayedTodos(prevTodos =>
-        prevTodos.map(todo =>
-          todo.id === todoId ? { ...todo, status: currentStatus } : todo // Revert
-        )
-      );
     } finally {
       setIsUpdatingStatus(null);
     }
@@ -208,45 +180,45 @@ const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange, zones
             <div className="flex justify-center items-center py-10">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : displayedTodos.length === 0 ? (
+          ) : tasks.length === 0 ? (
             <p className="text-center text-muted-foreground py-6">No TODOs yet. Add your first one!</p>
           ) : (
             <div className="space-y-2.5">
-              {displayedTodos.map(todo => (
-                <div key={todo.id} className="flex items-center gap-3 p-2.5 rounded-md border hover:bg-muted/50 transition-colors">
+              {tasks.map(task => (
+                <div key={task.id} className="flex items-center gap-3 p-2.5 rounded-md border hover:bg-muted/50 transition-colors">
                   <Checkbox
-                    id={`dialog-todo-${todo.id}`}
-                    checked={todo.status === 'completed'}
-                    onCheckedChange={() => handleToggleTodoStatusInDialog(todo.id, todo.status)}
-                    disabled={isUpdatingStatus === todo.id}
-                    aria-labelledby={`dialog-todo-label-${todo.id}`}
+                    id={`dialog-todo-${task.id}`}
+                    checked={task.status === 'completed'}
+                    onCheckedChange={() => handleToggleTodoStatusInDialog(task.id)}
+                    disabled={isUpdatingStatus === task.id}
+                    aria-labelledby={`dialog-todo-label-${task.id}`}
                     className="shrink-0"
                   />
                   <div className="flex-grow min-w-0">
                     <Label
-                      htmlFor={`dialog-todo-${todo.id}`}
-                      id={`dialog-todo-label-${todo.id}`}
+                      htmlFor={`dialog-todo-${task.id}`}
+                      id={`dialog-todo-label-${task.id}`}
                       className={cn(
                         "font-medium text-foreground cursor-pointer break-words",
-                        todo.status === 'completed' && "line-through text-muted-foreground"
+                        task.status === 'completed' && "line-through text-muted-foreground"
                       )}
                     >
-                      {todo.title}
+                      {task.title}
                     </Label>
-                    {todo.dueDate && (
+                    {task.dueDate && (
                       <div className="text-xs text-muted-foreground flex items-center mt-0.5">
                         <AlarmClock className={cn(
                             "h-3.5 w-3.5 mr-1",
-                            todo.status !== 'completed' && isPast(new Date(todo.dueDate)) ? "text-destructive" : "text-muted-foreground/80"
+                            task.status !== 'completed' && isPast(new Date(task.dueDate)) ? "text-destructive" : "text-muted-foreground/80"
                           )}
                         />
-                        <span className={cn(todo.status !== 'completed' && isPast(new Date(todo.dueDate)) ? "text-destructive font-semibold" : "")}>
-                           {format(new Date(todo.dueDate), 'MMM d, yy')}
+                        <span className={cn(task.status !== 'completed' && isPast(new Date(task.dueDate)) ? "text-destructive font-semibold" : "")}>
+                           {format(new Date(task.dueDate), 'MMM d, yy')}
                         </span>
                       </div>
                     )}
                   </div>
-                   {isUpdatingStatus === todo.id && <Loader2 className="h-5 w-5 animate-spin text-primary ml-auto shrink-0" />}
+                   {isUpdatingStatus === task.id && <Loader2 className="h-5 w-5 animate-spin text-primary ml-auto shrink-0" />}
                 </div>
               ))}
             </div>

@@ -1,11 +1,12 @@
 
+
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ContentCard from '@/components/core/link-card';
 import ContentDetailDialog from '@/components/core/ContentDetailDialog';
-import type { ContentItem, Zone as AppZone } from '@/types';
+import type { ContentItem, AppZone, Task } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -13,13 +14,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { PlusCircle, Loader2, FolderOpen, ListChecks, AlarmClock, Clapperboard, MessagesSquare, FileImage, Globe, BookOpen, StickyNote, Github, FileText, Trash2, Search as SearchIcon, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getContentItems, getContentItemsPaginated, getTodoItems, deleteContentItem, getZones, updateContentItem, getContentCount } from '@/services/contentService';
+import { getContentItemsPaginated, deleteContentItem, updateTaskList, getContentCount, subscribeToTaskList } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
 import { cn } from '@/lib/utils';
 import { format, isPast } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import type { DocumentSnapshot } from 'firebase/firestore';
+import type { DocumentSnapshot, Unsubscribe } from 'firebase/firestore';
 import { useSearch } from '@/context/SearchContext';
 
 const pageLoadingMessages = [
@@ -30,12 +31,12 @@ const pageLoadingMessages = [
 ];
 
 const TodoListCard: React.FC<{
-  items: ContentItem[];
-  onToggleStatus: (itemId: string, currentStatus: 'pending' | 'completed' | undefined) => void;
-  onDeleteItem: (itemId: string) => void;
+  tasks: Task[];
+  onToggleStatus: (taskId: string) => void;
+  onDeleteItem: (taskId: string) => void;
   isUpdatingStatus: string | null;
   onAddTodoClick: () => void;
-}> = ({ items, onToggleStatus, onDeleteItem, isUpdatingStatus, onAddTodoClick }) => {
+}> = ({ tasks, onToggleStatus, onDeleteItem, isUpdatingStatus, onAddTodoClick }) => {
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('application/x-mati-internal', 'true');
   };
@@ -49,41 +50,41 @@ const TodoListCard: React.FC<{
       <CardContent className="p-0 flex-grow">
         <ScrollArea className="max-h-96 p-4">
           <div className="space-y-2">
-            {items.map(todo => (
-              <div key={todo.id} className="group flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+            {tasks.map(task => (
+              <div key={task.id} className="group flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
                 <Checkbox
-                  id={`dialog-todo-${todo.id}`}
-                  checked={todo.status === 'completed'}
-                  onCheckedChange={() => onToggleStatus(todo.id, todo.status)}
-                  disabled={isUpdatingStatus === todo.id}
-                  aria-labelledby={`dialog-todo-label-${todo.id}`}
+                  id={`dialog-todo-${task.id}`}
+                  checked={task.status === 'completed'}
+                  onCheckedChange={() => onToggleStatus(task.id)}
+                  disabled={isUpdatingStatus === task.id}
+                  aria-labelledby={`dialog-todo-label-${task.id}`}
                   className="shrink-0 mt-1"
                 />
                 <div className="flex-grow min-w-0">
                   <Label
-                    htmlFor={`dialog-todo-${todo.id}`}
-                    id={`dialog-todo-label-${todo.id}`}
+                    htmlFor={`dialog-todo-${task.id}`}
+                    id={`dialog-todo-label-${task.id}`}
                     className={cn(
                       "font-medium text-foreground cursor-pointer break-words",
-                      todo.status === 'completed' && "line-through text-muted-foreground"
+                      task.status === 'completed' && "line-through text-muted-foreground"
                     )}
                   >
-                    {todo.title}
+                    {task.title}
                   </Label>
-                  {todo.dueDate && (
+                  {task.dueDate && (
                     <div className="text-xs text-muted-foreground flex items-center mt-1.5">
                       <AlarmClock className={cn(
                           "h-3.5 w-3.5 mr-1.5",
-                          todo.status !== 'completed' && isPast(new Date(todo.dueDate)) ? "text-destructive" : "text-muted-foreground/80"
+                          task.status !== 'completed' && isPast(new Date(task.dueDate)) ? "text-destructive" : "text-muted-foreground/80"
                         )}
                       />
-                      <span className={cn(todo.status !== 'completed' && isPast(new Date(todo.dueDate)) ? "text-destructive font-semibold" : "")}>
-                         {format(new Date(todo.dueDate), 'MMM d, yy')}
+                      <span className={cn(task.status !== 'completed' && isPast(new Date(task.dueDate)) ? "text-destructive font-semibold" : "")}>
+                         {format(new Date(task.dueDate), 'MMM d, yy')}
                       </span>
                     </div>
                   )}
                 </div>
-                 {isUpdatingStatus === todo.id ? (
+                 {isUpdatingStatus === task.id ? (
                   <Loader2 className="h-5 w-5 animate-spin text-primary ml-auto shrink-0" />
                  ) : (
                   <TooltipProvider>
@@ -94,8 +95,8 @@ const TodoListCard: React.FC<{
                           size="icon"
                           className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-card-foreground hover:bg-primary hover:text-primary-foreground ml-auto shrink-0"
                           onClick={(e) => {
-                            e.stopPropagation(); // prevent card's onEdit from firing
-                            onDeleteItem(todo.id);
+                            e.stopPropagation(); 
+                            onDeleteItem(task.id);
                           }}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -140,7 +141,7 @@ function DashboardPageContent() {
 
   // Dashboard state (for non-search view)
   const [displayedItems, setDisplayedItems] = useState<ContentItem[]>([]);
-  const [todoItems, setTodoItems] = useState<ContentItem[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [lastVisibleDoc, setLastVisibleDoc] = useState<DocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
@@ -161,24 +162,9 @@ function DashboardPageContent() {
   // Effect to trigger search when query changes
   useEffect(() => {
     if (isInitialized && isSearching) {
-      search(query, {}); // Empty filters for now
+      search(query, {}); 
     }
   }, [query, isInitialized, search, isSearching]);
-
-  const fetchTodos = useCallback(async (userId: string) => {
-    try {
-      const todos = await getTodoItems(userId);
-      setTodoItems(todos.sort((a, b) => {
-        if (a.status === 'pending' && b.status === 'completed') return -1;
-        if (a.status === 'completed' && b.status === 'pending') return 1;
-        if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      }));
-    } catch (err) {
-      console.error("Error fetching todos:", err);
-      toast({ title: "Error", description: "Could not fetch your tasks.", variant: "destructive" });
-    }
-  }, [toast]);
   
   const fetchMoreContent = useCallback(async (userId: string) => {
     if (!hasMore || isFetchingMore) return;
@@ -219,21 +205,27 @@ function DashboardPageContent() {
     if (!user) {
       setIsLoading(false);
       setDisplayedItems([]);
-      setTodoItems([]);
+      setTasks([]);
       return;
     }
 
     setIsLoading(true);
     setError(null);
     setDisplayedItems([]);
-    setTodoItems([]);
+    setTasks([]);
     setLastVisibleDoc(null);
     setHasMore(true);
     setTotalContentCount(null);
-
+    
+    let taskUnsubscribe: Unsubscribe;
+    
     const initialFetch = async () => {
       try {
-        await fetchTodos(user.uid);
+        taskUnsubscribe = subscribeToTaskList(user.uid, (taskList) => {
+          if (taskList) {
+            setTasks(taskList.tasks);
+          }
+        });
         
         if (!role?.features) {
           setHasMore(false);
@@ -249,10 +241,8 @@ function DashboardPageContent() {
             setTotalContentCount(0);
         } else if (contentLimit > 0) {
             setHasMore(false);
-            const [limitedItems, totalCount] = await Promise.all([
-              getContentItems(user.uid, contentLimit),
-              getContentCount(user.uid)
-            ]);
+            const limitedItems = await getContentItems(user.uid, contentLimit);
+            const totalCount = await getContentCount(user.uid);
             setDisplayedItems(limitedItems);
             setTotalContentCount(totalCount);
         } else {
@@ -270,26 +260,17 @@ function DashboardPageContent() {
     };
 
     initialFetch();
+    
+    return () => {
+        if(taskUnsubscribe) taskUnsubscribe();
+    }
 
-  }, [user, role, fetchTodos, isSearching, isAuthLoading]);
+  }, [user, role, isSearching, isAuthLoading]);
   
   // Effect to add newly created items to the view
   useEffect(() => {
     if (newlyAddedItem) {
-      if (newlyAddedItem.type === 'todo') {
-        setTodoItems(prevItems => 
-          [newlyAddedItem, ...prevItems].sort((a, b) => {
-            if (a.status === 'pending' && b.status === 'completed') return -1;
-            if (a.status === 'completed' && b.status === 'pending') return 1;
-            if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-            if (a.dueDate && !b.dueDate) return -1;
-            if (!a.dueDate && b.dueDate) return 1;
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-          })
-        );
-      } else {
-        setDisplayedItems(prevItems => [newlyAddedItem, ...prevItems]);
-      }
+      setDisplayedItems(prevItems => [newlyAddedItem, ...prevItems]);
       setNewlyAddedItem(null);
     }
   }, [newlyAddedItem, setNewlyAddedItem]);
@@ -325,12 +306,8 @@ function DashboardPageContent() {
     setDisplayedItems(prevItems => prevItems.map(item => item.id === updatedItem.id ? updatedItem : item));
   };
 
-  const handleDeleteContent = async (itemId: string, itemType: ContentItem['type']) => {
-    if(itemType === 'todo') {
-      setTodoItems(prevItems => prevItems.filter(item => item.id !== itemId));
-    } else {
-      setDisplayedItems(prevItems => prevItems.filter(item => item.id !== itemId));
-    }
+  const handleDeleteContent = async (itemId: string) => {
+    setDisplayedItems(prevItems => prevItems.filter(item => item.id !== itemId));
     const {id: toastId} = toast({ title: "Deleting Item...", description: "Removing content item."});
     try {
       await deleteContentItem(itemId);
@@ -341,26 +318,40 @@ function DashboardPageContent() {
     }
   };
 
-  const handleToggleTodoStatus = async (todoId: string, currentStatus: 'pending' | 'completed' | undefined) => {
-    if (isUpdatingTodoStatus === todoId) return;
-    setIsUpdatingTodoStatus(todoId);
-    const newStatus = (currentStatus === 'completed') ? 'pending' : 'completed';
+  const handleToggleTodoStatus = async (taskId: string) => {
+    if (!user || isUpdatingTodoStatus === taskId) return;
+    setIsUpdatingTodoStatus(taskId);
 
-    setTodoItems(prevAllItems =>
-      prevAllItems.map(item =>
-        item.id === todoId ? { ...item, status: newStatus } : item
-      )
+    const updatedTasks = tasks.map(t => 
+        t.id === taskId ? { ...t, status: t.status === 'completed' ? 'pending' : 'completed' } : t
     );
+    setTasks(updatedTasks); // Optimistic update
 
     try {
-      await updateContentItem(todoId, { status: newStatus });
+      await updateTaskList(user.uid, updatedTasks);
     } catch (error) {
-      console.error('Error updating TODO status from dashboard:', error);
-      toast({ title: "Error", description: "Could not update TODO status.", variant: "destructive" });
+      console.error('Error updating task status:', error);
+      toast({ title: "Error", description: "Could not update task status. Reverting.", variant: "destructive" });
+      setTasks(tasks); // Revert on failure
     } finally {
       setIsUpdatingTodoStatus(null);
     }
   };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if(!user) return;
+    const originalTasks = tasks;
+    const newTasks = tasks.filter(t => t.id !== taskId);
+    setTasks(newTasks);
+    try {
+        await updateTaskList(user.uid, newTasks);
+        toast({title: "Task Deleted", description: "The task has been removed."})
+    } catch(e) {
+        console.error('Error deleting task:', e);
+        toast({title: "Error Deleting", description: "Could not delete task. Reverting.", variant: "destructive"});
+        setTasks(originalTasks);
+    }
+  }
   
   useEffect(() => {
     setClientLoadingMessage(pageLoadingMessages[Math.floor(Math.random() * pageLoadingMessages.length)]);
@@ -394,7 +385,7 @@ function DashboardPageContent() {
     ? totalContentCount - displayedItems.length
     : 0;
 
-  const noContentOnDashboard = !isSearching && displayedItems.length === 0 && todoItems.length === 0 && !(hiddenCount > 0);
+  const noContentOnDashboard = !isSearching && displayedItems.length === 0 && tasks.length === 0 && !(hiddenCount > 0);
 
   return (
     <>
@@ -451,11 +442,11 @@ function DashboardPageContent() {
             <div className={'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
               {!isSearching && (
                 <>
-                  {todoItems.length > 0 ? (
+                  {tasks.length > 0 ? (
                     <TodoListCard
-                      items={todoItems}
+                      tasks={tasks}
                       onToggleStatus={handleToggleTodoStatus}
-                      onDeleteItem={(id) => handleDeleteContent(id, 'todo')}
+                      onDeleteItem={handleDeleteTask}
                       isUpdatingStatus={isUpdatingTodoStatus}
                       onAddTodoClick={handleAddTodoClick}
                     />
@@ -491,7 +482,7 @@ function DashboardPageContent() {
                   key={item.id}
                   item={item}
                   onEdit={handleOpenDetailDialog}
-                  onDelete={(id) => handleDeleteContent(id, item.type)}
+                  onDelete={handleDeleteContent}
                 />
               ))}
             </div>

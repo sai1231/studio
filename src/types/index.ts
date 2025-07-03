@@ -1,4 +1,5 @@
 
+
 export interface Tag {
   id: string;
   name: string;
@@ -10,7 +11,7 @@ export interface Zone {
   icon?: string; 
 }
 
-export type ContentItemType = 'link' | 'note' | 'image' | 'todo' | 'voice' | 'movie'; // Added 'movie'
+export type ContentItemType = 'link' | 'note' | 'image' | 'voice' | 'movie'; // Removed 'todo'
 
 // This is the new Role interface which now includes features
 export interface Role {
@@ -47,12 +48,11 @@ export interface ContentItem {
   zoneId?: string;
   userId?: string;
   createdAt: string; // ISO date string
-  dueDate?: string; // ISO date string for TODO due dates
   expiresAt?: string; // ISO date string for when the content should be deleted
   domain?: string;
   contentType?: string;
   movieDetails?: MovieDetails; // Added for movie type
-  status?: 'pending' | 'completed' | 'pending-analysis';
+  status?: 'pending-analysis'; // Status is now only for content enrichment
   colorPalette?: string[];
 }
 
@@ -76,3 +76,18 @@ export type LinkItem = ContentItem & {
   type: 'link';
   url: string;
 };
+
+// New types for the single Task List document model
+export interface Task {
+  id: string;
+  title: string;
+  status: 'pending' | 'completed';
+  createdAt: string; // ISO date string
+  dueDate?: string; // ISO date string
+}
+
+export interface TaskList {
+  id: string;
+  userId: string;
+  tasks: Task[];
+}

@@ -1,10 +1,11 @@
 
+
 'use client';
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ExternalLink, Trash2, Globe, StickyNote, FileImage, ListChecks, Mic, Landmark, PlayCircle, Film, Github, Youtube, Twitter } from 'lucide-react';
+import { ExternalLink, Trash2, Globe, StickyNote, FileImage, Mic, Landmark, PlayCircle, Film, Github, Youtube, Twitter } from 'lucide-react';
 import type { ContentItem } from '@/types';
 import { cn } from '@/lib/utils';
 import { format, isSameYear, parseISO } from 'date-fns';
@@ -37,8 +38,6 @@ const getTypeSpecifics = (item: ContentItem) => {
       return { icon: StickyNote, color: 'yellow', iconRing: 'ring-yellow-500/30', iconText: 'text-yellow-600 dark:text-yellow-400' };
     case 'image':
       return { icon: FileImage, color: 'gray', iconRing: 'ring-gray-500/30', iconText: 'text-gray-600 dark:text-gray-400' };
-    case 'todo':
-      return { icon: ListChecks, color: 'green', iconRing: 'ring-emerald-500/30', iconText: 'text-emerald-600 dark:text-emerald-400' };
     case 'voice':
       return { icon: Mic, color: 'purple', iconRing: 'ring-purple-500/30', iconText: 'text-purple-600 dark:text-purple-400' };
     case 'movie':

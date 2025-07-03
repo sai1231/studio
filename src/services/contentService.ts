@@ -1,4 +1,5 @@
 
+
 import { db, storage } from '@/lib/firebase';
 import {
   collection,
@@ -17,15 +18,17 @@ import {
   limit,
   startAfter,
   type DocumentSnapshot,
+  setDoc,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { ContentItem, Zone, Tag, MovieDetails, SearchFilters } from '@/types';
+import type { ContentItem, Zone, Tag, MovieDetails, SearchFilters, TaskList, Task } from '@/types';
 import { enrichContent } from '@/ai/flows/enrich-content-flow';
 import { addLog } from '@/services/loggingService';
 
 // Firestore collection references
 const contentCollection = collection(db, 'content');
 const zonesCollection = collection(db, 'zones');
+const taskListsCollection = collection(db, 'taskLists');
 
 // --- ContentItem Functions ---
 
@@ -46,7 +49,6 @@ export async function getContentItemsPaginated({
     
     const queryConstraints: any[] = [
       where('userId', '==', userId),
-      where('type', '!=', 'todo'), // Exclude todos from main feed
       orderBy('createdAt', 'desc'),
       limit(pageSize),
     ];
@@ -77,38 +79,13 @@ export async function getContentItemsPaginated({
   }
 }
 
-export async function getTodoItems(userId: string): Promise<ContentItem[]> {
-  try {
-    if (!userId) {
-        console.warn("getTodoItems called without a userId. Returning empty array.");
-        return [];
-    }
-    const q = query(contentCollection, where("userId", "==", userId), where("type", "==", "todo"));
-    const querySnapshot = await getDocs(q);
-    const items: ContentItem[] = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      const createdAt = data.createdAt;
-      items.push({
-        id: doc.id,
-        ...data,
-        createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : new Date().toISOString(),
-      } as ContentItem);
-    });
-    return items;
-  } catch (error) {
-    console.error("Failed to get todo items from Firestore:", error);
-    throw error;
-  }
-}
-
 export async function getContentCount(userId: string): Promise<number> {
   try {
     if (!userId) {
       console.warn('getContentCount called without a userId.');
       return 0;
     }
-    const q = query(contentCollection, where('userId', '==', userId), where('type', '!=', 'todo'));
+    const q = query(contentCollection, where('userId', '==', userId));
     const querySnapshot = await getDocs(q);
     return querySnapshot.size;
   } catch (error) {
@@ -231,7 +208,6 @@ export async function addContentItem(
     const dataToSave: { [key: string]: any } = { ...itemData };
     dataToSave.createdAt = Timestamp.fromDate(new Date());
 
-    // Set initial status for enrichment for links, images, voice notes and PDFs.
     if (['link', 'image', 'voice', 'note'].includes(dataToSave.type) || (dataToSave.type === 'link' && dataToSave.contentType === 'PDF')) {
       dataToSave.status = 'pending-analysis';
     }
@@ -258,9 +234,7 @@ export async function addContentItem(
       createdAt: (dataToSave.createdAt as Timestamp).toDate().toISOString(),
     };
 
-    // After successfully adding the document, trigger the enrichment flow asynchronously
     if (dataToSave.status === 'pending-analysis') {
-      // We do not await this. Let it run in the background.
       enrichContent(docRef.id).catch(err => {
         console.error(`Failed to trigger enrichment for ${docRef.id}:`, err);
       });
@@ -292,16 +266,9 @@ export async function updateContentItem(
   try {
     const docRef = doc(db, 'content', itemId);
     const updateData: { [key: string]: any } = { ...updates };
-
-    if (updateData.dueDate === null) {
-      // Handle removal if needed
-    } else if (updateData.dueDate) {
-      updateData.dueDate = updateData.dueDate;
-    }
     
-    // Allow explicitly setting expiresAt to undefined to remove it
     if (Object.prototype.hasOwnProperty.call(updates, 'expiresAt') && updates.expiresAt === undefined) {
-        updateData.expiresAt = null; // Use null to delete the field
+        updateData.expiresAt = null; 
     }
 
     await updateDoc(docRef, updateData);
@@ -312,6 +279,67 @@ export async function updateContentItem(
     throw error;
   }
 }
+
+
+// --- TaskList Functions ---
+
+export async function getOrCreateTaskList(userId: string): Promise<TaskList> {
+  const docRef = doc(taskListsCollection, userId);
+  const docSnap = await getDoc(docRef);
+
+  if (docSnap.exists()) {
+    return { id: docSnap.id, ...docSnap.data() } as TaskList;
+  } else {
+    const newTaskList: Omit<TaskList, 'id'> = {
+      userId: userId,
+      tasks: [],
+    };
+    await setDoc(docRef, newTaskList);
+    return { id: userId, ...newTaskList };
+  }
+}
+
+export async function updateTaskList(userId: string, tasks: Task[]): Promise<void> {
+  const docRef = doc(taskListsCollection, userId);
+  const sortedTasks = tasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  await updateDoc(docRef, { tasks: sortedTasks });
+}
+
+export function subscribeToTaskList(
+  userId: string,
+  callback: (taskList: TaskList | null, error?: any) => void
+): Unsubscribe {
+  if (!userId) {
+    callback(null);
+    return () => {};
+  }
+  const docRef = doc(taskListsCollection, userId);
+  const unsubscribe = onSnapshot(docRef, (docSnap) => {
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      const sortedTasks = (data.tasks as Task[]).sort((a, b) => {
+          if (a.status === 'pending' && b.status === 'completed') return -1;
+          if (a.status === 'completed' && b.status === 'pending') return 1;
+          if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+          if (a.dueDate && !b.dueDate) return -1;
+          if (!a.dueDate && b.dueDate) return 1;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+      callback({ id: docSnap.id, userId, tasks: sortedTasks });
+    } else {
+      // Document doesn't exist, create it and then callback
+      getOrCreateTaskList(userId).then(newTaskList => {
+        // The listener will pick up this creation, so we can just callback with the new list
+        // No need to manually call callback here as the listener will fire.
+      }).catch(err => callback(null, err));
+    }
+  }, (error) => {
+    console.error("Failed to subscribe to task list:", error);
+    callback(null, error);
+  });
+  return unsubscribe;
+}
+
 
 // --- Zone Functions ---
 
