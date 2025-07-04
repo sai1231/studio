@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -7,17 +8,21 @@ import { Button } from '@/components/ui/button';
 import { useDialog } from '@/context/DialogContext';
 import { cn } from '@/lib/utils';
 
-const navItems = [
-  { href: '/dashboard', label: 'Home', icon: Home },
-  { href: '/zones', label: 'Zones', icon: Bookmark },
-  { isFab: true },
-  { href: '/tags', label: 'Tags', icon: Tag },
-  { href: '/content-types', label: 'Types', icon: ClipboardList },
-];
+interface MobileNavProps {
+  onNavClick: (sheet: 'zones' | 'tags' | 'types') => void;
+}
 
-export function MobileNav() {
+export function MobileNav({ onNavClick }: MobileNavProps) {
   const pathname = usePathname();
   const { setIsAddContentDialogOpen } = useDialog();
+
+  const navItems = [
+    { key: 'home', label: 'Home', icon: Home, href: '/dashboard' },
+    { key: 'zones', label: 'Zones', icon: Bookmark, sheet: 'zones' },
+    { key: 'fab', isFab: true },
+    { key: 'tags', label: 'Tags', icon: Tag, sheet: 'tags' },
+    { key: 'types', label: 'Types', icon: ClipboardList, sheet: 'types' },
+  ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 block border-t bg-background/95 backdrop-blur-sm md:hidden">
@@ -37,20 +42,37 @@ export function MobileNav() {
               </div>
             );
           }
-          
-          const isActive = pathname === item.href;
 
-          return (
-            <Link key={item.href} href={item.href!} legacyBehavior>
-              <a className={cn(
-                "flex flex-col items-center justify-center gap-1 text-xs font-medium text-muted-foreground transition-colors",
-                isActive ? "text-primary" : "hover:text-primary"
-              )}>
+          const isActive = 'href' in item && pathname === item.href;
+
+          if ('href' in item) {
+            return (
+              <Link key={item.key} href={item.href!} legacyBehavior>
+                <a className={cn(
+                  "flex flex-col items-center justify-center gap-1 text-xs font-medium text-muted-foreground transition-colors",
+                  isActive ? "text-primary" : "hover:text-primary"
+                )}>
+                  <item.icon className="h-5 w-5" />
+                  <span>{item.label}</span>
+                </a>
+              </Link>
+            );
+          }
+          
+          if ('sheet' in item) {
+            return (
+              <button
+                key={item.key}
+                onClick={() => onNavClick(item.sheet as 'zones' | 'tags' | 'types')}
+                className="flex flex-col items-center justify-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-primary"
+              >
                 <item.icon className="h-5 w-5" />
                 <span>{item.label}</span>
-              </a>
-            </Link>
-          );
+              </button>
+            )
+          }
+
+          return null;
         })}
       </div>
     </nav>

@@ -1,20 +1,15 @@
+
 'use client';
 import type React from 'react';
-import { useState, useEffect } from 'react';
 import { Home, Tag, LogOut, Globe, ClipboardList, Bookmark, Newspaper, Film, Github, MessagesSquare, BookOpen, LucideIcon, StickyNote, Sparkles, Shield, Brain } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import type { Zone, Tag as TagType } from '@/types';
 import { ThemeToggle } from './theme-toggle';
-import { subscribeToZones, subscribeToContentItems, getUniqueDomainsFromItems, getUniqueContentTypesFromItems, getUniqueTagsFromItems } from '@/services/contentService';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 import { getAuth, signOut } from 'firebase/auth';
-import { useAuth } from '@/context/AuthContext';
-
 
 const predefinedContentTypes: Record<string, { icon: LucideIcon, name: string }> = {
   Post: { icon: Newspaper, name: 'Post' },
@@ -64,51 +59,17 @@ const HoverNavButton = ({ icon: Icon, label, children }: { icon: React.ElementTy
     </HoverCard>
 );
 
+interface AppSidebarProps {
+    zones: Zone[];
+    tags: TagType[];
+    domains: string[];
+    contentTypes: string[];
+}
 
-const AppSidebar: React.FC = () => {
-  const [zones, setZones] = useState<Zone[]>([]);
-  const [domains, setDomains] = useState<string[]>([]);
-  const [contentTypes, setContentTypes] = useState<string[]>([]);
-  const [actualTags, setActualTags] = useState<TagType[]>([]);
+const AppSidebar: React.FC<AppSidebarProps> = ({ zones, tags, domains, contentTypes }) => {
   const { toast } = useToast();
   const router = useRouter();
   const auth = getAuth();
-  const { user } = useAuth();
-
-  useEffect(() => {
-    if (!user) return;
-
-    const unsubscribeZones = subscribeToZones(user.uid, (fetchedZones, error) => {
-      if (error) {
-        console.error("Error subscribing to zones in sidebar:", error);
-        toast({ title: "Real-time Error", description: "Could not update zones list.", variant: "destructive" });
-        return;
-      }
-      setZones(fetchedZones);
-    });
-
-    const unsubscribeContent = subscribeToContentItems(user.uid, (items, error) => {
-        if (error) {
-            console.error("Error subscribing to content items in sidebar:", error);
-            toast({ title: "Real-time Error", description: "Could not update sidebar content.", variant: "destructive" });
-            return;
-        }
-
-        const fetchedDomains = getUniqueDomainsFromItems(items);
-        const fetchedContentTypes = getUniqueContentTypesFromItems(items);
-        const fetchedTags = getUniqueTagsFromItems(items);
-        
-        setDomains(fetchedDomains);
-        setActualTags(fetchedTags);
-        const availablePredefinedTypes = fetchedContentTypes.filter(type => predefinedContentTypes[type]);
-        setContentTypes(availablePredefinedTypes);
-    });
-
-    return () => {
-      unsubscribeZones();
-      unsubscribeContent();
-    };
-  }, [user, toast]);
 
   const handleLogout = async () => {
     try {
@@ -141,7 +102,7 @@ const AppSidebar: React.FC = () => {
             </Link>
           </div>
 
-          <ScrollArea className="flex-1 py-2 px-2">
+          <div className="flex-1 overflow-y-auto py-2 px-2">
             <nav className="flex flex-col items-center gap-2 text-sm font-medium">
               <SidebarLink href="/dashboard" icon={Home}>Home</SidebarLink>
               <SidebarLink href="/declutter" icon={Sparkles}>Declutter</SidebarLink>
@@ -159,7 +120,7 @@ const AppSidebar: React.FC = () => {
               </HoverNavButton>
 
               <HoverNavButton icon={Tag} label="Tags">
-                {actualTags.length > 0 ? actualTags.map(tag => (
+                {tags.length > 0 ? tags.map(tag => (
                   <Link key={tag.name} href={`/tags/${encodeURIComponent(tag.name)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
                       <span className="text-muted-foreground">#</span>
                       <span className="truncate">{tag.name}</span>
@@ -190,7 +151,7 @@ const AppSidebar: React.FC = () => {
                 }) : <p className="p-2 text-xs text-muted-foreground">No content types found.</p>}
               </HoverNavButton>
             </nav>
-          </ScrollArea>
+          </div>
           
           <div className="mt-auto flex flex-col items-center gap-2 p-2">
             <a href="/admin" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center text-center gap-1 rounded-lg p-2 text-sidebar-foreground transition-all w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">

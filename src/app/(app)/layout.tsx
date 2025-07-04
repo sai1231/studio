@@ -1,23 +1,40 @@
 
 'use client';
 import type React from 'react';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/core/app-header';
 import AppSidebar from '@/components/core/app-sidebar';
 import AddContentDialog from '@/components/core/add-content-dialog';
 import AddTodoDialog from '@/components/core/AddTodoDialog';
 import RecordVoiceDialog from '@/components/core/RecordVoiceDialog';
-import type { Zone, ContentItem } from '@/types';
+import type { Zone, ContentItem, Tag as TagType } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { addContentItem, getZones, uploadFile } from '@/services/contentService';
+import { addContentItem, getUniqueDomainsFromItems, getUniqueContentTypesFromItems, getUniqueTagsFromItems, uploadFile, subscribeToZones, subscribeToContentItems } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
-import { Plus, UploadCloud } from 'lucide-react';
+import { Plus, UploadCloud, Home, Bookmark as BookmarkIcon, Tag, ClipboardList, Globe, Newspaper, Film, Github, MessagesSquare, BookOpen, StickyNote } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
 import { SearchProvider } from '@/context/SearchContext';
 import { MobileNav } from '@/components/core/mobile-nav';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import Link from 'next/link';
+
+const iconMap: { [key: string]: React.ElementType } = {
+  Briefcase: StickyNote,
+  Home,
+  Library: BookOpen,
+  Bookmark: BookmarkIcon,
+};
+
+const getIconComponent = (iconName?: string): React.ElementType => {
+  if (iconName && iconMap[iconName]) {
+    return iconMap[iconName];
+  }
+  return BookmarkIcon; 
+};
 
 export default function AppLayout({
   children,
@@ -37,33 +54,44 @@ export default function AppLayout({
   } = useDialog();
 
   const [zones, setZones] = useState<Zone[]>([]);
+  const [tags, setTags] = useState<TagType[]>([]);
+  const [domains, setDomains] = useState<string[]>([]);
+  const [contentTypes, setContentTypes] = useState<string[]>([]);
   const { toast } = useToast();
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [activeMobileSheet, setActiveMobileSheet] = useState<'zones' | 'tags' | 'types' | null>(null);
 
+  // Data fetching logic moved from sidebar to layout
   useEffect(() => {
-    if (!isAuthLoading && !user) {
-      router.replace('/login');
-    }
-  }, [user, isAuthLoading, router]);
-
-  const fetchData = useCallback(async () => {
     if (!user) return;
-    try {
-      const fetchedZones = await getZones(user.uid);
+
+    const unsubscribeZones = subscribeToZones(user.uid, (fetchedZones, error) => {
+      if (error) {
+        console.error("Error subscribing to zones in layout:", error);
+        toast({ title: "Real-time Error", description: "Could not update zones list.", variant: "destructive" });
+        return;
+      }
       setZones(fetchedZones);
-    } catch (error) {
-      console.error("Error fetching initial data for layout:", error);
-      toast({ title: "Error", description: "Could not load essential data.", variant: "destructive" });
-    }
-  }, [toast, user]);
+    });
 
-  useEffect(() => {
-    if (user) {
-      fetchData();
-    }
-  }, [user, fetchData]);
+    const unsubscribeContent = subscribeToContentItems(user.uid, (items, error) => {
+        if (error) {
+            console.error("Error subscribing to content items in layout:", error);
+            toast({ title: "Real-time Error", description: "Could not update sidebar content.", variant: "destructive" });
+            return;
+        }
+        setDomains(getUniqueDomainsFromItems(items));
+        setTags(getUniqueTagsFromItems(items));
+        setContentTypes(getUniqueContentTypesFromItems(items));
+    });
 
-  const handleAddContentAndRefresh = async (newContentData: Omit<ContentItem, 'id' | 'createdAt'>) => {
+    return () => {
+      unsubscribeZones();
+      unsubscribeContent();
+    };
+  }, [user, toast]);
+
+  const handleAddContentAndRefresh = useCallback(async (newContentData: Omit<ContentItem, 'id' | 'createdAt'>) => {
     if (!user) {
       toast({ title: "Not Authenticated", description: "You must be logged in to add content.", variant: "destructive" });
       return;
@@ -98,7 +126,7 @@ export default function AppLayout({
         variant: "destructive",
       });
     }
-  };
+  }, [user, toast, isAddContentDialogOpen, setIsAddContentDialogOpen, setNewlyAddedItem]);
 
   const isValidUrl = (s: string) => { try { new URL(s); return true; } catch (_) { return false; } };
 
@@ -233,10 +261,55 @@ export default function AppLayout({
     );
   }
 
+  const MobileSheetLink = ({ href, children, icon: Icon }: { href: string; children: React.ReactNode; icon: React.ElementType }) => (
+    <Link href={href} onClick={() => setActiveMobileSheet(null)} className="flex items-center gap-4 rounded-lg p-3 text-popover-foreground transition-all hover:bg-muted">
+        <Icon className="h-5 w-5 text-muted-foreground" />
+        <span className="truncate font-medium">{children}</span>
+    </Link>
+  );
+
+  const predefinedContentTypes: Record<string, { icon: React.ElementType, name: string }> = {
+      Article: { icon: BookOpen, name: 'Articles' },
+      Note: { icon: StickyNote, name: 'Notes' },
+      Image: { icon: FileUp, name: 'Images' },
+      'Voice Recording': { icon: Mic, name: 'Voice Recordings' },
+      Movie: { icon: Film, name: 'Movies' },
+      PDF: { icon: BookOpen, name: 'PDFs' },
+      Post: { icon: Newspaper, name: 'Posts' },
+      Reel: { icon: Film, name: 'Reels' },
+      Repositories: { icon: Github, name: 'Repositories' },
+      Tweet: { icon: MessagesSquare, name: 'Tweets' },
+      Thread: { icon: MessagesSquare, name: 'Threads' },
+  };
+
+  const sheetContentMap = {
+    zones: {
+        title: 'Browse Zones',
+        content: zones.length > 0 ? zones.map(zone => {
+            const Icon = getIconComponent(zone.icon);
+            return <MobileSheetLink key={zone.id} href={`/zones/${zone.id}`} icon={Icon}>{zone.name}</MobileSheetLink>
+        }) : <p className="p-4 text-center text-sm text-muted-foreground">No zones created yet.</p>
+    },
+    tags: {
+        title: 'Browse Tags',
+        content: tags.length > 0 ? tags.map(tag => (
+            <MobileSheetLink key={tag.name} href={`/tags/${encodeURIComponent(tag.name)}`} icon={Tag}>#{tag.name}</MobileSheetLink>
+        )) : <p className="p-4 text-center text-sm text-muted-foreground">No tags found.</p>
+    },
+    types: {
+        title: 'Browse Content Types',
+        content: contentTypes.length > 0 ? contentTypes.map(typeKey => {
+            const typeDetails = predefinedContentTypes[typeKey] || { icon: StickyNote, name: typeKey };
+            const Icon = typeDetails.icon;
+            return <MobileSheetLink key={typeKey} href={`/content-types/${encodeURIComponent(typeKey)}`} icon={Icon}>{typeDetails.name}</MobileSheetLink>
+        }) : <p className="p-4 text-center text-sm text-muted-foreground">No content types found.</p>
+    }
+  };
+
   return (
     <SearchProvider>
       <div className="flex min-h-screen w-full relative">
-        <AppSidebar />
+        <AppSidebar zones={zones} tags={tags} domains={domains} contentTypes={contentTypes} />
         <div className="flex flex-col flex-1 min-w-0 md:ml-20">
           <AppHeader />
           <main
@@ -280,7 +353,19 @@ export default function AppLayout({
         >
           <Plus className="h-7 w-7" />
         </Button>
-        <MobileNav />
+        <MobileNav onNavClick={setActiveMobileSheet} />
+        <Sheet open={!!activeMobileSheet} onOpenChange={(isOpen) => !isOpen && setActiveMobileSheet(null)}>
+            <SheetContent side="bottom" className="h-[80vh] flex flex-col p-0">
+                <SheetHeader className="p-4 border-b">
+                    <SheetTitle>{activeMobileSheet ? sheetContentMap[activeMobileSheet].title : ''}</SheetTitle>
+                </SheetHeader>
+                <ScrollArea className="flex-grow p-2">
+                    <div className="flex flex-col gap-1">
+                        {activeMobileSheet && sheetContentMap[activeMobileSheet].content}
+                    </div>
+                </ScrollArea>
+            </SheetContent>
+        </Sheet>
       </div>
     </SearchProvider>
   );
