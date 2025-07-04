@@ -291,11 +291,17 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                 try { metadata.title = new URL(extractedUrl).hostname.replace(/^www\./, ''); } 
                 catch { metadata.title = "Untitled Link"; }
             }
+
+            // Heuristic to determine content type
+            const knownMediaDomains = ['youtube.com', 'youtu.be', 'vimeo.com', 'soundcloud.com', 'spotify.com', 'x.com', 'twitter.com', 'instagram.com'];
+            const isMedia = knownMediaDomains.some(d => new URL(extractedUrl).hostname.includes(d));
+            
             contentData = {
                 type: 'link', url: extractedUrl, mindNote: mainContent,
                 domain: new URL(extractedUrl).hostname.replace(/^www\./, ''),
                 status: 'pending-analysis', title: metadata.title, description: metadata.description,
                 faviconUrl: metadata.faviconUrl, imageUrl: metadata.imageUrl,
+                contentType: isMedia ? 'Link' : 'Article', // Set default contentType
                 ...commonData
             };
         } else {
@@ -493,5 +499,3 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
 };
 
 export default AddContentDialog;
-
-    

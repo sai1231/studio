@@ -518,7 +518,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
             ) : (
               // Main content area for the item details
               (() => { 
-                const isDescriptionReadOnly = (item.type === 'link' && item.contentType !== 'Article' && item.type !== 'movie') || item.type === 'image' || item.type === 'voice';
+                const isDescriptionReadOnly = (item.type === 'link' && item.type !== 'movie') || item.type === 'image' || item.type === 'voice';
                 const showMindNote = item.type === 'link' || item.type === 'image' || item.type === 'voice' || item.type === 'movie';
                 const showMediaColumn = isFetchingOembed || oembedHtml || (item.imageUrl && !imageError && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice' || item.type === 'movie')) || (item.type === 'link' && item.contentType === 'PDF');
                 const filteredZones = comboboxSearchText
