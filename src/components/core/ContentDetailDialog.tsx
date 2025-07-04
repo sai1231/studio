@@ -18,7 +18,6 @@ import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil, ChevronDown, Ban, Briefcase, Home, Library, Star, Film, Users, Clapperboard, Glasses, AlarmClock } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
-import ReadableArticleView from '@/components/core/ReadableArticleView';
 import { format, formatDistanceToNow, add } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -150,10 +149,6 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   const [comboboxSearchText, setComboboxSearchText] = useState('');
 
-  const [isArticleViewOpen, setIsArticleViewOpen] = useState(false);
-  const [articleViewData, setArticleViewData] = useState<{ title: string; content: string } | null>(null);
-  const [isFetchingArticle, setIsFetchingArticle] = useState(false);
-
   // oEmbed state
   const [oembedHtml, setOembedHtml] = useState<string | null>(null);
   const [isFetchingOembed, setIsFetchingOembed] = useState(false);
@@ -171,8 +166,6 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       setEditableMindNote('');
       setEditableZoneId(undefined);
       setEditableTags([]);
-      setArticleViewData(null);
-      setIsArticleViewOpen(false);
       setOembedHtml(null);
       setImageError(false);
       setIsDescriptionExpanded(false);
@@ -229,8 +222,6 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       setItem(null);
       setIsLoading(true); 
       setError(null);
-      setArticleViewData(null);
-      setIsArticleViewOpen(false);
       setOembedHtml(null);
     }
   }, [itemId, open, user]); 
@@ -435,32 +426,6 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
     handleFieldUpdate('expiresAt', newExpiryDate.toISOString());
   };
 
-
-  const handleOpenSimplifiedView = async () => {
-    if (!item || !item.url) return;
-    setIsFetchingArticle(true);
-    try {
-      const response = await fetch(`/api/readability?url=${encodeURIComponent(item.url)}`);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to fetch article (status: ${response.status})`);
-      }
-      const data = await response.json();
-      setArticleViewData({ title: data.title, content: data.content });
-      setIsArticleViewOpen(true);
-    } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : "Unknown error";
-      toast({
-        title: "Error Fetching Article",
-        description: `Could not load simplified view: ${errorMessage}`,
-        variant: "destructive",
-      });
-      setArticleViewData(null);
-    } finally {
-      setIsFetchingArticle(false);
-    }
-  };
-
   const dialogTitleText = isLoading ? currentLoadingMessage : (item?.type === 'note' ? 'Note' : (item?.title || (error ? "Error Loading" : "Content Details")));
   
   if (!open) { 
@@ -469,7 +434,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
 
   return (
     <>
-      <Dialog open={open && !isArticleViewOpen} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="w-[90vw] sm:max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl max-h-[90vh] flex flex-col">
           <DialogHeader className="pr-10 flex-shrink-0">
             <DialogTitle className="text-2xl font-headline truncate">
@@ -640,23 +605,6 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                                 placeholder="Enter title"
                             />
                         </div>
-
-                        {item.contentType === 'Article' && item.url && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleOpenSimplifiedView}
-                            disabled={isFetchingArticle}
-                            className="self-start"
-                          >
-                            {isFetchingArticle ? (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                              <Glasses className="mr-2 h-4 w-4" />
-                            )}
-                            Simplified View
-                          </Button>
-                        )}
 
                         {item.type === 'movie' && item.movieDetails && (
                           <div className="space-y-2 border-b pb-3 mb-2">
@@ -917,22 +865,6 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {articleViewData && (
-        <ReadableArticleView
-          open={isArticleViewOpen}
-          onOpenChange={(newOpenState) => {
-            setIsArticleViewOpen(newOpenState);
-            if (!newOpenState) {
-              // If ReadableArticleView is closed, ensure the main dialog remains open
-              // if it was open before. This logic might need adjustment based on desired flow.
-              onOpenChange(true); 
-            }
-          }}
-          title={articleViewData.title}
-          htmlContent={articleViewData.content}
-        />
-      )}
     </>
   );
 }
