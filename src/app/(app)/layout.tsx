@@ -61,7 +61,7 @@ export default function AppLayout({
   const [contentTypes, setContentTypes] = useState<string[]>([]);
   const { toast } = useToast();
   const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const [activeMobileSheet, setActiveMobileSheet] = useState<'zones' | 'tags' | 'types' | 'todos' | null>(null);
+  const [activeMobileSheet, setActiveMobileSheet] = useState<'zones' | 'types' | 'todos' | null>(null);
 
   // Data fetching logic moved from sidebar to layout
   useEffect(() => {
@@ -291,12 +291,6 @@ export default function AppLayout({
             const Icon = getIconComponent(zone.icon);
             return <MobileSheetLink key={zone.id} href={`/zones/${zone.id}`} icon={Icon}>{zone.name}</MobileSheetLink>
         }) : <p className="p-4 text-center text-sm text-muted-foreground">No zones created yet.</p>
-    },
-    tags: {
-        title: 'Browse Tags',
-        content: tags.length > 0 ? tags.map(tag => (
-            <MobileSheetLink key={tag.name} href={`/tags/${encodeURIComponent(tag.name)}`} icon={Tag}>#{tag.name}</MobileSheetLink>
-        )) : <p className="p-4 text-center text-sm text-muted-foreground">No tags found.</p>
     },
     types: {
         title: 'Browse Content Types',

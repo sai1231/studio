@@ -10,7 +10,7 @@ import { useDialog } from '@/context/DialogContext';
 import { cn } from '@/lib/utils';
 
 interface MobileNavProps {
-  onNavClick: (sheet: 'zones' | 'tags' | 'types' | 'todos') => void;
+  onNavClick: (sheet: 'zones' | 'types' | 'todos') => void;
 }
 
 export function MobileNav({ onNavClick }: MobileNavProps) {
@@ -64,7 +64,7 @@ export function MobileNav({ onNavClick }: MobileNavProps) {
             return (
               <button
                 key={item.key}
-                onClick={() => onNavClick(item.sheet as 'zones' | 'tags' | 'types' | 'todos')}
+                onClick={() => onNavClick(item.sheet as 'zones' | 'types' | 'todos')}
                 className="flex flex-col items-center justify-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-primary"
               >
                 <item.icon className="h-5 w-5" />
