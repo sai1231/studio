@@ -3,7 +3,7 @@
 'use client';
 
 import type React from 'react';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -26,7 +26,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { subscribeToTaskList, updateTaskList } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
-import { Unsubscribe } from 'firebase/firestore';
 
 interface AddTodoDialogProps {
   open: boolean;

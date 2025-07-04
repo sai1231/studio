@@ -8,7 +8,7 @@ import AppSidebar from '@/components/core/app-sidebar';
 import AddContentDialog from '@/components/core/add-content-dialog';
 import AddTodoDialog from '@/components/core/AddTodoDialog';
 import RecordVoiceDialog from '@/components/core/RecordVoiceDialog';
-import type { Zone, ContentItem, ContentItemType } from '@/types';
+import type { Zone, ContentItem } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { addContentItem, getZones, uploadFile } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
 import { SearchProvider } from '@/context/SearchContext';
+import { MobileNav } from '@/components/core/mobile-nav';
 
 export default function AppLayout({
   children,
@@ -239,7 +240,7 @@ export default function AppLayout({
         <div className="flex flex-col flex-1 min-w-0 md:ml-20">
           <AppHeader />
           <main
-            className="flex-1 p-4 md:p-6 lg:p-8 bg-background overflow-auto relative"
+            className="flex-1 p-4 md:p-6 lg:p-8 bg-background overflow-auto relative pb-20 md:pb-8"
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -263,8 +264,6 @@ export default function AppLayout({
         <AddTodoDialog
           open={isAddTodoDialogOpen}
           onOpenChange={setIsAddTodoDialogOpen}
-          zones={zones}
-          onTodoAdd={handleAddContentAndRefresh} 
         />
         <RecordVoiceDialog
           open={isRecordVoiceDialogOpen}
@@ -274,13 +273,14 @@ export default function AppLayout({
 
         <Button
           size="lg"
-          className="fixed bottom-6 right-6 md:bottom-8 md:right-8 rounded-full h-16 w-16 shadow-xl z-40 bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center"
+          className="fixed bottom-6 right-6 md:bottom-8 md:right-8 rounded-full h-16 w-16 shadow-xl z-40 bg-primary hover:bg-primary/90 text-primary-foreground hidden md:flex items-center justify-center"
           aria-label="Add Content"
           disabled={isAuthLoading}
           onClick={() => setIsAddContentDialogOpen(true)}
         >
           <Plus className="h-7 w-7" />
         </Button>
+        <MobileNav />
       </div>
     </SearchProvider>
   );
