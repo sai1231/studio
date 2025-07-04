@@ -12,7 +12,7 @@ import type { Zone, ContentItem, Tag as TagType } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { addContentItem, getUniqueDomainsFromItems, getUniqueContentTypesFromItems, getUniqueTagsFromItems, uploadFile, subscribeToZones, subscribeToContentItems } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
-import { Plus, UploadCloud, Home, Bookmark as BookmarkIcon, Tag, ClipboardList, Globe, Newspaper, Film, Github, MessagesSquare, BookOpen, StickyNote } from 'lucide-react';
+import { Plus, UploadCloud, Home, Bookmark as BookmarkIcon, Tag, ClipboardList, Globe, Newspaper, Film, Github, MessagesSquare, BookOpen, StickyNote, FileImage, Mic } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
@@ -271,7 +271,7 @@ export default function AppLayout({
   const predefinedContentTypes: Record<string, { icon: React.ElementType, name: string }> = {
       Article: { icon: BookOpen, name: 'Articles' },
       Note: { icon: StickyNote, name: 'Notes' },
-      Image: { icon: FileUp, name: 'Images' },
+      Image: { icon: FileImage, name: 'Images' },
       'Voice Recording': { icon: Mic, name: 'Voice Recordings' },
       Movie: { icon: Film, name: 'Movies' },
       PDF: { icon: BookOpen, name: 'PDFs' },
