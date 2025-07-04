@@ -11,6 +11,7 @@ import { ai } from '@/ai/genkit';
 import { generateCaptionFromImage } from '@/ai/moondream';
 import { fetchImageColors } from '@/ai/color-fetcher';
 import { extractTagsFromText } from '@/ai/tag-extraction';
+import { generateTitle } from '@/ai/title-generation';
 import { z } from 'zod';
 import { collection, doc, getDoc, updateDoc, type Firestore, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase'; // Keep using client 'db' for consistency here
@@ -154,28 +155,25 @@ const enrichContentFlow = ai.defineFlow(
         await addLog('INFO', `[${contentId}] 📝 Extracting keywords and key phrases...`);
 
         try {
-          const formattedTags = await extractTagsFromText(descriptionToAnalyze);
+          const formattedTags = await extractTagsFromText(descriptionToAnalyze);          
 
           if (formattedTags.length > 0) {
-
             // Get existing tags from contentData, default to empty array if none
             const existingTags = contentData.tags || [];
-
             // Combine existing and new tags
             const combinedTags = [...existingTags, ...formattedTags];
             await addLog('INFO', `[${contentId}] 📝 combinedTags tags:`, { combinedTags });
-
             // Remove duplicates based on tag name (assuming name is unique identifier)
             const uniqueTags = combinedTags.filter((tag, index, self) =>
               index === self.findIndex((t) => (
                 t.name === tag.name
               ))
             );
-
             updatePayload = {
               ...updatePayload,
               tags: [...(updatePayload.tags || []), ...uniqueTags],
             };
+
             await addLog('INFO', `[${contentId}] 📝✅ Successfully extracted keywords.`, { formattedTags });
           } else {
             await addLog('INFO', `[${contentId}] 📝ℹ️ No keywords extracted.`);
@@ -183,6 +181,18 @@ const enrichContentFlow = ai.defineFlow(
 
         } catch (e: any) {
           await addLog('ERROR', `[${contentId}] 📝❌ Error during keyword extraction:`, { error: e.message });
+        }
+
+        // Title Generation (separate try...catch)
+        try {
+            const generatedTitle = generateTitle(descriptionToAnalyze);
+            await addLog('INFO', `[${contentId}] 📝 Generated title:`, { generatedTitle });
+             // If no title exists and a title was generated, use it
+            if (generatedTitle) {
+              updatePayload.title = generatedTitle;
+            }
+        } catch (e: any) {
+            await addLog('ERROR', `[${contentId}] 📝❌ Error during title generation:`, { error: e.message });
         }
       } else {
         await addLog('INFO', `[${contentId}] 📝ℹ️ Skipping keyword extraction: description is empty or not a string.`);

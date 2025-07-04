@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import type React from 'react';
@@ -15,13 +16,21 @@ import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, Command
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil, ChevronDown, Ban, Briefcase, Home, Library, Star, Film, Users, Clapperboard, Glasses, AlarmClock } from 'lucide-react';
+import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil, ChevronDown, Ban, Briefcase, Home, Library, Star, Film, Users, Clapperboard, Glasses, AlarmClock, Sparkles } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, formatDistanceToNow, add } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
+import { Separator } from '../ui/separator';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+
 
 const NO_ZONE_VALUE = "__NO_ZONE__";
 
@@ -157,6 +166,8 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   const [isTemporary, setIsTemporary] = useState(false);
 
   useEffect(() => {
+    let pollingInterval: NodeJS.Timeout | null = null;
+    
     if (open && itemId && user) {
       setIsLoading(true); 
       setError(null);
@@ -180,6 +191,18 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
           if (fetchedItem) {
             setItem(fetchedItem);
             setIsTemporary(!!fetchedItem.expiresAt);
+            
+            if (fetchedItem.status === 'pending-analysis') {
+              pollingInterval = setInterval(async () => {
+                const updatedItem = await getContentItemById(itemId);
+                if (updatedItem && updatedItem.status !== 'pending-analysis') {
+                  if (pollingInterval) clearInterval(pollingInterval);
+                  setItem(updatedItem);
+                  if (onItemUpdate) onItemUpdate(updatedItem);
+                }
+              }, 5000); // Poll every 5 seconds
+            }
+
             if (fetchedItem.type === 'link' && fetchedItem.url) {
                 setIsFetchingOembed(true);
                 setOembedHtml(null);
@@ -224,7 +247,14 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       setError(null);
       setOembedHtml(null);
     }
-  }, [itemId, open, user]); 
+    
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+
+  }, [itemId, open, user, onItemUpdate]); 
 
   useEffect(() => {
     if (item) {
@@ -560,290 +590,213 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                         ) : oembedHtml ? (
                           <div className="oembed-container w-full" dangerouslySetInnerHTML={{ __html: oembedHtml }} />
                         ) : item.imageUrl && !imageError ? (
-                           <img
-                            src={item.imageUrl}
-                            alt={editableTitle || 'Content Image'}
-                            data-ai-hint={item.title || "image"}
-                            className="w-full h-full object-cover rounded-xl"
-                            loading="lazy"
-                            onError={() => setImageError(true)}
-                          />
+                           <div className="relative">
+                            <img
+                                src={item.imageUrl}
+                                alt={editableTitle || 'Content Image'}
+                                data-ai-hint={item.title || "image"}
+                                className="w-full h-full object-cover rounded-xl"
+                                loading="lazy"
+                                onError={() => setImageError(true)}
+                              />
+                            {item.status === 'pending-analysis' && (
+                                <div className="absolute inset-0 bg-black/10 backdrop-blur-sm flex flex-col items-center justify-center text-white p-4 text-center rounded-xl">
+                                    <Sparkles className="h-12 w-12 mb-4 animate-pulse text-primary-foreground" />
+                                    <p className="text-xl font-semibold text-primary-foreground shadow-black [text-shadow:0_1px_3px_var(--tw-shadow-color)]">Unlocking the story behind this memory...</p>
+                                </div>
+                            )}
+                           </div>
                         ) : (item.type === 'link' && item.contentType === 'PDF' && item.url) ? (
                             <iframe src={item.url} className="w-full h-full min-h-[70vh] rounded-xl border-0" title={editableTitle || 'PDF Preview'}></iframe>
                         ) : null}
                       </div>
                     )}
 
-                    <div className="flex flex-col space-y-5 mt-6 md:mt-0">
-                        {item.domain && item.domain !== 'mati.internal.storage' && (
-                            <div className="flex items-center text-sm text-muted-foreground">
-                            <Globe className="h-4 w-4 mr-2" />
-                            <span>{item.domain}</span>
-                            {(item.type === 'link' || item.type === 'movie') && item.url && (
-                                <TooltipProvider>
-                                    <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1 ml-1.5 text-primary hover:text-primary/80" title={`Open link: ${item.url}`}>
-                                        <ExternalLink className="h-4 w-4" />
-                                        </a>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>Open link</p></TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            )}
-                            </div>
-                        )}
-
-                        <div className="flex items-center space-x-2 relative">
-                            {isSavingField && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground absolute -left-7 top-1/2 -translate-y-1/2" />}
-                            <Input
-                                value={editableTitle}
-                                onChange={handleTitleChange}
-                                onBlur={handleTitleBlur}
-                                disabled={isSavingField || isUpdatingTags}
-                                className="text-2xl font-headline font-semibold border-0 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0 shadow-none p-0 h-auto flex-grow"
-                                placeholder="Enter title"
-                            />
-                        </div>
-
-                        {item.type === 'movie' && item.movieDetails && (
-                          <div className="space-y-2 border-b pb-3 mb-2">
-                            <div className="flex items-center text-sm text-muted-foreground">
-                              <Star className="h-4 w-4 mr-1.5 text-yellow-400 fill-yellow-400" />
-                              <span>{item.movieDetails.rating ? `${item.movieDetails.rating.toFixed(1)}/10` : 'N/A'}</span>
-                              <span className="mx-2">|</span>
-                              <CalendarDays className="h-4 w-4 mr-1.5" />
-                              <span>{item.movieDetails.releaseYear || 'N/A'}</span>
-                            </div>
-                            {item.movieDetails.director && <p className="text-sm"><strong className="font-medium text-foreground">Director:</strong> {item.movieDetails.director}</p>}
-                             {item.movieDetails.cast && item.movieDetails.cast.length > 0 && <p className="text-sm"><strong className="font-medium text-foreground">Cast:</strong> {item.movieDetails.cast.slice(0,5).join(', ')}{item.movieDetails.cast.length > 5 ? '...' : ''}</p>}
-                            {item.movieDetails.genres && item.movieDetails.genres.length > 0 && (
-                              <div className="flex flex-wrap gap-1.5 pt-1">
-                                {item.movieDetails.genres.map(genre => (
-                                  <Badge key={genre} variant="secondary" className="text-xs">{genre}</Badge>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      
-                        {item.contentType !== 'PDF' && (
-                            <div>
-                                {isDescriptionReadOnly ? (
-                                    <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground">
-                                        {editableDescription ? (
-                                            <>
-                                                <p className={cn(!isDescriptionExpanded && "line-clamp-4")}>
-                                                    <span dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
-                                                </p>
-                                                {needsTruncation && (
-                                                    <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
-                                                        {isDescriptionExpanded ? "Show less" : "Show more"}
-                                                    </Button>
-                                                )}
-                                            </>
-                                        ) : (
-                                            <p className="italic">No description provided.</p>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <Textarea
-                                        value={editableDescription}
-                                        onChange={handleDescriptionChange}
-                                        onBlur={handleDescriptionBlur}
-                                        disabled={isSavingField || isUpdatingTags}
-                                        placeholder="Enter description..."
-                                        className={cn("w-full h-auto min-h-[400px] focus-visible:ring-accent", item.type === 'note' && "font-mono bg-muted/30 dark:bg-muted/20")}
-                                    />
-                                )}
-                            </div>
-                        )}
-
-                        {item.type === 'voice' && item.audioUrl && (
-                            <div className="mt-1">
-                            <audio controls src={item.audioUrl} className="w-full">
-                                Your browser does not support the audio element.
-                            </audio>
-                            </div>
-                        )}
-                        
-                        <div className="space-y-3">
-                           <div className="flex items-center space-x-2">
-                                <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            role="combobox"
-                                            aria-expanded={isComboboxOpen}
-                                            className={cn(
-                                                "w-auto justify-between text-sm min-w-[180px]",
-                                                (isSavingField || isUpdatingTags) ? "opacity-50" : "",
-                                                !editableZoneId && "text-muted-foreground"
-                                            )}
-                                            disabled={isSavingField || isUpdatingTags}
-                                        >
-                                            <div className="flex items-center">
-                                                <ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" />
-                                                <span className="truncate">{zoneDisplayName}</span>
-                                            </div>
-                                            <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                        <Command>
-                                            <CommandInput
-                                                placeholder="Search or create zone..."
-                                                value={comboboxSearchText}
-                                                onValueChange={setComboboxSearchText}
-                                            />
-                                            <CommandList>
-                                                <CommandEmpty>
-                                                   <div className="py-6 text-center text-sm">
-                                                    {comboboxSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}
-                                                   </div>
-                                                </CommandEmpty>
-                                                <CommandGroup>
-                                                    <CommandItem
-                                                        value={NO_ZONE_VALUE}
-                                                        onSelect={() => handleZoneSelection(undefined)}
-                                                    >
-                                                        <Check className={cn("mr-2 h-4 w-4", !editableZoneId ? "opacity-100" : "opacity-0")} />
-                                                        <Ban className="mr-2 h-4 w-4 opacity-70 text-muted-foreground" />
-                                                        No Zone Assigned
-                                                    </CommandItem>
-                                                    {filteredZones.map((z) => {
-                                                    const ListItemIcon = getIconComponent(z.icon);
-                                                    return (
-                                                        <CommandItem
-                                                            key={z.id}
-                                                            value={z.id}
-                                                            onSelect={(currentValue) => {
-                                                                handleZoneSelection(currentValue === editableZoneId ? undefined : currentValue);
-                                                            }}
-                                                        >
-                                                            <Check className={cn("mr-2 h-4 w-4", editableZoneId === z.id ? "opacity-100" : "opacity-0")} />
-                                                            <ListItemIcon className="mr-2 h-4 w-4 opacity-70" />
-                                                            {z.name}
-                                                        </CommandItem>
-                                                    );
-                                                    })}
-                                                </CommandGroup>
-                                                {comboboxSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === comboboxSearchText.trim().toLowerCase()) && (
-                                                    <CommandGroup className="border-t">
-                                                        <CommandItem onSelect={() => handleCreateZone(comboboxSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer">
-                                                            <Plus className="mr-2 h-4 w-4" /> Create "{comboboxSearchText.trim()}"
-                                                        </CommandItem>
-                                                    </CommandGroup>
-                                                )}
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-                            <div>
-                                <div className="flex flex-wrap items-center gap-2">
-                                {editableTags.map(tag => (
-                                    <Badge key={tag.id} variant="secondary" className="px-3 py-1 text-xs rounded-full font-medium group relative">
-                                    {tag.name}
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-5 w-5 ml-1.5 p-0.5 opacity-50 group-hover:opacity-100 hover:bg-destructive/20 hover:text-destructive absolute -right-1 -top-1 rounded-full bg-background/50"
-                                        onClick={() => handleRemoveTag(tag.id)}
-                                        disabled={isUpdatingTags || isSavingField}
-                                        aria-label={`Remove tag ${tag.name}`}
-                                    >
-                                        <X className="h-3 w-3" />
-                                    </Button>
-                                    </Badge>
-                                ))}
-                                {isAddingTag ? (
-                                    <div className="flex items-center gap-1">
-                                    <Input
-                                        ref={newTagInputRef}
-                                        value={newTagInput}
-                                        onChange={(e) => setNewTagInput(e.target.value)}
-                                        placeholder="New tag"
-                                        onKeyDown={handleTagInputKeyDown}
-                                        disabled={isUpdatingTags || isSavingField}
-                                        className="h-8 text-sm w-32 focus-visible:ring-accent"
-                                        autoFocus
-                                    />
-                                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleAddNewTag} disabled={isUpdatingTags || isSavingField || newTagInput.trim() === ''} aria-label="Confirm add tag" >
-                                        <Check className="h-4 w-4 text-green-600" />
-                                    </Button>
-                                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleCancelAddTag} disabled={isUpdatingTags || isSavingField} aria-label="Cancel add tag" >
-                                        <X className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                    </div>
-                                ) : (
+                    <div className="flex flex-col space-y-4 mt-6 md:mt-0">
+                        {/* Title, Domain, Movie Details */}
+                        <div className="space-y-4">
+                            {item.domain && item.domain !== 'mati.internal.storage' && (
+                                <div className="flex items-center text-sm text-muted-foreground">
+                                <Globe className="h-4 w-4 mr-2" />
+                                <span>{item.domain}</span>
+                                {(item.type === 'link' || item.type === 'movie') && item.url && (
                                     <TooltipProvider>
                                         <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Button size="icon" className="h-8 w-8 rounded-full bg-primary/10 text-primary hover:bg-primary/20" onClick={() => setIsAddingTag(true)} disabled={isUpdatingTags || isSavingField} aria-label="Add new tag" >
-                                                    <Plus className="h-4 w-4" />
-                                                </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent><p>Add new tag</p></TooltipContent>
+                                        <TooltipTrigger asChild>
+                                            <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1 ml-1.5 text-primary hover:text-primary/80" title={`Open link: ${item.url}`}>
+                                            <ExternalLink className="h-4 w-4" />
+                                            </a>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>Open link</p></TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
                                 )}
-                                {isUpdatingTags && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
                                 </div>
-                                {editableTags.length === 0 && !isAddingTag && !isUpdatingTags && (
-                                    <p className="text-sm text-muted-foreground mt-2">No tags yet. Click '+' to add one.</p>
+                            )}
+
+                            <div className="flex items-center space-x-2 relative">
+                                {isSavingField && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground absolute -left-7 top-1/2 -translate-y-1/2" />}
+                                <Input
+                                    value={editableTitle}
+                                    onChange={handleTitleChange}
+                                    onBlur={handleTitleBlur}
+                                    disabled={isSavingField || isUpdatingTags}
+                                    className="text-2xl font-headline font-semibold border-0 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0 shadow-none p-0 h-auto flex-grow"
+                                    placeholder="Enter title"
+                                />
+                            </div>
+
+                            {item.type === 'movie' && item.movieDetails && (
+                              <div className="space-y-2 border-b pb-3 mb-2">
+                                <div className="flex items-center text-sm text-muted-foreground">
+                                  <Star className="h-4 w-4 mr-1.5 text-yellow-400 fill-yellow-400" />
+                                  <span>{item.movieDetails.rating ? `${item.movieDetails.rating.toFixed(1)}/10` : 'N/A'}</span>
+                                  <span className="mx-2">|</span>
+                                  <CalendarDays className="h-4 w-4 mr-1.5" />
+                                  <span>{item.movieDetails.releaseYear || 'N/A'}</span>
+                                </div>
+                                {item.movieDetails.director && <p className="text-sm"><strong className="font-medium text-foreground">Director:</strong> {item.movieDetails.director}</p>}
+                                 {item.movieDetails.cast && item.movieDetails.cast.length > 0 && <p className="text-sm"><strong className="font-medium text-foreground">Cast:</strong> {item.movieDetails.cast.slice(0,5).join(', ')}{item.movieDetails.cast.length > 5 ? '...' : ''}</p>}
+                                {item.movieDetails.genres && item.movieDetails.genres.length > 0 && (
+                                  <div className="flex flex-wrap gap-1.5 pt-1">
+                                    {item.movieDetails.genres.map(genre => (
+                                      <Badge key={genre} variant="secondary" className="text-xs">{genre}</Badge>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                        </div>
+                        
+                        <Separator />
+
+                        {/* Organization Section */}
+                        <div className="space-y-3">
+                          <h3 className="text-base font-semibold text-foreground flex items-center">
+                              <Bookmark className="h-4 w-4 mr-2 text-muted-foreground"/>
+                              Organization
+                          </h3>
+                          <div className="pl-6 space-y-4">
+                            <div>
+                              <Label className="text-sm font-medium mb-2 block">Zone</Label>
+                               <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
+                                  <PopoverTrigger asChild>
+                                      <Button variant="outline" role="combobox" aria-expanded={isComboboxOpen} className={cn("w-full justify-between", (isSavingField || isUpdatingTags) ? "opacity-50" : "", !editableZoneId && "text-muted-foreground")} disabled={isSavingField || isUpdatingTags}>
+                                          <div className="flex items-center"><ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" /><span className="truncate">{zoneDisplayName}</span></div>
+                                          <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                                      </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                      <Command><CommandInput placeholder="Search or create zone..." value={comboboxSearchText} onValueChange={setComboboxSearchText} /><CommandList><CommandEmpty><div className="py-6 text-center text-sm">{comboboxSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}</div></CommandEmpty><CommandGroup><CommandItem value={NO_ZONE_VALUE} onSelect={() => handleZoneSelection(undefined)}><Check className={cn("mr-2 h-4 w-4", !editableZoneId ? "opacity-100" : "opacity-0")} /><Ban className="mr-2 h-4 w-4 opacity-70 text-muted-foreground" />No Zone Assigned</CommandItem>{filteredZones.map((z) => {const ListItemIcon = getIconComponent(z.icon);return (<CommandItem key={z.id} value={z.id} onSelect={(currentValue) => {handleZoneSelection(currentValue === editableZoneId ? undefined : currentValue);}}><Check className={cn("mr-2 h-4 w-4", editableZoneId === z.id ? "opacity-100" : "opacity-0")} /><ListItemIcon className="mr-2 h-4 w-4 opacity-70" />{z.name}</CommandItem>);})}</CommandGroup>{comboboxSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === comboboxSearchText.trim().toLowerCase()) && (<CommandGroup className="border-t"><CommandItem onSelect={() => handleCreateZone(comboboxSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer"><Plus className="mr-2 h-4 w-4" /> Create "{comboboxSearchText.trim()}"</CommandItem></CommandGroup>)}</CommandList></Command>
+                                  </PopoverContent>
+                              </Popover>
+                            </div>
+                             <div>
+                                <Label className="text-sm font-medium mb-2 block">Tags</Label>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {editableTags.map(tag => (<Badge key={tag.id} variant="secondary" className="px-3 py-1 text-sm rounded-full font-medium group relative">{tag.name}<Button variant="ghost" size="icon" className="h-5 w-5 ml-1.5 p-0.5 opacity-50 group-hover:opacity-100 hover:bg-destructive/20 hover:text-destructive absolute -right-1.5 -top-1.5 rounded-full bg-background/50" onClick={() => handleRemoveTag(tag.id)} disabled={isUpdatingTags || isSavingField} aria-label={`Remove tag ${tag.name}`}><X className="h-3 w-3" /></Button></Badge>))}
+                                  {isAddingTag ? (<div className="flex items-center gap-1"><Input ref={newTagInputRef} value={newTagInput} onChange={(e) => setNewTagInput(e.target.value)} placeholder="New tag" onKeyDown={handleTagInputKeyDown} disabled={isUpdatingTags || isSavingField} className="h-8 text-sm w-32 focus-visible:ring-accent" autoFocus /><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleAddNewTag} disabled={isUpdatingTags || isSavingField || newTagInput.trim() === ''} aria-label="Confirm add tag" ><Check className="h-4 w-4 text-green-600" /></Button><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleCancelAddTag} disabled={isUpdatingTags || isSavingField} aria-label="Cancel add tag" ><X className="h-4 w-4 text-destructive" /></Button></div>) : (<TooltipProvider><Tooltip><TooltipTrigger asChild><Button size="sm" variant="outline" className="h-8 rounded-full" onClick={() => setIsAddingTag(true)} disabled={isUpdatingTags || isSavingField} aria-label="Add new tag" ><Plus className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Add new tag</p></TooltipContent></Tooltip></TooltipProvider>)}
+                                  {isUpdatingTags && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                                </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* AI Analysis Section */}
+                        {(isDescriptionReadOnly || (item.colorPalette && item.colorPalette.length > 0) || item.status === 'pending-analysis') && (
+                          <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
+                            <AccordionItem value="item-1">
+                              <AccordionTrigger className="text-base font-semibold hover:no-underline">
+                                <div className="flex items-center">
+                                  <Sparkles className="h-4 w-4 mr-2 text-muted-foreground"/>
+                                  AI Analysis
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent className="space-y-4 pt-2">
+                                {item.status === 'pending-analysis' ? (
+                                    <div className="pl-6 space-y-3">
+                                        <Skeleton className="h-16 w-full" />
+                                        <Skeleton className="h-2.5 w-full rounded-full" />
+                                    </div>
+                                ) : (
+                                  <>
+                                    {isDescriptionReadOnly && editableDescription && (
+                                      <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground pl-6">
+                                        <p className={cn(!isDescriptionExpanded && "line-clamp-4")}>
+                                          <span dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
+                                        </p>
+                                        {needsTruncation && (
+                                          <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
+                                            {isDescriptionExpanded ? "Show less" : "Show more"}
+                                          </Button>
+                                        )}
+                                      </div>
+                                    )}
+                                    {item.colorPalette && item.colorPalette.length > 0 && <div className="pl-6"><ColorPalette palette={item.colorPalette} /></div>}
+                                  </>
+                                )}
+                              </AccordionContent>
+                            </AccordionItem>
+                          </Accordion>
+                        )}
+                        
+                        {/* Editable Description Section */}
+                        {!isDescriptionReadOnly && (
+                          <div className="space-y-2">
+                            <h3 className="text-base font-semibold text-foreground flex items-center">
+                              <Pencil className="h-4 w-4 mr-2 text-muted-foreground"/>
+                              Description
+                            </h3>
+                            <div className="pl-6">
+                              <Textarea
+                                  value={editableDescription}
+                                  onChange={handleDescriptionChange}
+                                  onBlur={handleDescriptionBlur}
+                                  disabled={isSavingField || isUpdatingTags}
+                                  placeholder="Enter description..."
+                                  className="w-full h-auto min-h-[120px] focus-visible:ring-accent"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Mind Note Section */}
+                        {showMindNote && (
+                          <div className="space-y-2">
+                            <h3 className="text-base font-semibold text-foreground flex items-center">
+                                <StickyNote className="h-4 w-4 mr-2 text-muted-foreground"/> Mind Note
+                            </h3>
+                            <div className="pl-6">
+                               <Textarea
+                                  value={editableMindNote}
+                                  onChange={handleMindNoteChange}
+                                  onBlur={handleMindNoteBlur}
+                                  disabled={isSavingField || isUpdatingTags}
+                                  placeholder="Add your personal thoughts or quick notes here..."
+                                  className="w-full min-h-[80px] focus-visible:ring-accent bg-muted/30 dark:bg-card border-border"
+                                />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Settings Section */}
+                        <div className="space-y-2">
+                            <h3 className="text-base font-semibold text-foreground flex items-center">
+                                <AlarmClock className="h-4 w-4 mr-2 text-muted-foreground"/> Settings
+                            </h3>
+                            <div className="pl-6 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <label htmlFor="temporary-switch" className="font-medium text-foreground">Temporary Content</label>
+                                    <Switch id="temporary-switch" checked={isTemporary} onCheckedChange={handleTemporaryToggle} />
+                                </div>
+                                {isTemporary && (
+                                    <div className="pl-6 space-y-2">
+                                        {item.expiresAt && (<div className="text-sm text-muted-foreground">Expires in {formatDistanceToNow(new Date(item.expiresAt), { addSuffix: false })} on {format(new Date(item.expiresAt), 'MMM d, yyyy')}</div>)}
+                                        <Select onValueChange={handleExpiryChange}><SelectTrigger className="w-full bg-background focus:ring-accent"><SelectValue placeholder="Change expiration..." /></SelectTrigger><SelectContent><SelectItem value="7">Delete after 7 days</SelectItem><SelectItem value="30">Delete after 30 days</SelectItem><SelectItem value="90">Delete after 90 days</SelectItem><SelectItem value="365">Delete after 1 year</SelectItem></SelectContent></Select>
+                                    </div>
                                 )}
                             </div>
                         </div>
-
-                        {item.colorPalette && item.colorPalette.length > 0 && <ColorPalette palette={item.colorPalette} />}
-
-                        {showMindNote && (
-                            <div className="bg-muted/50 dark:bg-muted/20 p-4 rounded-lg mt-2">
-                                <h3 className="text-lg font-semibold mb-2 text-foreground flex items-center">
-                                    <StickyNote className="h-4 w-4 mr-2 text-muted-foreground"/> Mind Note
-                                </h3>
-                                <Textarea
-                                    value={editableMindNote}
-                                    onChange={handleMindNoteChange}
-                                    onBlur={handleMindNoteBlur}
-                                    disabled={isSavingField || isUpdatingTags}
-                                    placeholder="Add your personal thoughts or quick notes here..."
-                                    className="w-full min-h-[80px] focus-visible:ring-accent bg-background dark:bg-card border-border"
-                                />
-                            </div>
-                        )}
-                        
-                        <div className="bg-muted/50 dark:bg-muted/20 p-4 rounded-lg mt-2 space-y-3">
-                            <div className="flex items-center justify-between">
-                                <label htmlFor="temporary-switch" className="flex items-center gap-2 font-medium text-foreground">
-                                    <AlarmClock className="h-4 w-4 text-muted-foreground" />
-                                    Temporary Content
-                                </label>
-                                <Switch id="temporary-switch" checked={isTemporary} onCheckedChange={handleTemporaryToggle} />
-                            </div>
-                            {isTemporary && (
-                                <div className="pl-6 space-y-2">
-                                    {item.expiresAt && (
-                                        <div className="text-sm text-muted-foreground">
-                                            Expires in {formatDistanceToNow(new Date(item.expiresAt), { addSuffix: false })} on {format(new Date(item.expiresAt), 'MMM d, yyyy')}
-                                        </div>
-                                    )}
-                                    <Select onValueChange={handleExpiryChange}>
-                                        <SelectTrigger className="w-full bg-background focus:ring-accent">
-                                            <SelectValue placeholder="Change expiration..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="7">Delete after 7 days</SelectItem>
-                                            <SelectItem value="30">Delete after 30 days</SelectItem>
-                                            <SelectItem value="90">Delete after 90 days</SelectItem>
-                                            <SelectItem value="365">Delete after 1 year</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            )}
-                        </div>
-
                     </div> 
                   </div> 
                 );
