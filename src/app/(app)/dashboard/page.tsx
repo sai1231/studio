@@ -511,18 +511,17 @@ function DashboardPageContent() {
       </div>
 
       {hiddenCount > 0 && (
-        <div className="fixed bottom-24 right-6 z-40 max-w-sm rounded-lg border bg-background p-4 shadow-lg animate-in fade-in-0 slide-in-from-bottom-2">
-            <div className="flex items-start gap-3">
-                <div className="mt-1 flex-shrink-0">
-                  <Zap className="h-5 w-5 text-primary" />
+        <div className="fixed bottom-4 right-4 z-40 max-w-xs rounded-lg border bg-background p-3 shadow-lg animate-in fade-in-0 slide-in-from-bottom-2">
+            <div className="flex items-center gap-2">
+                <div className="flex-shrink-0">
+                  <Zap className="h-4 w-4 text-primary" />
                 </div>
-                <div className="flex-grow">
-                    <p className="font-semibold text-foreground">Content Limit Reached</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        You have {hiddenCount} more {hiddenCount === 1 ? 'memory' : 'memories'} hidden.
-                        <Button variant="link" className="p-0 h-auto ml-1 text-primary underline" onClick={() => toast({ title: 'Coming Soon!', description: 'Subscription management will be available shortly.' })}>
-                          Upgrade to access
-                        </Button>.
+                <div className="flex-grow text-sm">
+                    <p className="text-muted-foreground">
+                        <span className="font-semibold text-foreground">Limit reached.</span> You have {hiddenCount} more {hiddenCount === 1 ? 'memory' : 'memories'} hidden.
+                        <Button variant="link" className="p-0 h-auto ml-1 text-primary underline align-baseline" onClick={() => toast({ title: 'Coming Soon!', description: 'Subscription management will be available shortly.' })}>
+                          Upgrade
+                        </Button>
                     </p>
                 </div>
             </div>

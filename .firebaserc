@@ -1,6 +1,7 @@
 {
   "projects": {
-    "staging": "mati-230db"
+    "staging": "mati-230db",
+    "default": "mati-230db"
   },
   "targets": {},
   "etags": {}
