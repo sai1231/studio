@@ -11,7 +11,6 @@ import { cn } from '@/lib/utils';
 import { format, isSameYear, parseISO } from 'date-fns';
 import PdfIcon from '@/components/core/PdfIcon';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface ContentCardProps {
   item: ContentItem;
@@ -200,11 +199,15 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
 
         {item.type === 'note' ? (
           <div className="p-4 flex flex-col flex-grow">
-            <ScrollArea className="relative flex-grow max-h-[250px] rounded-lg bg-muted/50 dark:bg-muted/20 border">
-              <pre className="text-sm text-foreground whitespace-pre-wrap font-mono p-3">
-                {plainDescription}
-              </pre>
-            </ScrollArea>
+            <div className="flex-grow">
+              <h3 className="font-semibold leading-tight mb-2 flex items-center gap-3">
+                {TitleIcon}
+                <span className="truncate">{displayTitle}</span>
+              </h3>
+              <div className="text-sm text-muted-foreground break-words line-clamp-6">
+                <span className="whitespace-pre-wrap font-mono">{plainDescription}</span>
+              </div>
+            </div>
           </div>
         ) : item.contentType === 'PDF' && item.type === 'link' ? (
           <div className="p-6 flex flex-col flex-grow items-center justify-center text-center">

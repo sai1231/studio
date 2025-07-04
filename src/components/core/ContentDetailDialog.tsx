@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import type React from 'react';
@@ -652,7 +653,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                                         onBlur={handleDescriptionBlur}
                                         disabled={isSavingField || isUpdatingTags}
                                         placeholder="Enter description..."
-                                        className={cn("w-full min-h-[100px] focus-visible:ring-accent", item.type === 'note' && "font-mono bg-muted/50 dark:bg-muted/20")}
+                                        className={cn("w-full h-[250px] focus-visible:ring-accent", item.type === 'note' && "font-mono bg-muted/30 dark:bg-muted/20")}
                                     />
                                 )}
                             </div>
