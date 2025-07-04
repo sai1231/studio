@@ -1,4 +1,5 @@
 
+
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
@@ -12,7 +13,7 @@ import type { Zone, ContentItem, Tag as TagType } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { addContentItem, getUniqueDomainsFromItems, getUniqueContentTypesFromItems, getUniqueTagsFromItems, uploadFile, subscribeToZones, subscribeToContentItems } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
-import { Plus, UploadCloud, Home, Bookmark as BookmarkIcon, Tag, ClipboardList, Globe, Newspaper, Film, Github, MessagesSquare, BookOpen, StickyNote, FileImage, Mic } from 'lucide-react';
+import { Plus, UploadCloud, Home, Bookmark as BookmarkIcon, Tag, ClipboardList, Globe, Newspaper, Film, Github, MessagesSquare, BookOpen, StickyNote, FileImage, Mic, ListChecks } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
@@ -21,6 +22,7 @@ import { MobileNav } from '@/components/core/mobile-nav';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Link from 'next/link';
+import TodoListSheet from '@/components/core/TodoListSheet';
 
 const iconMap: { [key: string]: React.ElementType } = {
   Briefcase: StickyNote,
@@ -59,7 +61,7 @@ export default function AppLayout({
   const [contentTypes, setContentTypes] = useState<string[]>([]);
   const { toast } = useToast();
   const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const [activeMobileSheet, setActiveMobileSheet] = useState<'zones' | 'tags' | 'types' | null>(null);
+  const [activeMobileSheet, setActiveMobileSheet] = useState<'zones' | 'tags' | 'types' | 'todos' | null>(null);
 
   // Data fetching logic moved from sidebar to layout
   useEffect(() => {
@@ -303,6 +305,10 @@ export default function AppLayout({
             const Icon = typeDetails.icon;
             return <MobileSheetLink key={typeKey} href={`/content-types/${encodeURIComponent(typeKey)}`} icon={Icon}>{typeDetails.name}</MobileSheetLink>
         }) : <p className="p-4 text-center text-sm text-muted-foreground">No content types found.</p>
+    },
+    todos: {
+        title: 'Quick TODOs',
+        content: <TodoListSheet />,
     }
   };
 
@@ -355,7 +361,7 @@ export default function AppLayout({
         </Button>
         <MobileNav onNavClick={setActiveMobileSheet} />
         <Sheet open={!!activeMobileSheet} onOpenChange={(isOpen) => !isOpen && setActiveMobileSheet(null)}>
-            <SheetContent side="bottom" className="h-[80vh] flex flex-col p-0">
+            <SheetContent side="bottom" className="h-[90vh] flex flex-col p-0">
                 <SheetHeader className="p-4 border-b">
                     <SheetTitle>{activeMobileSheet ? sheetContentMap[activeMobileSheet].title : ''}</SheetTitle>
                 </SheetHeader>

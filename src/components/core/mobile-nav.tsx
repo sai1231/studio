@@ -1,15 +1,16 @@
 
+
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Bookmark, PlusCircle, Tag, ClipboardList } from 'lucide-react';
+import { Home, Bookmark, PlusCircle, ClipboardList, ListChecks } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDialog } from '@/context/DialogContext';
 import { cn } from '@/lib/utils';
 
 interface MobileNavProps {
-  onNavClick: (sheet: 'zones' | 'tags' | 'types') => void;
+  onNavClick: (sheet: 'zones' | 'tags' | 'types' | 'todos') => void;
 }
 
 export function MobileNav({ onNavClick }: MobileNavProps) {
@@ -20,7 +21,7 @@ export function MobileNav({ onNavClick }: MobileNavProps) {
     { key: 'home', label: 'Home', icon: Home, href: '/dashboard' },
     { key: 'zones', label: 'Zones', icon: Bookmark, sheet: 'zones' },
     { key: 'fab', isFab: true },
-    { key: 'tags', label: 'Tags', icon: Tag, sheet: 'tags' },
+    { key: 'todos', label: 'TODOs', icon: ListChecks, sheet: 'todos' },
     { key: 'types', label: 'Types', icon: ClipboardList, sheet: 'types' },
   ];
 
@@ -33,11 +34,11 @@ export function MobileNav({ onNavClick }: MobileNavProps) {
               <div key="fab" className="flex justify-center">
                 <Button
                   size="icon"
-                  className="rounded-full h-14 w-14 shadow-lg -mt-8 bg-primary hover:bg-primary/90 text-primary-foreground"
+                  className="rounded-full h-16 w-16 shadow-lg -mt-8 bg-primary hover:bg-primary/90 text-primary-foreground"
                   aria-label="Add Content"
                   onClick={() => setIsAddContentDialogOpen(true)}
                 >
-                  <PlusCircle className="h-7 w-7" />
+                  <PlusCircle className="h-8 w-8" />
                 </Button>
               </div>
             );
@@ -63,7 +64,7 @@ export function MobileNav({ onNavClick }: MobileNavProps) {
             return (
               <button
                 key={item.key}
-                onClick={() => onNavClick(item.sheet as 'zones' | 'tags' | 'types')}
+                onClick={() => onNavClick(item.sheet as 'zones' | 'tags' | 'types' | 'todos')}
                 className="flex flex-col items-center justify-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-primary"
               >
                 <item.icon className="h-5 w-5" />

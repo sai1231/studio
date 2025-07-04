@@ -3,8 +3,7 @@
 'use client';
 
 import type React from 'react';
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,17 +11,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ArrowLeft, ListChecks, Loader2, AlarmClock, CalendarIcon } from 'lucide-react';
+import { Loader2, AlarmClock, CalendarIcon } from 'lucide-react';
 import { subscribeToTaskList, updateTaskList } from '@/services/contentService';
 import type { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { format, isPast } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
-import type { Unsubscribe } from 'firebase/firestore';
 
-export default function QuickTodoPage() {
-  const router = useRouter();
+export default function TodoListSheet() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [newTodoText, setNewTodoText] = useState('');
@@ -108,17 +105,8 @@ export default function QuickTodoPage() {
   };
 
   return (
-    <div className="container mx-auto py-6 max-w-2xl">
-      <Button onClick={() => router.back()} variant="outline" className="mb-6">
-        <ArrowLeft className="mr-2 h-4 w-4" /> Back
-      </Button>
-
-      <div className="flex items-center mb-6">
-        <ListChecks className="h-8 w-8 mr-3 text-primary" />
-        <h1 className="text-3xl font-headline font-semibold text-foreground">Quick TODO Entry</h1>
-      </div>
-
-      <form onSubmit={handleAddTodo} className="mb-8">
+    <div className="flex flex-col h-full">
+      <form onSubmit={handleAddTodo} className="mb-4 px-2">
         <div className="flex items-center gap-2">
           <Input
             ref={todoInputRef}
@@ -126,7 +114,7 @@ export default function QuickTodoPage() {
             value={newTodoText}
             onChange={(e) => setNewTodoText(e.target.value)}
             placeholder="What needs to be done?"
-            className="flex-grow text-lg h-12 focus-visible:ring-accent"
+            className="flex-grow text-base h-11 focus-visible:ring-accent"
             disabled={isAdding}
             autoFocus
           />
@@ -135,7 +123,7 @@ export default function QuickTodoPage() {
               <Button
                 variant={"outline"}
                 className={cn(
-                  "w-auto h-12 justify-start text-left font-normal",
+                  "w-auto h-11 justify-start text-left font-normal",
                   !selectedDueDate && "text-muted-foreground"
                 )}
                 disabled={isAdding}
@@ -153,21 +141,22 @@ export default function QuickTodoPage() {
               />
             </PopoverContent>
           </Popover>
-          <Button type="submit" size="lg" className="h-12 bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isAdding}>
+          <Button type="submit" size="lg" className="h-11 bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isAdding}>
             {isAdding ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Add'}
           </Button>
         </div>
       </form>
 
       {isLoading ? (
-        <div className="flex justify-center items-center py-10">
+        <div className="flex-grow flex justify-center items-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="ml-3 text-muted-foreground">Loading TODOs...</p>
         </div>
       ) : tasks.length === 0 ? (
-        <p className="text-center text-muted-foreground py-10">No TODOs yet. Add your first one above!</p>
+        <div className="flex-grow flex justify-center items-center">
+            <p className="text-center text-muted-foreground">No TODOs yet. Add your first one!</p>
+        </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 flex-grow overflow-y-auto pr-2">
           {tasks.map(task => (
             <Card key={task.id} className="shadow-sm hover:shadow-md transition-shadow">
               <CardContent className="p-4 flex items-center justify-between">

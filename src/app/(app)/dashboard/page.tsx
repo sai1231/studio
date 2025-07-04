@@ -439,7 +439,7 @@ function DashboardPageContent() {
           </div>
         ) : (
           <div>
-            <div className={'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
+            <div className={'columns-2 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
               {!isSearching && (
                 <>
                   {tasks.length > 0 ? (
