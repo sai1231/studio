@@ -198,8 +198,8 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
 
         {item.type === 'note' ? (
           <div className="p-4 flex flex-col flex-grow relative">
-            <span className="absolute top-2 left-3 text-6xl text-muted-foreground/20 font-serif">“</span>
-            <div className="flex-grow pt-4">
+            <span className="absolute top-2 left-3 text-6xl text-muted-foreground/20 font-serif z-10">“</span>
+            <div className="flex-grow pt-4 pb-4">
               <p className="text-sm text-muted-foreground break-words line-clamp-6">
                 {plainDescription}
               </p>
