@@ -652,7 +652,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                                         onBlur={handleDescriptionBlur}
                                         disabled={isSavingField || isUpdatingTags}
                                         placeholder="Enter description..."
-                                        className="w-full min-h-[100px] focus-visible:ring-accent"
+                                        className={cn("w-full min-h-[100px] focus-visible:ring-accent", item.type === 'note' && "font-mono bg-muted/50 dark:bg-muted/20")}
                                     />
                                 )}
                             </div>
