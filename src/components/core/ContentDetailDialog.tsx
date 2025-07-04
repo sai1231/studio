@@ -530,6 +530,69 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                 const zoneDisplayName = currentZoneObject?.name || "No Zone Assigned";
                 const needsTruncation = editableDescription.length > 280;
 
+                if (item.type === 'note') {
+                  return (
+                    <div className="space-y-6">
+                      <div className="flex items-center space-x-2 relative">
+                          {isSavingField && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground absolute -left-7 top-1/2 -translate-y-1/2" />}
+                          <Input
+                              value={editableTitle}
+                              onChange={handleTitleChange}
+                              onBlur={handleTitleBlur}
+                              disabled={isSavingField || isUpdatingTags}
+                              className="text-2xl font-headline font-semibold border-0 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0 shadow-none p-0 h-auto flex-grow"
+                              placeholder="Enter title"
+                          />
+                      </div>
+                      <div className="md:grid md:grid-cols-[minmax(0,_3fr)_minmax(0,_2fr)] gap-8">
+                        <div>
+                          <Textarea
+                              value={editableDescription}
+                              onChange={handleDescriptionChange}
+                              onBlur={handleDescriptionBlur}
+                              disabled={isSavingField || isUpdatingTags}
+                              placeholder="Enter description..."
+                              className="w-full h-auto min-h-[400px] focus-visible:ring-accent font-mono bg-muted/30 dark:bg-muted/20"
+                          />
+                        </div>
+                        <div className="flex flex-col space-y-5 mt-6 md:mt-0">
+                            {/* Metadata items */}
+                            <div className="space-y-3">
+                               <div className="flex items-center space-x-2">
+                                    <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="outline" role="combobox" aria-expanded={isComboboxOpen} className={cn("w-auto justify-between text-sm min-w-[180px]", (isSavingField || isUpdatingTags) ? "opacity-50" : "", !editableZoneId && "text-muted-foreground")} disabled={isSavingField || isUpdatingTags}>
+                                                <div className="flex items-center"><ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" /><span className="truncate">{zoneDisplayName}</span></div>
+                                                <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                            <Command><CommandInput placeholder="Search or create zone..." value={comboboxSearchText} onValueChange={setComboboxSearchText} /><CommandList><CommandEmpty><div className="py-6 text-center text-sm">{comboboxSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}</div></CommandEmpty><CommandGroup><CommandItem value={NO_ZONE_VALUE} onSelect={() => handleZoneSelection(undefined)}><Check className={cn("mr-2 h-4 w-4", !editableZoneId ? "opacity-100" : "opacity-0")} /><Ban className="mr-2 h-4 w-4 opacity-70 text-muted-foreground" />No Zone Assigned</CommandItem>{filteredZones.map((z) => {const ListItemIcon = getIconComponent(z.icon);return (<CommandItem key={z.id} value={z.id} onSelect={(currentValue) => {handleZoneSelection(currentValue === editableZoneId ? undefined : currentValue);}}><Check className={cn("mr-2 h-4 w-4", editableZoneId === z.id ? "opacity-100" : "opacity-0")} /><ListItemIcon className="mr-2 h-4 w-4 opacity-70" />{z.name}</CommandItem>);})}</CommandGroup>{comboboxSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === comboboxSearchText.trim().toLowerCase()) && (<CommandGroup className="border-t"><CommandItem onSelect={() => handleCreateZone(comboboxSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer"><Plus className="mr-2 h-4 w-4" /> Create "{comboboxSearchText.trim()}"</CommandItem></CommandGroup>)}</CommandList></Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                                <div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                    {editableTags.map(tag => (<Badge key={tag.id} variant="secondary" className="px-3 py-1 text-xs rounded-full font-medium group relative">{tag.name}<Button variant="ghost" size="icon" className="h-5 w-5 ml-1.5 p-0.5 opacity-50 group-hover:opacity-100 hover:bg-destructive/20 hover:text-destructive absolute -right-1 -top-1 rounded-full bg-background/50" onClick={() => handleRemoveTag(tag.id)} disabled={isUpdatingTags || isSavingField} aria-label={`Remove tag ${tag.name}`}><X className="h-3 w-3" /></Button></Badge>))}
+                                    {isAddingTag ? (<div className="flex items-center gap-1"><Input ref={newTagInputRef} value={newTagInput} onChange={(e) => setNewTagInput(e.target.value)} placeholder="New tag" onKeyDown={handleTagInputKeyDown} disabled={isUpdatingTags || isSavingField} className="h-8 text-sm w-32 focus-visible:ring-accent" autoFocus /><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleAddNewTag} disabled={isUpdatingTags || isSavingField || newTagInput.trim() === ''} aria-label="Confirm add tag" ><Check className="h-4 w-4 text-green-600" /></Button><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleCancelAddTag} disabled={isUpdatingTags || isSavingField} aria-label="Cancel add tag" ><X className="h-4 w-4 text-destructive" /></Button></div>) : (<TooltipProvider><Tooltip><TooltipTrigger asChild><Button size="icon" className="h-8 w-8 rounded-full bg-primary/10 text-primary hover:bg-primary/20" onClick={() => setIsAddingTag(true)} disabled={isUpdatingTags || isSavingField} aria-label="Add new tag" ><Plus className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Add new tag</p></TooltipContent></Tooltip></TooltipProvider>)}
+                                    {isUpdatingTags && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                                    </div>
+                                    {editableTags.length === 0 && !isAddingTag && !isUpdatingTags && (<p className="text-sm text-muted-foreground mt-2">No tags yet. Click '+' to add one.</p>)}
+                                </div>
+                            </div>
+                            <div className="bg-muted/50 dark:bg-muted/20 p-4 rounded-lg mt-2 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <label htmlFor="temporary-switch" className="flex items-center gap-2 font-medium text-foreground"><AlarmClock className="h-4 w-4 text-muted-foreground" />Temporary Content</label>
+                                    <Switch id="temporary-switch" checked={isTemporary} onCheckedChange={handleTemporaryToggle} />
+                                </div>
+                                {isTemporary && (<div className="pl-6 space-y-2">{item.expiresAt && (<div className="text-sm text-muted-foreground">Expires in {formatDistanceToNow(new Date(item.expiresAt), { addSuffix: false })} on {format(new Date(item.expiresAt), 'MMM d, yyyy')}</div>)}<Select onValueChange={handleExpiryChange}><SelectTrigger className="w-full bg-background focus:ring-accent"><SelectValue placeholder="Change expiration..." /></SelectTrigger><SelectContent><SelectItem value="7">Delete after 7 days</SelectItem><SelectItem value="30">Delete after 30 days</SelectItem><SelectItem value="90">Delete after 90 days</SelectItem><SelectItem value="365">Delete after 1 year</SelectItem></SelectContent></Select></div>)}
+                            </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
                   <div className={cn(
                     showMediaColumn ? "md:grid md:grid-cols-[minmax(0,_3fr)_minmax(0,_2fr)] gap-8" : ""
@@ -653,7 +716,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                                         onBlur={handleDescriptionBlur}
                                         disabled={isSavingField || isUpdatingTags}
                                         placeholder="Enter description..."
-                                        className={cn("w-full h-[250px] focus-visible:ring-accent", item.type === 'note' && "font-mono bg-muted/30 dark:bg-muted/20")}
+                                        className={cn("w-full h-auto min-h-[400px] focus-visible:ring-accent", item.type === 'note' && "font-mono bg-muted/30 dark:bg-muted/20")}
                                     />
                                 )}
                             </div>
