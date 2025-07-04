@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import type React from 'react';
@@ -462,7 +461,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
     }
   };
 
-  const dialogTitleText = isLoading ? currentLoadingMessage : (item?.title || (error ? "Error Loading" : "Content Details"));
+  const dialogTitleText = isLoading ? currentLoadingMessage : (item?.type === 'note' ? 'Note' : (item?.title || (error ? "Error Loading" : "Content Details")));
   
   if (!open) { 
     return null;
@@ -533,17 +532,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                 if (item.type === 'note') {
                   return (
                     <div className="space-y-6">
-                      <div className="flex items-center space-x-2 relative">
-                          {isSavingField && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground absolute -left-7 top-1/2 -translate-y-1/2" />}
-                          <Input
-                              value={editableTitle}
-                              onChange={handleTitleChange}
-                              onBlur={handleTitleBlur}
-                              disabled={isSavingField || isUpdatingTags}
-                              className="text-2xl font-headline font-semibold border-0 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0 shadow-none p-0 h-auto flex-grow"
-                              placeholder="Enter title"
-                          />
-                      </div>
+                      
                       <div className="md:grid md:grid-cols-[minmax(0,_3fr)_minmax(0,_2fr)] gap-8">
                         <div>
                           <Textarea
@@ -947,5 +936,3 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
     </>
   );
 }
-
-    
