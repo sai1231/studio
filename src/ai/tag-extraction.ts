@@ -1,13 +1,13 @@
-import { retext } from 'retext';
-import retextPos from 'retext-pos';
-import retextKeywords from 'retext-keywords';
-import { toString } from 'nlcst-to-string';
+import winkNLP from 'wink-nlp';
+import model from 'wink-eng-lite-web-model';
 import { addLog } from '@/services/loggingService';
 
 interface Tag {
   id: string;
   name: string;
 }
+
+const nlp = winkNLP(model);
 
 export async function extractTagsFromText(text: string): Promise<Tag[]> {
   if (!text || typeof text !== 'string') {
@@ -16,42 +16,30 @@ export async function extractTagsFromText(text: string): Promise<Tag[]> {
   }
 
   try {
-    const file = await retext()
-      .use(retextPos)
-      .use(retextKeywords)
-      .process(text);
+    const doc = nlp.read(text);
 
-    const sortedKeywords = [...(file.data.keywords || [])]
-      .sort((a: any, b: any) => b.score - a.score)
-      .slice(0, 5);
+    // Extract tokens that are nouns or proper nouns, filter out very short words and stopwords
+    const tags = doc.tokens()
+      .filter(token =>
+        (token.pos() === 'NOUN' || token.pos() === 'PROPN') &&
+        !token.out().match(/^[^a-zA-Z]+$/) && // exclude symbols
+        token.out().length > 2                // exclude very short words
+      )
+      .out('array')
+      .map((t: string) => t.toLowerCase());
 
-    const sortedKeyphrases = [...(file.data.keyphrases || [])]
-      .sort((a: any, b: any) => b.score - a.score)
-      .slice(0, 5);
-
-    const keywordTexts = sortedKeywords.map((kw: any) =>
-      toString(kw.matches[0].node).toLowerCase()
-    );
-
-    const keyphraseTexts = sortedKeyphrases.map((ph: any) =>
-      ph.matches[0].nodes.map((n: any) => toString(n)).join('').toLowerCase()
-    );
-
-    const allTags = [...keywordTexts, ...keyphraseTexts];
-    const uniqueTags = [...new Set(allTags)];
+    const uniqueTags = [...new Set(tags)].slice(0, 10); // Limit to top 10 unique tags
 
     const formattedTags: Tag[] = uniqueTags.map((tag) => ({
       id: tag,
       name: tag,
     }));
 
- await addLog('INFO', `Successfully extracted tags: ${formattedTags.map(t => t.name).join(', ')}`);
+    await addLog('INFO', `Successfully extracted tags: ${formattedTags.map(t => t.name).join(', ')}`);
     return formattedTags;
 
   } catch (error: any) {
- await addLog('ERROR', 'Error during tag extraction:', { error: error.message });
-    // Depending on desired error handling, you might throw the error
-    // throw error;
+    await addLog('ERROR', 'Error during tag extraction:', { error: error.message });
     return [];
   }
 }

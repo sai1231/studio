@@ -24,6 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { Separator } from '../ui/separator';
+import { Label } from '@/components/ui/label';
 import {
   Accordion,
   AccordionContent,
@@ -318,7 +319,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   };
   const handleDescriptionBlur = () => {
     if (item && editableDescription !== (item.description || '')) {
-       if (item.type === 'note' || item.type === 'todo' || item.type === 'movie') {
+       if (item.type === 'note' || item.type === 'movie') {
          handleFieldUpdate('description', editableDescription);
        }
     }
