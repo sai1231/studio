@@ -68,24 +68,33 @@ const HoverNavButton = ({ icon: Icon, label, children }: { icon: React.ElementTy
 const ZoneHoverCardItem: React.FC<{ zone: Zone }> = ({ zone }) => {
   const Icon = getIconComponent(zone.icon);
   return (
-    <Link href={`/zones/${zone.id}`} className="group space-y-2">
-      <div className="aspect-[4/3] w-full overflow-hidden rounded-md border bg-muted transition-all group-hover:border-primary">
-        {zone.latestItem?.imageUrl ? (
-          <img
-            src={zone.latestItem.imageUrl}
-            alt={zone.latestItem.title}
-            data-ai-hint="zone preview"
-            className="h-full w-full object-cover transition-transform group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <Icon className="h-6 w-6 text-muted-foreground/50" />
-          </div>
-        )}
-      </div>
-      <div className="truncate text-sm font-medium transition-colors group-hover:text-primary">
-        {zone.name}
-      </div>
+    <Link href={`/zones/${zone.id}`} className="block group focus:outline-none focus:ring-2 focus:ring-primary rounded-xl">
+        <div className="relative p-2 h-full flex flex-col">
+            {/* Stacked effect cards */}
+            <div className="absolute inset-0 bg-card rounded-xl shadow-md transform -rotate-3 transition-transform duration-300 ease-in-out group-hover:rotate-[-5deg] group-focus:-rotate-[-5deg]"></div>
+            <div className="absolute inset-0 bg-card rounded-xl shadow-md transform rotate-3 transition-transform duration-300 ease-in-out group-hover:rotate-[5deg] group-focus:rotate-[5deg]"></div>
+            
+            {/* Front card */}
+            <div className="relative bg-card rounded-lg shadow-lg overflow-hidden w-full h-full flex flex-col transition-transform duration-300 ease-in-out group-hover:scale-105 group-focus:scale-105">
+                <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
+                    {zone.latestItem?.imageUrl ? (
+                        <img
+                            src={zone.latestItem.imageUrl}
+                            alt={zone.latestItem.title || 'Zone preview'}
+                            data-ai-hint="zone preview"
+                            className="h-full w-full object-cover"
+                        />
+                    ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                            <Icon className="h-1/3 w-1/3 text-muted-foreground/30" />
+                        </div>
+                    )}
+                </div>
+            </div>
+             <div className="mt-2 text-center">
+                <p className="text-sm font-semibold text-foreground truncate transition-colors group-hover:text-primary">{zone.name}</p>
+            </div>
+        </div>
     </Link>
   );
 };
@@ -141,11 +150,11 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones, tags, domains, contentTy
                         <span className="text-[10px] font-medium leading-none">Zones</span>
                     </Button>
                 </HoverCardTrigger>
-                <HoverCardContent side="right" align="start" className="w-80 p-2 ml-2">
+                <HoverCardContent side="right" align="start" className="w-96 p-2 ml-2">
                     <div className="text-lg font-semibold p-2 border-b mb-2">Zones</div>
                     <div className="max-h-[70vh] overflow-y-auto">
                         {zones.length > 0 ? (
-                            <div className="grid grid-cols-2 gap-4 p-1">
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-6 p-2">
                                 {zones.map(zone => (
                                     <ZoneHoverCardItem key={zone.id} zone={zone} />
                                 ))}
