@@ -257,7 +257,7 @@ const RecordVoiceDialog: React.FC<RecordVoiceDialogProps> = ({ open, onOpenChang
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Microphone Access Denied</AlertTitle>
               <AlertDescription>
-                Mati needs access to your microphone. Please enable it in your browser settings.
+                Mäti needs access to your microphone. Please enable it in your browser settings.
               </AlertDescription>
             </Alert>
           )}

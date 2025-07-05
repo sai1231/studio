@@ -59,7 +59,7 @@ export function LoginForm() {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       toast({
         title: 'Login Successful',
-        description: 'Welcome back to Mati!',
+        description: 'Welcome back to Mäti!',
       });
       router.push('/dashboard');
     } catch (error: any) {
@@ -80,7 +80,7 @@ export function LoginForm() {
       await signInWithPopup(auth, provider);
       toast({
         title: 'Login Successful',
-        description: 'Welcome to Mati!',
+        description: 'Welcome to Mäti!',
       });
       router.push('/dashboard');
     } catch (error: any) {
@@ -106,7 +106,7 @@ export function LoginForm() {
   return (
     <Card className="shadow-xl">
       <CardHeader>
-        <CardTitle className="text-2xl font-headline">Welcome Back to Mati</CardTitle>
+        <CardTitle className="text-2xl font-headline">Welcome Back to Mäti</CardTitle>
         <CardDescription>Enter your credentials or sign in with Google.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

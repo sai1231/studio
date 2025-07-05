@@ -1,15 +1,15 @@
-# Klipped: Your Intelligent Clipboard
+# Mäti: Your Intelligent Clipboard
 
-Klipped is a modern, cross-platform application designed to be your personal digital memory bank. It goes beyond simple link-saving, offering a rich environment to save, automatically categorize, and rediscover web links, notes, images, PDFs, and voice memos with the power of AI.
+Mäti is a modern, cross-platform application designed to be your personal digital memory bank. It goes beyond simple link-saving, offering a rich environment to save, automatically categorize, and rediscover web links, notes, images, PDFs, and voice memos with the power of AI.
 
 This repository is a monorepo containing the main web application, a separate admin portal, and the cross-platform mobile app.
 
 ## Features
 
-Klipped is packed with features to make saving and organizing your digital life seamless and intelligent.
+Mäti is packed with features to make saving and organizing your digital life seamless and intelligent.
 
 ### Core Functionality
-- **Multi-Content Support**: Save more than just links. Klipped supports notes, images, PDF documents, and even voice recordings.
+- **Multi-Content Support**: Save more than just links. Mäti supports notes, images, PDF documents, and even voice recordings.
 - **Drag & Drop**: Effortlessly save content by dragging files, links, or text directly into the application window.
 - **Zones**: Organize your content into distinct "Zones" (e.g., Work, Personal, Inspiration) for a clean, focused workspace.
 - **Tagging System**: Add custom tags to any item for granular organization and easy filtering.
@@ -110,7 +110,7 @@ cd ..
 
 You can run each part of the application in a separate terminal.
 
-#### Web Application (Klipped)
+#### Web Application (Mäti)
 ```bash
 # From the root directory
 npm run dev

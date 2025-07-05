@@ -204,7 +204,7 @@ export default function ProfilePage() {
               <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
                   <CalendarDays className="h-6 w-6 text-primary shrink-0" />
                   <div>
-                      <p className="font-medium text-foreground">Joined Mati</p>
+                      <p className="font-medium text-foreground">Joined Mäti</p>
                       <p className="text-muted-foreground">{format(new Date(user.metadata.creationTime), 'MMMM d, yyyy')}</p>
                   </div>
               </div>

@@ -2,8 +2,8 @@ import { LoginForm } from '@/components/auth/login-form';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Admin Sign In - Mati',
-  description: 'Sign in to the Mati Admin Portal.',
+  title: 'Admin Sign In - Mäti',
+  description: 'Sign in to the Mäti Admin Portal.',
 };
 
 export default function LoginPage() {

@@ -6,8 +6,8 @@ import { AuthProvider } from '@/context/AuthContext';
 import { ThemeProvider } from '@/components/core/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'Mati Admin',
-  description: 'Admin portal for Mati.',
+  title: 'Mäti Admin',
+  description: 'Admin portal for Mäti.',
 };
 
 export default function RootLayout({

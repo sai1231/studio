@@ -8,8 +8,8 @@ import { AuthProvider } from '@/context/AuthContext';
 import { DialogProvider } from '@/context/DialogContext';
 
 export const metadata: Metadata = {
-  title: 'Mati - Save and Organize Your Thoughts', // Changed Klipped to Mati
-  description: 'Your personal space to save, tag, and rediscover web links, notes, and ideas effortlessly.', // Changed Klipped to Mati and updated description
+  title: 'Mäti - Save and Organize Your Thoughts',
+  description: 'Your personal space to save, tag, and rediscover web links, notes, and ideas effortlessly.',
 };
 
 export default function RootLayout({
