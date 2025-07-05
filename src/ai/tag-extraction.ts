@@ -1,13 +1,17 @@
-import winkNLP from 'wink-nlp';
-import model from 'wink-eng-lite-web-model';
+import winkNLPFactory from 'wink-nlp';
+import model from 'wink-eng-lite-web-model'; // Full model (POS tagging supported)
 import { addLog } from '@/services/loggingService';
+import { eng } from 'stopword'; // Optional: for English stopword filtering
 
 interface Tag {
   id: string;
   name: string;
 }
 
-const nlp = winkNLP(model);
+const nlp = winkNLPFactory(model);
+
+// Basic stopword set — use `eng` from 'stopword' package
+const stopwords = new Set(eng);
 
 export async function extractTagsFromText(text: string): Promise<Tag[]> {
   if (!text || typeof text !== 'string') {
@@ -16,26 +20,53 @@ export async function extractTagsFromText(text: string): Promise<Tag[]> {
   }
 
   try {
-    const doc = nlp.read(text);
+    const doc = nlp.readDoc(text);
+    const tokens = doc.tokens().items();
 
-    // Extract tokens that are nouns or proper nouns, filter out very short words and stopwords
-    const tags = doc.tokens()
-      .filter(token =>
-        (token.pos() === 'NOUN' || token.pos() === 'PROPN') &&
-        !token.out().match(/^[^a-zA-Z]+$/) && // exclude symbols
-        token.out().length > 2                // exclude very short words
-      )
-      .out('array')
-      .map((t: string) => t.toLowerCase());
+    const phrases: string[] = [];
+    let phraseTokens: string[] = [];
 
-    const uniqueTags = [...new Set(tags)].slice(0, 10); // Limit to top 10 unique tags
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
+      const pos = token.pos();
+      const value = token.out();
+
+      if ((pos === 'NOUN' || pos === 'PROPN') && /^[a-zA-Z]/.test(value)) {
+        phraseTokens.push(value);
+      } else if (phraseTokens.length > 0) {
+        const raw = phraseTokens.join(' ');
+        const lower = raw.toLowerCase();
+
+        // ✨ Filter: skip if all words are stopwords or phrase is too short
+        const words = lower.split(/\s+/);
+        const validWords = words.filter(w => !stopwords.has(w) && w.length > 2);
+        if (validWords.length > 0) {
+          phrases.push(lower);
+        }
+
+        phraseTokens = [];
+      }
+    }
+
+    // Final phrase (at end of loop)
+    if (phraseTokens.length > 0) {
+      const raw = phraseTokens.join(' ');
+      const lower = raw.toLowerCase();
+      const words = lower.split(/\s+/);
+      const validWords = words.filter(w => !stopwords.has(w) && w.length > 2);
+      if (validWords.length > 0) {
+        phrases.push(lower);
+      }
+    }
+
+    const uniqueTags = [...new Set(phrases)].slice(0, 10);
 
     const formattedTags: Tag[] = uniqueTags.map((tag) => ({
       id: tag,
-      name: tag,
+      name: tag.replace(/\b\w/g, c => c.toUpperCase()), // Capitalize each word
     }));
 
-    await addLog('INFO', `Successfully extracted tags: ${formattedTags.map(t => t.name).join(', ')}`);
+    await addLog('INFO', `Extracted tags: ${formattedTags.map(t => t.name).join(', ')}`);
     return formattedTags;
 
   } catch (error: any) {
