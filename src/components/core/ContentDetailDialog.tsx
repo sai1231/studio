@@ -4,7 +4,6 @@
 
 import type React from 'react';
 import { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
 import { getContentItemById, updateContentItem, getZones, addZone } from '@/services/contentService';
 import type { ContentItem, Zone, Tag, MovieDetails } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -16,7 +15,7 @@ import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, Command
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil, ChevronDown, Ban, Briefcase, Home, Library, Star, Film, Users, Clapperboard, Glasses, AlarmClock, Sparkles } from 'lucide-react';
+import { CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil, ChevronDown, Ban, Briefcase, Home, Library, Star, Film, Users, Clapperboard, Glasses, AlarmClock, Sparkles } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, formatDistanceToNow, add } from 'date-fns';
@@ -452,25 +451,23 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
     handleFieldUpdate('expiresAt', newExpiryDate.toISOString());
   };
   
-  const dialogTitleText = isLoading ? currentLoadingMessage : (item?.type === 'note' ? 'Note' : (item?.title || (error ? "Error Loading" : "Content Details")));
+  const dialogTitleText = isLoading ? currentLoadingMessage : (item?.title || (error ? "Error Loading" : "Content Details"));
 
   if (!open) { 
     return null;
   }
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-[95vw] h-[95vh] flex flex-col p-2">
-            <DialogTitle className="sr-only">{dialogTitleText}</DialogTitle>
-          
-          <div className="flex-grow overflow-y-auto custom-scrollbar">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-none w-[98vw] h-[98vh] flex flex-col p-0 gap-0">
+         <DialogTitle className="sr-only">{dialogTitleText}</DialogTitle>
+          <div className="flex-grow overflow-y-auto custom-scrollbar md:grid md:grid-cols-2 md:gap-0 h-full">
             {isLoading ? (
-              <div className="flex items-center justify-center h-full">
+              <div className="flex items-center justify-center h-full col-span-2">
                 <Loader2 className="h-8 w-8 animate-spin text-primary"/>
               </div>
             ) : error || !item ? (
-              <div className="flex-grow flex items-center justify-center py-8 text-center h-full">
+              <div className="flex-grow flex items-center justify-center py-8 text-center h-full col-span-2">
                 <div>
                   <X className="h-12 w-12 mx-auto text-destructive mb-3" />
                   <h2 className="text-xl font-semibold text-destructive">
@@ -480,142 +477,90 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                 </div>
               </div>
             ) : (
-              // Main content area for the item details
-              (() => { 
-                const isDescriptionReadOnly = (item.type === 'link' && item.type !== 'movie') || item.type === 'image' || item.type === 'voice';
-                const showMindNote = item.type === 'link' || item.type === 'image' || item.type === 'voice' || item.type === 'movie';
-                const showMediaColumn = isFetchingOembed || oembedHtml || (item.imageUrl && !imageError && (item.type === 'link' || item.type === 'image' || item.type === 'note' || item.type === 'voice' || item.type === 'movie')) || (item.type === 'link' && item.contentType === 'PDF');
-                const filteredZones = comboboxSearchText
-                  ? allZones.filter(z => z.name.toLowerCase().includes(comboboxSearchText.toLowerCase()))
-                  : allZones;
-                const currentZoneObject = editableZoneId ? allZones.find(z => z.id === editableZoneId) : undefined;
-                const ZoneDisplayIcon = getIconComponent(currentZoneObject?.icon);
-                const zoneDisplayName = currentZoneObject?.name || "No Zone Assigned";
-                const needsTruncation = editableDescription.length > 280;
-
-                if (item.type === 'note') {
-                  return (
-                    <div className="space-y-6">
-                      
-                      <div className="md:grid md:grid-cols-[minmax(0,_3fr)_minmax(0,_2fr)] gap-8">
-                        <div>
-                          <Textarea
-                              value={editableDescription}
-                              onChange={handleDescriptionChange}
-                              onBlur={handleDescriptionBlur}
-                              disabled={isSavingField || isUpdatingTags}
-                              placeholder="Enter description..."
-                              className="w-full h-auto min-h-[400px] focus-visible:ring-accent font-mono bg-muted/30 dark:bg-muted/20"
-                          />
-                        </div>
-                        <div className="flex flex-col space-y-5 mt-6 md:mt-0">
-                            {/* Metadata items */}
-                            <div className="space-y-3">
-                               <div className="flex items-center space-x-2">
-                                    <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
-                                        <PopoverTrigger asChild>
-                                            <Button variant="outline" role="combobox" aria-expanded={isComboboxOpen} className={cn("w-auto justify-between text-sm min-w-[180px]", (isSavingField || isUpdatingTags) ? "opacity-50" : "", !editableZoneId && "text-muted-foreground")} disabled={isSavingField || isUpdatingTags}>
-                                                <div className="flex items-center"><ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" /><span className="truncate">{zoneDisplayName}</span></div>
-                                                <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                            <Command><CommandInput placeholder="Search or create zone..." value={comboboxSearchText} onValueChange={setComboboxSearchText} /><CommandList><CommandEmpty><div className="py-6 text-center text-sm">{comboboxSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}</div></CommandEmpty><CommandGroup><CommandItem value={NO_ZONE_VALUE} onSelect={() => handleZoneSelection(undefined)}><Check className={cn("mr-2 h-4 w-4", !editableZoneId ? "opacity-100" : "opacity-0")} /><Ban className="mr-2 h-4 w-4 opacity-70 text-muted-foreground" />No Zone Assigned</CommandItem>{filteredZones.map((z) => {const ListItemIcon = getIconComponent(z.icon);return (<CommandItem key={z.id} value={z.id} onSelect={(currentValue) => {handleZoneSelection(currentValue === editableZoneId ? undefined : currentValue);}}><Check className={cn("mr-2 h-4 w-4", editableZoneId === z.id ? "opacity-100" : "opacity-0")} /><ListItemIcon className="mr-2 h-4 w-4 opacity-70" />{z.name}</CommandItem>);})}</CommandGroup>{comboboxSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === comboboxSearchText.trim().toLowerCase()) && (<CommandGroup className="border-t"><CommandItem onSelect={() => handleCreateZone(comboboxSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer"><Plus className="mr-2 h-4 w-4" /> Create "{comboboxSearchText.trim()}"</CommandItem></CommandGroup>)}</CommandList></Command>
-                                        </PopoverContent>
-                                    </Popover>
-                                </div>
-                                <div>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                    {editableTags.map(tag => (<Badge key={tag.id} variant="secondary" className="px-3 py-1 text-xs rounded-full font-medium group relative">{tag.name}<Button variant="ghost" size="icon" className="h-5 w-5 ml-1.5 p-0.5 opacity-50 group-hover:opacity-100 hover:bg-destructive/20 hover:text-destructive absolute -right-1 -top-1 rounded-full bg-background/50" onClick={() => handleRemoveTag(tag.id)} disabled={isUpdatingTags || isSavingField} aria-label={`Remove tag ${tag.name}`}><X className="h-3 w-3" /></Button></Badge>))}
-                                    {isAddingTag ? (<div className="flex items-center gap-1"><Input ref={newTagInputRef} value={newTagInput} onChange={(e) => setNewTagInput(e.target.value)} placeholder="New tag" onKeyDown={handleTagInputKeyDown} disabled={isUpdatingTags || isSavingField} className="h-8 text-sm w-32 focus-visible:ring-accent" autoFocus /><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleAddNewTag} disabled={isUpdatingTags || isSavingField || newTagInput.trim() === ''} aria-label="Confirm add tag" ><Check className="h-4 w-4 text-green-600" /></Button><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleCancelAddTag} disabled={isUpdatingTags || isSavingField} aria-label="Cancel add tag" ><X className="h-4 w-4 text-destructive" /></Button></div>) : (<TooltipProvider><Tooltip><TooltipTrigger asChild><Button size="icon" className="h-8 w-8 rounded-full bg-primary/10 text-primary hover:bg-primary/20" onClick={() => setIsAddingTag(true)} disabled={isUpdatingTags || isSavingField} aria-label="Add new tag" ><Plus className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Add new tag</p></TooltipContent></Tooltip></TooltipProvider>)}
-                                    {isUpdatingTags && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                                    </div>
-                                    {editableTags.length === 0 && !isAddingTag && !isUpdatingTags && (<p className="text-sm text-muted-foreground mt-2">No tags yet. Click '+' to add one.</p>)}
-                                </div>
-                            </div>
-                            <div className="bg-muted/50 dark:bg-muted/20 p-4 rounded-lg mt-2 space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <label htmlFor="temporary-switch" className="flex items-center gap-2 font-medium text-foreground"><AlarmClock className="h-4 w-4 text-muted-foreground" />Temporary Memory</label>
-                                    <Switch id="temporary-switch" checked={isTemporary} onCheckedChange={handleTemporaryToggle} />
-                                </div>
-                                {isTemporary && (<div className="pl-6 space-y-2">{item.expiresAt && (<div className="text-sm text-muted-foreground">Expires in {formatDistanceToNow(new Date(item.expiresAt), { addSuffix: false })} on {format(new Date(item.expiresAt), 'MMM d, yyyy')}</div>)}<Select onValueChange={handleExpiryChange}><SelectTrigger className="w-full bg-background focus:ring-accent"><SelectValue placeholder="Change expiration..." /></SelectTrigger><SelectContent><SelectItem value="7">Delete after 7 days</SelectItem><SelectItem value="30">Delete after 30 days</SelectItem><SelectItem value="90">Delete after 90 days</SelectItem><SelectItem value="365">Delete after 1 year</SelectItem></SelectContent></Select></div>)}
-                            </div>
-                        </div>
+              <>
+                <div className="relative w-full h-full flex items-center justify-center rounded-l-lg overflow-y-auto custom-scrollbar md:p-4 bg-muted/20">
+                  <div className="w-full h-full flex items-center justify-center">
+                    {isFetchingOembed ? (
+                      <div className="w-full aspect-video flex items-center justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                       </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div className={cn("md:grid md:grid-cols-2 gap-4 h-full")}>
-                    <div className="relative w-full h-full flex items-center justify-center rounded-xl overflow-y-auto custom-scrollbar">
-                      {isFetchingOembed ? (
-                        <div className="w-full aspect-video flex items-center justify-center">
-                          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                        </div>
-                      ) : oembedHtml ? (
-                        <div className="oembed-container w-full" dangerouslySetInnerHTML={{ __html: oembedHtml }} />
-                      ) : item.imageUrl && !imageError ? (
-                          <div className="relative w-full h-full">
-                           <img
-                            src={item.imageUrl}
-                            alt={editableTitle || 'Content Image'}
-                            data-ai-hint={item.title || "image"}
-                            className="w-full h-full object-contain"
-                            loading="lazy"
-                            onError={() => setImageError(true)}
-                          />
-                          {item.status === 'pending-analysis' && (
-                              <div className="absolute inset-0 bg-black/10 backdrop-blur-sm flex flex-col items-center justify-center text-white p-4 text-center rounded-xl">
-                                  <Sparkles className="h-12 w-12 mb-4 animate-pulse text-primary-foreground" />
-                                  <p className="text-xl font-semibold text-primary-foreground shadow-black [text-shadow:0_1px_3px_var(--tw-shadow-color)]">Unlocking the story behind this memory...</p>
-                              </div>
-                          )}
-                          </div>
-                      ) : (item.type === 'link' && item.contentType === 'PDF' && item.url) ? (
-                          <iframe src={item.url} className="w-full h-full min-h-[70vh] rounded-xl border-0" title={editableTitle || 'PDF Preview'}></iframe>
-                      ) : null}
-                    </div>
-
-                    <div className="flex flex-col space-y-4 mt-6 md:mt-0 bg-card text-card-foreground p-6 rounded-xl overflow-y-auto custom-scrollbar">
-                      <div className="space-y-2">
-                        {item.domain && item.domain !== 'mati.internal.storage' && (
-                            <div className="flex items-center text-sm text-muted-foreground">
-                            <Globe className="h-4 w-4 mr-2" />
-                            <span>{item.domain}</span>
-                            {(item.type === 'link' || item.type === 'movie') && item.url && (
-                                <TooltipProvider>
-                                    <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1 ml-1.5 text-primary hover:text-primary/80" title={`Open link: ${item.url}`}>
-                                        <ExternalLink className="h-4 w-4" />
-                                        </a>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>Open link</p></TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            )}
+                    ) : oembedHtml ? (
+                      <div className="oembed-container w-full" dangerouslySetInnerHTML={{ __html: oembedHtml }} />
+                    ) : item.imageUrl && !imageError ? (
+                        <div className="relative w-full h-full">
+                         <img
+                          src={item.imageUrl}
+                          alt={editableTitle || 'Content Image'}
+                          data-ai-hint={item.title || "image"}
+                          className="w-full h-full object-contain"
+                          loading="lazy"
+                          onError={() => setImageError(true)}
+                        />
+                        {item.status === 'pending-analysis' && (
+                            <div className="absolute inset-0 bg-black/10 backdrop-blur-sm flex flex-col items-center justify-center text-white p-4 text-center rounded-xl">
+                                <Sparkles className="h-12 w-12 mb-4 animate-pulse text-primary-foreground" />
+                                <p className="text-xl font-semibold text-primary-foreground shadow-black [text-shadow:0_1px_3px_var(--tw-shadow-color)]">Unlocking the story behind this memory...</p>
                             </div>
                         )}
-
-                        <div className="flex items-center space-x-2 relative">
-                            {isSavingField && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground absolute -left-7 top-1/2 -translate-y-1/2" />}
-                            <Input
-                                value={editableTitle}
-                                onChange={handleTitleChange}
-                                onBlur={handleTitleBlur}
-                                disabled={isSavingField || isUpdatingTags}
-                                className="text-2xl font-headline font-semibold border-0 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0 shadow-none p-0 h-auto flex-grow"
-                                placeholder="Enter title"
-                            />
                         </div>
+                    ) : (item.type === 'link' && item.contentType === 'PDF' && item.url) ? (
+                        <iframe src={item.url} className="w-full h-full min-h-[70vh] rounded-xl border-0" title={editableTitle || 'PDF Preview'}></iframe>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                          <p className="text-muted-foreground">No preview available</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-                         {isDescriptionReadOnly && editableDescription && (
-                          <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground pt-2">
+                <div className="flex flex-col space-y-4 bg-background text-card-foreground p-6 rounded-r-lg overflow-y-auto custom-scrollbar">
+                  <div className="space-y-2">
+                    {item.domain && item.domain !== 'mati.internal.storage' && (
+                        <div className="flex items-center text-sm text-muted-foreground">
+                        <Globe className="h-4 w-4 mr-2" />
+                        <span>{item.domain}</span>
+                        {(item.type === 'link' || item.type === 'movie') && item.url && (
+                            <TooltipProvider>
+                                <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1 ml-1.5 text-primary hover:text-primary/80" title={`Open link: ${item.url}`}>
+                                    <ExternalLink className="h-4 w-4" />
+                                    </a>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Open link</p></TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
+                        </div>
+                    )}
+
+                    <div className="flex items-center space-x-2 relative">
+                        {isSavingField && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground absolute -left-7 top-1/2 -translate-y-1/2" />}
+                        <Input
+                            value={editableTitle}
+                            onChange={handleTitleChange}
+                            onBlur={handleTitleBlur}
+                            disabled={isSavingField || isUpdatingTags}
+                            className="text-2xl font-headline font-semibold border-0 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0 shadow-none p-0 h-auto flex-grow bg-transparent"
+                            placeholder="Enter title"
+                        />
+                    </div>
+                  </div>
+
+                  {item.status === 'pending-analysis' ? (
+                      <div className="space-y-4 pt-2">
+                          <Skeleton className="h-16 w-full" />
+                          <Skeleton className="h-4 w-1/2" />
+                          <Skeleton className="h-2.5 w-full" />
+                      </div>
+                    ) : (
+                      <>
+                        {editableDescription && (
+                          <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground">
                             <p className={cn(!isDescriptionExpanded && "line-clamp-4")}>
                               <span dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
                             </p>
-                            {needsTruncation && (
+                            {editableDescription.length > 280 && (
                               <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
                                 {isDescriptionExpanded ? "Show less" : "Show more"}
                               </Button>
@@ -623,36 +568,29 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                           </div>
                         )}
                         
-                        {!isDescriptionReadOnly && (
-                          <div className="space-y-2 pt-2">
-                            <Textarea
-                                value={editableDescription}
-                                onChange={handleDescriptionChange}
-                                onBlur={handleDescriptionBlur}
-                                disabled={isSavingField || isUpdatingTags}
-                                placeholder="Enter description..."
-                                className="w-full h-auto min-h-[120px] focus-visible:ring-accent"
-                            />
-                          </div>
-                        )}
+                        {item.colorPalette && item.colorPalette.length > 0 && 
+                            <ColorPalette palette={item.colorPalette} />
+                        }
+                      </>
+                    )}
+                  
+                  <Separator />
 
-                      </div>
+                  <div className="space-y-2">
+                      <Label className="text-sm font-medium">Mind Note</Label>
+                      <Textarea
+                        value={editableMindNote}
+                        onChange={handleMindNoteChange}
+                        onBlur={handleMindNoteBlur}
+                        disabled={isSavingField || isUpdatingTags}
+                        placeholder="Add your personal thoughts or quick notes here..."
+                        className="w-full min-h-[80px] focus-visible:ring-accent bg-muted/30 dark:bg-muted/20 border-border"
+                      />
+                  </div>
 
-                       {showMindNote && (
-                          <div className="space-y-2 pt-2">
-                             <Textarea
-                                value={editableMindNote}
-                                onChange={handleMindNoteChange}
-                                onBlur={handleMindNoteBlur}
-                                disabled={isSavingField || isUpdatingTags}
-                                placeholder="Add your personal thoughts or quick notes here..."
-                                className="w-full min-h-[80px] focus-visible:ring-accent bg-muted/30 dark:bg-card border-border"
-                              />
-                          </div>
-                        )}
-                      
-                      <Separator/>
-                      
+                  <Separator />
+
+                  <div className="space-y-4">
                       <div className="space-y-3">
                           <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
                             <PopoverTrigger asChild>
@@ -665,24 +603,15 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                                 <Command><CommandInput placeholder="Search or create zone..." value={comboboxSearchText} onValueChange={setComboboxSearchText} /><CommandList><CommandEmpty><div className="py-6 text-center text-sm">{comboboxSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}</div></CommandEmpty><CommandGroup><CommandItem value={NO_ZONE_VALUE} onSelect={() => handleZoneSelection(undefined)}><Check className={cn("mr-2 h-4 w-4", !editableZoneId ? "opacity-100" : "opacity-0")} /><Ban className="mr-2 h-4 w-4 opacity-70 text-muted-foreground" />No Zone Assigned</CommandItem>{filteredZones.map((z) => {const ListItemIcon = getIconComponent(z.icon);return (<CommandItem key={z.id} value={z.id} onSelect={(currentValue) => {handleZoneSelection(currentValue === editableZoneId ? undefined : currentValue);}}><Check className={cn("mr-2 h-4 w-4", editableZoneId === z.id ? "opacity-100" : "opacity-0")} /><ListItemIcon className="mr-2 h-4 w-4 opacity-70" />{z.name}</CommandItem>);})}</CommandGroup>{comboboxSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === comboboxSearchText.trim().toLowerCase()) && (<CommandGroup className="border-t"><CommandItem onSelect={() => handleCreateZone(comboboxSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer"><Plus className="mr-2 h-4 w-4" /> Create "{comboboxSearchText.trim()}"</CommandItem></CommandGroup>)}</CommandList></Command>
                             </PopoverContent>
                         </Popover>
-                      </div>
 
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Tags</Label>
                         <div className="flex flex-wrap items-center gap-2">
+                          <Label className="text-sm font-medium mr-2">Tags:</Label>
                           {editableTags.map(tag => (<Badge key={tag.id} variant="secondary" className="px-3 py-1 text-sm rounded-full font-medium group relative">{tag.name}<Button variant="ghost" size="icon" className="h-5 w-5 ml-1.5 p-0.5 opacity-50 group-hover:opacity-100 hover:bg-destructive/20 hover:text-destructive absolute -right-1.5 -top-1.5 rounded-full bg-background/50" onClick={() => handleRemoveTag(tag.id)} disabled={isUpdatingTags || isSavingField} aria-label={`Remove tag ${tag.name}`}><X className="h-3 w-3" /></Button></Badge>))}
                           {isAddingTag ? (<div className="flex items-center gap-1"><Input ref={newTagInputRef} value={newTagInput} onChange={(e) => setNewTagInput(e.target.value)} placeholder="New tag" onKeyDown={handleTagInputKeyDown} disabled={isUpdatingTags || isSavingField} className="h-8 text-sm w-32 focus-visible:ring-accent" autoFocus /><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleAddNewTag} disabled={isUpdatingTags || isSavingField || newTagInput.trim() === ''} aria-label="Confirm add tag" ><Check className="h-4 w-4 text-green-600" /></Button><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleCancelAddTag} disabled={isUpdatingTags || isSavingField} aria-label="Cancel add tag" ><X className="h-4 w-4 text-destructive" /></Button></div>) : (<TooltipProvider><Tooltip><TooltipTrigger asChild><Button size="sm" variant="outline" className="h-8 rounded-full" onClick={() => setIsAddingTag(true)} disabled={isUpdatingTags || isSavingField} aria-label="Add new tag" ><Plus className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Add new tag</p></TooltipContent></Tooltip></TooltipProvider>)}
                           {isUpdatingTags && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
                         </div>
                       </div>
 
-                      {item.colorPalette && item.colorPalette.length > 0 && 
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Color Palette</Label>
-                          <ColorPalette palette={item.colorPalette} />
-                        </div>
-                      }
-                      
                       <div className="space-y-3 pt-2">
                           <div className="flex items-center justify-between">
                               <label htmlFor="temporary-switch" className="font-medium text-foreground">Temporary Memory</label>
@@ -695,15 +624,12 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                               </div>
                           )}
                       </div>
-
-                    </div>
                   </div>
-                );
-              })()
+                </div>
+              </>
             )}
           </div>
-        </DialogContent>
-      </Dialog>
-    </>
+      </DialogContent>
+    </Dialog>
   );
 }
