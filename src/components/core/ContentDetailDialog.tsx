@@ -456,7 +456,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   const selectedZone = allZones.find(z => z.id === editableZoneId);
   const zoneDisplayName = selectedZone?.name || "No zone";
   const ZoneDisplayIcon = getIconComponent(selectedZone?.icon);
-  const filteredZones = zoneSearchText ? allZones.filter(z => z.name.toLowerCase().includes(zoneSearchText.toLowerCase())) : allZones;
+  const filteredZones = comboboxSearchText ? allZones.filter(z => z.name.toLowerCase().includes(comboboxSearchText.toLowerCase())) : allZones;
 
   if (!open) { 
     return null;
@@ -464,7 +464,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-none w-[calc(100vw-2rem)] h-[calc(100vh-2rem)] flex flex-col p-0 gap-0">
+      <DialogContent className="w-[calc(100vw-2rem)] h-[calc(100vh-2rem)] max-w-none flex flex-col p-0 gap-0">
         <DialogTitle className="sr-only">{dialogTitleText}</DialogTitle>
           <div className="flex-grow overflow-y-auto custom-scrollbar md:grid md:grid-cols-2 md:gap-0 h-full">
             {isLoading ? (
@@ -551,40 +551,29 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                         />
                     </div>
                   </div>
-
-                  <Accordion type="single" collapsible defaultValue="item-1" className="w-full">
-                    <AccordionItem value="item-1">
-                      <AccordionTrigger className="font-semibold">AI Analysis</AccordionTrigger>
-                      <AccordionContent className="space-y-3">
-                          {item.status === 'pending-analysis' ? (
-                            <div className="space-y-4 pt-2">
-                                <Skeleton className="h-16 w-full" />
-                                <Skeleton className="h-4 w-1/2" />
-                                <Skeleton className="h-2.5 w-full" />
-                            </div>
-                          ) : (
-                            <>
-                              {editableDescription && (
-                                <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground">
+                  
+                  {item.status === 'pending-analysis' ? (
+                      <div className="space-y-4 pt-2">
+                          <Skeleton className="h-16 w-full" />
+                          <Skeleton className="h-4 w-1/2" />
+                          <Skeleton className="h-2.5 w-full" />
+                      </div>
+                  ) : (
+                      <>
+                          {editableDescription && (
+                              <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground">
                                   <p className={cn(!isDescriptionExpanded && "line-clamp-4")}>
-                                    <span dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
+                                      <span dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
                                   </p>
                                   {editableDescription.length > 280 && (
-                                    <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
-                                      {isDescriptionExpanded ? "Show less" : "Show more"}
-                                    </Button>
+                                      <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
+                                          {isDescriptionExpanded ? "Show less" : "Show more"}
+                                      </Button>
                                   )}
-                                </div>
-                              )}
-                              
-                              {item.colorPalette && item.colorPalette.length > 0 && 
-                                  <ColorPalette palette={item.colorPalette} />
-                              }
-                            </>
+                              </div>
                           )}
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
+                      </>
+                  )}
                   
                   <Separator />
                   
@@ -603,10 +592,8 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                   <Separator />
 
                   <div className="space-y-3">
-                      <div className="pl-6 space-y-4">
-                          <div>
-                            <Label className="text-sm font-medium mb-2 block">Zone</Label>
-                             <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
+                      <div>
+                          <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
                               <PopoverTrigger asChild>
                                   <Button variant="outline" role="combobox" aria-expanded={isComboboxOpen} className={cn("w-full justify-between", (isSavingField || isUpdatingTags) ? "opacity-50" : "", !editableZoneId && "text-muted-foreground")} disabled={isSavingField || isUpdatingTags}>
                                       <div className="flex items-center"><ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" /><span className="truncate">{zoneDisplayName}</span></div>
@@ -617,14 +604,13 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                                   <Command><CommandInput placeholder="Search or create zone..." value={comboboxSearchText} onValueChange={setComboboxSearchText} /><CommandList><CommandEmpty><div className="py-6 text-center text-sm">{comboboxSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}</div></CommandEmpty><CommandGroup><CommandItem value={NO_ZONE_VALUE} onSelect={() => handleZoneSelection(undefined)}><Check className={cn("mr-2 h-4 w-4", !editableZoneId ? "opacity-100" : "opacity-0")} /><Ban className="mr-2 h-4 w-4 opacity-70 text-muted-foreground" />No Zone Assigned</CommandItem>{filteredZones.map((z) => {const ListItemIcon = getIconComponent(z.icon);return (<CommandItem key={z.id} value={z.id} onSelect={(currentValue) => {handleZoneSelection(currentValue === editableZoneId ? undefined : currentValue);}}><Check className={cn("mr-2 h-4 w-4", editableZoneId === z.id ? "opacity-100" : "opacity-0")} /><ListItemIcon className="mr-2 h-4 w-4 opacity-70" />{z.name}</CommandItem>);})}</CommandGroup>{comboboxSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === comboboxSearchText.trim().toLowerCase()) && (<CommandGroup className="border-t"><CommandItem onSelect={() => handleCreateZone(comboboxSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer"><Plus className="mr-2 h-4 w-4" /> Create "{comboboxSearchText.trim()}"</CommandItem></CommandGroup>)}</CommandList></Command>
                               </PopoverContent>
                           </Popover>
-                          </div>
+                      </div>
 
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Label className="text-sm font-medium mr-2">Tags:</Label>
-                            {editableTags.map(tag => (<Badge key={tag.id} variant="secondary" className="px-3 py-1 text-sm rounded-full font-medium group relative">{tag.name}<Button variant="ghost" size="icon" className="h-5 w-5 ml-1.5 p-0.5 opacity-50 group-hover:opacity-100 hover:bg-destructive/20 hover:text-destructive absolute -right-1.5 -top-1.5 rounded-full bg-background/50" onClick={() => handleRemoveTag(tag.id)} disabled={isUpdatingTags || isSavingField} aria-label={`Remove tag ${tag.name}`}><X className="h-3 w-3" /></Button></Badge>))}
-                            {isAddingTag ? (<div className="flex items-center gap-1"><Input ref={newTagInputRef} value={newTagInput} onChange={(e) => setNewTagInput(e.target.value)} placeholder="New tag" onKeyDown={handleTagInputKeyDown} disabled={isUpdatingTags || isSavingField} className="h-8 text-sm w-32 focus-visible:ring-accent" autoFocus /><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleAddNewTag} disabled={isUpdatingTags || isSavingField || newTagInput.trim() === ''} aria-label="Confirm add tag" ><Check className="h-4 w-4 text-green-600" /></Button><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleCancelAddTag} disabled={isUpdatingTags || isSavingField} aria-label="Cancel add tag" ><X className="h-4 w-4 text-destructive" /></Button></div>) : (<TooltipProvider><Tooltip><TooltipTrigger asChild><Button size="sm" variant="outline" className="h-8 rounded-full" onClick={() => setIsAddingTag(true)} disabled={isUpdatingTags || isSavingField} aria-label="Add new tag" ><Plus className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Add new tag</p></TooltipContent></Tooltip></TooltipProvider>)}
-                            {isUpdatingTags && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                          </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                          <Label className="text-sm font-medium mr-2">Tags:</Label>
+                          {editableTags.map(tag => (<Badge key={tag.id} variant="secondary" className="px-3 py-1 text-sm rounded-full font-medium group relative">{tag.name}<Button variant="ghost" size="icon" className="h-5 w-5 ml-1.5 p-0.5 opacity-50 group-hover:opacity-100 hover:bg-destructive/20 hover:text-destructive absolute -right-1.5 -top-1.5 rounded-full bg-background/50" onClick={() => handleRemoveTag(tag.id)} disabled={isUpdatingTags || isSavingField} aria-label={`Remove tag ${tag.name}`}><X className="h-3 w-3" /></Button></Badge>))}
+                          {isAddingTag ? (<div className="flex items-center gap-1"><Input ref={newTagInputRef} value={newTagInput} onChange={(e) => setNewTagInput(e.target.value)} placeholder="New tag" onKeyDown={handleTagInputKeyDown} disabled={isUpdatingTags || isSavingField} className="h-8 text-sm w-32 focus-visible:ring-accent" autoFocus /><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleAddNewTag} disabled={isUpdatingTags || isSavingField || newTagInput.trim() === ''} aria-label="Confirm add tag" ><Check className="h-4 w-4 text-green-600" /></Button><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleCancelAddTag} disabled={isUpdatingTags || isSavingField} aria-label="Cancel add tag" ><X className="h-4 w-4 text-destructive" /></Button></div>) : (<TooltipProvider><Tooltip><TooltipTrigger asChild><Button size="sm" variant="outline" className="h-8 rounded-full" onClick={() => setIsAddingTag(true)} disabled={isUpdatingTags || isSavingField} aria-label="Add new tag" ><Plus className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Add new tag</p></TooltipContent></Tooltip></TooltipProvider>)}
+                          {isUpdatingTags && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
                       </div>
                   </div>
 
@@ -642,6 +628,8 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                           </div>
                       )}
                   </div>
+
+                  {item.colorPalette && item.colorPalette.length > 0 && <ColorPalette palette={item.colorPalette} />}
                 </div>
               </>
             )}
