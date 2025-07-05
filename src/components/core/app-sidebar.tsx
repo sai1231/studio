@@ -79,7 +79,7 @@ const ZoneHoverCardItem: React.FC<{ zone: Zone }> = ({ zone }) => {
                 {zone.latestItem?.imageUrl ? (
                     <img
                         src={zone.latestItem.imageUrl}
-                        alt={zone.latestItem.title || 'Zone Preview'}
+                        alt={zone.latestItem?.title || 'Zone Preview'}
                         data-ai-hint="zone preview"
                         className="h-full w-full object-cover"
                     />
