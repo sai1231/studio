@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil, ChevronDown, Ban, Briefcase, Home, Library, Star, Film, Users, Clapperboard, Glasses, AlarmClock, Sparkles } from 'lucide-react';
@@ -456,8 +456,6 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
     const newExpiryDate = add(new Date(), { days: parseInt(value, 10) });
     handleFieldUpdate('expiresAt', newExpiryDate.toISOString());
   };
-
-  const dialogTitleText = isLoading ? currentLoadingMessage : (item?.type === 'note' ? 'Note' : (item?.title || (error ? "Error Loading" : "Content Details")));
   
   if (!open) { 
     return null;
@@ -466,11 +464,9 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-[90vw] sm:max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl max-h-[90vh] flex flex-col">
-          <DialogHeader className="pr-10 flex-shrink-0">
-            <DialogTitle className="text-2xl font-headline truncate">
-              {dialogTitleText}
-            </DialogTitle>
+        <DialogContent className="w-[95vw] max-w-[95vw] h-[95vh] max-h-[95vh] flex flex-col">
+          <DialogHeader className="pr-10 flex-shrink-0 h-10">
+            {/* Title removed for a cleaner look, as it's editable below */}
           </DialogHeader>
           
           <div className="flex-grow overflow-y-auto pr-4 pl-1 custom-scrollbar py-4">
@@ -567,7 +563,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                             </div>
                             <div className="bg-muted/50 dark:bg-muted/20 p-4 rounded-lg mt-2 space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <label htmlFor="temporary-switch" className="flex items-center gap-2 font-medium text-foreground"><AlarmClock className="h-4 w-4 text-muted-foreground" />Temporary Content</label>
+                                    <label htmlFor="temporary-switch" className="flex items-center gap-2 font-medium text-foreground"><AlarmClock className="h-4 w-4 text-muted-foreground" />Temporary Memory</label>
                                     <Switch id="temporary-switch" checked={isTemporary} onCheckedChange={handleTemporaryToggle} />
                                 </div>
                                 {isTemporary && (<div className="pl-6 space-y-2">{item.expiresAt && (<div className="text-sm text-muted-foreground">Expires in {formatDistanceToNow(new Date(item.expiresAt), { addSuffix: false })} on {format(new Date(item.expiresAt), 'MMM d, yyyy')}</div>)}<Select onValueChange={handleExpiryChange}><SelectTrigger className="w-full bg-background focus:ring-accent"><SelectValue placeholder="Change expiration..." /></SelectTrigger><SelectContent><SelectItem value="7">Delete after 7 days</SelectItem><SelectItem value="30">Delete after 30 days</SelectItem><SelectItem value="90">Delete after 90 days</SelectItem><SelectItem value="365">Delete after 1 year</SelectItem></SelectContent></Select></div>)}
@@ -671,13 +667,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                         
                         <Separator />
 
-                        {/* Organization Section */}
-                        <div className="space-y-3">
-                          <h3 className="text-base font-semibold text-foreground flex items-center">
-                              <Bookmark className="h-4 w-4 mr-2 text-muted-foreground"/>
-                              Organization
-                          </h3>
-                          <div className="pl-6 space-y-4">
+                        <div className="space-y-4">
                             <div>
                               <Label className="text-sm font-medium mb-2 block">Zone</Label>
                                <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
@@ -700,103 +690,76 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                                   {isUpdatingTags && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
                                 </div>
                             </div>
-                          </div>
                         </div>
 
                         {/* AI Analysis Section */}
                         {(isDescriptionReadOnly || (item.colorPalette && item.colorPalette.length > 0) || item.status === 'pending-analysis') && (
-                          <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
-                            <AccordionItem value="item-1">
-                              <AccordionTrigger className="text-base font-semibold hover:no-underline">
-                                <div className="flex items-center">
-                                  <Sparkles className="h-4 w-4 mr-2 text-muted-foreground"/>
-                                  AI Analysis
-                                </div>
-                              </AccordionTrigger>
-                              <AccordionContent className="space-y-4 pt-2">
-                                {item.status === 'pending-analysis' ? (
-                                    <div className="pl-6 space-y-3">
-                                        <Skeleton className="h-16 w-full" />
-                                        <Skeleton className="h-2.5 w-full rounded-full" />
+                          <div className="space-y-4 pt-2">
+                              {item.status === 'pending-analysis' ? (
+                                  <div className="space-y-3">
+                                      <Skeleton className="h-16 w-full" />
+                                      <Skeleton className="h-2.5 w-full rounded-full" />
+                                  </div>
+                              ) : (
+                                <>
+                                  {isDescriptionReadOnly && editableDescription && (
+                                    <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground">
+                                      <p className={cn(!isDescriptionExpanded && "line-clamp-4")}>
+                                        <span dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
+                                      </p>
+                                      {needsTruncation && (
+                                        <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
+                                          {isDescriptionExpanded ? "Show less" : "Show more"}
+                                        </Button>
+                                      )}
                                     </div>
-                                ) : (
-                                  <>
-                                    {isDescriptionReadOnly && editableDescription && (
-                                      <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground pl-6">
-                                        <p className={cn(!isDescriptionExpanded && "line-clamp-4")}>
-                                          <span dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
-                                        </p>
-                                        {needsTruncation && (
-                                          <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
-                                            {isDescriptionExpanded ? "Show less" : "Show more"}
-                                          </Button>
-                                        )}
-                                      </div>
-                                    )}
-                                    {item.colorPalette && item.colorPalette.length > 0 && <div className="pl-6"><ColorPalette palette={item.colorPalette} /></div>}
-                                  </>
-                                )}
-                              </AccordionContent>
-                            </AccordionItem>
-                          </Accordion>
+                                  )}
+                                  {item.colorPalette && item.colorPalette.length > 0 && <ColorPalette palette={item.colorPalette} />}
+                                </>
+                              )}
+                          </div>
                         )}
                         
                         {/* Editable Description Section */}
                         {!isDescriptionReadOnly && (
                           <div className="space-y-2">
-                            <h3 className="text-base font-semibold text-foreground flex items-center">
-                              <Pencil className="h-4 w-4 mr-2 text-muted-foreground"/>
-                              Description
-                            </h3>
-                            <div className="pl-6">
-                              <Textarea
-                                  value={editableDescription}
-                                  onChange={handleDescriptionChange}
-                                  onBlur={handleDescriptionBlur}
-                                  disabled={isSavingField || isUpdatingTags}
-                                  placeholder="Enter description..."
-                                  className="w-full h-auto min-h-[120px] focus-visible:ring-accent"
-                              />
-                            </div>
+                            <Textarea
+                                value={editableDescription}
+                                onChange={handleDescriptionChange}
+                                onBlur={handleDescriptionBlur}
+                                disabled={isSavingField || isUpdatingTags}
+                                placeholder="Enter description..."
+                                className="w-full h-auto min-h-[120px] focus-visible:ring-accent"
+                            />
                           </div>
                         )}
 
                         {/* Mind Note Section */}
                         {showMindNote && (
                           <div className="space-y-2">
-                            <h3 className="text-base font-semibold text-foreground flex items-center">
-                                <StickyNote className="h-4 w-4 mr-2 text-muted-foreground"/> Mind Note
-                            </h3>
-                            <div className="pl-6">
-                               <Textarea
-                                  value={editableMindNote}
-                                  onChange={handleMindNoteChange}
-                                  onBlur={handleMindNoteBlur}
-                                  disabled={isSavingField || isUpdatingTags}
-                                  placeholder="Add your personal thoughts or quick notes here..."
-                                  className="w-full min-h-[80px] focus-visible:ring-accent bg-muted/30 dark:bg-card border-border"
-                                />
-                            </div>
+                             <Textarea
+                                value={editableMindNote}
+                                onChange={handleMindNoteChange}
+                                onBlur={handleMindNoteBlur}
+                                disabled={isSavingField || isUpdatingTags}
+                                placeholder="Add your personal thoughts or quick notes here..."
+                                className="w-full min-h-[80px] focus-visible:ring-accent bg-muted/30 dark:bg-card border-border"
+                              />
                           </div>
                         )}
 
                         {/* Settings Section */}
-                        <div className="space-y-2">
-                            <h3 className="text-base font-semibold text-foreground flex items-center">
-                                <AlarmClock className="h-4 w-4 mr-2 text-muted-foreground"/> Settings
-                            </h3>
-                            <div className="pl-6 space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <label htmlFor="temporary-switch" className="font-medium text-foreground">Temporary Content</label>
-                                    <Switch id="temporary-switch" checked={isTemporary} onCheckedChange={handleTemporaryToggle} />
-                                </div>
-                                {isTemporary && (
-                                    <div className="pl-6 space-y-2">
-                                        {item.expiresAt && (<div className="text-sm text-muted-foreground">Expires in {formatDistanceToNow(new Date(item.expiresAt), { addSuffix: false })} on {format(new Date(item.expiresAt), 'MMM d, yyyy')}</div>)}
-                                        <Select onValueChange={handleExpiryChange}><SelectTrigger className="w-full bg-background focus:ring-accent"><SelectValue placeholder="Change expiration..." /></SelectTrigger><SelectContent><SelectItem value="7">Delete after 7 days</SelectItem><SelectItem value="30">Delete after 30 days</SelectItem><SelectItem value="90">Delete after 90 days</SelectItem><SelectItem value="365">Delete after 1 year</SelectItem></SelectContent></Select>
-                                    </div>
-                                )}
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <label htmlFor="temporary-switch" className="font-medium text-foreground">Temporary Memory</label>
+                                <Switch id="temporary-switch" checked={isTemporary} onCheckedChange={handleTemporaryToggle} />
                             </div>
+                            {isTemporary && (
+                                <div className="space-y-2">
+                                    {item.expiresAt && (<div className="text-sm text-muted-foreground">Expires in {formatDistanceToNow(new Date(item.expiresAt), { addSuffix: false })} on {format(new Date(item.expiresAt), 'MMM d, yyyy')}</div>)}
+                                    <Select onValueChange={handleExpiryChange}><SelectTrigger className="w-full bg-background focus:ring-accent"><SelectValue placeholder="Change expiration..." /></SelectTrigger><SelectContent><SelectItem value="7">Delete after 7 days</SelectItem><SelectItem value="30">Delete after 30 days</SelectItem><SelectItem value="90">Delete after 90 days</SelectItem><SelectItem value="365">Delete after 1 year</SelectItem></SelectContent></Select>
+                                </div>
+                            )}
                         </div>
                     </div> 
                   </div> 
