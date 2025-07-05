@@ -1,6 +1,7 @@
 
 import { initializeApp, getApps, getApp, type FirebaseOptions, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
+import { getFirestore, type Firestore } from 'firebase/firestore';
 
 // IMPORTANT: Replace these with your actual Firebase project configuration
 // You can copy this from your web app's .env file or the Firebase console.
@@ -18,15 +19,18 @@ const isFirebaseConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY_HERE" && fi
 
 let app: FirebaseApp;
 let auth: Auth;
+let db: Firestore;
 
 if (isFirebaseConfigured) {
   // Initialize Firebase
   app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
   auth = getAuth(app);
+  db = getFirestore(app);
 } else {
   // Use dummy objects if not configured to avoid crashing the app
   app = null as any;
   auth = null as any;
+  db = null as any;
 }
 
-export { app, auth };
+export { app, auth, db };

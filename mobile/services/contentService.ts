@@ -10,14 +10,20 @@ import {
 } from 'firebase/firestore';
 import type { ContentItem } from '@/types';
 
-const contentCollection = collection(db, 'content');
-
 export async function getContentItems(userId: string, countLimit?: number): Promise<ContentItem[]> {
   try {
+    if (!db) {
+      console.warn("Firestore is not configured. Returning empty array.");
+      return [];
+    }
+
     if (!userId) {
       console.warn("getContentItems called without a userId. Returning empty array.");
       return [];
     }
+    
+    const contentCollection = collection(db, 'content');
+
     const qConstraints: any[] = [
       where("userId", "==", userId),
       orderBy('createdAt', 'desc')
