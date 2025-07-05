@@ -9,6 +9,7 @@ export interface Zone {
   id:string;
   name: string;
   icon?: string; 
+  latestItem?: ContentItem;
 }
 
 export type ContentItemType = 'link' | 'note' | 'image' | 'voice' | 'movie'; // Removed 'todo'

@@ -59,6 +59,8 @@ export default function AppLayout({
   const [tags, setTags] = useState<TagType[]>([]);
   const [domains, setDomains] = useState<string[]>([]);
   const [contentTypes, setContentTypes] = useState<string[]>([]);
+  const [allContentItems, setAllContentItems] = useState<ContentItem[]>([]);
+  const [zonesWithLatestItems, setZonesWithLatestItems] = useState<Zone[]>([]);
   const { toast } = useToast();
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [activeMobileSheet, setActiveMobileSheet] = useState<'zones' | 'types' | 'todos' | null>(null);
@@ -82,6 +84,7 @@ export default function AppLayout({
             toast({ title: "Real-time Error", description: "Could not update sidebar content.", variant: "destructive" });
             return;
         }
+        setAllContentItems(items);
         setDomains(getUniqueDomainsFromItems(items));
         setTags(getUniqueTagsFromItems(items));
         setContentTypes(getUniqueContentTypesFromItems(items));
@@ -92,6 +95,28 @@ export default function AppLayout({
       unsubscribeContent();
     };
   }, [user, toast]);
+
+  useEffect(() => {
+    const zonesMap = new Map<string, ContentItem>();
+    
+    // Create a map of the most recent item for each zoneId
+    allContentItems.forEach(item => {
+        if (item.zoneId) {
+            const existingLatest = zonesMap.get(item.zoneId);
+            if (!existingLatest || new Date(item.createdAt) > new Date(existingLatest.createdAt)) {
+                zonesMap.set(item.zoneId, item);
+            }
+        }
+    });
+
+    // Map over the original zones to preserve order and add the latest item
+    const newZonesWithItems = zones.map(zone => ({
+        ...zone,
+        latestItem: zonesMap.get(zone.id)
+    }));
+    
+    setZonesWithLatestItems(newZonesWithItems);
+  }, [zones, allContentItems]);
 
   const handleAddContentAndRefresh = useCallback(async (newContentData: Omit<ContentItem, 'id' | 'createdAt'>) => {
     if (!user) {
@@ -309,7 +334,7 @@ export default function AppLayout({
   return (
     <SearchProvider>
       <div className="flex min-h-screen w-full relative">
-        <AppSidebar zones={zones} tags={tags} domains={domains} contentTypes={contentTypes} />
+        <AppSidebar zones={zonesWithLatestItems} tags={tags} domains={domains} contentTypes={contentTypes} />
         <div className="flex flex-col flex-1 min-w-0 md:ml-20">
           <AppHeader />
           <main

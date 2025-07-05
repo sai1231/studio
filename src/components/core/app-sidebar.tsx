@@ -1,4 +1,5 @@
 
+
 'use client';
 import type React from 'react';
 import { Home, Tag, LogOut, Globe, ClipboardList, Bookmark, Newspaper, Film, Github, MessagesSquare, BookOpen, LucideIcon, StickyNote, Sparkles, Shield, Brain } from 'lucide-react';
@@ -10,6 +11,7 @@ import type { Zone, Tag as TagType } from '@/types';
 import { ThemeToggle } from './theme-toggle';
 import { useToast } from '@/hooks/use-toast';
 import { getAuth, signOut } from 'firebase/auth';
+import { cn } from '@/lib/utils';
 
 const predefinedContentTypes: Record<string, { icon: LucideIcon, name: string }> = {
   Post: { icon: Newspaper, name: 'Post' },
@@ -29,13 +31,17 @@ const iconMap: { [key: string]: React.ElementType } = {
   Bookmark: Bookmark,
 };
 
+const getIconComponent = (iconName?: string): React.ElementType => {
+    if (iconName && iconMap[iconName]) return iconMap[iconName];
+    return Bookmark;
+};
+
 const SidebarLink = ({ href, icon: Icon, children, ...props }: { href: string, icon: LucideIcon, children: React.ReactNode, [key: string]: any }) => (
   <Link href={href} className="flex flex-col items-center justify-center text-center gap-1 rounded-lg p-2 text-sidebar-foreground transition-all w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" {...props}>
     <Icon className="h-5 w-5" />
     <span className="text-[10px] font-medium leading-none">{children}</span>
   </Link>
 );
-
 
 const HoverNavButton = ({ icon: Icon, label, children }: { icon: React.ElementType, label: string, children: React.ReactNode }) => (
     <HoverCard openDelay={100} closeDelay={100}>
@@ -58,6 +64,32 @@ const HoverNavButton = ({ icon: Icon, label, children }: { icon: React.ElementTy
         </HoverCardContent>
     </HoverCard>
 );
+
+const ZoneHoverCardItem: React.FC<{ zone: Zone }> = ({ zone }) => {
+  const Icon = getIconComponent(zone.icon);
+  return (
+    <Link href={`/zones/${zone.id}`} className="group space-y-2">
+      <div className="aspect-[4/3] w-full overflow-hidden rounded-md border bg-muted transition-all group-hover:border-primary">
+        {zone.latestItem?.imageUrl ? (
+          <img
+            src={zone.latestItem.imageUrl}
+            alt={zone.latestItem.title}
+            data-ai-hint="zone preview"
+            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <Icon className="h-6 w-6 text-muted-foreground/50" />
+          </div>
+        )}
+      </div>
+      <div className="truncate text-sm font-medium transition-colors group-hover:text-primary">
+        {zone.name}
+      </div>
+    </Link>
+  );
+};
+
 
 interface AppSidebarProps {
     zones: Zone[];
@@ -87,11 +119,6 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones, tags, domains, contentTy
     return nameWithoutTld.charAt(0).toUpperCase() + nameWithoutTld.slice(1);
   };
 
-  const getIconComponent = (iconName?: string): React.ElementType => {
-    if (iconName && iconMap[iconName]) return iconMap[iconName];
-    return Bookmark;
-  };
-
   return (
     <>
       <aside className="hidden border-r bg-sidebar text-sidebar-foreground md:block w-20 fixed top-0 left-0 h-full z-30">
@@ -107,17 +134,28 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones, tags, domains, contentTy
               <SidebarLink href="/dashboard" icon={Home}>Home</SidebarLink>
               <SidebarLink href="/declutter" icon={Sparkles}>Declutter</SidebarLink>
               
-              <HoverNavButton icon={Bookmark} label="Zones">
-                {zones.length > 0 ? zones.map(zone => {
-                  const Icon = getIconComponent(zone.icon);
-                  return (
-                      <Link key={zone.id} href={`/zones/${zone.id}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
-                          <Icon className="h-4 w-4 opacity-70" />
-                          <span className="truncate">{zone.name}</span>
-                      </Link>
-                  );
-                }) : <p className="p-2 text-xs text-muted-foreground">No zones found.</p>}
-              </HoverNavButton>
+              <HoverCard openDelay={100} closeDelay={100}>
+                <HoverCardTrigger asChild>
+                    <Button variant="ghost" className="flex flex-col items-center justify-center text-center gap-1 rounded-lg p-2 text-sidebar-foreground transition-all w-full h-auto hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                        <Bookmark className="h-5 w-5" />
+                        <span className="text-[10px] font-medium leading-none">Zones</span>
+                    </Button>
+                </HoverCardTrigger>
+                <HoverCardContent side="right" align="start" className="w-80 p-2 ml-2">
+                    <div className="text-lg font-semibold p-2 border-b mb-2">Zones</div>
+                    <div className="max-h-[70vh] overflow-y-auto">
+                        {zones.length > 0 ? (
+                            <div className="grid grid-cols-2 gap-4 p-1">
+                                {zones.map(zone => (
+                                    <ZoneHoverCardItem key={zone.id} zone={zone} />
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="p-2 text-xs text-muted-foreground text-center">No zones created yet.</p>
+                        )}
+                    </div>
+                </HoverCardContent>
+              </HoverCard>
 
               <HoverNavButton icon={Tag} label="Tags">
                 {tags.length > 0 ? tags.map(tag => (
