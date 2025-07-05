@@ -42,32 +42,30 @@ const getIconComponent = (iconName?: string): React.ElementType => {
 const ZoneStackCard: React.FC<{ zone: Zone }> = ({ zone }) => {
     const Icon = getIconComponent(zone.icon);
     return (
-        <Link href={`/zones/${zone.id}`} className="block group focus:outline-none focus:ring-2 focus:ring-primary rounded-xl">
-            <div className="relative p-2 h-full flex flex-col">
-                {/* Stacked effect cards */}
-                <div className="absolute inset-0 bg-card rounded-xl shadow-md transform -rotate-3 transition-transform duration-300 ease-in-out group-hover:rotate-[-5deg] group-focus:-rotate-[-5deg]"></div>
-                <div className="absolute inset-0 bg-card rounded-xl shadow-md transform rotate-3 transition-transform duration-300 ease-in-out group-hover:rotate-[5deg] group-focus:rotate-[5deg]"></div>
+        <Link href={`/zones/${zone.id}`} className="block group focus:outline-none focus:ring-2 focus:ring-primary rounded-lg p-1">
+            <div className="relative transition-transform duration-300 ease-in-out group-hover:scale-105 group-focus:scale-105">
+                {/* Background Cards */}
+                <div className="absolute inset-0 bg-card rounded-lg shadow-md transform-gpu rotate-2"></div>
+                <div className="absolute inset-0 bg-card rounded-lg shadow-md transform-gpu -rotate-2"></div>
                 
-                {/* Front card */}
-                <div className="relative bg-card rounded-lg shadow-lg overflow-hidden w-full h-full flex flex-col transition-transform duration-300 ease-in-out group-hover:scale-105 group-focus:scale-105">
-                    <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
-                        {zone.latestItem?.imageUrl ? (
-                            <img
-                                src={zone.latestItem.imageUrl}
-                                alt={zone.latestItem.title}
-                                data-ai-hint="zone preview"
-                                className="h-full w-full object-cover"
-                            />
-                        ) : (
-                            <div className="flex h-full w-full items-center justify-center">
-                                <Icon className="h-1/3 w-1/3 text-muted-foreground/30" />
-                            </div>
-                        )}
-                    </div>
+                {/* Front Card */}
+                <div className="relative bg-card rounded-lg shadow-lg overflow-hidden w-full aspect-[4/3]">
+                    {zone.latestItem?.imageUrl ? (
+                        <img
+                            src={zone.latestItem.imageUrl}
+                            alt={zone.latestItem.title || 'Zone Preview'}
+                            data-ai-hint="zone preview"
+                            className="h-full w-full object-cover"
+                        />
+                    ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-muted">
+                            <Icon className="h-1/3 w-1/3 text-muted-foreground/30" />
+                        </div>
+                    )}
                 </div>
-                 <div className="mt-2 text-center">
-                    <p className="text-sm font-semibold text-foreground truncate transition-colors group-hover:text-primary">{zone.name}</p>
-                </div>
+            </div>
+            <div className="mt-2 text-center">
+                <p className="text-sm font-semibold text-foreground truncate transition-colors group-hover:text-primary">{zone.name}</p>
             </div>
         </Link>
     );
