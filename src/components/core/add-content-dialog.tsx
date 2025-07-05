@@ -408,7 +408,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       <input type="file" ref={fileInputRef} onChange={handleFileInputChange} accept="image/*,application/pdf" className="hidden" multiple />
 
       {!isMobile && (
-        <div className="space-y-4 rounded-lg border bg-muted/50 p-4">
+        <div className="space-y-4 rounded-lg border p-4">
             <div className="space-y-2">
                 <div className="flex items-center justify-between">
                     <Label htmlFor="temporary" className="flex items-center gap-2 font-medium">
