@@ -45,8 +45,8 @@ const ZoneStackCard: React.FC<{ zone: Zone }> = ({ zone }) => {
         <Link href={`/zones/${zone.id}`} className="block group focus:outline-none focus:ring-2 focus:ring-primary rounded-lg p-1">
             <div className="relative transition-transform duration-300 ease-in-out group-hover:scale-105 group-focus:scale-105">
                 {/* Background Cards */}
-                <div className="absolute inset-0 bg-card rounded-lg shadow-md transform-gpu rotate-2"></div>
-                <div className="absolute inset-0 bg-card rounded-lg shadow-md transform-gpu -rotate-2"></div>
+                <div className="absolute inset-0 top-1 left-1 bg-card rounded-lg shadow-sm"></div>
+                <div className="absolute inset-0 top-0.5 left-0.5 bg-card rounded-lg shadow"></div>
                 
                 {/* Front Card */}
                 <div className="relative bg-card rounded-lg shadow-lg overflow-hidden w-full aspect-[4/3]">
@@ -98,6 +98,12 @@ export default function AppLayout({
   const { toast } = useToast();
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [activeMobileSheet, setActiveMobileSheet] = useState<'zones' | 'types' | 'todos' | null>(null);
+
+  useEffect(() => {
+    if (!isAuthLoading && !user) {
+      router.replace('/login');
+    }
+  }, [isAuthLoading, user, router]);
 
   // Data fetching logic moved from sidebar to layout
   useEffect(() => {
