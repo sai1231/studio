@@ -2,7 +2,7 @@
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, CreditCard, BarChart2, Mail, Calendar, Eye, Loader2, AlertTriangle, ShieldCheck, KeyRound, Shield } from "lucide-react";
+import { ArrowLeft, CreditCard, BarChart2, Mail, Calendar, Eye, Loader2, AlertTriangle, ShieldCheck, KeyRound, Shield, Trash2 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import React, { useEffect, useState, useCallback } from "react";
 import { Separator } from "@/components/ui/separator";
