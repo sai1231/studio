@@ -142,11 +142,9 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
 
 
   const [allZones, setAllZones] = useState<Zone[]>([]);
-  const [isSavingField, setIsSavingField] = useState(false);
 
   const [editableTags, setEditableTags] = useState<Tag[]>([]);
   const [newTagInput, setNewTagInput] = useState('');
-  const [isUpdatingTags, setIsUpdatingTags] = useState(false);
   const [isAddingTag, setIsAddingTag] = useState(false);
   const newTagInputRef = useRef<HTMLInputElement>(null);
 
@@ -280,22 +278,33 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   }, [isAddingTag]);
 
   const handleFieldUpdate = async (fieldName: keyof Pick<ContentItem, 'title' | 'description' | 'mindNote' | 'zoneId' | 'expiresAt'>, value: any) => {
-    if (!item || isSavingField) return;
-    setIsSavingField(true);
+    if (!item) return;
 
+    const previousItemState = { ...item };
+    const optimisticItem = { ...item, [fieldName]: value };
+    
+    // Optimistic UI Update
+    setItem(optimisticItem);
+    if (onItemUpdate) {
+        onItemUpdate(optimisticItem);
+    }
+    
+    // Firestore Update
     try {
-      let updatePayload: Partial<ContentItem> = { [fieldName]: value };
-      const updatedItem = await updateContentItem(item.id, updatePayload);
-      if (updatedItem) {
-        setItem(updatedItem); 
-        if (onItemUpdate) onItemUpdate(updatedItem); 
-      } else {
-        throw new Error(`Failed to update ${fieldName}.`);
-      }
+        const updatePayload: Partial<ContentItem> = { [fieldName]: value };
+        await updateContentItem(item.id, updatePayload);
     } catch (e) {
-      console.error(`Error updating ${fieldName}:`, e);
-    } finally {
-      setIsSavingField(false);
+        console.error(`Error updating ${fieldName}:`, e);
+        // Revert on failure
+        setItem(previousItemState);
+        if (onItemUpdate) {
+            onItemUpdate(previousItemState);
+        }
+        toast({
+            title: 'Update Failed',
+            description: `Could not save your changes for ${fieldName}.`,
+            variant: 'destructive',
+        });
     }
   };
 
@@ -353,7 +362,6 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
 
   const handleCreateZone = async (zoneName: string) => {
     if (!zoneName.trim() || !user) return;
-    setIsSavingField(true);
     try {
       const newZone = await addZone(zoneName.trim(), user.uid);
       setAllZones(prev => [...prev, newZone]); 
@@ -366,7 +374,6 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       console.error('Error creating zone:', e);
       toast({ title: "Error", description: "Could not create new zone.", variant: "destructive" });
     } finally {
-      setIsSavingField(false);
       setIsComboboxOpen(false);
       setComboboxSearchText('');
     }
@@ -374,21 +381,32 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
 
 
   const saveTags = async (tagsToSave: Tag[]) => {
-    if (!item || isSavingField) return; 
-    setIsUpdatingTags(true);
+    if (!item) return;
+
+    const previousItemState = { ...item };
+    const optimisticItem = { ...item, tags: tagsToSave };
+
+    // Optimistic UI Update
+    setItem(optimisticItem);
+    if (onItemUpdate) {
+        onItemUpdate(optimisticItem);
+    }
+
+    // Firestore Update
     try {
-      const updatedItemWithTags = await updateContentItem(item.id, { tags: tagsToSave });
-      if (updatedItemWithTags) {
-        setItem(prevItem => prevItem ? { ...prevItem, tags: updatedItemWithTags.tags || [] } : null);
-        if (onItemUpdate) onItemUpdate(updatedItemWithTags); 
-      } else {
-        throw new Error("Failed to update item tags.");
-      }
+        await updateContentItem(item.id, { tags: tagsToSave });
     } catch (e) {
-      console.error('Error updating tags:', e);
-      if(item) setEditableTags(item.tags || []); 
-    } finally {
-      setIsUpdatingTags(false);
+        console.error('Error updating tags:', e);
+        // Revert on failure
+        setItem(previousItemState);
+        if (onItemUpdate) {
+            onItemUpdate(previousItemState);
+        }
+        toast({
+            title: 'Tag Update Failed',
+            description: 'Could not save tag changes.',
+            variant: 'destructive',
+        });
     }
   };
 
@@ -465,7 +483,9 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[calc(100vw-1rem)] h-[calc(100vh-1rem)] max-w-none flex flex-col p-0 gap-0">
-        <DialogTitle className="sr-only">{dialogTitleText}</DialogTitle>
+        <DialogHeader className="hidden">
+            <DialogTitle>{dialogTitleText}</DialogTitle>
+        </DialogHeader>
           <div className="flex-grow overflow-y-auto custom-scrollbar md:grid md:grid-cols-2 md:gap-0 h-full">
             {isLoading ? (
               <div className="flex items-center justify-center h-full col-span-2">
@@ -519,6 +539,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                 </div>
 
                 <div className="flex flex-col space-y-4 bg-card text-card-foreground p-6 rounded-r-lg overflow-y-auto custom-scrollbar">
+                  
                   <div className="space-y-2">
                     {item.domain && item.domain !== 'mati.internal.storage' && (
                         <div className="flex items-center text-sm text-muted-foreground">
@@ -538,18 +559,13 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                         )}
                         </div>
                     )}
-
-                    <div className="flex items-center space-x-2 relative">
-                        {isSavingField && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground absolute -left-7 top-1/2 -translate-y-1/2" />}
-                        <Input
-                            value={editableTitle}
-                            onChange={handleTitleChange}
-                            onBlur={handleTitleBlur}
-                            disabled={isSavingField || isUpdatingTags}
-                            className="text-2xl font-headline font-semibold border-0 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0 shadow-none p-0 h-auto flex-grow bg-transparent"
-                            placeholder="Enter title"
-                        />
-                    </div>
+                    <Input
+                        value={editableTitle}
+                        onChange={handleTitleChange}
+                        onBlur={handleTitleBlur}
+                        className="text-2xl font-headline font-semibold border-0 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0 shadow-none p-0 h-auto flex-grow bg-transparent"
+                        placeholder="Enter title"
+                    />
                   </div>
                   
                   {item.status === 'pending-analysis' ? (
@@ -559,55 +575,37 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                           <Skeleton className="h-2.5 w-full" />
                       </div>
                   ) : (
-                      <>
-                          {editableDescription && (
-                              <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground">
-                                  <p className={cn(!isDescriptionExpanded && "line-clamp-4")}>
-                                      <span dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
-                                  </p>
-                                  {editableDescription.length > 280 && (
-                                      <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
-                                          {isDescriptionExpanded ? "Show less" : "Show more"}
-                                      </Button>
-                                  )}
-                              </div>
-                          )}
-                      </>
-                  )}
-                  
-                  <Separator />
-
-                   <Accordion type="single" collapsible className="w-full">
-                        <AccordionItem value="item-1">
-                            <AccordionTrigger>
-                                <div className="flex items-center gap-2">
-                                <Sparkles className="h-4 w-4" />
-                                <span>AI Analysis</span>
-                                </div>
-                            </AccordionTrigger>
-                            <AccordionContent>
-                               <div className="pl-6 space-y-4">
-                                  {editableDescription && (
-                                      <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground">
-                                          <Label>Description</Label>
-                                          <p className={cn(!isDescriptionExpanded && "line-clamp-4")}>
-                                              <span dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
-                                          </p>
-                                          {editableDescription.length > 280 && (
-                                              <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
-                                                  {isDescriptionExpanded ? "Show less" : "Show more"}
-                                              </Button>
-                                          )}
-                                      </div>
-                                  )}
-                                  <div className="space-y-2">
-                                    <Label>Color Palette</Label>
-                                    <ColorPalette palette={item.colorPalette} />
+                      <Accordion type="single" collapsible className="w-full">
+                          <AccordionItem value="ai-analysis">
+                              <AccordionTrigger>
+                                  <div className="flex items-center gap-2">
+                                  <Sparkles className="h-4 w-4" />
+                                  <span>AI Analysis</span>
                                   </div>
-                               </div>
-                            </AccordionContent>
-                        </AccordionItem>
-                    </Accordion>
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                 <div className="pl-6 space-y-4">
+                                    {editableDescription && (
+                                        <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground">
+                                            <p className={cn(!isDescriptionExpanded && "line-clamp-4")}>
+                                                <span dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
+                                            </p>
+                                            {editableDescription.length > 280 && (
+                                                <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
+                                                    {isDescriptionExpanded ? "Show less" : "Show more"}
+                                                </Button>
+                                            )}
+                                        </div>
+                                    )}
+                                    <div className="space-y-2">
+                                      <Label>Color Palette</Label>
+                                      <ColorPalette palette={item.colorPalette} />
+                                    </div>
+                                 </div>
+                              </AccordionContent>
+                          </AccordionItem>
+                      </Accordion>
+                  )}
                   
                   <div className="space-y-2">
                       <Label className="text-sm font-medium">Mind Note</Label>
@@ -615,19 +613,18 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                         value={editableMindNote}
                         onChange={handleMindNoteChange}
                         onBlur={handleMindNoteBlur}
-                        disabled={isSavingField || isUpdatingTags}
                         placeholder="Add your personal thoughts or quick notes here..."
                         className="w-full min-h-[80px] focus-visible:ring-accent bg-muted/30 dark:bg-muted/20 border-border"
                       />
                   </div>
                   
                   <Separator />
-
+                  
                   <div className="space-y-3">
                       <div>
                           <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
                               <PopoverTrigger asChild>
-                                  <Button variant="outline" role="combobox" aria-expanded={isComboboxOpen} className={cn("w-full justify-between", (isSavingField || isUpdatingTags) ? "opacity-50" : "", !editableZoneId && "text-muted-foreground")} disabled={isSavingField || isUpdatingTags}>
+                                  <Button variant="outline" role="combobox" aria-expanded={isComboboxOpen} className={cn("w-full justify-between", !editableZoneId && "text-muted-foreground")}>
                                       <div className="flex items-center"><ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" /><span className="truncate">{zoneDisplayName}</span></div>
                                       <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
                                   </Button>
@@ -640,9 +637,8 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
 
                       <div className="flex flex-wrap items-center gap-2">
                           <Label className="text-sm font-medium mr-2">Tags:</Label>
-                          {editableTags.map(tag => (<Badge key={tag.id} variant="secondary" className="px-3 py-1 text-sm rounded-full font-medium group relative">{tag.name}<Button variant="ghost" size="icon" className="h-5 w-5 ml-1.5 p-0.5 opacity-50 group-hover:opacity-100 hover:bg-destructive/20 hover:text-destructive absolute -right-1.5 -top-1.5 rounded-full bg-background/50" onClick={() => handleRemoveTag(tag.id)} disabled={isUpdatingTags || isSavingField} aria-label={`Remove tag ${tag.name}`}><X className="h-3 w-3" /></Button></Badge>))}
-                          {isAddingTag ? (<div className="flex items-center gap-1"><Input ref={newTagInputRef} value={newTagInput} onChange={(e) => setNewTagInput(e.target.value)} placeholder="New tag" onKeyDown={handleTagInputKeyDown} disabled={isUpdatingTags || isSavingField} className="h-8 text-sm w-32 focus-visible:ring-accent" autoFocus /><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleAddNewTag} disabled={isUpdatingTags || isSavingField || newTagInput.trim() === ''} aria-label="Confirm add tag" ><Check className="h-4 w-4 text-green-600" /></Button><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleCancelAddTag} disabled={isUpdatingTags || isSavingField} aria-label="Cancel add tag" ><X className="h-4 w-4 text-destructive" /></Button></div>) : (<TooltipProvider><Tooltip><TooltipTrigger asChild><Button size="sm" variant="outline" className="h-8 rounded-full" onClick={() => setIsAddingTag(true)} disabled={isUpdatingTags || isSavingField} aria-label="Add new tag" ><Plus className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Add new tag</p></TooltipContent></Tooltip></TooltipProvider>)}
-                          {isUpdatingTags && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                          {editableTags.map(tag => (<Badge key={tag.id} variant="secondary" className="px-3 py-1 text-sm rounded-full font-medium group relative">{tag.name}<Button variant="ghost" size="icon" className="h-5 w-5 ml-1.5 p-0.5 opacity-50 group-hover:opacity-100 hover:bg-destructive/20 hover:text-destructive absolute -right-1.5 -top-1.5 rounded-full bg-background/50" onClick={() => handleRemoveTag(tag.id)} aria-label={`Remove tag ${tag.name}`}><X className="h-3 w-3" /></Button></Badge>))}
+                          {isAddingTag ? (<div className="flex items-center gap-1"><Input ref={newTagInputRef} value={newTagInput} onChange={(e) => setNewTagInput(e.target.value)} placeholder="New tag" onKeyDown={handleTagInputKeyDown} className="h-8 text-sm w-32 focus-visible:ring-accent" autoFocus /><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleAddNewTag} disabled={newTagInput.trim() === ''} aria-label="Confirm add tag" ><Check className="h-4 w-4 text-green-600" /></Button><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleCancelAddTag} aria-label="Cancel add tag" ><X className="h-4 w-4 text-destructive" /></Button></div>) : (<TooltipProvider><Tooltip><TooltipTrigger asChild><Button size="sm" variant="outline" className="h-8 rounded-full" onClick={() => setIsAddingTag(true)} aria-label="Add new tag" ><Plus className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Add new tag</p></TooltipContent></Tooltip></TooltipProvider>)}
                       </div>
                   </div>
                   

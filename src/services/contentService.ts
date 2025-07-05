@@ -262,7 +262,7 @@ export async function deleteContentItem(itemId: string): Promise<void> {
 export async function updateContentItem(
   itemId: string,
   updates: Partial<Omit<ContentItem, 'id' | 'createdAt' | 'userId'>>
-): Promise<ContentItem | undefined> {
+): Promise<void> {
   try {
     const docRef = doc(db, 'content', itemId);
     const updateData: { [key: string]: any } = { ...updates };
@@ -272,8 +272,6 @@ export async function updateContentItem(
     }
 
     await updateDoc(docRef, updateData);
-    const updatedItem = await getContentItemById(itemId);
-    return updatedItem;
   } catch(error) {
     console.error(`Failed to update content item with ID ${itemId}:`, error);
     throw error;
