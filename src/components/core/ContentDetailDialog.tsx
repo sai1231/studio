@@ -165,7 +165,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       if (fetchedItem) {
         setItem(fetchedItem);
         setAllZones(await getZones(fetchedItem.userId!));
-        if (fetchedItem.type === 'link' && fetchedItem.url) {
+        if (fetchedItem.type === 'link' && fetchedItem.url && fetchedItem.contentType !== 'PDF') {
             setIsFetchingOembed(true);
             try {
                 const oembedRes = await fetch(`/api/oembed?url=${encodeURIComponent(fetchedItem.url)}`);
@@ -195,6 +195,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       setIsLoading(true); 
       setError(null);
       setItem(null);
+      setOembedHtml(null);
       
       const randomIndex = Math.floor(Math.random() * loadingMessages.length);
       setCurrentLoadingMessage(loadingMessages[randomIndex]);
@@ -202,6 +203,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       fetchData(itemId);
 
     } else if (!open) {
+      // Reset state when dialog is closed
       setItem(null);
       setIsLoading(true); 
       setError(null);
@@ -239,7 +241,10 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
     }
   }, [isAddingTag]);
 
-  const handleFieldUpdate = async (fieldName: keyof Pick<ContentItem, 'title' | 'description' | 'mindNote' | 'zoneId' | 'expiresAt'>, value: any) => {
+  const handleFieldUpdate = useCallback(async (
+    fieldName: keyof Pick<ContentItem, 'title' | 'description' | 'mindNote' | 'zoneId' | 'expiresAt' | 'tags'>,
+    value: any
+  ) => {
     if (!item) return;
     setIsSaving(true);
     const previousValue = item[fieldName];
@@ -269,7 +274,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
     } finally {
         setIsSaving(false);
     }
-  };
+  }, [item, onItemUpdate, toast]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEditableTitle(e.target.value);
@@ -332,34 +337,8 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   };
 
 
-  const saveTags = async (tagsToSave: Tag[]) => {
-    if (!item) return;
-    setIsSaving(true);
-    const previousTags = item.tags;
-    
-    const updatedItem = { ...item, tags: tagsToSave };
-    setItem(updatedItem);
-    if (onItemUpdate) {
-      onItemUpdate(updatedItem);
-    }
-    
-    try {
-        await updateContentItem(item.id, { tags: tagsToSave });
-    } catch (e) {
-        console.error('Error updating tags:', e);
-        const revertedItem = { ...item, tags: previousTags };
-        setItem(revertedItem);
-        if (onItemUpdate) {
-          onItemUpdate(revertedItem);
-        }
-        toast({
-            title: 'Tag Update Failed',
-            description: 'Could not save tag changes.',
-            variant: 'destructive',
-        });
-    } finally {
-        setIsSaving(false);
-    }
+  const saveTags = (tagsToSave: Tag[]) => {
+    handleFieldUpdate('tags', tagsToSave);
   };
 
   const handleRemoveTag = (tagIdToRemove: string) => {
