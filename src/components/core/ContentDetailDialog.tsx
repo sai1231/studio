@@ -464,7 +464,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-2rem)] h-[calc(100vh-2rem)] max-w-none flex flex-col p-0 gap-0">
+      <DialogContent className="w-[calc(100vw-1rem)] h-[calc(100vh-1rem)] max-w-none flex flex-col p-0 gap-0">
         <DialogTitle className="sr-only">{dialogTitleText}</DialogTitle>
           <div className="flex-grow overflow-y-auto custom-scrollbar md:grid md:grid-cols-2 md:gap-0 h-full">
             {isLoading ? (
@@ -483,8 +483,8 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
               </div>
             ) : (
               <>
-                <div className="relative w-full h-full flex items-center justify-center rounded-l-lg overflow-y-auto custom-scrollbar md:p-4 bg-muted/20">
-                  <div className="w-full h-full flex items-center justify-center">
+                <div className="relative w-full h-full flex flex-col items-center justify-center rounded-l-lg overflow-y-auto custom-scrollbar md:p-4 bg-muted/20">
+                    <div className="w-full h-full flex items-center justify-center">
                     {isFetchingOembed ? (
                       <div className="w-full aspect-video flex items-center justify-center">
                         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -518,7 +518,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                   </div>
                 </div>
 
-                <div className="flex flex-col space-y-4 bg-background text-card-foreground p-6 rounded-r-lg overflow-y-auto custom-scrollbar">
+                <div className="flex flex-col space-y-4 bg-card text-card-foreground p-6 rounded-r-lg overflow-y-auto custom-scrollbar">
                   <div className="space-y-2">
                     {item.domain && item.domain !== 'mati.internal.storage' && (
                         <div className="flex items-center text-sm text-muted-foreground">
@@ -576,6 +576,38 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                   )}
                   
                   <Separator />
+
+                   <Accordion type="single" collapsible className="w-full">
+                        <AccordionItem value="item-1">
+                            <AccordionTrigger>
+                                <div className="flex items-center gap-2">
+                                <Sparkles className="h-4 w-4" />
+                                <span>AI Analysis</span>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                               <div className="pl-6 space-y-4">
+                                  {editableDescription && (
+                                      <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground">
+                                          <Label>Description</Label>
+                                          <p className={cn(!isDescriptionExpanded && "line-clamp-4")}>
+                                              <span dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
+                                          </p>
+                                          {editableDescription.length > 280 && (
+                                              <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
+                                                  {isDescriptionExpanded ? "Show less" : "Show more"}
+                                              </Button>
+                                          )}
+                                      </div>
+                                  )}
+                                  <div className="space-y-2">
+                                    <Label>Color Palette</Label>
+                                    <ColorPalette palette={item.colorPalette} />
+                                  </div>
+                               </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
                   
                   <div className="space-y-2">
                       <Label className="text-sm font-medium">Mind Note</Label>
@@ -613,7 +645,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                           {isUpdatingTags && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
                       </div>
                   </div>
-
+                  
                   <Separator />
 
                   <div className="space-y-3 pt-2">
@@ -629,7 +661,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                       )}
                   </div>
 
-                  {item.colorPalette && item.colorPalette.length > 0 && <ColorPalette palette={item.colorPalette} />}
+                  
                 </div>
               </>
             )}
@@ -638,4 +670,3 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
     </Dialog>
   );
 }
-
