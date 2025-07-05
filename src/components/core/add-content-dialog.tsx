@@ -496,7 +496,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       {children && <div onClick={(e) => e.stopPropagation()}>{children}</div>}
       {isMobile ? (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent side="bottom" className="h-[90vh] flex flex-col p-0">
+            <SheetContent side="bottom" className="h-[90vh] flex flex-col p-0 bg-card">
                 <SheetHeader className="p-4 border-b">
                     <SheetTitle className="font-headline">Add Content</SheetTitle>
                 </SheetHeader>
@@ -514,7 +514,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
         </Sheet>
       ) : (
         <Dialog open={open} onOpenChange={onOpenChange}>
-          <DialogContent className="sm:max-w-[625px] max-h-[90vh] flex flex-col">
+          <DialogContent className="sm:max-w-[625px] max-h-[90vh] flex flex-col bg-card">
             <DialogHeader>
               <DialogTitle className="font-headline">Add Content</DialogTitle>
             </DialogHeader>
