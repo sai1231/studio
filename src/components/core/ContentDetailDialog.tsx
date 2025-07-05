@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil, ChevronDown, Ban, Briefcase, Home, Library, Star, Film, Users, Clapperboard, Glasses, AlarmClock, Sparkles } from 'lucide-react';
@@ -24,13 +24,13 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { Separator } from '../ui/separator';
-import { Label } from '@/components/ui/label';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Label } from '@/components/ui/label';
 
 
 const NO_ZONE_VALUE = "__NO_ZONE__";
@@ -457,6 +457,8 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
     handleFieldUpdate('expiresAt', newExpiryDate.toISOString());
   };
   
+  const dialogTitleText = isLoading ? currentLoadingMessage : (item?.type === 'note' ? 'Note' : (item?.title || (error ? "Error Loading" : "Content Details")));
+
   if (!open) { 
     return null;
   }
@@ -464,9 +466,9 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-[95vw] max-w-[95vw] h-[95vh] max-h-[95vh] flex flex-col">
-          <DialogHeader className="pr-10 flex-shrink-0 h-10">
-            {/* Title removed for a cleaner look, as it's editable below */}
+        <DialogContent className="w-[95vw] max-w-7xl h-[95vh] max-h-[95vh] flex flex-col">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{dialogTitleText}</DialogTitle>
           </DialogHeader>
           
           <div className="flex-grow overflow-y-auto pr-4 pl-1 custom-scrollbar py-4">
@@ -667,8 +669,8 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                         
                         <Separator />
 
-                        <div className="space-y-4">
-                            <div>
+                        <div className="space-y-4 pt-2">
+                            <div className="space-y-2">
                               <Label className="text-sm font-medium mb-2 block">Zone</Label>
                                <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
                                   <PopoverTrigger asChild>
@@ -682,7 +684,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                                   </PopoverContent>
                               </Popover>
                             </div>
-                             <div>
+                             <div className="space-y-2">
                                 <Label className="text-sm font-medium mb-2 block">Tags</Label>
                                 <div className="flex flex-wrap items-center gap-2">
                                   {editableTags.map(tag => (<Badge key={tag.id} variant="secondary" className="px-3 py-1 text-sm rounded-full font-medium group relative">{tag.name}<Button variant="ghost" size="icon" className="h-5 w-5 ml-1.5 p-0.5 opacity-50 group-hover:opacity-100 hover:bg-destructive/20 hover:text-destructive absolute -right-1.5 -top-1.5 rounded-full bg-background/50" onClick={() => handleRemoveTag(tag.id)} disabled={isUpdatingTags || isSavingField} aria-label={`Remove tag ${tag.name}`}><X className="h-3 w-3" /></Button></Badge>))}
@@ -749,7 +751,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                         )}
 
                         {/* Settings Section */}
-                        <div className="space-y-3">
+                        <div className="space-y-3 pt-2">
                             <div className="flex items-center justify-between">
                                 <label htmlFor="temporary-switch" className="font-medium text-foreground">Temporary Memory</label>
                                 <Switch id="temporary-switch" checked={isTemporary} onCheckedChange={handleTemporaryToggle} />
