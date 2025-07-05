@@ -247,7 +247,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       }
     };
 
-  }, [itemId, open, user, onItemUpdate]); 
+  }, [itemId, open, user]); 
 
   useEffect(() => {
     if (item) {
@@ -482,9 +482,9 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-1rem)] h-[calc(100vh-1rem)] max-w-none flex flex-col p-0 gap-0">
+      <DialogContent className="w-[calc(100vw-2rem)] h-[calc(100vh-2rem)] max-w-none flex flex-col p-0 gap-0">
         <DialogHeader className="hidden">
-            <DialogTitle>{dialogTitleText}</DialogTitle>
+            <DialogTitle className="sr-only">{dialogTitleText}</DialogTitle>
         </DialogHeader>
           <div className="flex-grow overflow-y-auto custom-scrollbar md:grid md:grid-cols-2 md:gap-0 h-full">
             {isLoading ? (
@@ -575,7 +575,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                           <Skeleton className="h-2.5 w-full" />
                       </div>
                   ) : (
-                      <Accordion type="single" collapsible className="w-full">
+                      <Accordion type="single" collapsible className="w-full" defaultValue="ai-analysis">
                           <AccordionItem value="ai-analysis">
                               <AccordionTrigger>
                                   <div className="flex items-center gap-2">
