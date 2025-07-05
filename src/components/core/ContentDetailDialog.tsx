@@ -432,8 +432,8 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
               </div>
             ) : (
               <>
-                <div className="relative w-full h-full flex flex-col items-center justify-center rounded-l-lg overflow-y-auto custom-scrollbar md:p-4 bg-muted/20">
-                    <div className="w-full h-full flex items-center justify-center">
+                <div className="relative w-full md:h-full flex flex-col items-center justify-center rounded-l-lg overflow-y-auto custom-scrollbar md:p-4 bg-muted/20">
+                    <div className="w-full md:h-full flex items-center justify-center">
                     {isFetchingOembed ? (
                       <div className="w-full aspect-video flex items-center justify-center">
                         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -441,12 +441,12 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                     ) : oembedHtml ? (
                       <div className="oembed-container w-full" dangerouslySetInnerHTML={{ __html: oembedHtml }} />
                     ) : item.imageUrl && !imageError ? (
-                        <div className="relative w-full h-full">
+                        <div className="relative w-full md:h-full">
                          <img
                           src={item.imageUrl}
                           alt={editableTitle || 'Content Image'}
                           data-ai-hint={item.title || "image"}
-                          className="w-full h-full object-contain"
+                          className="w-full object-contain md:h-full"
                           loading="lazy"
                           onError={() => setImageError(true)}
                         />
@@ -458,16 +458,16 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                         )}
                         </div>
                     ) : (item.type === 'link' && item.contentType === 'PDF' && item.url) ? (
-                        <iframe src={item.url} className="w-full h-full min-h-[70vh] rounded-xl border-0" title={editableTitle || 'PDF Preview'}></iframe>
+                        <iframe src={item.url} className="w-full h-[60vh] md:h-full md:min-h-[70vh] rounded-xl border-0" title={editableTitle || 'PDF Preview'}></iframe>
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
+                      <div className="w-full md:h-full flex items-center justify-center py-20">
                           <p className="text-muted-foreground">No preview available</p>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="flex flex-col space-y-4 bg-background text-card-foreground p-6 rounded-r-lg overflow-y-auto custom-scrollbar">
+                <div className="flex flex-col space-y-4 bg-card text-card-foreground p-6 rounded-r-lg overflow-y-auto custom-scrollbar shadow-lg">
                   
                   <div className="space-y-2">
                     {item.domain && item.domain !== 'mati.internal.storage' && (
