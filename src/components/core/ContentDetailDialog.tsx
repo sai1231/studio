@@ -22,7 +22,7 @@ import { format, formatDistanceToNow, add } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
-import { Separator } from '../ui/separator';
+import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Label } from '@/components/ui/label';
 
@@ -157,11 +157,43 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   const [imageError, setImageError] = useState(false);
 
   const [isTemporary, setIsTemporary] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const fetchData = useCallback(async (id: string) => {
+    try {
+      const fetchedItem = await getContentItemById(id);
+      if (fetchedItem) {
+        setItem(fetchedItem);
+        setAllZones(await getZones(fetchedItem.userId!));
+        if (fetchedItem.type === 'link' && fetchedItem.url) {
+            setIsFetchingOembed(true);
+            try {
+                const oembedRes = await fetch(`/api/oembed?url=${encodeURIComponent(fetchedItem.url)}`);
+                if (oembedRes.ok) {
+                    const oembedData = await oembedRes.json();
+                    if (oembedData.html) setOembedHtml(oembedData.html);
+                }
+            } catch (e) {
+                console.error("Failed to fetch oEmbed data", e);
+            } finally {
+                setIsFetchingOembed(false);
+            }
+        }
+      } else {
+        setError('Content item not found.');
+      }
+    } catch (e) {
+      console.error('Error fetching content details for dialog:', e);
+      setError('Failed to load content details.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     let pollingInterval: NodeJS.Timeout | null = null;
     
-    if (open && itemId && user) {
+    if (open && itemId) {
       setIsLoading(true); 
       setError(null);
       setItem(null);
@@ -178,62 +210,8 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       const randomIndex = Math.floor(Math.random() * loadingMessages.length);
       setCurrentLoadingMessage(loadingMessages[randomIndex]);
 
-      const fetchData = async () => {
-        try {
-          const fetchedItem = await getContentItemById(itemId);
-          if (fetchedItem) {
-            setItem(fetchedItem);
-            setIsTemporary(!!fetchedItem.expiresAt);
-            
-            if (fetchedItem.status === 'pending-analysis') {
-              pollingInterval = setInterval(async () => {
-                const updatedItem = await getContentItemById(itemId);
-                if (updatedItem && updatedItem.status !== 'pending-analysis') {
-                  if (pollingInterval) clearInterval(pollingInterval);
-                  setItem(updatedItem);
-                  if (onItemUpdate) onItemUpdate(updatedItem);
-                }
-              }, 5000); // Poll every 5 seconds
-            }
+      fetchData(itemId);
 
-            if (fetchedItem.type === 'link' && fetchedItem.url) {
-                setIsFetchingOembed(true);
-                setOembedHtml(null);
-                try {
-                    const oembedRes = await fetch(`/api/oembed?url=${encodeURIComponent(fetchedItem.url)}`);
-                    if (oembedRes.ok) {
-                        const oembedData = await oembedRes.json();
-                        if (oembedData.html) {
-                            setOembedHtml(oembedData.html);
-                        }
-                    }
-                } catch (e) {
-                    console.error("Failed to fetch oEmbed data", e);
-                } finally {
-                    setIsFetchingOembed(false);
-                }
-            }
-          } else {
-            setError('Content item not found.');
-          }
-        } catch (e) {
-          console.error('Error fetching content details for dialog:', e);
-          setError('Failed to load content details.');
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetchData();
-
-      const fetchAllZonesData = async () => {
-        try {
-            const fetchedZones = await getZones(user.uid);
-            setAllZones(fetchedZones);
-        } catch (e) {
-            console.error("Failed to fetch zones for dropdown", e);
-        }
-      };
-      fetchAllZonesData();
     } else if (!open) {
       setItem(null);
       setIsLoading(true); 
@@ -246,8 +224,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
         clearInterval(pollingInterval);
       }
     };
-
-  }, [itemId, open, user]); 
+  }, [itemId, open, fetchData]); 
 
   useEffect(() => {
     if (item) {
@@ -279,32 +256,25 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
 
   const handleFieldUpdate = async (fieldName: keyof Pick<ContentItem, 'title' | 'description' | 'mindNote' | 'zoneId' | 'expiresAt'>, value: any) => {
     if (!item) return;
-
-    const previousItemState = { ...item };
-    const optimisticItem = { ...item, [fieldName]: value };
+    setIsSaving(true);
+    const previousValue = item[fieldName];
+    setItem(prev => prev ? { ...prev, [fieldName]: value } : null);
     
-    // Optimistic UI Update
-    setItem(optimisticItem);
-    if (onItemUpdate) {
-        onItemUpdate(optimisticItem);
-    }
-    
-    // Firestore Update
     try {
-        const updatePayload: Partial<ContentItem> = { [fieldName]: value };
-        await updateContentItem(item.id, updatePayload);
+        await updateContentItem(item.id, { [fieldName]: value });
+        if (onItemUpdate) {
+            onItemUpdate({ ...item, [fieldName]: value });
+        }
     } catch (e) {
         console.error(`Error updating ${fieldName}:`, e);
-        // Revert on failure
-        setItem(previousItemState);
-        if (onItemUpdate) {
-            onItemUpdate(previousItemState);
-        }
+        setItem(prev => prev ? { ...prev, [fieldName]: previousValue } : null);
         toast({
             title: 'Update Failed',
             description: `Could not save your changes for ${fieldName}.`,
             variant: 'destructive',
         });
+    } finally {
+        setIsSaving(false);
     }
   };
 
@@ -342,38 +312,27 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   const handleZoneSelection = async (selectedZoneValue: string | undefined) => {
     setIsComboboxOpen(false);
     setComboboxSearchText('');
-
-    if (selectedZoneValue === undefined || selectedZoneValue === NO_ZONE_VALUE) {
-      if (item && item.zoneId !== undefined) {
-        await handleFieldUpdate('zoneId', undefined);
-      }
-      setEditableZoneId(undefined);
-      return;
+    const newZoneId = selectedZoneValue === NO_ZONE_VALUE ? undefined : selectedZoneValue;
+    if (item && item.zoneId !== newZoneId) {
+        await handleFieldUpdate('zoneId', newZoneId);
     }
-
-    const existingZone = allZones.find(z => z.id === selectedZoneValue);
-    if (existingZone) {
-      if (item && item.zoneId !== existingZone.id) {
-        await handleFieldUpdate('zoneId', existingZone.id);
-      }
-      setEditableZoneId(existingZone.id);
-    }
+    setEditableZoneId(newZoneId);
   };
 
   const handleCreateZone = async (zoneName: string) => {
     if (!zoneName.trim() || !user) return;
+    setIsSaving(true);
     try {
       const newZone = await addZone(zoneName.trim(), user.uid);
       setAllZones(prev => [...prev, newZone]); 
-      if (item) {
-        await handleFieldUpdate('zoneId', newZone.id);
-      }
+      await handleFieldUpdate('zoneId', newZone.id);
       setEditableZoneId(newZone.id);
       toast({ title: "Zone Created", description: `Zone "${newZone.name}" created and assigned.` });
     } catch (e) {
       console.error('Error creating zone:', e);
       toast({ title: "Error", description: "Could not create new zone.", variant: "destructive" });
     } finally {
+      setIsSaving(false);
       setIsComboboxOpen(false);
       setComboboxSearchText('');
     }
@@ -382,31 +341,25 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
 
   const saveTags = async (tagsToSave: Tag[]) => {
     if (!item) return;
+    setIsSaving(true);
+    const previousTags = item.tags;
+    setItem(prev => prev ? { ...prev, tags: tagsToSave } : null);
 
-    const previousItemState = { ...item };
-    const optimisticItem = { ...item, tags: tagsToSave };
-
-    // Optimistic UI Update
-    setItem(optimisticItem);
-    if (onItemUpdate) {
-        onItemUpdate(optimisticItem);
-    }
-
-    // Firestore Update
     try {
         await updateContentItem(item.id, { tags: tagsToSave });
+        if (onItemUpdate) {
+            onItemUpdate({ ...item, tags: tagsToSave });
+        }
     } catch (e) {
         console.error('Error updating tags:', e);
-        // Revert on failure
-        setItem(previousItemState);
-        if (onItemUpdate) {
-            onItemUpdate(previousItemState);
-        }
+        setItem(prev => prev ? { ...prev, tags: previousTags } : null);
         toast({
             title: 'Tag Update Failed',
             description: 'Could not save tag changes.',
             variant: 'destructive',
         });
+    } finally {
+        setIsSaving(false);
     }
   };
 
@@ -455,11 +408,9 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   const handleTemporaryToggle = (checked: boolean) => {
       setIsTemporary(checked);
       if (checked) {
-          // Default to 30 days when toggled on
           const newExpiryDate = add(new Date(), { days: 30 });
           handleFieldUpdate('expiresAt', newExpiryDate.toISOString());
       } else {
-          // Remove expiry when toggled off
           handleFieldUpdate('expiresAt', undefined);
       }
   };
@@ -538,7 +489,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                   </div>
                 </div>
 
-                <div className="flex flex-col space-y-4 bg-card text-card-foreground p-6 rounded-r-lg overflow-y-auto custom-scrollbar">
+                <div className="flex flex-col space-y-4 bg-background text-card-foreground p-6 rounded-r-lg overflow-y-auto custom-scrollbar">
                   
                   <div className="space-y-2">
                     {item.domain && item.domain !== 'mati.internal.storage' && (
@@ -568,44 +519,43 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                     />
                   </div>
                   
-                  {item.status === 'pending-analysis' ? (
-                      <div className="space-y-4 pt-2">
-                          <Skeleton className="h-16 w-full" />
-                          <Skeleton className="h-4 w-1/2" />
-                          <Skeleton className="h-2.5 w-full" />
-                      </div>
-                  ) : (
-                      <Accordion type="single" collapsible className="w-full" defaultValue="ai-analysis">
-                          <AccordionItem value="ai-analysis">
-                              <AccordionTrigger>
-                                  <div className="flex items-center gap-2">
-                                  <Sparkles className="h-4 w-4" />
-                                  <span>AI Analysis</span>
-                                  </div>
-                              </AccordionTrigger>
-                              <AccordionContent>
-                                 <div className="pl-6 space-y-4">
-                                    {editableDescription && (
-                                        <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground">
-                                            <p className={cn(!isDescriptionExpanded && "line-clamp-4")}>
-                                                <span dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
-                                            </p>
-                                            {editableDescription.length > 280 && (
-                                                <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
-                                                    {isDescriptionExpanded ? "Show less" : "Show more"}
-                                                </Button>
-                                            )}
-                                        </div>
-                                    )}
+                  <Accordion type="single" collapsible className="w-full" defaultValue="ai-analysis">
+                      <AccordionItem value="ai-analysis">
+                          <AccordionTrigger>
+                              <div className="flex items-center gap-2">
+                              <Sparkles className="h-4 w-4" />
+                              <span>AI Analysis</span>
+                              </div>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                             <div className="pl-6 space-y-4">
+                                {item.status === 'pending-analysis' ? (
                                     <div className="space-y-2">
-                                      <Label>Color Palette</Label>
-                                      <ColorPalette palette={item.colorPalette} />
+                                        <Skeleton className="h-16 w-full" />
+                                        <Skeleton className="h-2.5 w-full" />
                                     </div>
-                                 </div>
-                              </AccordionContent>
-                          </AccordionItem>
-                      </Accordion>
-                  )}
+                                ) : editableDescription ? (
+                                    <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground">
+                                        <p className={cn(!isDescriptionExpanded && "line-clamp-4")}>
+                                            <span dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
+                                        </p>
+                                        {editableDescription.length > 280 && (
+                                            <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
+                                                {isDescriptionExpanded ? "Show less" : "Show more"}
+                                            </Button>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground italic">No description generated.</p>
+                                )}
+                                <div className="space-y-2">
+                                  <Label>Color Palette</Label>
+                                  {item.status === 'pending-analysis' ? <Skeleton className="h-2.5 w-full rounded-full" /> : <ColorPalette palette={item.colorPalette} />}
+                                </div>
+                             </div>
+                          </AccordionContent>
+                      </AccordionItem>
+                  </Accordion>
                   
                   <div className="space-y-2">
                       <Label className="text-sm font-medium">Mind Note</Label>
@@ -624,7 +574,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                       <div>
                           <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
                               <PopoverTrigger asChild>
-                                  <Button variant="outline" role="combobox" aria-expanded={isComboboxOpen} className={cn("w-full justify-between", !editableZoneId && "text-muted-foreground")}>
+                                  <Button variant="outline" role="combobox" aria-expanded={isComboboxOpen} className={cn("w-full justify-between", isSaving ? "opacity-50" : "", !editableZoneId && "text-muted-foreground")} disabled={isSaving}>
                                       <div className="flex items-center"><ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" /><span className="truncate">{zoneDisplayName}</span></div>
                                       <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
                                   </Button>
