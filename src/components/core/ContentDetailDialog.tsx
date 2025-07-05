@@ -3,7 +3,7 @@
 'use client';
 
 import type React from 'react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { getContentItemById, updateContentItem, getZones, addZone } from '@/services/contentService';
 import type { ContentItem, Zone, Tag, MovieDetails } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ import { format, formatDistanceToNow, add } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
-import { Separator } from '@/components/ui/separator';
+import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Label } from '@/components/ui/label';
 
@@ -191,21 +191,10 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   }, []);
 
   useEffect(() => {
-    let pollingInterval: NodeJS.Timeout | null = null;
-    
     if (open && itemId) {
       setIsLoading(true); 
       setError(null);
       setItem(null);
-      setEditableTitle('');
-      setEditableDescription('');
-      setEditableMindNote('');
-      setEditableZoneId(undefined);
-      setEditableTags([]);
-      setOembedHtml(null);
-      setImageError(false);
-      setIsDescriptionExpanded(false);
-      setIsTemporary(false);
       
       const randomIndex = Math.floor(Math.random() * loadingMessages.length);
       setCurrentLoadingMessage(loadingMessages[randomIndex]);
@@ -218,12 +207,6 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       setError(null);
       setOembedHtml(null);
     }
-    
-    return () => {
-      if (pollingInterval) {
-        clearInterval(pollingInterval);
-      }
-    };
   }, [itemId, open, fetchData]); 
 
   useEffect(() => {
@@ -234,6 +217,8 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       setEditableZoneId(item.zoneId);
       setEditableTags(item.tags || []);
       setIsTemporary(!!item.expiresAt);
+      setIsDescriptionExpanded(false);
+      setImageError(false);
     }
   }, [item]);
 
@@ -258,16 +243,24 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
     if (!item) return;
     setIsSaving(true);
     const previousValue = item[fieldName];
-    setItem(prev => prev ? { ...prev, [fieldName]: value } : null);
+    
+    // Optimistic UI update
+    const updatedItem = { ...item, [fieldName]: value };
+    setItem(updatedItem);
+    if (onItemUpdate) {
+        onItemUpdate(updatedItem);
+    }
     
     try {
         await updateContentItem(item.id, { [fieldName]: value });
-        if (onItemUpdate) {
-            onItemUpdate({ ...item, [fieldName]: value });
-        }
     } catch (e) {
         console.error(`Error updating ${fieldName}:`, e);
-        setItem(prev => prev ? { ...prev, [fieldName]: previousValue } : null);
+        // Revert UI on failure
+        const revertedItem = { ...item, [fieldName]: previousValue };
+        setItem(revertedItem);
+        if (onItemUpdate) {
+            onItemUpdate(revertedItem);
+        }
         toast({
             title: 'Update Failed',
             description: `Could not save your changes for ${fieldName}.`,
@@ -343,16 +336,22 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
     if (!item) return;
     setIsSaving(true);
     const previousTags = item.tags;
-    setItem(prev => prev ? { ...prev, tags: tagsToSave } : null);
-
+    
+    const updatedItem = { ...item, tags: tagsToSave };
+    setItem(updatedItem);
+    if (onItemUpdate) {
+      onItemUpdate(updatedItem);
+    }
+    
     try {
         await updateContentItem(item.id, { tags: tagsToSave });
-        if (onItemUpdate) {
-            onItemUpdate({ ...item, tags: tagsToSave });
-        }
     } catch (e) {
         console.error('Error updating tags:', e);
-        setItem(prev => prev ? { ...prev, tags: previousTags } : null);
+        const revertedItem = { ...item, tags: previousTags };
+        setItem(revertedItem);
+        if (onItemUpdate) {
+          onItemUpdate(revertedItem);
+        }
         toast({
             title: 'Tag Update Failed',
             description: 'Could not save tag changes.',
