@@ -24,12 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { Separator } from '../ui/separator';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Label } from '@/components/ui/label';
 
 
@@ -466,41 +461,16 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-[95vw] max-w-7xl h-[95vh] max-h-[95vh] flex flex-col">
-          <DialogHeader className="sr-only">
-            <DialogTitle>{dialogTitleText}</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="w-[95vw] h-[95vh] flex flex-col p-2">
+            <DialogTitle className="sr-only">{dialogTitleText}</DialogTitle>
           
-          <div className="flex-grow overflow-y-auto pr-4 pl-1 custom-scrollbar py-4">
+          <div className="flex-grow overflow-y-auto custom-scrollbar">
             {isLoading ? (
-              <div className="md:grid md:grid-cols-[minmax(0,_3fr)_minmax(0,_2fr)] gap-8">
-                {/* Left Column Skeleton (Media) */}
-                <div className="relative w-full overflow-hidden rounded-xl shadow-sm aspect-video">
-                  <Skeleton className="h-full w-full" />
-                </div>
-                {/* Right Column Skeleton (Details) */}
-                <div className="flex flex-col space-y-6 mt-6 md:mt-0">
-                  <Skeleton className="h-7 w-3/4 rounded" /> {/* Title Skeleton */}
-                  <Skeleton className="h-4 w-1/2 rounded" /> {/* Domain/Link Skeleton */}
-                  <div className="space-y-2"> {/* Description Skeleton */}
-                    <Skeleton className="h-4 w-full rounded" />
-                    <Skeleton className="h-4 w-full rounded" />
-                    <Skeleton className="h-4 w-5/6 rounded" />
-                  </div>
-                  <Skeleton className="h-10 w-48 rounded" /> {/* Zone Selector Skeleton */}
-                  <div className="flex flex-wrap gap-2"> {/* Tags Skeleton */}
-                    <Skeleton className="h-6 w-20 rounded-full" />
-                    <Skeleton className="h-6 w-24 rounded-full" />
-                    <Skeleton className="h-6 w-16 rounded-full" />
-                  </div>
-                  <div className="bg-muted/50 dark:bg-muted/20 p-4 rounded-lg mt-4"> {/* Mind Note Area Skeleton */}
-                    <Skeleton className="h-5 w-1/3 mb-2 rounded" /> {/* Mind Note Title Skeleton */}
-                    <Skeleton className="h-16 w-full rounded" /> {/* Mind Note Textarea Skeleton */}
-                  </div>
-                </div>
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin text-primary"/>
               </div>
             ) : error || !item ? (
-              <div className="flex-grow flex items-center justify-center py-8 text-center">
+              <div className="flex-grow flex items-center justify-center py-8 text-center h-full">
                 <div>
                   <X className="h-12 w-12 mx-auto text-destructive mb-3" />
                   <h2 className="text-xl font-semibold text-destructive">
@@ -577,154 +547,84 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                 }
 
                 return (
-                  <div className={cn(
-                    showMediaColumn ? "md:grid md:grid-cols-[minmax(0,_3fr)_minmax(0,_2fr)] gap-8" : ""
-                  )}>
-                    {showMediaColumn && (
-                       <div className="relative w-full overflow-hidden rounded-xl flex items-center justify-center">
-                        {isFetchingOembed ? (
-                          <div className="w-full aspect-video flex items-center justify-center">
-                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                          </div>
-                        ) : oembedHtml ? (
-                          <div className="oembed-container w-full" dangerouslySetInnerHTML={{ __html: oembedHtml }} />
-                        ) : item.imageUrl && !imageError ? (
-                           <div className="relative">
-                            <img
-                                src={item.imageUrl}
-                                alt={editableTitle || 'Content Image'}
-                                data-ai-hint={item.title || "image"}
-                                className="w-full h-full object-cover rounded-xl"
-                                loading="lazy"
-                                onError={() => setImageError(true)}
-                              />
-                            {item.status === 'pending-analysis' && (
-                                <div className="absolute inset-0 bg-black/10 backdrop-blur-sm flex flex-col items-center justify-center text-white p-4 text-center rounded-xl">
-                                    <Sparkles className="h-12 w-12 mb-4 animate-pulse text-primary-foreground" />
-                                    <p className="text-xl font-semibold text-primary-foreground shadow-black [text-shadow:0_1px_3px_var(--tw-shadow-color)]">Unlocking the story behind this memory...</p>
-                                </div>
-                            )}
-                           </div>
-                        ) : (item.type === 'link' && item.contentType === 'PDF' && item.url) ? (
-                            <iframe src={item.url} className="w-full h-full min-h-[70vh] rounded-xl border-0" title={editableTitle || 'PDF Preview'}></iframe>
-                        ) : null}
-                      </div>
-                    )}
-
-                    <div className="flex flex-col space-y-4 mt-6 md:mt-0">
-                        {/* Title, Domain, Movie Details */}
-                        <div className="space-y-4">
-                            {item.domain && item.domain !== 'mati.internal.storage' && (
-                                <div className="flex items-center text-sm text-muted-foreground">
-                                <Globe className="h-4 w-4 mr-2" />
-                                <span>{item.domain}</span>
-                                {(item.type === 'link' || item.type === 'movie') && item.url && (
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1 ml-1.5 text-primary hover:text-primary/80" title={`Open link: ${item.url}`}>
-                                            <ExternalLink className="h-4 w-4" />
-                                            </a>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>Open link</p></TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                )}
-                                </div>
-                            )}
-
-                            <div className="flex items-center space-x-2 relative">
-                                {isSavingField && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground absolute -left-7 top-1/2 -translate-y-1/2" />}
-                                <Input
-                                    value={editableTitle}
-                                    onChange={handleTitleChange}
-                                    onBlur={handleTitleBlur}
-                                    disabled={isSavingField || isUpdatingTags}
-                                    className="text-2xl font-headline font-semibold border-0 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0 shadow-none p-0 h-auto flex-grow"
-                                    placeholder="Enter title"
-                                />
-                            </div>
-
-                            {item.type === 'movie' && item.movieDetails && (
-                              <div className="space-y-2 border-b pb-3 mb-2">
-                                <div className="flex items-center text-sm text-muted-foreground">
-                                  <Star className="h-4 w-4 mr-1.5 text-yellow-400 fill-yellow-400" />
-                                  <span>{item.movieDetails.rating ? `${item.movieDetails.rating.toFixed(1)}/10` : 'N/A'}</span>
-                                  <span className="mx-2">|</span>
-                                  <CalendarDays className="h-4 w-4 mr-1.5" />
-                                  <span>{item.movieDetails.releaseYear || 'N/A'}</span>
-                                </div>
-                                {item.movieDetails.director && <p className="text-sm"><strong className="font-medium text-foreground">Director:</strong> {item.movieDetails.director}</p>}
-                                 {item.movieDetails.cast && item.movieDetails.cast.length > 0 && <p className="text-sm"><strong className="font-medium text-foreground">Cast:</strong> {item.movieDetails.cast.slice(0,5).join(', ')}{item.movieDetails.cast.length > 5 ? '...' : ''}</p>}
-                                {item.movieDetails.genres && item.movieDetails.genres.length > 0 && (
-                                  <div className="flex flex-wrap gap-1.5 pt-1">
-                                    {item.movieDetails.genres.map(genre => (
-                                      <Badge key={genre} variant="secondary" className="text-xs">{genre}</Badge>
-                                    ))}
-                                  </div>
-                                )}
+                  <div className={cn("md:grid md:grid-cols-2 gap-4 h-full")}>
+                    <div className="relative w-full h-full flex items-center justify-center rounded-xl overflow-y-auto custom-scrollbar">
+                      {isFetchingOembed ? (
+                        <div className="w-full aspect-video flex items-center justify-center">
+                          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : oembedHtml ? (
+                        <div className="oembed-container w-full" dangerouslySetInnerHTML={{ __html: oembedHtml }} />
+                      ) : item.imageUrl && !imageError ? (
+                          <div className="relative w-full h-full">
+                           <img
+                            src={item.imageUrl}
+                            alt={editableTitle || 'Content Image'}
+                            data-ai-hint={item.title || "image"}
+                            className="w-full h-full object-contain"
+                            loading="lazy"
+                            onError={() => setImageError(true)}
+                          />
+                          {item.status === 'pending-analysis' && (
+                              <div className="absolute inset-0 bg-black/10 backdrop-blur-sm flex flex-col items-center justify-center text-white p-4 text-center rounded-xl">
+                                  <Sparkles className="h-12 w-12 mb-4 animate-pulse text-primary-foreground" />
+                                  <p className="text-xl font-semibold text-primary-foreground shadow-black [text-shadow:0_1px_3px_var(--tw-shadow-color)]">Unlocking the story behind this memory...</p>
                               </div>
+                          )}
+                          </div>
+                      ) : (item.type === 'link' && item.contentType === 'PDF' && item.url) ? (
+                          <iframe src={item.url} className="w-full h-full min-h-[70vh] rounded-xl border-0" title={editableTitle || 'PDF Preview'}></iframe>
+                      ) : null}
+                    </div>
+
+                    <div className="flex flex-col space-y-4 mt-6 md:mt-0 bg-card text-card-foreground p-6 rounded-xl overflow-y-auto custom-scrollbar">
+                      <div className="space-y-2">
+                        {item.domain && item.domain !== 'mati.internal.storage' && (
+                            <div className="flex items-center text-sm text-muted-foreground">
+                            <Globe className="h-4 w-4 mr-2" />
+                            <span>{item.domain}</span>
+                            {(item.type === 'link' || item.type === 'movie') && item.url && (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1 ml-1.5 text-primary hover:text-primary/80" title={`Open link: ${item.url}`}>
+                                        <ExternalLink className="h-4 w-4" />
+                                        </a>
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>Open link</p></TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                             )}
-                        </div>
-                        
-                        <Separator />
+                            </div>
+                        )}
 
-                        <div className="space-y-4 pt-2">
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium mb-2 block">Zone</Label>
-                               <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
-                                  <PopoverTrigger asChild>
-                                      <Button variant="outline" role="combobox" aria-expanded={isComboboxOpen} className={cn("w-full justify-between", (isSavingField || isUpdatingTags) ? "opacity-50" : "", !editableZoneId && "text-muted-foreground")} disabled={isSavingField || isUpdatingTags}>
-                                          <div className="flex items-center"><ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" /><span className="truncate">{zoneDisplayName}</span></div>
-                                          <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                                      </Button>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                      <Command><CommandInput placeholder="Search or create zone..." value={comboboxSearchText} onValueChange={setComboboxSearchText} /><CommandList><CommandEmpty><div className="py-6 text-center text-sm">{comboboxSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}</div></CommandEmpty><CommandGroup><CommandItem value={NO_ZONE_VALUE} onSelect={() => handleZoneSelection(undefined)}><Check className={cn("mr-2 h-4 w-4", !editableZoneId ? "opacity-100" : "opacity-0")} /><Ban className="mr-2 h-4 w-4 opacity-70 text-muted-foreground" />No Zone Assigned</CommandItem>{filteredZones.map((z) => {const ListItemIcon = getIconComponent(z.icon);return (<CommandItem key={z.id} value={z.id} onSelect={(currentValue) => {handleZoneSelection(currentValue === editableZoneId ? undefined : currentValue);}}><Check className={cn("mr-2 h-4 w-4", editableZoneId === z.id ? "opacity-100" : "opacity-0")} /><ListItemIcon className="mr-2 h-4 w-4 opacity-70" />{z.name}</CommandItem>);})}</CommandGroup>{comboboxSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === comboboxSearchText.trim().toLowerCase()) && (<CommandGroup className="border-t"><CommandItem onSelect={() => handleCreateZone(comboboxSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer"><Plus className="mr-2 h-4 w-4" /> Create "{comboboxSearchText.trim()}"</CommandItem></CommandGroup>)}</CommandList></Command>
-                                  </PopoverContent>
-                              </Popover>
-                            </div>
-                             <div className="space-y-2">
-                                <Label className="text-sm font-medium mb-2 block">Tags</Label>
-                                <div className="flex flex-wrap items-center gap-2">
-                                  {editableTags.map(tag => (<Badge key={tag.id} variant="secondary" className="px-3 py-1 text-sm rounded-full font-medium group relative">{tag.name}<Button variant="ghost" size="icon" className="h-5 w-5 ml-1.5 p-0.5 opacity-50 group-hover:opacity-100 hover:bg-destructive/20 hover:text-destructive absolute -right-1.5 -top-1.5 rounded-full bg-background/50" onClick={() => handleRemoveTag(tag.id)} disabled={isUpdatingTags || isSavingField} aria-label={`Remove tag ${tag.name}`}><X className="h-3 w-3" /></Button></Badge>))}
-                                  {isAddingTag ? (<div className="flex items-center gap-1"><Input ref={newTagInputRef} value={newTagInput} onChange={(e) => setNewTagInput(e.target.value)} placeholder="New tag" onKeyDown={handleTagInputKeyDown} disabled={isUpdatingTags || isSavingField} className="h-8 text-sm w-32 focus-visible:ring-accent" autoFocus /><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleAddNewTag} disabled={isUpdatingTags || isSavingField || newTagInput.trim() === ''} aria-label="Confirm add tag" ><Check className="h-4 w-4 text-green-600" /></Button><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleCancelAddTag} disabled={isUpdatingTags || isSavingField} aria-label="Cancel add tag" ><X className="h-4 w-4 text-destructive" /></Button></div>) : (<TooltipProvider><Tooltip><TooltipTrigger asChild><Button size="sm" variant="outline" className="h-8 rounded-full" onClick={() => setIsAddingTag(true)} disabled={isUpdatingTags || isSavingField} aria-label="Add new tag" ><Plus className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Add new tag</p></TooltipContent></Tooltip></TooltipProvider>)}
-                                  {isUpdatingTags && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                                </div>
-                            </div>
+                        <div className="flex items-center space-x-2 relative">
+                            {isSavingField && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground absolute -left-7 top-1/2 -translate-y-1/2" />}
+                            <Input
+                                value={editableTitle}
+                                onChange={handleTitleChange}
+                                onBlur={handleTitleBlur}
+                                disabled={isSavingField || isUpdatingTags}
+                                className="text-2xl font-headline font-semibold border-0 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0 shadow-none p-0 h-auto flex-grow"
+                                placeholder="Enter title"
+                            />
                         </div>
 
-                        {/* AI Analysis Section */}
-                        {(isDescriptionReadOnly || (item.colorPalette && item.colorPalette.length > 0) || item.status === 'pending-analysis') && (
-                          <div className="space-y-4 pt-2">
-                              {item.status === 'pending-analysis' ? (
-                                  <div className="space-y-3">
-                                      <Skeleton className="h-16 w-full" />
-                                      <Skeleton className="h-2.5 w-full rounded-full" />
-                                  </div>
-                              ) : (
-                                <>
-                                  {isDescriptionReadOnly && editableDescription && (
-                                    <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground">
-                                      <p className={cn(!isDescriptionExpanded && "line-clamp-4")}>
-                                        <span dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
-                                      </p>
-                                      {needsTruncation && (
-                                        <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
-                                          {isDescriptionExpanded ? "Show less" : "Show more"}
-                                        </Button>
-                                      )}
-                                    </div>
-                                  )}
-                                  {item.colorPalette && item.colorPalette.length > 0 && <ColorPalette palette={item.colorPalette} />}
-                                </>
-                              )}
+                         {isDescriptionReadOnly && editableDescription && (
+                          <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground pt-2">
+                            <p className={cn(!isDescriptionExpanded && "line-clamp-4")}>
+                              <span dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
+                            </p>
+                            {needsTruncation && (
+                              <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
+                                {isDescriptionExpanded ? "Show less" : "Show more"}
+                              </Button>
+                            )}
                           </div>
                         )}
                         
-                        {/* Editable Description Section */}
                         {!isDescriptionReadOnly && (
-                          <div className="space-y-2">
+                          <div className="space-y-2 pt-2">
                             <Textarea
                                 value={editableDescription}
                                 onChange={handleDescriptionChange}
@@ -736,9 +636,10 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                           </div>
                         )}
 
-                        {/* Mind Note Section */}
-                        {showMindNote && (
-                          <div className="space-y-2">
+                      </div>
+
+                       {showMindNote && (
+                          <div className="space-y-2 pt-2">
                              <Textarea
                                 value={editableMindNote}
                                 onChange={handleMindNoteChange}
@@ -749,39 +650,58 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                               />
                           </div>
                         )}
+                      
+                      <Separator/>
+                      
+                      <div className="space-y-3">
+                          <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" role="combobox" aria-expanded={isComboboxOpen} className={cn("w-full justify-between", (isSavingField || isUpdatingTags) ? "opacity-50" : "", !editableZoneId && "text-muted-foreground")} disabled={isSavingField || isUpdatingTags}>
+                                    <div className="flex items-center"><ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" /><span className="truncate">{zoneDisplayName}</span></div>
+                                    <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                <Command><CommandInput placeholder="Search or create zone..." value={comboboxSearchText} onValueChange={setComboboxSearchText} /><CommandList><CommandEmpty><div className="py-6 text-center text-sm">{comboboxSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}</div></CommandEmpty><CommandGroup><CommandItem value={NO_ZONE_VALUE} onSelect={() => handleZoneSelection(undefined)}><Check className={cn("mr-2 h-4 w-4", !editableZoneId ? "opacity-100" : "opacity-0")} /><Ban className="mr-2 h-4 w-4 opacity-70 text-muted-foreground" />No Zone Assigned</CommandItem>{filteredZones.map((z) => {const ListItemIcon = getIconComponent(z.icon);return (<CommandItem key={z.id} value={z.id} onSelect={(currentValue) => {handleZoneSelection(currentValue === editableZoneId ? undefined : currentValue);}}><Check className={cn("mr-2 h-4 w-4", editableZoneId === z.id ? "opacity-100" : "opacity-0")} /><ListItemIcon className="mr-2 h-4 w-4 opacity-70" />{z.name}</CommandItem>);})}</CommandGroup>{comboboxSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === comboboxSearchText.trim().toLowerCase()) && (<CommandGroup className="border-t"><CommandItem onSelect={() => handleCreateZone(comboboxSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer"><Plus className="mr-2 h-4 w-4" /> Create "{comboboxSearchText.trim()}"</CommandItem></CommandGroup>)}</CommandList></Command>
+                            </PopoverContent>
+                        </Popover>
+                      </div>
 
-                        {/* Settings Section */}
-                        <div className="space-y-3 pt-2">
-                            <div className="flex items-center justify-between">
-                                <label htmlFor="temporary-switch" className="font-medium text-foreground">Temporary Memory</label>
-                                <Switch id="temporary-switch" checked={isTemporary} onCheckedChange={handleTemporaryToggle} />
-                            </div>
-                            {isTemporary && (
-                                <div className="space-y-2">
-                                    {item.expiresAt && (<div className="text-sm text-muted-foreground">Expires in {formatDistanceToNow(new Date(item.expiresAt), { addSuffix: false })} on {format(new Date(item.expiresAt), 'MMM d, yyyy')}</div>)}
-                                    <Select onValueChange={handleExpiryChange}><SelectTrigger className="w-full bg-background focus:ring-accent"><SelectValue placeholder="Change expiration..." /></SelectTrigger><SelectContent><SelectItem value="7">Delete after 7 days</SelectItem><SelectItem value="30">Delete after 30 days</SelectItem><SelectItem value="90">Delete after 90 days</SelectItem><SelectItem value="365">Delete after 1 year</SelectItem></SelectContent></Select>
-                                </div>
-                            )}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Tags</Label>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {editableTags.map(tag => (<Badge key={tag.id} variant="secondary" className="px-3 py-1 text-sm rounded-full font-medium group relative">{tag.name}<Button variant="ghost" size="icon" className="h-5 w-5 ml-1.5 p-0.5 opacity-50 group-hover:opacity-100 hover:bg-destructive/20 hover:text-destructive absolute -right-1.5 -top-1.5 rounded-full bg-background/50" onClick={() => handleRemoveTag(tag.id)} disabled={isUpdatingTags || isSavingField} aria-label={`Remove tag ${tag.name}`}><X className="h-3 w-3" /></Button></Badge>))}
+                          {isAddingTag ? (<div className="flex items-center gap-1"><Input ref={newTagInputRef} value={newTagInput} onChange={(e) => setNewTagInput(e.target.value)} placeholder="New tag" onKeyDown={handleTagInputKeyDown} disabled={isUpdatingTags || isSavingField} className="h-8 text-sm w-32 focus-visible:ring-accent" autoFocus /><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleAddNewTag} disabled={isUpdatingTags || isSavingField || newTagInput.trim() === ''} aria-label="Confirm add tag" ><Check className="h-4 w-4 text-green-600" /></Button><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleCancelAddTag} disabled={isUpdatingTags || isSavingField} aria-label="Cancel add tag" ><X className="h-4 w-4 text-destructive" /></Button></div>) : (<TooltipProvider><Tooltip><TooltipTrigger asChild><Button size="sm" variant="outline" className="h-8 rounded-full" onClick={() => setIsAddingTag(true)} disabled={isUpdatingTags || isSavingField} aria-label="Add new tag" ><Plus className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Add new tag</p></TooltipContent></Tooltip></TooltipProvider>)}
+                          {isUpdatingTags && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
                         </div>
-                    </div> 
-                  </div> 
+                      </div>
+
+                      {item.colorPalette && item.colorPalette.length > 0 && 
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Color Palette</Label>
+                          <ColorPalette palette={item.colorPalette} />
+                        </div>
+                      }
+                      
+                      <div className="space-y-3 pt-2">
+                          <div className="flex items-center justify-between">
+                              <label htmlFor="temporary-switch" className="font-medium text-foreground">Temporary Memory</label>
+                              <Switch id="temporary-switch" checked={isTemporary} onCheckedChange={handleTemporaryToggle} />
+                          </div>
+                          {isTemporary && (
+                              <div className="space-y-2">
+                                  {item.expiresAt && (<div className="text-sm text-muted-foreground">Expires in {formatDistanceToNow(new Date(item.expiresAt), { addSuffix: false })} on {format(new Date(item.expiresAt), 'MMM d, yyyy')}</div>)}
+                                  <Select onValueChange={handleExpiryChange}><SelectTrigger className="w-full bg-background focus:ring-accent"><SelectValue placeholder="Change expiration..." /></SelectTrigger><SelectContent><SelectItem value="7">Delete after 7 days</SelectItem><SelectItem value="30">Delete after 30 days</SelectItem><SelectItem value="90">Delete after 90 days</SelectItem><SelectItem value="365">Delete after 1 year</SelectItem></SelectContent></Select>
+                              </div>
+                          )}
+                      </div>
+
+                    </div>
+                  </div>
                 );
               })()
             )}
           </div>
-
-
-          <DialogFooter className="border-t pt-4 flex-shrink-0">
-            {item && !isLoading && !error && (
-              <div className="text-xs text-muted-foreground flex items-center mr-auto">
-                <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
-                <span>Created: {format(new Date(item.createdAt), 'MMM d, yyyy')}</span>
-              </div>
-            )}
-            <DialogClose asChild>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
-            </DialogClose>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
