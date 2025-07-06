@@ -17,15 +17,16 @@ const AddButton = () => {
     });
 
     const onPressIn = () => {
-        scale.value = withSpring(0.9);
+        scale.value = withSpring(0.9, { damping: 15, stiffness: 200 });
     };
 
     const onPressOut = () => {
-        scale.value = withSpring(1);
+        scale.value = withSpring(1, { damping: 15, stiffness: 200 });
     };
 
     return (
         <TouchableOpacity
+            activeOpacity={0.9}
             onPress={() => Alert.alert("Add Content", "This will open the add content dialog.")}
             onPressIn={onPressIn}
             onPressOut={onPressOut}
@@ -39,13 +40,13 @@ const AddButton = () => {
 
 // AnimatedTabIcon component
 const AnimatedTabIcon = ({ icon: Icon, label, focused }: { icon: React.ElementType, label: string, focused: boolean }) => {
-    const scale = useSharedValue(focused ? 1.2 : 1);
-    const translateY = useSharedValue(focused ? -5 : 0);
+    const scale = useSharedValue(focused ? 1.1 : 1);
+    const translateY = useSharedValue(focused ? -8 : 0);
     const color = focused ? '#6750A4' : '#49454F';
 
     React.useEffect(() => {
-        scale.value = withSpring(focused ? 1.2 : 1, { damping: 10, stiffness: 100 });
-        translateY.value = withSpring(focused ? -5 : 0, { damping: 10, stiffness: 100 });
+        scale.value = withSpring(focused ? 1.1 : 1, { damping: 10, stiffness: 100 });
+        translateY.value = withSpring(focused ? -8 : 0, { damping: 10, stiffness: 100 });
     }, [focused, scale, translateY]);
 
     const animatedIconStyle = useAnimatedStyle(() => {
@@ -57,7 +58,7 @@ const AnimatedTabIcon = ({ icon: Icon, label, focused }: { icon: React.ElementTy
     return (
         <View style={styles.tabIconContainer}>
             <Animated.View style={animatedIconStyle}>
-                <Icon color={color} size={24} />
+                <Icon color={color} size={26} />
             </Animated.View>
             <Text style={[styles.tabLabel, { color }]}>{label}</Text>
         </View>
@@ -70,19 +71,21 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarShowLabel: false,
+        tabBarShowLabel: false, // We use our own label
         tabBarStyle: {
           position: 'absolute',
           bottom: 0,
           left: 0,
           right: 0,
-          elevation: 0,
+          elevation: 0, // Remove elevation from here to apply on the blur view
           backgroundColor: 'transparent',
           borderTopWidth: 0,
           height: Platform.OS === 'ios' ? 90 : 70,
         },
         tabBarBackground: () => (
-          <BlurView intensity={90} tint="light" style={StyleSheet.absoluteFill} />
+          <View style={styles.tabBarBackgroundContainer}>
+            <BlurView intensity={90} tint="light" style={StyleSheet.absoluteFill} />
+          </View>
         ),
       }}
     >
@@ -123,29 +126,35 @@ export default function TabsLayout() {
 // Styles
 const styles = StyleSheet.create({
     addButton: {
-        top: -20,
+        top: -25, // Adjusted for better visual alignment
         justifyContent: 'center',
         alignItems: 'center',
-        width: 60,
-        height: 60,
-        borderRadius: 30,
+        width: 64,
+        height: 64,
+        borderRadius: 32,
         backgroundColor: '#6750A4',
+        // Cross-platform shadow
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
-        shadowRadius: 4,
+        shadowRadius: 6,
         elevation: 8,
     },
+    tabBarBackgroundContainer: {
+        flex: 1,
+        overflow: 'hidden',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+    },
     tabIconContainer: {
+        flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        flex: 1,
-        width: '100%',
+        paddingTop: 10,
     },
     tabLabel: {
-        fontSize: 10,
+        fontSize: 12,
+        fontWeight: '500',
         marginTop: 4,
-        position: 'absolute',
-        bottom: 2,
     },
 });
