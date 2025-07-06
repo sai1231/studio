@@ -10,22 +10,21 @@ const InitialLayout = () => {
   const router = useRouter();
 
   useEffect(() => {
-    // We don't want to navigate until we know the user's auth state.
     if (isLoading) {
       return;
     }
 
     const inAuthGroup = segments[0] === '(auth)';
 
-    // If the user is not signed in and the current screen is not in the auth group,
-    // redirect them to the login page.
+    // If the user is not signed in and is trying to access anything other than the auth group,
+    // send them to the login screen.
     if (!user && !inAuthGroup) {
       router.replace('/login');
     } 
-    // If the user is signed in and the current screen is in the auth group,
-    // redirect them to the dashboard.
+    // If the user *is* signed in and they are in the auth group (e.g. they hit the back button after logging in),
+    // send them to the main app layout.
     else if (user && inAuthGroup) {
-      router.replace('/dashboard');
+      router.replace('/(tabs)');
     }
   }, [user, segments, isLoading, router]);
 
@@ -38,7 +37,7 @@ const InitialLayout = () => {
     );
   }
 
-  // Render the main navigator. The useEffect above will handle redirection.
+  // The Stack here allows you to push modal screens on top of the tab bar later on.
   return <Stack screenOptions={{ headerShown: false }} />;
 };
 

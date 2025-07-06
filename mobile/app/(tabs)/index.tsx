@@ -6,7 +6,7 @@ import { getContentItems } from '@/services/contentService';
 import type { ContentItem } from '@/types';
 import ContentCard from '@/components/ContentCard';
 
-const DashboardScreen = () => {
+const HomeScreen = () => {
   const { user } = useAuth();
   const [items, setItems] = useState<ContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,7 +56,8 @@ const DashboardScreen = () => {
           renderItem={({ item }) => <ContentCard item={item} onPress={() => handleCardPress(item)} />}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.list}
-          ListHeaderComponent={() => <Text style={styles.title}>Dashboard</Text>}
+          ListHeaderComponent={() => <Text style={styles.title}>Home</Text>}
+          ListFooterComponent={<View style={{ height: 100 }} />}
         />
       )}
     </SafeAreaView>
@@ -77,7 +78,6 @@ const styles = StyleSheet.create({
   list: {
     paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 16,
   },
   title: {
     fontSize: 32,
@@ -99,4 +99,4 @@ const styles = StyleSheet.create({
   }
 });
 
-export default DashboardScreen;
+export default HomeScreen;
