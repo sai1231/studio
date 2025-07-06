@@ -3,11 +3,8 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import * as WebBrowser from 'expo-web-browser';
 import { auth } from '@/lib/firebase';
 import { Brain } from 'lucide-react-native';
-
-WebBrowser.maybeCompleteAuthSession();
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
@@ -16,6 +13,10 @@ const LoginScreen = () => {
   const router = useRouter();
 
   const handleEmailLogin = async () => {
+    if (!auth) {
+      Alert.alert('Configuration Error', 'Firebase is not configured. Please add your API keys to mobile/lib/firebase.ts to enable login.');
+      return;
+    }
     if (!email || !password) {
       Alert.alert('Error', 'Please enter both email and password.');
       return;
