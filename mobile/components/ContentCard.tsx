@@ -40,10 +40,12 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onPress }) => {
 
 const styles = StyleSheet.create({
   card: {
+    flex: 1,
     backgroundColor: '#fff',
     borderRadius: 16,
     overflow: 'hidden',
     marginBottom: 16,
+    marginHorizontal: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -52,20 +54,21 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: 150,
+    aspectRatio: 16 / 10,
   },
   content: {
-    padding: 16,
+    padding: 12,
   },
   title: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#333',
+    minHeight: 34,
   },
   domainContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 6,
   },
   domainText: {
     fontSize: 12,
