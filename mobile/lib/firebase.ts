@@ -1,7 +1,9 @@
 
 import { initializeApp, getApps, getApp, type FirebaseOptions, type FirebaseApp } from 'firebase/app';
-import { getAuth, type Auth } from 'firebase/auth';
+import { initializeAuth, getReactNativePersistence, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+
 
 // IMPORTANT: Replace these with your actual Firebase project configuration
 // You can copy this from your web app's .env file or the Firebase console.
@@ -24,7 +26,10 @@ let db: Firestore;
 if (isFirebaseConfigured) {
   // Initialize Firebase
   app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-  auth = getAuth(app);
+  // Use initializeAuth with persistence to keep users logged in
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+  });
   db = getFirestore(app);
 } else {
   // Use dummy objects if not configured to avoid crashing the app
