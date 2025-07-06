@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import type { ContentItem } from '@/types';
 import { Globe, StickyNote, FileImage, Mic, Film, FileText, Youtube, Twitter, Github } from 'lucide-react-native';
-import SpotifyIcon from './SpotifyIcon';
+import SpotifyIcon from '@/components/SpotifyIcon';
 import { format, isSameYear, parseISO } from 'date-fns';
 
 interface ContentCardProps {
