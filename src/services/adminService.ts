@@ -176,6 +176,14 @@ export async function getRoleById(roleId: string): Promise<Role | null> {
     return null;
 }
 
+export async function getUserRoleId(userId: string): Promise<string | null> {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (userDoc.exists()) {
+        return userDoc.data().roleId || null;
+    }
+    return null;
+}
+
 
 export async function getUsersWithDetails(): Promise<AdminUser[]> {
     await new Promise(resolve => setTimeout(resolve, 1000));
