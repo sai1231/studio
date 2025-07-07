@@ -12,7 +12,7 @@ import type { Zone, ContentItem, Tag as TagType } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { addContentItem, getUniqueDomainsFromItems, getUniqueContentTypesFromItems, getUniqueTagsFromItems, uploadFile, subscribeToZones, subscribeToContentItems } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
-import { Plus, UploadCloud, Home, Bookmark as BookmarkIcon, Tag, ClipboardList, Globe, Newspaper, Film, Github, MessagesSquare, BookOpen, StickyNote, FileImage, Mic } from 'lucide-react';
+import { Plus, UploadCloud, Home, Bookmark as BookmarkIcon, Tag, ClipboardList, Globe, Newspaper, Film, Github, MessagesSquare, BookOpen, StickyNote, FileImage, Mic, ListChecks } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
@@ -21,6 +21,7 @@ import { MobileNav } from '@/components/core/mobile-nav';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Link from 'next/link';
+import TodoListSheet from '@/components/core/TodoListSheet';
 
 const iconMap: { [key: string]: React.ElementType } = {
   Briefcase: StickyNote,
@@ -35,6 +36,40 @@ const getIconComponent = (iconName?: string): React.ElementType => {
   }
   return BookmarkIcon; 
 };
+
+// New component for the stacked card effect in the mobile sheet
+const ZoneStackCard: React.FC<{ zone: Zone }> = ({ zone }) => {
+    const Icon = getIconComponent(zone.icon);
+    return (
+        <Link href={`/zones/${zone.id}`} className="block group focus:outline-none focus:ring-2 focus:ring-primary rounded-lg p-1">
+            <div className="relative transition-transform duration-300 ease-in-out group-hover:scale-105 group-focus:scale-105">
+                {/* Background Cards */}
+                <div className="absolute inset-0 top-1 left-1 bg-card rounded-lg shadow-sm"></div>
+                <div className="absolute inset-0 top-0.5 left-0.5 bg-card rounded-lg shadow"></div>
+                
+                {/* Front Card */}
+                <div className="relative bg-card rounded-lg shadow-lg overflow-hidden w-full aspect-[4/3]">
+                    {zone.latestItem?.imageUrl ? (
+                        <img
+                            src={zone.latestItem.imageUrl}
+                            alt={zone.latestItem.title || 'Zone Preview'}
+                            data-ai-hint="zone preview"
+                            className="h-full w-full object-cover"
+                        />
+                    ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-muted">
+                            <Icon className="h-1/3 w-1/3 text-muted-foreground/30" />
+                        </div>
+                    )}
+                </div>
+            </div>
+            <div className="mt-2 text-center">
+                <p className="text-sm font-semibold text-foreground truncate transition-colors group-hover:text-primary">{zone.name}</p>
+            </div>
+        </Link>
+    );
+};
+
 
 export default function AppLayout({
   children,
@@ -57,9 +92,17 @@ export default function AppLayout({
   const [tags, setTags] = useState<TagType[]>([]);
   const [domains, setDomains] = useState<string[]>([]);
   const [contentTypes, setContentTypes] = useState<string[]>([]);
+  const [allContentItems, setAllContentItems] = useState<ContentItem[]>([]);
+  const [zonesWithLatestItems, setZonesWithLatestItems] = useState<Zone[]>([]);
   const { toast } = useToast();
   const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const [activeMobileSheet, setActiveMobileSheet] = useState<'zones' | 'tags' | 'types' | null>(null);
+  const [activeMobileSheet, setActiveMobileSheet] = useState<'zones' | 'types' | 'todos' | null>(null);
+
+  useEffect(() => {
+    if (!isAuthLoading && !user) {
+      router.replace('/login');
+    }
+  }, [isAuthLoading, user, router]);
 
   // Data fetching logic moved from sidebar to layout
   useEffect(() => {
@@ -80,6 +123,7 @@ export default function AppLayout({
             toast({ title: "Real-time Error", description: "Could not update sidebar content.", variant: "destructive" });
             return;
         }
+        setAllContentItems(items);
         setDomains(getUniqueDomainsFromItems(items));
         setTags(getUniqueTagsFromItems(items));
         setContentTypes(getUniqueContentTypesFromItems(items));
@@ -90,6 +134,28 @@ export default function AppLayout({
       unsubscribeContent();
     };
   }, [user, toast]);
+
+  useEffect(() => {
+    const zonesMap = new Map<string, ContentItem>();
+    
+    // Create a map of the most recent item for each zoneId
+    allContentItems.forEach(item => {
+        if (item.zoneId) {
+            const existingLatest = zonesMap.get(item.zoneId);
+            if (!existingLatest || new Date(item.createdAt) > new Date(existingLatest.createdAt)) {
+                zonesMap.set(item.zoneId, item);
+            }
+        }
+    });
+
+    // Map over the original zones to preserve order and add the latest item
+    const newZonesWithItems = zones.map(zone => ({
+        ...zone,
+        latestItem: zonesMap.get(zone.id)
+    }));
+    
+    setZonesWithLatestItems(newZonesWithItems);
+  }, [zones, allContentItems]);
 
   const handleAddContentAndRefresh = useCallback(async (newContentData: Omit<ContentItem, 'id' | 'createdAt'>) => {
     if (!user) {
@@ -285,16 +351,13 @@ export default function AppLayout({
   const sheetContentMap = {
     zones: {
         title: 'Browse Zones',
-        content: zones.length > 0 ? zones.map(zone => {
-            const Icon = getIconComponent(zone.icon);
-            return <MobileSheetLink key={zone.id} href={`/zones/${zone.id}`} icon={Icon}>{zone.name}</MobileSheetLink>
-        }) : <p className="p-4 text-center text-sm text-muted-foreground">No zones created yet.</p>
-    },
-    tags: {
-        title: 'Browse Tags',
-        content: tags.length > 0 ? tags.map(tag => (
-            <MobileSheetLink key={tag.name} href={`/tags/${encodeURIComponent(tag.name)}`} icon={Tag}>#{tag.name}</MobileSheetLink>
-        )) : <p className="p-4 text-center text-sm text-muted-foreground">No tags found.</p>
+        content: zonesWithLatestItems.length > 0 
+            ? <div className="grid grid-cols-2 gap-x-4 gap-y-6 p-2">
+                {zonesWithLatestItems.map(zone => (
+                    <ZoneStackCard key={zone.id} zone={zone} />
+                ))}
+              </div>
+            : <p className="p-4 text-center text-sm text-muted-foreground">No zones created yet.</p>
     },
     types: {
         title: 'Browse Content Types',
@@ -303,13 +366,17 @@ export default function AppLayout({
             const Icon = typeDetails.icon;
             return <MobileSheetLink key={typeKey} href={`/content-types/${encodeURIComponent(typeKey)}`} icon={Icon}>{typeDetails.name}</MobileSheetLink>
         }) : <p className="p-4 text-center text-sm text-muted-foreground">No content types found.</p>
+    },
+    todos: {
+        title: 'Quick TODOs',
+        content: <TodoListSheet />,
     }
   };
 
   return (
     <SearchProvider>
       <div className="flex min-h-screen w-full relative">
-        <AppSidebar zones={zones} tags={tags} domains={domains} contentTypes={contentTypes} />
+        <AppSidebar zones={zonesWithLatestItems} tags={tags} domains={domains} contentTypes={contentTypes} />
         <div className="flex flex-col flex-1 min-w-0 md:ml-20">
           <AppHeader />
           <main
@@ -355,7 +422,7 @@ export default function AppLayout({
         </Button>
         <MobileNav onNavClick={setActiveMobileSheet} />
         <Sheet open={!!activeMobileSheet} onOpenChange={(isOpen) => !isOpen && setActiveMobileSheet(null)}>
-            <SheetContent side="bottom" className="h-[80vh] flex flex-col p-0">
+            <SheetContent side="bottom" className="h-[90vh] flex flex-col p-0">
                 <SheetHeader className="p-4 border-b">
                     <SheetTitle>{activeMobileSheet ? sheetContentMap[activeMobileSheet].title : ''}</SheetTitle>
                 </SheetHeader>
@@ -370,3 +437,4 @@ export default function AppLayout({
     </SearchProvider>
   );
 }
+    
