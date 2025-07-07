@@ -5,12 +5,16 @@ import { collection, getDocs } from 'firebase/firestore';
 import type { ContentItem } from '@/types';
 import { addLog } from './loggingService';
 
-const client = new MeiliSearch({
-  host: process.env.MEILISEARCH_HOST || '',
-  apiKey: process.env.MEILISEARCH_MASTER_KEY || '',
-});
+// Initialize client only if host and key are provided. This prevents client-side crashes.
+const client =
+  process.env.MEILISEARCH_HOST && process.env.MEILISEARCH_MASTER_KEY
+    ? new MeiliSearch({
+        host: process.env.MEILISEARCH_HOST,
+        apiKey: process.env.MEILISEARCH_MASTER_KEY,
+      })
+    : null;
 
-const index = client.index('content');
+const index = client ? client.index('content') : null;
 
 const formatForIndex = (item: ContentItem) => ({
   id: item.id,
@@ -25,7 +29,7 @@ const formatForIndex = (item: ContentItem) => ({
 });
 
 export const addOrUpdateDocument = async (item: ContentItem) => {
-  if (!process.env.MEILISEARCH_HOST) return;
+  if (!index) return; // Silently fail if not configured
   try {
     const doc = formatForIndex(item);
     await index.addDocuments([doc]);
@@ -37,7 +41,7 @@ export const addOrUpdateDocument = async (item: ContentItem) => {
 };
 
 export const deleteDocument = async (itemId: string) => {
-  if (!process.env.MEILISEARCH_HOST) return;
+  if (!index) return; // Silently fail if not configured
   try {
     await index.deleteDocument(itemId);
     addLog('INFO', `[MeiliSearch] Deleted document ${itemId}`);
@@ -48,7 +52,7 @@ export const deleteDocument = async (itemId: string) => {
 };
 
 export const getIndexStats = async () => {
-    if (!process.env.MEILISEARCH_HOST) {
+    if (!index) {
         throw new Error("Meilisearch not configured.");
     }
     try {
@@ -60,7 +64,7 @@ export const getIndexStats = async () => {
 }
 
 export const reindexAllContent = async (): Promise<{ count: number }> => {
-    if (!process.env.MEILISEARCH_HOST) {
+    if (!index || !client) {
         throw new Error("Meilisearch not configured.");
     }
     if (!db) {
