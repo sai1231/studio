@@ -1,11 +1,12 @@
 
+
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ContentCard from '@/components/core/link-card';
 import ContentDetailDialog from '@/components/core/ContentDetailDialog';
-import type { ContentItem, AppZone, Task } from '@/types';
+import type { ContentItem, AppZone, Task, SearchFilters } from '@/types';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Loader2, FolderOpen, ListChecks } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -28,7 +29,8 @@ function DashboardPageContent() {
   const { setIsAddTodoDialogOpen, newlyAddedItem, setNewlyAddedItem } = useDialog();
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
-  const isSearching = !!query.trim();
+  const zoneId = searchParams.get('zone') || '';
+  const isSearching = !!query.trim() || !!zoneId.trim();
 
   // Search state is now the primary source of truth for content
   const { search, searchResults, isLoading: isSearchLoading, isInitialized, hasMore, totalHits } = useSearch();
@@ -60,9 +62,11 @@ function DashboardPageContent() {
   // Effect to handle searching from the header
   useEffect(() => {
     if (isInitialized) {
-       search(query, {}, { limit: 100, append: false });
+       const filters: SearchFilters = {};
+       if (zoneId) filters.zoneId = zoneId;
+       search(query, filters, { limit: 100, append: false });
     }
-  }, [query, isInitialized, search]);
+  }, [query, zoneId, isInitialized, search]);
   
   // Effect for initial data load (empty search)
   useEffect(() => {
@@ -96,10 +100,12 @@ function DashboardPageContent() {
     if (isFetchingMore || !hasMore) return;
     
     setIsFetchingMore(true);
-    await search(query, {}, { limit: 100, offset: contentToDisplay.length, append: true });
+    const filters: SearchFilters = {};
+    if (zoneId) filters.zoneId = zoneId;
+    await search(query, filters, { limit: 100, offset: contentToDisplay.length, append: true });
     setIsFetchingMore(false);
 
-  }, [isFetchingMore, hasMore, search, query, contentToDisplay.length]);
+  }, [isFetchingMore, hasMore, search, query, zoneId, contentToDisplay.length]);
   
   // Effect for infinite scroll
   useEffect(() => {

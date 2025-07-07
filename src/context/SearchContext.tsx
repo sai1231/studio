@@ -4,15 +4,16 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { subscribeToContentItems } from '@/services/contentService';
+import { subscribeToContentItems, subscribeToZones } from '@/services/contentService';
 import { performSearch } from '@/app/actions/searchActions';
-import type { ContentItem, Tag, SearchFilters } from '@/types';
+import type { ContentItem, Tag, SearchFilters, Zone } from '@/types';
 import type { Unsubscribe } from 'firebase/firestore';
 
 interface SearchContextType {
   isInitialized: boolean;
   isLoading: boolean;
   searchResults: ContentItem[];
+  availableZones: Zone[];
   availableTags: Tag[];
   availableContentTypes: string[];
   search: (query: string, filters: SearchFilters, options: { limit?: number; offset?: number; append?: boolean }) => Promise<void>;
@@ -28,6 +29,7 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<ContentItem[]>([]);
   const [allItems, setAllItems] = useState<ContentItem[]>([]);
+  const [availableZones, setAvailableZones] = useState<Zone[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [totalHits, setTotalHits] = useState(0);
 
@@ -35,25 +37,30 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
     if (!user || !role) return;
 
     let isMounted = true;
-    let unsubscribe: Unsubscribe | null = null;
+    let contentUnsubscribe: Unsubscribe | null = null;
+    let zonesUnsubscribe: Unsubscribe | null = null;
     
-    // We still subscribe to content items to have a local copy for browsing
-    // and for deriving available tags/types for filtering.
     const initialize = async () => {
-      unsubscribe = subscribeToContentItems(user.uid, (items) => {
+      contentUnsubscribe = subscribeToContentItems(user.uid, (items) => {
         if (!isMounted) return;
         setAllItems(items);
         if (!isInitialized) {
           setIsInitialized(true);
         }
       }, role.features.contentLimit);
+
+      zonesUnsubscribe = subscribeToZones(user.uid, (zones) => {
+          if (!isMounted) return;
+          setAvailableZones(zones);
+      });
     };
 
     initialize();
 
     return () => {
       isMounted = false;
-      unsubscribe?.();
+      contentUnsubscribe?.();
+      zonesUnsubscribe?.();
     };
   }, [user, role, isInitialized]);
 
@@ -108,6 +115,7 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
     isInitialized,
     isLoading,
     searchResults,
+    availableZones,
     availableTags,
     availableContentTypes,
     search,
