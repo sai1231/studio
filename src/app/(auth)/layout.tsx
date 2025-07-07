@@ -1,9 +1,10 @@
 
+
 'use client';
 
 import type React from 'react';
 import { useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import MatiLogo from '@/components/core/mati-logo';
 import { Loader2 } from 'lucide-react';
@@ -15,18 +16,13 @@ export default function AuthLayout({
 }) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
     if (!isLoading && user) {
-      // After login, check if there was a pending action from the extension
-      const pendingAction = sessionStorage.getItem('mati_extension_pending_action');
-      if (pendingAction) {
-        sessionStorage.removeItem('mati_extension_pending_action');
-        router.replace(`/dashboard?${pendingAction}`);
-      } else {
+        // If a pending action from the extension exists, it will be handled
+        // by the ExtensionSaveHandler in the main app layout. We just need to
+        // redirect to a page where that layout is active.
         router.replace('/dashboard');
-      }
     }
   }, [user, isLoading, router]);
 

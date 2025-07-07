@@ -71,6 +71,70 @@ const ZoneStackCard: React.FC<{ zone: Zone }> = ({ zone }) => {
     );
 };
 
+const isValidUrl = (s: string) => { try { new URL(s); return true; } catch (_) { return false; } };
+
+function ExtensionSaveHandler() {
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const { toast } = useToast();
+    const { user, isLoading } = useAuth();
+    const [isProcessing, setIsProcessing] = useState(false);
+    
+    useEffect(() => {
+        const action = searchParams.get('action');
+
+        if (action !== 'save' || isProcessing || isLoading) {
+            return;
+        }
+
+        if (!user) {
+            sessionStorage.setItem('mati_extension_pending_action', searchParams.toString());
+            router.replace('/login');
+            return;
+        }
+
+        setIsProcessing(true);
+        const { id: toastId } = toast({ title: "Saving from Extension...", description: "Processing your content." });
+
+        const saveData = async () => {
+            const type = searchParams.get('type');
+            let contentData: Partial<Omit<ContentItem, 'id' | 'createdAt'>> | null = null;
+            
+            if (type === 'link') {
+                const url = searchParams.get('url');
+                const title = searchParams.get('title');
+                if (url) {
+                    contentData = { type: 'link', url, title: title || url };
+                }
+            } else if (type === 'note') {
+                const content = searchParams.get('content');
+                if (content) {
+                    const generatedTitle = content.split(/\s+/).slice(0, 5).join(' ') + (content.split(/\s+/).length > 5 ? '...' : '');
+                    contentData = { type: 'note', title: generatedTitle, description: content, contentType: 'Note' };
+                }
+            }
+
+            if (contentData) {
+                try {
+                    await addContentItem({ ...contentData, userId: user.uid, tags: [], status: 'pending-analysis' });
+                    toast({ id: toastId, title: "Saved!", description: `"${contentData.title}" has been saved to Mäti.` });
+                } catch (e) {
+                    console.error("Failed to save from extension:", e);
+                    toast({ id: toastId, title: "Save Failed", description: "There was an error saving your content.", variant: 'destructive' });
+                }
+            } else {
+                 toast({ id: toastId, title: "Save Failed", description: "No content was provided to save.", variant: 'destructive' });
+            }
+            window.close();
+        };
+
+        saveData();
+
+    }, [searchParams, user, isLoading, isProcessing, router, toast]);
+
+    return null; // This component does not render anything
+}
+
 
 export default function AppLayout({
   children,
@@ -79,7 +143,6 @@ export default function AppLayout({
 }) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { 
     isAddContentDialogOpen, 
     setIsAddContentDialogOpen, 
@@ -196,8 +259,6 @@ export default function AppLayout({
       });
     }
   }, [user, toast, isAddContentDialogOpen, setIsAddContentDialogOpen, setNewlyAddedItem]);
-
-  const isValidUrl = (s: string) => { try { new URL(s); return true; } catch (_) { return false; } };
 
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault(); e.stopPropagation();
@@ -378,6 +439,7 @@ export default function AppLayout({
 
   return (
     <SearchProvider>
+      <ExtensionSaveHandler />
       <div className="flex min-h-screen w-full relative">
         <AppSidebar zones={zonesWithLatestItems} tags={tags} domains={domains} contentTypes={contentTypes} />
         <div className="flex flex-col flex-1 min-w-0 md:ml-20">
