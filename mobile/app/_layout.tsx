@@ -21,9 +21,9 @@ const InitialLayout = () => {
     if (!user && !inAuthGroup) {
       router.replace('/login');
     } 
-    // If the user *is* signed in and they are in the auth group (e.g. they hit the back button after logging in),
+    // If the user *is* signed in and they are on an auth screen (or the initial root),
     // send them to the main app layout.
-    else if (user && inAuthGroup) {
+    else if (user && (inAuthGroup || segments.length === 0)) {
       router.replace('/(tabs)');
     }
   }, [user, segments, isLoading, router]);
