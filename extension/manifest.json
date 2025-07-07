@@ -18,5 +18,8 @@
   },
   "host_permissions": [
     "<all_urls>"
-  ]
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' https://www.gstatic.com; object-src 'self'"
+  }
 }
