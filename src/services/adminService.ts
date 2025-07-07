@@ -21,8 +21,6 @@ import { initializeApp, deleteApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
 
 
-const rolesCollection = collection(db, 'roles');
-
 const defaultFeatures: PlanFeatures = {
   contentLimit: 0,
   maxZones: 0,
@@ -54,6 +52,7 @@ export interface AdminUser {
 const mockUsers: AdminUser[] = []; // In-memory store for newly created users
 
 export async function createUser(details: { email: string; password?: string; displayName: string; roleId?: string | null }): Promise<void> {
+    if (!db || !firebaseApp) throw new Error("Firestore is not configured.");
     if (!details.password) {
         throw new Error("Password is required to create a user from the client.");
     }
@@ -98,6 +97,8 @@ export async function changeUserPassword(userId: string, newPassword?: string): 
 
 
 export async function getRolesWithFeatures(): Promise<Role[]> {
+    if (!db) return [];
+    const rolesCollection = collection(db, 'roles');
     const rolesSnapshot = await getDocs(rolesCollection);
     return rolesSnapshot.docs.map(doc => {
       const data = doc.data();
@@ -111,6 +112,8 @@ export async function getRolesWithFeatures(): Promise<Role[]> {
 }
 
 export async function createRole(name: string): Promise<Role> {
+    if (!db) throw new Error("Firestore is not configured.");
+    const rolesCollection = collection(db, 'roles');
     // When creating a new role, start with a slightly more generous default set.
     const newRoleFeatures: PlanFeatures = {
       ...defaultFeatures,
@@ -128,12 +131,14 @@ export async function createRole(name: string): Promise<Role> {
 }
 
 export async function updateRoleFeatures(roleId: string, features: PlanFeatures): Promise<void> {
+  if (!db) throw new Error("Firestore is not configured.");
   const roleDoc = doc(db, 'roles', roleId);
   await updateDoc(roleDoc, { features });
 }
 
 
 export async function getUsersByRoleId(roleId: string): Promise<AdminUser[]> {
+    if (!db) return [];
     const usersCollectionRef = collection(db, 'users');
     const q = query(usersCollectionRef, where("roleId", "==", roleId));
     const querySnapshot = await getDocs(q);
@@ -146,6 +151,7 @@ export async function getUsersByRoleId(roleId: string): Promise<AdminUser[]> {
 }
 
 export async function deleteAndReassignRole(roleIdToDelete: string, reassignments: Map<string, string | null>): Promise<void> {
+    if (!db) throw new Error("Firestore is not configured.");
     const batch = writeBatch(db);
     for (const [userId, newRoleId] of reassignments.entries()) {
         const userRef = doc(db, 'users', userId);
@@ -158,11 +164,13 @@ export async function deleteAndReassignRole(roleIdToDelete: string, reassignment
 
 
 export async function updateUserRole(userId: string, roleId: string | null): Promise<void> {
+    if (!db) throw new Error("Firestore is not configured.");
     const userDocRef = doc(db, 'users', userId);
     await updateDoc(userDocRef, { roleId: roleId });
 }
 
 export async function getRoleById(roleId: string): Promise<Role | null> {
+    if (!db) return null;
     if (!roleId) return null;
     const roleDoc = await getDoc(doc(db, 'roles', roleId));
     if (roleDoc.exists()) {
@@ -177,6 +185,7 @@ export async function getRoleById(roleId: string): Promise<Role | null> {
 }
 
 export async function getUserRoleId(userId: string): Promise<string | null> {
+    if (!db) return null;
     const userDoc = await getDoc(doc(db, 'users', userId));
     if (userDoc.exists()) {
         return userDoc.data().roleId || null;
@@ -186,6 +195,7 @@ export async function getUserRoleId(userId: string): Promise<string | null> {
 
 
 export async function getUsersWithDetails(): Promise<AdminUser[]> {
+    if (!db) return [];
     await new Promise(resolve => setTimeout(resolve, 1000));
     const usersCollectionRef = collection(db, 'users');
     const usersSnapshot = await getDocs(usersCollectionRef);
@@ -233,6 +243,7 @@ export async function getUsersWithDetails(): Promise<AdminUser[]> {
 }
 
 export async function getUserById(id: string): Promise<AdminUser | undefined> {
+    if (!db) return undefined;
     // Check mock users first
     const mockUser = mockUsers.find(u => u.id === id);
     if (mockUser) {
@@ -280,7 +291,9 @@ export async function getUserById(id: string): Promise<AdminUser | undefined> {
 
 
 export async function createDefaultRoles(): Promise<void> {
+  if (!db) throw new Error("Firestore is not configured.");
   const batch = writeBatch(db);
+  const rolesCollection = collection(db, 'roles');
   
   const rolesToCheck = [
     {

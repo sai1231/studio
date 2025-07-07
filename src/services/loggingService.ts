@@ -9,8 +9,6 @@ export interface LogEntry {
     details?: { [key: string]: any };
 }
 
-const logsCollection = collection(db, 'logs');
-
 // Helper to recursively remove undefined values from an object, as Firestore doesn't support them.
 function cleanObjectForFirestore(obj: any): any {
     if (obj === null || typeof obj !== 'object') {
@@ -36,6 +34,12 @@ function cleanObjectForFirestore(obj: any): any {
 
 export async function addLog(level: LogEntry['level'], message: string, details?: LogEntry['details']): Promise<void> {
     try {
+        if (!db) {
+            // Silently fail if db is not configured, but log to console.
+            console.log(`[LOG] [${level}] ${message}`, details || '');
+            return;
+        }
+        const logsCollection = collection(db, 'logs');
         await addDoc(logsCollection, {
             level,
             message,
@@ -44,13 +48,18 @@ export async function addLog(level: LogEntry['level'], message: string, details?
         });
     } catch (error) {
         console.error("!!! FAILED TO WRITE LOG TO FIRESTORE !!!", error);
-        console.log(`[${level}] ${message}`, details || '');
+        console.log(`[LOG] [${level}] ${message}`, details || '');
     }
 }
 
 export function subscribeToLogs(
     callback: (logs: LogEntry[], error?: any) => void
 ): Unsubscribe {
+    if (!db) {
+        callback([], new Error("Firestore is not configured."));
+        return () => {};
+    }
+    const logsCollection = collection(db, 'logs');
     const q = query(logsCollection, orderBy('timestamp', 'desc'));
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {

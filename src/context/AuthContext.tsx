@@ -3,8 +3,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
-import { app, db } from '@/lib/firebase';
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, setDoc, Timestamp, collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { getRoleById } from '@/services/adminService';
 import type { Role } from '@/types';
@@ -31,7 +31,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [role, setRole] = useState<Role | null>(null);
 
   useEffect(() => {
-    const auth = getAuth(app);
+    // If firebase isn't configured, auth and db will be null.
+    // This check prevents the app from crashing.
+    if (!auth || !db) {
+      setUser(null);
+      setIsAdmin(false);
+      setRole(null);
+      setIsLoading(false);
+      return;
+    }
+    
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
@@ -75,13 +84,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           // Set admin status based on the role's features
           // In a production app, you would use this line:
-          // setIsAdmin(fetchedRole?.features?.hasAdminAccess || false);
-
-          // HACK: For development, we grant admin access to any logged-in user.
-          // This allows initial setup of admin roles.
-          // REMEMBER TO REVERT THIS for production by commenting the line below
-          // and uncommenting the line above.
-          setIsAdmin(true);
+          setIsAdmin(fetchedRole?.features?.hasAdminAccess || false);
 
         } catch (error) {
             console.error("Error in AuthContext during user setup:", error);

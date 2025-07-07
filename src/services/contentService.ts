@@ -26,11 +26,6 @@ import { enrichContent } from '@/ai/flows/enrich-content-flow';
 import { addLog } from '@/services/loggingService';
 import { addOrUpdateDocument, deleteDocument } from './meilisearchService';
 
-// Firestore collection references
-const contentCollection = collection(db, 'content');
-const zonesCollection = collection(db, 'zones');
-const taskListsCollection = collection(db, 'taskLists');
-
 // --- ContentItem Functions ---
 
 export async function getContentItemsPaginated({
@@ -43,11 +38,16 @@ export async function getContentItemsPaginated({
   lastDoc?: DocumentSnapshot;
 }): Promise<{ items: ContentItem[]; lastVisibleDoc: DocumentSnapshot | null }> {
   try {
+    if (!db) {
+      console.warn('getContentItemsPaginated called without db configured.');
+      return { items: [], lastVisibleDoc: null };
+    }
     if (!userId) {
       console.warn('getContentItemsPaginated called without a userId.');
       return { items: [], lastVisibleDoc: null };
     }
     
+    const contentCollection = collection(db, 'content');
     const queryConstraints: any[] = [
       where('userId', '==', userId),
       orderBy('createdAt', 'desc'),
@@ -82,10 +82,12 @@ export async function getContentItemsPaginated({
 
 export async function getContentCount(userId: string): Promise<number> {
   try {
+    if (!db) return 0;
     if (!userId) {
       console.warn('getContentCount called without a userId.');
       return 0;
     }
+    const contentCollection = collection(db, 'content');
     const q = query(contentCollection, where('userId', '==', userId));
     const querySnapshot = await getDocs(q);
     return querySnapshot.size;
@@ -99,10 +101,16 @@ export async function getContentCount(userId: string): Promise<number> {
 // Function to get all content items for a specific user
 export async function getContentItems(userId: string, contentLimit?: number): Promise<ContentItem[]> {
   try {
+    if (!db) {
+        console.warn("Firestore is not configured. Returning empty array.");
+        return [];
+    }
     if (!userId) {
         console.warn("getContentItems called without a userId. Returning empty array.");
         return [];
     }
+    
+    const contentCollection = collection(db, 'content');
     const qConstraints: any[] = [
         where("userId", "==", userId),
         orderBy('createdAt', 'desc')
@@ -138,12 +146,17 @@ export function subscribeToContentItems(
   callback: (items: ContentItem[], error?: any) => void,
   contentLimit?: number,
 ): Unsubscribe {
+  if (!db) {
+    callback([], new Error("Firestore is not configured."));
+    return () => {};
+  }
   if (!userId) {
     console.warn("subscribeToContentItems called without a userId.");
     callback([]);
     return () => {}; // Return a no-op unsubscribe function
   }
   
+  const contentCollection = collection(db, 'content');
   const qConstraints: any[] = [
       where("userId", "==", userId),
       orderBy('createdAt', 'desc')
@@ -179,6 +192,7 @@ export function subscribeToContentItems(
 // Function to get a single content item by ID
 export async function getContentItemById(id: string): Promise<ContentItem | undefined> {
   try {
+    if (!db) return undefined;
     const docRef = doc(db, 'content', id);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
@@ -202,10 +216,12 @@ export async function addContentItem(
   itemData: Omit<ContentItem, 'id' | 'createdAt'>
 ): Promise<ContentItem> {
   try {
+    if (!db) throw new Error("Firestore is not initialized.");
     if (!itemData.userId) {
       throw new Error("User ID is required to add a content item.");
     }
     
+    const contentCollection = collection(db, 'content');
     const dataToSave: { [key: string]: any } = { ...itemData };
     dataToSave.createdAt = Timestamp.fromDate(new Date());
 
@@ -254,6 +270,7 @@ export async function addContentItem(
 // Function to delete a content item
 export async function deleteContentItem(itemId: string): Promise<void> {
   try {
+    if (!db) throw new Error("Firestore is not initialized.");
     await deleteDoc(doc(db, 'content', itemId));
     deleteDocument(itemId);
   } catch(error) {
@@ -268,6 +285,7 @@ export async function updateContentItem(
   updates: Partial<Omit<ContentItem, 'id' | 'createdAt' | 'userId'>>
 ): Promise<void> {
   try {
+    if (!db) throw new Error("Firestore is not initialized.");
     const docRef = doc(db, 'content', itemId);
     const updateData: { [key: string]: any } = { ...updates };
     
@@ -292,6 +310,8 @@ export async function updateContentItem(
 // --- TaskList Functions ---
 
 export async function getOrCreateTaskList(userId: string): Promise<TaskList> {
+  if (!db) throw new Error("Firestore is not initialized.");
+  const taskListsCollection = collection(db, 'taskLists');
   const docRef = doc(taskListsCollection, userId);
   const docSnap = await getDoc(docRef);
 
@@ -308,6 +328,8 @@ export async function getOrCreateTaskList(userId: string): Promise<TaskList> {
 }
 
 export async function updateTaskList(userId: string, tasks: Task[]): Promise<void> {
+  if (!db) throw new Error("Firestore is not initialized.");
+  const taskListsCollection = collection(db, 'taskLists');
   const docRef = doc(taskListsCollection, userId);
 
   // Firestore doesn't allow 'undefined' values. We clean the tasks array to remove them.
@@ -329,10 +351,15 @@ export function subscribeToTaskList(
   userId: string,
   callback: (taskList: TaskList | null, error?: any) => void
 ): Unsubscribe {
+  if (!db) {
+    callback(null, new Error("Firestore is not configured."));
+    return () => {};
+  }
   if (!userId) {
     callback(null);
     return () => {};
   }
+  const taskListsCollection = collection(db, 'taskLists');
   const docRef = doc(taskListsCollection, userId);
   const unsubscribe = onSnapshot(docRef, (docSnap) => {
     if (docSnap.exists()) {
@@ -365,10 +392,12 @@ export function subscribeToTaskList(
 
 export async function getZones(userId: string): Promise<Zone[]> {
   try {
+    if (!db) return [];
     if (!userId) {
         console.warn("getZones called without a userId. Returning empty array.");
         return [];
     }
+    const zonesCollection = collection(db, 'zones');
     const q = query(zonesCollection, where("userId", "==", userId), orderBy("name", "asc"));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Zone));
@@ -382,11 +411,16 @@ export function subscribeToZones(
   userId: string,
   callback: (zones: Zone[], error?: any) => void
 ): Unsubscribe {
+  if (!db) {
+    callback([], new Error("Firestore is not configured."));
+    return () => {};
+  }
   if (!userId) {
     console.warn("subscribeToZones called without a userId.");
     callback([]);
     return () => {}; // Return a no-op unsubscribe function
   }
+  const zonesCollection = collection(db, 'zones');
   const q = query(zonesCollection, where("userId", "==", userId), orderBy("name", "asc"));
   
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -405,6 +439,7 @@ export function subscribeToZones(
 
 export async function getZoneById(id: string): Promise<Zone | undefined> {
   try {
+    if (!db) return undefined;
     const docRef = doc(db, 'zones', id);
     const docSnap = await getDoc(docRef);
     return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } as Zone : undefined;
@@ -416,9 +451,11 @@ export async function getZoneById(id: string): Promise<Zone | undefined> {
 
 export async function addZone(name: string, userId: string): Promise<Zone> {
   try {
+    if (!db) throw new Error("Firestore is not initialized.");
     if (!userId) {
         throw new Error("User ID is required to add a zone.");
     }
+    const zonesCollection = collection(db, 'zones');
     const newZone = { name: name.trim(), icon: 'Bookmark', userId }; // Default icon and add userId
     const docRef = await addDoc(zonesCollection, newZone);
     return { id: docRef.id, ...newZone };
@@ -433,11 +470,13 @@ export async function addZone(name: string, userId: string): Promise<Zone> {
 // New function to delete expired content
 export async function deleteExpiredContent(userId: string): Promise<void> {
     try {
+        if (!db) return;
         if (!userId) {
             console.warn('deleteExpiredContent called without a userId.');
             return;
         }
         
+        const contentCollection = collection(db, 'content');
         const now = new Date().toISOString();
         const q = query(contentCollection, where('userId', '==', userId), where('expiresAt', '<=', now));
         
@@ -469,6 +508,7 @@ export async function deleteExpiredContent(userId: string): Promise<void> {
 // Function for file upload to Firebase Storage, returns the public download URL
 export async function uploadFile(file: File, path: string): Promise<string> {
   try {
+    if (!storage) throw new Error("Firebase Storage is not configured.");
     if (!storage.app.options.storageBucket) {
       throw new Error("Firebase Storage bucket is not configured. Please check NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET in your .env file.");
     }

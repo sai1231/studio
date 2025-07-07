@@ -63,6 +63,9 @@ export const reindexAllContent = async (): Promise<{ count: number }> => {
     if (!process.env.MEILISEARCH_HOST) {
         throw new Error("Meilisearch not configured.");
     }
+    if (!db) {
+        throw new Error("Firestore is not configured, cannot re-index.");
+    }
     try {
         addLog('INFO', '[MeiliSearch] Starting full re-index.');
         const contentSnapshot = await getDocs(collection(db, 'content'));
