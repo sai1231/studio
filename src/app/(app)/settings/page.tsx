@@ -147,7 +147,7 @@ export default function SettingsPage() {
                     This action reads all content from your Firestore database and sends it to Meilisearch.
                     This is useful after setting up the app for the first time, or for recovery if the search server was down and missed updates.
                 </p>
-                <Button onClick={handleReindex} disabled={isReindexing || !!error}>
+                <Button onClick={handleReindex} disabled={isReindexing}>
                     {isReindexing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Database className="mr-2" />}
                     {isReindexing ? 'Re-indexing...' : 'Re-index All Content'}
                 </Button>
