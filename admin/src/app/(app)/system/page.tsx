@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -7,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, HardDrive, AlertTriangle, Database, CheckCircle, Search } from 'lucide-react';
 import { getIndexStats, reindexAllContent } from '../../../../src/services/meilisearchService';
+import { cn } from '@/lib/utils';
 
 const StatCard = ({ title, value, icon: Icon, isLoading }: { title: string; value: string | number; icon: React.ElementType; isLoading?: boolean }) => (
     <div className="flex items-center p-4 bg-muted/50 rounded-lg">
@@ -121,7 +121,7 @@ export default function SystemPage() {
                         This action reads all content from your Firestore database and sends it to Meilisearch.
                         This is useful for recovery if the search server was down and missed updates.
                     </p>
-                    <Button onClick={handleReindex} disabled={isReindexing || !!error}>
+                    <Button onClick={handleReindex} disabled={isReindexing}>
                         {isReindexing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Database className="mr-2" />}
                         {isReindexing ? 'Re-indexing...' : 'Re-index All Content'}
                     </Button>
