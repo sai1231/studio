@@ -95,8 +95,10 @@ MEILISEARCH_HOST=http://host.docker.internal:7700
 MEILISEARCH_MASTER_KEY=...
 ```
 
-**3. Mobile App Environment:**
-For the mobile app, create a separate `.env` file inside the `/mobile` directory. Refer to the `mobile/README.md` for the required variables.
+**3. Mobile App & Extension Environment:**
+For the mobile app and browser extension, you must manually update their respective config files with your Firebase credentials. These files do not use the `.env` file.
+- **Mobile App**: `mobile/lib/firebase.ts`
+- **Browser Extension**: `extension/firebase-config.js`
 
 ## Running Meilisearch
 
