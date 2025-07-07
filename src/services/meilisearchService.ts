@@ -37,8 +37,14 @@ const formatForIndex = (item: ContentItem) => ({
   movieDetails: item.movieDetails,
 });
 
-export const searchContent = async (userId: string, query: string, filters: SearchFilters = {}): Promise<ContentItem[]> => {
-  if (!index) return [];
+export const searchContent = async (
+  userId: string,
+  query: string,
+  filters: SearchFilters = {},
+  limit: number = 20,
+  offset: number = 0
+): Promise<{ hits: ContentItem[], total: number }> => {
+  if (!index) return { hits: [], total: 0 };
   try {
     const filterClauses = [`userId = "${userId}"`];
     if (filters.zoneId) {
@@ -51,27 +57,28 @@ export const searchContent = async (userId: string, query: string, filters: Sear
       const tagFilters = filters.tagNames.map(tag => `tags = "${tag}"`);
       filterClauses.push(`(${tagFilters.join(' AND ')})`);
     }
-    
+
     const searchResults = await index.search(query, {
       filter: filterClauses,
-      limit: 100, // Limit results for performance
+      limit,
+      offset,
+      sort: ['createdAt:desc']
     });
 
-    // The hits from Meilisearch will have the same structure as what we indexed.
-    // We just need to reconstruct it into our ContentItem type.
-    return searchResults.hits.map((hit: any) => ({
+    const hits = searchResults.hits.map((hit: any) => ({
       ...hit,
-      // Reconstruct the tags array of objects
       tags: hit.tags.map((t: string) => ({ id: t.toLowerCase(), name: t })),
-      // Convert timestamp back to ISO string for consistency
       createdAt: new Date(hit.createdAt).toISOString(),
     }));
+    
+    return { hits, total: searchResults.estimatedTotalHits };
   } catch (error) {
     addLog('ERROR', `[MeiliSearch] Failed to search`, { error });
     console.error(`[MeiliSearch] Failed to search`, error);
-    return [];
+    return { hits: [], total: 0 };
   }
-}
+};
+
 
 export const addOrUpdateDocument = async (item: ContentItem) => {
   if (!index) return; // Silently fail if not configured
@@ -150,14 +157,24 @@ export const reindexAllContent = async (): Promise<{ count: number }> => {
 
         const formattedItems = allItems.map(formatForIndex);
         
-        const documentsTask = await index.addDocuments(formattedItems, { primaryKey: 'id' });
-        await client.waitForTask(documentsTask.taskUid);
+        // Batch the documents to avoid hitting payload limits
+        const batchSize = 1000;
+        for (let i = 0; i < formattedItems.length; i += batchSize) {
+            const batch = formattedItems.slice(i, i + batchSize);
+            const documentsTask = await index.addDocuments(batch, { primaryKey: 'id' });
+            await client.waitForTask(documentsTask.taskUid);
+            addLog('INFO', `[MeiliSearch] Indexed batch ${i / batchSize + 1}`);
+        }
         
         addLog('INFO', `[MeiliSearch] Re-index complete. ${allItems.length} documents processed.`);
         return { count: allItems.length };
-    } catch (error) {
-        addLog('ERROR', '[MeiliSearch] Full re-index failed.', { error });
+    } catch (error: any) {
+        addLog('ERROR', '[MeiliSearch] Full re-index failed.', {
+            error: error.message,
+            code: error.code,
+            type: error.type,
+        });
         console.error("[MeiliSearch] Full re-index failed.", error);
-        throw error;
+        throw new Error(error.message || "An unknown error occurred during re-indexing.");
     }
 };

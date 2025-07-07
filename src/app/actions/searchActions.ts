@@ -12,9 +12,15 @@ import type { SearchFilters } from '@/types';
  * @param filters - Optional filters for the search.
  * @returns A promise that resolves to an array of ContentItem objects.
  */
-export async function performSearch(userId: string, query: string, filters: SearchFilters) {
+export async function performSearch(
+  userId: string,
+  query: string,
+  filters: SearchFilters,
+  limit?: number,
+  offset?: number
+) {
   if (!userId) {
     throw new Error('User ID is required for search.');
   }
-  return searchContent(userId, query, filters);
+  return searchContent(userId, query, filters, limit, offset);
 }

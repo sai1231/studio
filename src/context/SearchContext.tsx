@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
@@ -14,7 +15,9 @@ interface SearchContextType {
   searchResults: ContentItem[];
   availableTags: Tag[];
   availableContentTypes: string[];
-  search: (query: string, filters: SearchFilters) => void;
+  search: (query: string, filters: SearchFilters, options: { limit?: number; offset?: number; append?: boolean }) => Promise<void>;
+  hasMore: boolean;
+  totalHits: number;
 }
 
 const SearchContext = createContext<SearchContextType | undefined>(undefined);
@@ -25,6 +28,8 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<ContentItem[]>([]);
   const [allItems, setAllItems] = useState<ContentItem[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalHits, setTotalHits] = useState(0);
 
   useEffect(() => {
     if (!user || !role) return;
@@ -52,13 +57,25 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [user, role, isInitialized]);
 
-  const search = useCallback(async (query: string, filters: SearchFilters) => {
+  const search = useCallback(async (
+    query: string, 
+    filters: SearchFilters,
+    options: { limit?: number; offset?: number; append?: boolean } = {}
+  ) => {
     if (!user) return;
     setIsLoading(true);
     
     try {
-      const results = await performSearch(user.uid, query, filters);
-      setSearchResults(results);
+      const { hits, total } = await performSearch(user.uid, query, filters, options.limit, options.offset);
+      
+      if (options.append) {
+        setSearchResults(prev => [...prev, ...hits]);
+      } else {
+        setSearchResults(hits);
+      }
+      setTotalHits(total);
+      setHasMore((options.offset || 0) + hits.length < total);
+
     } catch (e) {
       console.error("Search failed:", e);
       setSearchResults([]);
@@ -94,6 +111,8 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
     availableTags,
     availableContentTypes,
     search,
+    hasMore,
+    totalHits,
   };
 
   return (
