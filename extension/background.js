@@ -1,21 +1,17 @@
-// Use importScripts to load Firebase libraries in a service worker context
-try {
-  importScripts(
-    './lib/firebase-app-compat.js',
-    './lib/firebase-auth-compat.js',
-    './lib/firebase-firestore-compat.js',
-    './firebase-config.js'
-  );
-} catch (e) {
-  console.error("Error loading Firebase scripts in background worker.", e);
-}
+// Import Firebase libraries and configuration as modules.
+import './lib/firebase-app-compat.js';
+import './lib/firebase-auth-compat.js';
+import './lib/firebase-firestore-compat.js';
+import { firebaseConfig, isFirebaseConfigured } from './firebase-config.js';
 
 let app, auth, db;
 
-if (self.isFirebaseConfigured) {
-    app = firebase.initializeApp(self.firebaseConfig);
+if (isFirebaseConfigured) {
+    app = firebase.initializeApp(firebaseConfig);
     auth = firebase.auth();
     db = firebase.firestore();
+} else {
+    console.error("Firebase is not configured in the extension. Please add your credentials to extension/firebase-config.js");
 }
 
 // Create Context Menu on install
@@ -30,14 +26,21 @@ chrome.runtime.onInstalled.addListener(() => {
 // Handle Context Menu Click
 chrome.contextMenus.onClicked.addListener((info) => {
   if (info.menuItemId === "add-to-mati" && info.selectionText) {
-    if (!db) {
-        console.error("Firestore not initialized in background script.");
+    if (!db || !auth) {
+        console.error("Firestore or Auth not initialized in background script.");
+        chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'logo-128.png',
+            title: 'Mäti Error',
+            message: 'Could not connect to Firebase. Please check the extension configuration.'
+        });
         return;
     }
     const currentUser = auth.currentUser;
     if (!currentUser) {
       chrome.notifications.create({
         type: 'basic',
+        iconUrl: 'logo-128.png',
         title: 'Not Logged In',
         message: 'Please log in to Mäti via the extension icon first.'
       });
@@ -59,12 +62,14 @@ chrome.contextMenus.onClicked.addListener((info) => {
     }).then(() => {
       chrome.notifications.create({
         type: 'basic',
-        title: 'Note Saved',
-        message: `"${title}" was saved to Mäti.`
+        iconUrl: 'logo-128.png',
+        title: 'Note Saved to Mäti',
+        message: `"${title}" was saved.`
       });
     }).catch(error => {
       chrome.notifications.create({
         type: 'basic',
+        iconUrl: 'logo-128.png',
         title: 'Save Failed',
         message: `Could not save your note: ${error.message}`
       });
