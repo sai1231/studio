@@ -15,8 +15,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
-import { app } from '@/lib/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import MatiLogo from '../core/mati-logo';
 
 
@@ -26,11 +26,19 @@ export function AdminLoginForm() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const auth = getAuth(app);
 
   async function handleEmailSignIn(e: React.FormEvent) {
     e.preventDefault();
     setIsLoading(true);
+    if (!auth) {
+      toast({
+        title: 'Configuration Error',
+        description: 'Firebase is not configured. Please add your credentials to the .env file.',
+        variant: 'destructive',
+      });
+      setIsLoading(false);
+      return;
+    }
     try {
       await signInWithEmailAndPassword(auth, email, password);
       // The admin layout will handle the redirect if the user is an admin

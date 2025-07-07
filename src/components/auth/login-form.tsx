@@ -20,8 +20,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { app } from '@/lib/firebase';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -42,7 +42,6 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
-  const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -55,6 +54,15 @@ export function LoginForm() {
 
   async function handleEmailSignIn(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
+    if (!auth) {
+      toast({
+        title: 'Configuration Error',
+        description: 'Firebase is not configured. Please add your credentials to the .env file.',
+        variant: 'destructive',
+      });
+      setIsLoading(false);
+      return;
+    }
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       toast({
@@ -76,6 +84,15 @@ export function LoginForm() {
 
   async function handleGoogleSignIn() {
     setIsGoogleLoading(true);
+    if (!auth) {
+      toast({
+        title: 'Configuration Error',
+        description: 'Firebase is not configured. Please add your credentials to the .env file.',
+        variant: 'destructive',
+      });
+      setIsGoogleLoading(false);
+      return;
+    }
     try {
       await signInWithPopup(auth, provider);
       toast({
