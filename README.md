@@ -60,7 +60,7 @@ This project uses environment variables for Firebase and other services.
 
 Copy the example file to a new file named `.env`:
 ```sh
-cp env.example .env
+cp .env.example .env
 ```
 **Important:** The `.env` file is listed in `.gitignore` and should never be committed to version control.
 
@@ -81,14 +81,16 @@ NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
 NEXT_PUBLIC_FIREBASE_APP_ID=...
 
 # AI & Services Configuration (Optional, for AI features)
-# Get a key from https://moondream.ai/
-MOONDREAM_API_KEY=...
+# Get a key from https://ai.google.dev/
+GOOGLE_API_KEY=...
 # Get a key from https://www.themoviedb.org/
 NEXT_PUBLIC_TMDB_API_KEY=...
 
 # Meilisearch Configuration (Required for Search)
 # See "Running Meilisearch" section below.
-MEILISEARCH_HOST=http://localhost:7700
+# IMPORTANT: When running in Docker, the Next.js container must use 'host.docker.internal' 
+# to communicate with the Meilisearch container running on the host machine.
+MEILISEARCH_HOST=http://host.docker.internal:7700
 MEILISEARCH_MASTER_KEY=...
 ```
 
@@ -105,7 +107,7 @@ The search feature is powered by a self-hosted Meilisearch instance running in D
     ```
 
 2.  **Run the Docker container:**
-    Replace `YOUR_MASTER_KEY` with a secure, randomly generated key.
+    Replace `YOUR_MASTER_KEY` with a secure, randomly generated key. This key must match the one in your `.env` file.
     ```sh
     docker run --env="MEILI_MASTER_KEY=YOUR_MASTER_KEY" -p 7700:7700 -v "$(pwd)/meili_data:/meili_data" getmeili/meilisearch:v1.15
     ```
