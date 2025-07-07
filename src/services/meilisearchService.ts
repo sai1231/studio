@@ -97,13 +97,20 @@ export const deleteDocument = async (itemId: string) => {
 
 export const getIndexStats = async () => {
     if (!index) {
-        throw new Error("Meilisearch not configured.");
+        throw new Error("Meilisearch not configured. Please check your .env file and ensure MEILISEARCH_HOST and MEILISEARCH_MASTER_KEY are set.");
     }
     try {
         return await index.getStats();
     } catch (error) {
         console.error("[MeiliSearch] Failed to get stats", error);
-        throw new Error("Could not connect to Meilisearch to get stats.");
+        const errorMessage = `Could not connect to Meilisearch. Please ensure your Docker container is running and that MEILISEARCH_HOST in your .env file is correct (e.g., 'http://host.docker.internal:7700'). Remember to restart the dev server after changes.`;
+        
+        addLog('ERROR', 'Meilisearch connection failed', { 
+            host: process.env.MEILISEARCH_HOST,
+            originalError: (error as Error).message,
+        });
+
+        throw new Error(errorMessage);
     }
 }
 
