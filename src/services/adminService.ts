@@ -1,6 +1,6 @@
 
 
-import { db, app as firebaseApp } from '@/lib/firebase';
+import { db, app as firebaseApp, isFirebaseConfigured } from '@/lib/firebase';
 import {
   collection,
   getDocs,
@@ -52,7 +52,7 @@ export interface AdminUser {
 const mockUsers: AdminUser[] = []; // In-memory store for newly created users
 
 export async function createUser(details: { email: string; password?: string; displayName: string; roleId?: string | null }): Promise<void> {
-    if (!db || !firebaseApp) throw new Error("Firestore is not configured.");
+    if (!isFirebaseConfigured || !db || !firebaseApp) throw new Error("Firestore is not configured.");
     if (!details.password) {
         throw new Error("Password is required to create a user from the client.");
     }
@@ -207,15 +207,15 @@ export async function getUsersWithDetails(): Promise<AdminUser[]> {
           const userData = userDoc.data();
           const userId = userDoc.id;
 
-          const contentQuery = query(collection(db, 'content'), where('userId', '==', userId));
-          const zonesQuery = query(collection(db, 'zones'), where('userId', '==', userId));
+          const contentQuery = query(collection(db!, 'content'), where('userId', '==', userId));
+          const zonesQuery = query(collection(db!, 'zones'), where('userId', '==', userId));
           
           const [contentSnapshot, zonesSnapshot] = await Promise.all([getDocs(contentQuery), getDocs(zonesQuery)]);
 
           let role: Role | undefined = undefined;
           if (userData.roleId) {
               try {
-                  const roleDoc = await getDoc(doc(db, 'roles', userData.roleId));
+                  const roleDoc = await getDoc(doc(db!, 'roles', userData.roleId));
                   if (roleDoc.exists()) {
                       role = { id: roleDoc.id, ...roleDoc.data() } as Role;
                   }

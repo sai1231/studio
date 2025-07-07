@@ -24,12 +24,6 @@ Mäti is packed with features to make saving and organizing your digital life se
 - **Smart Title Generation**: Notes and other text-based content get automatically generated titles.
 - **Movie Details**: Saving a link from IMDb will automatically enrich it with movie details like poster, cast, rating, and director from TMDb.
 
-### User Experience
-- **Cross-Platform**: Access your content seamlessly via the web application or the mobile app (iOS & Android).
-- **Secure Authentication**: User accounts are secured using Firebase Authentication, with support for both email/password and Google Sign-In.
-- **Admin Portal**: A separate, secure admin portal for managing users, roles, and application settings.
-- **Role-Based Access Control (RBAC)**: A flexible role system to define different feature sets and limits for various user tiers (e.g., Free, Pro, Admin).
-
 ## Tech Stack
 
 - **Framework**: Next.js 15 (App Router)
@@ -38,7 +32,7 @@ Mäti is packed with features to make saving and organizing your digital life se
 - **State Management**: React Context API
 - **Authentication & Database**: Firebase (Auth, Firestore, Storage)
 - **AI & Backend Flows**: Google AI & Genkit
-- **Client-Side Search**: FlexSearch
+- **Client-Side Search**: Meilisearch (Self-hosted)
 - **Mobile**: React Native (Expo)
 
 ## Monorepo Structure
@@ -56,34 +50,66 @@ The project is organized into several key directories:
 Ensure you have the following installed on your system:
 *   **Node.js**: Version `^18.18.0`, `^19.8.0`, or `>=20.0.0`
 *   **npm** (or yarn/pnpm)
+*   **Docker** (for running Meilisearch)
 
 ## Environment Setup
 
-This project requires environment variables for Firebase and other services. Create a `.env` file in the root directory and populate it with your credentials.
+This project uses environment variables for Firebase and other services.
 
+**1. Create your environment file:**
+
+Copy the example file to a new file named `.env`:
 ```sh
+cp env.example .env
+```
+**Important:** The `.env` file is listed in `.gitignore` and should never be committed to version control.
+
+**2. Populate `.env` with your credentials:**
+
+Open the newly created `.env` file and fill in the values.
+
+```env
 # .env
 
-# Firebase Configuration (Required for Web App & Admin Portal)
-# Find these in your Firebase project settings
-NEXT_PUBLIC_FIREBASE_API_KEY=
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
-NEXT_PUBLIC_FIREBASE_APP_ID=
+# Firebase Configuration (Required)
+# Find these in your Firebase project settings > General
+NEXT_PUBLIC_FIREBASE_API_KEY=...
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+NEXT_PUBLIC_FIREBASE_APP_ID=...
 
-# AI & Services Configuration (Required for AI features)
-MOONDREAM_API_KEY=
-NEXT_PUBLIC_TMDB_API_KEY=
+# AI & Services Configuration (Optional, for AI features)
+# Get a key from https://moondream.ai/
+MOONDREAM_API_KEY=...
+# Get a key from https://www.themoviedb.org/
+NEXT_PUBLIC_TMDB_API_KEY=...
 
-# --- Mobile App Specific ---
-# For the mobile app, create a separate .env file inside the /mobile directory.
-# These are required for Google Sign-In on mobile.
-# EXPO_PUBLIC_GOOGLE_CLIENT_ID_FOR_WEB=
-# EXPO_PUBLIC_GOOGLE_CLIENT_ID_FOR_IOS=
-# EXPO_PUBLIC_GOOGLE_CLIENT_ID_FOR_ANDROID=
+# Meilisearch Configuration (Required for Search)
+# See "Running Meilisearch" section below.
+MEILISEARCH_HOST=http://localhost:7700
+MEILISEARCH_MASTER_KEY=...
 ```
+
+**3. Mobile App Environment:**
+For the mobile app, create a separate `.env` file inside the `/mobile` directory. Refer to the `mobile/README.md` for the required variables.
+
+## Running Meilisearch
+
+The search feature is powered by a self-hosted Meilisearch instance running in Docker.
+
+1.  **Pull the Meilisearch image:**
+    ```sh
+    docker pull getmeili/meilisearch:v1.15
+    ```
+
+2.  **Run the Docker container:**
+    Replace `YOUR_MASTER_KEY` with a secure, randomly generated key.
+    ```sh
+    docker run --env="MEILI_MASTER_KEY=YOUR_MASTER_KEY" -p 7700:7700 -v "$(pwd)/meili_data:/meili_data" getmeili/meilisearch:v1.15
+    ```
+    This command starts Meilisearch and maps its data directory to a `meili_data` folder in your project root to persist the search index.
 
 ## Getting Started
 
@@ -108,7 +134,7 @@ cd ..
 
 ### 2. Run the Applications
 
-You can run each part of the application in a separate terminal.
+You can run each part of the application in a separate terminal. Make sure your Meilisearch container is running first.
 
 #### Web Application (Mäti)
 ```bash
