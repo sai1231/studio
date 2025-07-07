@@ -46,7 +46,6 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
-    "dotenv": "^16.5.0",
     "extract-colors": "^2.0.6",
     "firebase": "^11.9.0",
     "genkit": "^1.0.2",

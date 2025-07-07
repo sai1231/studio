@@ -1,6 +1,6 @@
 
 
-import { db, app as firebaseApp, isFirebaseConfigured } from '@/lib/firebase';
+import { db, app as firebaseApp, isFirebaseConfigured } from '../lib/firebase';
 import {
   collection,
   getDocs,
