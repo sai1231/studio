@@ -1,17 +1,23 @@
 {
   "manifest_version": 3,
   "name": "Mäti",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Save links, notes, and ideas directly to your Mäti account.",
   "permissions": [
     "activeTab",
-    "contextMenus"
+    "contextMenus",
+    "notifications",
+    "storage"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "action": {
     "default_popup": "popup.html",
     "default_title": "Save to Mäti"
-  }
+  },
+  "host_permissions": [
+    "<all_urls>"
+  ]
 }

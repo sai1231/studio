@@ -102,13 +102,9 @@ export default function AppLayout({
 
   useEffect(() => {
     if (!isAuthLoading && !user) {
-      // If an extension action is in progress, save it before redirecting
-      if (searchParams.has('action') && searchParams.get('action') === 'addFromExtension') {
-          sessionStorage.setItem('mati_extension_pending_action', searchParams.toString());
-      }
       router.replace('/login');
     }
-  }, [isAuthLoading, user, router, searchParams]);
+  }, [isAuthLoading, user, router]);
 
   // Data fetching logic moved from sidebar to layout
   useEffect(() => {
@@ -163,91 +159,6 @@ export default function AppLayout({
     setZonesWithLatestItems(newZonesWithItems);
   }, [zones, allContentItems]);
   
-  // Handler for content added from extension
-  useEffect(() => {
-    if (!user || !searchParams.has('action')) {
-      return;
-    }
-
-    const action = searchParams.get('action');
-    if (action !== 'addFromExtension') {
-      return;
-    }
-
-    const processedFlag = `processed-${searchParams.toString()}`;
-    if (sessionStorage.getItem(processedFlag)) {
-        return;
-    }
-
-    const type = searchParams.get('type');
-    let contentData: Omit<ContentItem, 'id' | 'createdAt'> | null = null;
-    let toastMessage = 'Content saved!';
-
-    const saveData = async () => {
-        if (type === 'link') {
-            const url = searchParams.get('url');
-            const title = searchParams.get('title') || 'Untitled Link';
-            if (url) {
-                // "Save first" approach: save the link immediately
-                contentData = {
-                    type: 'link',
-                    url: url,
-                    title: title,
-                    tags: [{ id: 'extension', name: 'extension' }],
-                    status: 'pending-analysis', // This will trigger enrichment
-                };
-                toastMessage = `Link "${title}" captured! Analyzing in the background...`;
-            }
-        } else if (type === 'note') {
-            const text = searchParams.get('text');
-            if (text) {
-                const generatedTitle = text.split(/\s+/).slice(0, 5).join(' ') + (text.split(/\s+/).length > 5 ? '...' : '');
-                contentData = {
-                type: 'note',
-                title: generatedTitle || 'Note from extension',
-                description: text,
-                tags: [{ id: 'extension', name: 'extension' }],
-                status: 'pending-analysis',
-                };
-                toastMessage = `Note saved! Analyzing in the background...`;
-            }
-        }
-        
-        if (contentData) {
-            const contentWithUser = { ...contentData, userId: user.uid };
-            try {
-                const newItem = await addContentItem(contentWithUser as Omit<ContentItem, 'id' | 'createdAt'>);
-                setNewlyAddedItem(newItem);
-                toast({ title: "Saved!", description: toastMessage });
-            } catch (error) {
-                toast({ title: "Error", description: "Could not save content from extension.", variant: "destructive" });
-            } finally {
-                // Clean up URL and set flag
-                sessionStorage.setItem(processedFlag, 'true');
-                const newParams = new URLSearchParams(searchParams.toString());
-                newParams.delete('action');
-                newParams.delete('type');
-                newParams.delete('url');
-                newParams.delete('title');
-                newParams.delete('text');
-                router.replace(`/dashboard?${newParams.toString()}`);
-            }
-        } else {
-             // If contentData is null for some reason (e.g. no url), clean up the URL anyway
-            sessionStorage.setItem(processedFlag, 'true');
-            const newParams = new URLSearchParams(searchParams.toString());
-            newParams.delete('action');
-            newParams.delete('type');
-            newParams.delete('url');
-            newParams.delete('title');
-            newParams.delete('text');
-            router.replace(`/dashboard?${newParams.toString()}`);
-        }
-    };
-
-    saveData();
-    
-  }, [searchParams, user, toast, router, setNewlyAddedItem]);
 
   const handleAddContentAndRefresh = useCallback(async (newContentData: Omit<ContentItem, 'id' | 'createdAt'>) => {
     if (!user) {
