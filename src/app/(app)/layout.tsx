@@ -102,9 +102,13 @@ export default function AppLayout({
 
   useEffect(() => {
     if (!isAuthLoading && !user) {
+      // If an extension action is in progress, save it before redirecting
+      if (searchParams.has('action') && searchParams.get('action') === 'addFromExtension') {
+          sessionStorage.setItem('mati_extension_pending_action', searchParams.toString());
+      }
       router.replace('/login');
     }
-  }, [isAuthLoading, user, router]);
+  }, [isAuthLoading, user, router, searchParams]);
 
   // Data fetching logic moved from sidebar to layout
   useEffect(() => {
