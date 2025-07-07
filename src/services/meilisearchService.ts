@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import MeiliSearch from 'meilisearch';
@@ -101,9 +102,15 @@ export const getIndexStats = async () => {
     }
     try {
         return await index.getStats();
-    } catch (error) {
+    } catch (error: any) {
         console.error("[MeiliSearch] Failed to get stats", error);
-        const errorMessage = `Could not connect to Meilisearch. Please ensure your Docker container is running and that MEILISEARCH_HOST in your .env file is correct (e.g., 'http://host.docker.internal:7700'). Remember to restart the dev server after changes.`;
+        
+        let errorMessage = "Could not connect to Meilisearch to get stats.";
+        if (error.code === 'index_not_found') {
+             errorMessage = "The 'content' index doesn't exist yet. Please run a full re-index from the button below to create it.";
+        } else if (error.code === 'meilisearch_communication_error') {
+            errorMessage = "Could not communicate with the Meilisearch server. Please ensure your Docker container is running and that MEILISEARCH_HOST is set correctly (e.g., 'http://host.docker.internal:7700'). Remember to restart the dev server after changes.";
+        }
         
         addLog('ERROR', 'Meilisearch connection failed', { 
             host: process.env.MEILISEARCH_HOST,
@@ -123,6 +130,16 @@ export const reindexAllContent = async (): Promise<{ count: number }> => {
     }
     try {
         addLog('INFO', '[MeiliSearch] Starting full re-index.');
+        
+        addLog('INFO', '[MeiliSearch] Updating index settings...');
+        const settingsTask = await index.updateSettings({
+            filterableAttributes: ['userId', 'zoneId', 'contentType', 'tags', 'domain'],
+            sortableAttributes: ['createdAt'],
+            searchableAttributes: ['title', 'description', 'tags', 'url', 'domain']
+        });
+        await client.waitForTask(settingsTask.taskUid);
+        addLog('INFO', '[MeiliSearch] Index settings updated.');
+
         const contentSnapshot = await getDocs(collection(db, 'content'));
         const allItems = contentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ContentItem));
         
@@ -133,9 +150,8 @@ export const reindexAllContent = async (): Promise<{ count: number }> => {
 
         const formattedItems = allItems.map(formatForIndex);
         
-        // Use addDocuments which is an upsert operation
-        const task = await index.addDocuments(formattedItems, { primaryKey: 'id' });
-        await client.waitForTask(task.taskUid);
+        const documentsTask = await index.addDocuments(formattedItems, { primaryKey: 'id' });
+        await client.waitForTask(documentsTask.taskUid);
         
         addLog('INFO', `[MeiliSearch] Re-index complete. ${allItems.length} documents processed.`);
         return { count: allItems.length };
