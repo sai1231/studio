@@ -9,5 +9,7 @@ export const firebaseConfig = {
   appId: "YOUR_APP_ID_HERE"
 };
 
-// Check if the config has been populated
-export const isFirebaseConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY_HERE";
+// Check if the config has been populated by verifying the two most critical fields.
+export const isFirebaseConfigured = 
+  firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY_HERE" &&
+  firebaseConfig.projectId && firebaseConfig.projectId !== "YOUR_PROJECT_ID_HERE";
