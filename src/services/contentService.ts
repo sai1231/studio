@@ -24,6 +24,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { ContentItem, Zone, Tag, MovieDetails, SearchFilters, TaskList, Task } from '@/types';
 import { enrichContent } from '@/ai/flows/enrich-content-flow';
 import { addLog } from '@/services/loggingService';
+import { addOrUpdateDocument, deleteDocument } from './meilisearchService';
 
 // Firestore collection references
 const contentCollection = collection(db, 'content');
@@ -233,6 +234,8 @@ export async function addContentItem(
       ...dataToSave,
       createdAt: (dataToSave.createdAt as Timestamp).toDate().toISOString(),
     };
+    
+    addOrUpdateDocument(finalItem);
 
     if (dataToSave.status === 'pending-analysis') {
       enrichContent(docRef.id).catch(err => {
@@ -252,6 +255,7 @@ export async function addContentItem(
 export async function deleteContentItem(itemId: string): Promise<void> {
   try {
     await deleteDoc(doc(db, 'content', itemId));
+    deleteDocument(itemId);
   } catch(error) {
     console.error(`Failed to delete content item with ID ${itemId}:`, error);
     throw error;
@@ -272,6 +276,12 @@ export async function updateContentItem(
     }
 
     await updateDoc(docRef, updateData);
+    
+    const updatedDoc = await getContentItemById(itemId);
+    if(updatedDoc) {
+      addOrUpdateDocument(updatedDoc);
+    }
+
   } catch(error) {
     console.error(`Failed to update content item with ID ${itemId}:`, error);
     throw error;
@@ -442,6 +452,7 @@ export async function deleteExpiredContent(userId: string): Promise<void> {
             console.log(`Deleting expired item: ${doc.id}`);
             addLog('INFO', `Auto-deleting expired content item: ${doc.id}`);
             deletePromises.push(deleteDoc(doc.ref));
+            deleteDocument(doc.id); // Also delete from Meilisearch
         });
 
         await Promise.all(deletePromises);
