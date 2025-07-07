@@ -3,7 +3,7 @@
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import AppHeader from '@/components/core/app-header';
 import AppSidebar from '@/components/core/app-sidebar';
 import AddContentDialog from '@/components/core/add-content-dialog';
@@ -79,6 +79,7 @@ export default function AppLayout({
 }) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { 
     isAddContentDialogOpen, 
     setIsAddContentDialogOpen, 
@@ -157,6 +158,73 @@ export default function AppLayout({
     
     setZonesWithLatestItems(newZonesWithItems);
   }, [zones, allContentItems]);
+  
+  // Handler for content added from extension
+  useEffect(() => {
+    if (!user || !searchParams.has('action')) {
+      return;
+    }
+
+    const action = searchParams.get('action');
+    if (action !== 'addFromExtension') {
+      return;
+    }
+
+    const type = searchParams.get('type');
+    let contentData: Omit<ContentItem, 'id' | 'createdAt'> | null = null;
+    let toastMessage = 'Content saved!';
+
+    if (type === 'link') {
+      const url = searchParams.get('url');
+      const title = searchParams.get('title') || 'Untitled Link';
+      if (url) {
+        contentData = {
+          type: 'link',
+          url: url,
+          title: title,
+          tags: [{ id: 'extension', name: 'extension' }],
+          status: 'pending-analysis',
+        };
+        toastMessage = `Link "${title}" saved from extension!`;
+      }
+    } else if (type === 'note') {
+      const text = searchParams.get('text');
+      if (text) {
+        const generatedTitle = text.split(/\s+/).slice(0, 5).join(' ') + (text.split(/\s+/).length > 5 ? '...' : '');
+        contentData = {
+          type: 'note',
+          title: generatedTitle || 'Note from extension',
+          description: text,
+          tags: [{ id: 'extension', name: 'extension' }],
+          status: 'pending-analysis',
+        };
+        toastMessage = `Note starting with "${generatedTitle}" saved from extension!`;
+      }
+    }
+
+    if (contentData) {
+      const saveData = async () => {
+        const contentWithUser = { ...contentData, userId: user.uid };
+        try {
+          const newItem = await addContentItem(contentWithUser as Omit<ContentItem, 'id' | 'createdAt'>);
+          setNewlyAddedItem(newItem);
+          toast({ title: "Saved!", description: toastMessage });
+        } catch (error) {
+          toast({ title: "Error", description: "Could not save content from extension.", variant: "destructive" });
+        } finally {
+          // Clean up URL
+          const newParams = new URLSearchParams(searchParams.toString());
+          newParams.delete('action');
+          newParams.delete('type');
+          newParams.delete('url');
+          newParams.delete('title');
+          newParams.delete('text');
+          router.replace(`/dashboard?${newParams.toString()}`);
+        }
+      };
+      saveData();
+    }
+  }, [searchParams, user, toast, router, setNewlyAddedItem]);
 
   const handleAddContentAndRefresh = useCallback(async (newContentData: Omit<ContentItem, 'id' | 'createdAt'>) => {
     if (!user) {

@@ -42,6 +42,7 @@ The project is organized into several key directories:
 - `/` (root): Contains the main Next.js web application.
 - `/admin`: A separate Next.js application for the Admin Portal.
 - `/mobile`: The React Native (Expo) mobile application.
+- `/extension`: The browser extension for Chrome and other Chromium browsers.
 - `/functions`: A placeholder for future Python Cloud Functions.
 - `/src`: Source code for the main web app.
 
@@ -155,6 +156,16 @@ The admin portal will be accessible at **http://localhost:9003**.
 
 #### Mobile App
 Refer to the `mobile/README.md` for detailed instructions on running the Expo app on a simulator or physical device.
+
+## Browser Extension Setup
+
+To use the browser extension for saving content:
+
+1.  In a Chromium-based browser (like Chrome, Edge, or Arc), navigate to `chrome://extensions`.
+2.  Enable **Developer mode** using the toggle in the top-right corner.
+3.  Click the **Load unpacked** button.
+4.  In the file dialog, select the `extension` folder located in the root of this project.
+5.  The Mäti icon will appear in your browser's toolbar. You can pin it for easy access.
 
 ## Available Scripts
 
