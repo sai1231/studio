@@ -1,3 +1,4 @@
+
 'use client';
 import type React from 'react';
 import { useState, useEffect } from 'react';
@@ -29,12 +30,12 @@ const AppHeader: React.FC = () => {
   
   const [inputValue, setInputValue] = useState(searchParams.get('q') || '');
 
-  // Effect to update the input's value if the URL query changes
+  // Effect to update the input's value if the URL query changes (e.g., back button)
   useEffect(() => {
     setInputValue(searchParams.get('q') || '');
   }, [searchParams]);
 
-  // Debounced effect to update the URL with the search query
+  // Debounced effect to update the URL with the search query as the user types
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
       // If the input is empty and we're not on the dashboard, do nothing.
