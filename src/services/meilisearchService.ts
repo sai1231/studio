@@ -1,8 +1,10 @@
 
+'use server';
+
 import MeiliSearch from 'meilisearch';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
-import type { ContentItem } from '@/types';
+import type { ContentItem, SearchFilters } from '@/types';
 import { addLog } from './loggingService';
 
 // Initialize client only if host and key are provided. This prevents client-side crashes.
@@ -16,17 +18,59 @@ const client =
 
 const index = client ? client.index('content') : null;
 
+// Store all fields needed to render a card to avoid a second DB fetch
 const formatForIndex = (item: ContentItem) => ({
   id: item.id,
+  userId: item.userId,
+  type: item.type,
   title: item.title,
   description: item.description || '',
+  url: item.url,
+  imageUrl: item.imageUrl,
+  faviconUrl: item.faviconUrl,
   tags: item.tags?.map(t => t.name) || [],
-  domain: item.domain || '',
-  contentType: item.contentType || '',
-  zoneId: item.zoneId || '',
-  createdAt: new Date(item.createdAt).getTime(),
-  userId: item.userId,
+  zoneId: item.zoneId,
+  domain: item.domain,
+  contentType: item.contentType,
+  createdAt: new Date(item.createdAt).getTime(), // for sorting
+  movieDetails: item.movieDetails,
 });
+
+export const searchContent = async (userId: string, query: string, filters: SearchFilters = {}): Promise<ContentItem[]> => {
+  if (!index) return [];
+  try {
+    const filterClauses = [`userId = "${userId}"`];
+    if (filters.zoneId) {
+      filterClauses.push(`zoneId = "${filters.zoneId}"`);
+    }
+    if (filters.contentType) {
+      filterClauses.push(`contentType = "${filters.contentType}"`);
+    }
+    if (filters.tagNames && filters.tagNames.length > 0) {
+      const tagFilters = filters.tagNames.map(tag => `tags = "${tag}"`);
+      filterClauses.push(`(${tagFilters.join(' AND ')})`);
+    }
+    
+    const searchResults = await index.search(query, {
+      filter: filterClauses,
+      limit: 100, // Limit results for performance
+    });
+
+    // The hits from Meilisearch will have the same structure as what we indexed.
+    // We just need to reconstruct it into our ContentItem type.
+    return searchResults.hits.map((hit: any) => ({
+      ...hit,
+      // Reconstruct the tags array of objects
+      tags: hit.tags.map((t: string) => ({ id: t.toLowerCase(), name: t })),
+      // Convert timestamp back to ISO string for consistency
+      createdAt: new Date(hit.createdAt).toISOString(),
+    }));
+  } catch (error) {
+    addLog('ERROR', `[MeiliSearch] Failed to search`, { error });
+    console.error(`[MeiliSearch] Failed to search`, error);
+    return [];
+  }
+}
 
 export const addOrUpdateDocument = async (item: ContentItem) => {
   if (!index) return; // Silently fail if not configured
