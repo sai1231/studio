@@ -16,17 +16,8 @@ let app;
 if (firebaseConfig.apiKey && firebaseConfig.apiKey.includes('YOUR_API_KEY')) {
   showErrorState('Firebase is not configured in firebase-config.js');
 } else {
-  // Use compat libraries for the simpler auth flow in extensions
-  try {
-    importScripts(
-      'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
-      'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js'
-    );
-    app = firebase.initializeApp(firebaseConfig);
-  } catch(e) {
-    showErrorState('Could not load Firebase libraries.');
-    console.error(e);
-  }
+  // The firebase global is now loaded via script tags in popup.html
+  app = firebase.initializeApp(firebaseConfig);
 }
 
 // Auth State Listener
