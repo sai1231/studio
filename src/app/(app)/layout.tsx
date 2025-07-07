@@ -2,7 +2,7 @@
 
 'use client';
 import type React from 'react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AppHeader from '@/components/core/app-header';
 import AppSidebar from '@/components/core/app-sidebar';
@@ -23,6 +23,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Link from 'next/link';
 import TodoListSheet from '@/components/core/TodoListSheet';
+import { Loader2 } from 'lucide-react';
 
 const iconMap: { [key: string]: React.ElementType } = {
   Briefcase: StickyNote,
@@ -73,6 +74,80 @@ const ZoneStackCard: React.FC<{ zone: Zone }> = ({ zone }) => {
 
 const isValidUrl = (s: string) => { try { new URL(s); return true; } catch (_) { return false; } };
 
+const ExtensionSaveHandler = () => {
+    const searchParams = useSearchParams();
+    const { user } = useAuth();
+    const { toast } = useToast();
+    const router = useRouter();
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    useEffect(() => {
+        const action = searchParams.get('action');
+        
+        if (action !== 'save' || isProcessing || !user) {
+            return;
+        }
+
+        const processSave = async () => {
+            setIsProcessing(true);
+            const url = searchParams.get('url');
+            const title = searchParams.get('title');
+            const selection = searchParams.get('selection');
+            let contentData: Omit<ContentItem, 'id' | 'createdAt'> | null = null;
+            
+            try {
+                if (url) {
+                    let metadata = { title: title || '', description: '', faviconUrl: '', imageUrl: '' };
+                    try {
+                        const response = await fetch(`/api/scrape-metadata?url=${encodeURIComponent(url)}`);
+                        if (response.ok) { metadata = await response.json(); }
+                    } catch (e) { console.error("Failed to scrape metadata for dropped link:", e); }
+                    if (!metadata.title) {
+                        try { metadata.title = new URL(url).hostname.replace(/^www\./, ''); } 
+                        catch { metadata.title = "Untitled Link"; }
+                    }
+                    contentData = {
+                        type: 'link', url: url, title: metadata.title, description: metadata.description,
+                        faviconUrl: metadata.faviconUrl, imageUrl: metadata.imageUrl, tags: [],
+                        domain: new URL(url).hostname.replace(/^www\./, ''), status: 'pending-analysis',
+                    };
+                } else if (selection) {
+                    const generatedTitle = selection.split(/\s+/).slice(0, 5).join(' ') + (selection.split(/\s+/).length > 5 ? '...' : '');
+                    contentData = {
+                        type: 'note', title: generatedTitle, description: selection, tags: [],
+                        contentType: 'Note', status: 'pending-analysis'
+                    };
+                }
+
+                if (contentData) {
+                    await addContentItem({ ...contentData, userId: user.uid });
+                    // No toast here, extension shows one. The tab will just close.
+                }
+
+            } catch (error) {
+                console.error("Failed to save from extension", error);
+                // Could potentially show an error here but it would require the tab to stay open.
+            } finally {
+                // The tab that was opened by the extension can close itself.
+                window.close();
+            }
+        };
+
+        processSave();
+        
+    }, [searchParams, user, isProcessing, router, toast]);
+
+    if (searchParams.get('action') === 'save') {
+        return (
+            <div className="flex h-screen w-full items-center justify-center bg-background">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="ml-4 text-muted-foreground">Saving to Mäti...</p>
+            </div>
+        );
+    }
+    
+    return null;
+}
 
 export default function AppLayout({
   children,
@@ -324,7 +399,7 @@ export default function AppLayout({
   if (isAuthLoading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="h-12 w-12 animate-spin text-primary" />
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
@@ -377,6 +452,9 @@ export default function AppLayout({
 
   return (
     <SearchProvider>
+      <Suspense fallback={null}>
+        <ExtensionSaveHandler />
+      </Suspense>
       <div className="flex min-h-screen w-full relative">
         <AppSidebar zones={zonesWithLatestItems} tags={tags} domains={domains} contentTypes={contentTypes} />
         <div className="flex flex-col flex-1 min-w-0 md:ml-20">

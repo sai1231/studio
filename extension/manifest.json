@@ -7,16 +7,19 @@
     "activeTab",
     "contextMenus",
     "notifications",
-    "storage"
+    "scripting"
   ],
   "background": {
-    "service_worker": "background.js",
-    "type": "module"
+    "service_worker": "background.js"
   },
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_title": "Save to Mäti"
   },
-  "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'"
-  }
+  "icons": {
+    "128": "logo-128.png"
+  },
+  "host_permissions": [
+    "http://localhost:9002/*"
+  ]
 }
