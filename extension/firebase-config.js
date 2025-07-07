@@ -1,6 +1,6 @@
 // IMPORTANT: Replace these with your actual Firebase project configuration.
 // You can copy this from your web app's .env file.
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "YOUR_API_KEY_HERE",
   authDomain: "YOUR_AUTH_DOMAIN_HERE",
   projectId: "YOUR_PROJECT_ID_HERE",
@@ -10,4 +10,4 @@ const firebaseConfig = {
 };
 
 // Check if the config has been populated
-const isFirebaseConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY_HERE";
+export const isFirebaseConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY_HERE";
