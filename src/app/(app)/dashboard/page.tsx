@@ -319,7 +319,7 @@ function DashboardPageContent() {
   };
 
   const handleToggleTodoStatus = async (taskId: string) => {
-    if (!user || isUpdatingTodoStatus === taskId) return;
+    if (!user || isUpdatingStatus === taskId) return;
     setIsUpdatingTodoStatus(taskId);
 
     const updatedTasks = tasks.map(t => 
