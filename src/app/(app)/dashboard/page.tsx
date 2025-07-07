@@ -1,5 +1,4 @@
 
-
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
@@ -69,7 +68,7 @@ function DashboardPageContent() {
   useEffect(() => {
     // Only run initial load if not searching, and if we haven't loaded anything yet.
     if (!isSearching && isInitialized && searchResults.length === 0) {
-      search('', {}, { limit: 20, append: false });
+      search('', {}, { limit: 100, append: false });
     }
   }, [isInitialized, isSearching, search, searchResults.length]);
 
@@ -97,7 +96,7 @@ function DashboardPageContent() {
     if (isFetchingMore || !hasMore) return;
     
     setIsFetchingMore(true);
-    await search(query, {}, { limit: 20, offset: contentToDisplay.length, append: true });
+    await search(query, {}, { limit: 100, offset: contentToDisplay.length, append: true });
     setIsFetchingMore(false);
 
   }, [isFetchingMore, hasMore, search, query, contentToDisplay.length]);
