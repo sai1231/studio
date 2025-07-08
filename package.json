@@ -48,6 +48,7 @@
     "date-fns": "^3.6.0",
     "extract-colors": "^2.0.6",
     "firebase": "^11.9.0",
+    "firebase-admin": "^12.1.0",
     "genkit": "^1.0.2",
     "jsdom": "^24.1.0",
     "lucide-react": "^0.475.0",

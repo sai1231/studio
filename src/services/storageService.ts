@@ -1,25 +1,42 @@
 'use server';
 
-import { storage } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { adminStorage } from '@/lib/firebase-admin';
 
 /**
- * Uploads a buffer to Firebase Storage.
- * This is intended for server-side use, e.g., in Genkit flows or other server components.
+ * Uploads a buffer to Firebase Storage using the Admin SDK, bypassing security rules.
+ * This is intended for server-side use only.
  * @param buffer The buffer to upload.
  * @param path The full path in storage where the file should be saved (e.g., 'display/userId/file.webp').
  * @param contentType The MIME type of the content (e.g., 'image/webp').
  * @returns The public download URL of the uploaded file.
  */
 export async function uploadBufferToStorage(buffer: Buffer, path: string, contentType: string): Promise<string> {
+  if (!adminStorage) {
+    throw new Error("Firebase Admin SDK is not initialized. Cannot perform server-side upload. Ensure FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON is set in .env.");
+  }
+
   try {
-    const storageRef = ref(storage, path);
-    const metadata = { contentType };
-    await uploadBytes(storageRef, buffer, metadata);
-    const downloadUrl = await getDownloadURL(storageRef);
-    return downloadUrl;
+    const bucket = adminStorage.bucket();
+    const file = bucket.file(path);
+    
+    // Upload the buffer to the specified path in the bucket.
+    await file.save(buffer, {
+      metadata: {
+        contentType: contentType,
+        // Set a long cache control header for public images to improve performance.
+        cacheControl: 'public, max-age=31536000',
+      },
+    });
+
+    // Firebase Storage files are private by default, so we need to make them public to get a URL.
+    await file.makePublic();
+    
+    // The publicUrl property gives us the direct https link to the file.
+    return file.publicUrl();
+
   } catch (error: any) {
-    console.error(`Failed to upload buffer to Storage at path ${path}:`, error);
+    console.error(`Admin SDK: Failed to upload buffer to Storage at path ${path}:`, error);
+    // Re-throw the error so the calling function can handle it.
     throw error;
   }
 }
