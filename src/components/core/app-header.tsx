@@ -45,6 +45,11 @@ const AppHeader: React.FC = () => {
 
   // Debounced effect to update the URL with the search query as the user types
   useEffect(() => {
+    // Only perform search navigation if we are on the dashboard
+    if (pathname !== '/dashboard') {
+      return;
+    }
+
     const debounceTimer = setTimeout(() => {
       const newParams = new URLSearchParams(searchParams.toString());
       
@@ -59,7 +64,7 @@ const AppHeader: React.FC = () => {
     }, 300);
 
     return () => clearTimeout(debounceTimer);
-  }, [inputValue, router, searchParams]);
+  }, [inputValue, router, searchParams, pathname]);
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
