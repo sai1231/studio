@@ -21,6 +21,13 @@ export interface Role {
   features: PlanFeatures;
 }
 
+// Represents a subscription tier like "Free" or "Pro"
+export interface Plan {
+  id: string;
+  name: string;
+  features: PlanFeatures;
+}
+
 // This interface remains, as it's a good structure for features
 export interface PlanFeatures {
   [key: string]: number | boolean;
