@@ -208,6 +208,8 @@ const enrichContentFlow = ai.defineFlow(
       } else {
           const roleId = await getUserRoleId(userId);
           const role = roleId ? await getRoleById(roleId) : null;
+          await addLog('INFO', `[${role}] detected.`);
+
           const isFreeUser = role?.name === 'free_user';
 
           if (isFreeUser && contentData.type === 'image' && contentData.imageUrl) {

@@ -2,27 +2,17 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Users can read and write to their own folders for original content
-    match /contentImages/{userId}/{allPaths=**} {
+    match /contentImages/{userId}/{fileName} {
       allow read;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
-    match /contentPdfs/{userId}/{allPaths=**} {
+    match /contentPdfs/{userId}/{fileName} {
       allow read;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
-    match /voiceRecordings/{userId}/{allPaths=**} {
+    match /voiceRecordings/{userId}/{fileName} {
       allow read;
       allow write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Allow the server-side compression flow to write smaller images.
-    // This is less secure as it's an unauthenticated write, but we add constraints.
-    match /display/{userId}/{allPaths=**} {
-      allow read;
-      // Allow write only for image files under 5MB.
-      // This allows our unauthenticated server process to save compressed images.
-      allow write: if request.resource.size < 5 * 1024 * 1024 && request.resource.contentType.matches('image/.*');
     }
   }
 }
