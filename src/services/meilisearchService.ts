@@ -19,6 +19,28 @@ const client =
 
 const index = client ? client.index('content') : null;
 
+// Generic error handler for Meilisearch communication issues.
+const handleMeiliError = (error: any, context: string): Error => {
+    let errorMessage = `[MeiliSearch] An unknown error occurred during ${context}.`;
+    
+    if (error instanceof MeiliSearch.MeiliSearchCommunicationError) {
+        errorMessage = `Could not communicate with the Meilisearch server during ${context}. Please ensure your Docker container is running and that MEILISEARCH_HOST is set correctly in your .env file (e.g., 'http://host.docker.internal:7700'). You may need to restart the dev server after changes.`;
+    } else if (error instanceof MeiliSearch.MeiliSearchApiError && error.code === 'index_not_found') {
+        errorMessage = `The 'content' index doesn't exist yet. Please run a full re-index from the System admin page to create it.`;
+    } else if (error instanceof Error) {
+        errorMessage = `[MeiliSearch] Error during ${context}: ${error.message}`;
+    }
+    
+    addLog('ERROR', errorMessage, { 
+        host: process.env.MEILISEARCH_HOST,
+        originalError: error?.message,
+        errorCode: error?.code,
+    });
+    console.error(errorMessage, error);
+    
+    return new Error(errorMessage);
+};
+
 // Store all fields needed to render a card to avoid a second DB fetch
 const formatForIndex = (item: ContentItem) => ({
   id: item.id,
@@ -44,7 +66,8 @@ export const searchContent = async (
   limit: number = 20,
   offset: number = 0
 ): Promise<{ hits: ContentItem[], total: number }> => {
-  if (!index) return { hits: [], total: 0 };
+  if (!index) throw new Error("Meilisearch not configured in meilisearchService.");
+  
   try {
     const filterClauses = [`userId = "${userId}"`];
     if (filters.zoneId) {
@@ -73,9 +96,7 @@ export const searchContent = async (
     
     return { hits, total: searchResults.estimatedTotalHits };
   } catch (error) {
-    addLog('ERROR', `[MeiliSearch] Failed to search`, { error });
-    console.error(`[MeiliSearch] Failed to search`, error);
-    return { hits: [], total: 0 };
+    throw handleMeiliError(error, 'search');
   }
 };
 
@@ -87,8 +108,7 @@ export const addOrUpdateDocument = async (item: ContentItem) => {
     await index.addDocuments([doc]);
     addLog('INFO', `[MeiliSearch] Indexed document ${item.id}`);
   } catch (error) {
-    addLog('ERROR', `[MeiliSearch] Failed to index document ${item.id}`, { error });
-    console.error(`[MeiliSearch] Failed to index document ${item.id}`, error);
+    handleMeiliError(error, `indexing document ${item.id}`);
   }
 };
 
@@ -98,8 +118,7 @@ export const deleteDocument = async (itemId: string) => {
     await index.deleteDocument(itemId);
     addLog('INFO', `[MeiliSearch] Deleted document ${itemId}`);
   } catch (error) {
-    addLog('ERROR', `[MeiliSearch] Failed to delete document ${itemId}`, { error });
-    console.error(`[MeiliSearch] Failed to delete document ${itemId}`, error);
+    handleMeiliError(error, `deleting document ${itemId}`);
   }
 };
 
@@ -110,21 +129,7 @@ export const getIndexStats = async () => {
     try {
         return await index.getStats();
     } catch (error: any) {
-        console.error("[MeiliSearch] Failed to get stats", error);
-        
-        let errorMessage = "Could not connect to Meilisearch to get stats.";
-        if (error.code === 'index_not_found') {
-             errorMessage = "The 'content' index doesn't exist yet. Please run a full re-index from the button below to create it.";
-        } else if (error.code === 'meilisearch_communication_error') {
-            errorMessage = "Could not communicate with the Meilisearch server. Please ensure your Docker container is running and that MEILISEARCH_HOST is set correctly (e.g., 'http://host.docker.internal:7700'). Remember to restart the dev server after changes.";
-        }
-        
-        addLog('ERROR', 'Meilisearch connection failed', { 
-            host: process.env.MEILISEARCH_HOST,
-            originalError: (error as Error).message,
-        });
-
-        throw new Error(errorMessage);
+        throw handleMeiliError(error, 'getting stats');
     }
 }
 
@@ -169,12 +174,6 @@ export const reindexAllContent = async (): Promise<{ count: number }> => {
         addLog('INFO', `[MeiliSearch] Re-index complete. ${allItems.length} documents processed.`);
         return { count: allItems.length };
     } catch (error: any) {
-        addLog('ERROR', '[MeiliSearch] Full re-index failed.', {
-            error: error.message,
-            code: error.code,
-            type: error.type,
-        });
-        console.error("[MeiliSearch] Full re-index failed.", error);
-        throw new Error(error.message || "An unknown error occurred during re-indexing.");
+        throw handleMeiliError(error, 'full re-index');
     }
 };
