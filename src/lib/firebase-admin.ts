@@ -1,27 +1,56 @@
 import * as admin from 'firebase-admin';
 
-const serviceAccountJson = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON;
+/**
+ * Initializes the Firebase Admin SDK, but only if it hasn't been initialized already.
+ * This lazy initialization prevents race conditions during server startup.
+ * @returns The initialized Firebase Admin App instance.
+ */
+function initializeAdminApp(): admin.app.App {
+  if (admin.apps.length > 0 && admin.apps[0]) {
+    return admin.apps[0];
+  }
 
-if (!serviceAccountJson) {
-    console.warn("FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON is not set. Admin SDK will not be initialized.");
-}
+  const serviceAccountJson = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON;
 
-// Check if the default app is already initialized to prevent re-initialization
-if (!admin.apps.length && serviceAccountJson) {
+  if (!serviceAccountJson) {
+    throw new Error("Firebase Admin SDK credentials are not set. Please set FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON in your .env file.");
+  }
+
   try {
     const serviceAccount = JSON.parse(serviceAccountJson);
-    admin.initializeApp({
+    console.log("Initializing Firebase Admin SDK...");
+    return admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
       storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     });
-    console.log("Firebase Admin SDK initialized successfully.");
-  } catch (error) {
-    console.error("Error initializing Firebase Admin SDK. Ensure the service account JSON is valid.", error);
+  } catch (error: any) {
+    throw new Error(`Error initializing Firebase Admin SDK: ${error.message}. Please ensure the service account JSON in your .env file is a valid, single-line string.`);
   }
 }
 
-const adminAuth = admin.apps.length ? admin.auth() : null;
-const adminDb = admin.apps.length ? admin.firestore() : null;
-const adminStorage = admin.apps.length ? admin.storage() : null;
+/**
+ * Gets the Firebase Admin Storage instance, initializing the app if necessary.
+ * @returns The Firebase Admin Storage service.
+ */
+export function getAdminStorage() {
+  const app = initializeAdminApp();
+  return app.storage();
+}
 
-export { adminAuth, adminDb, adminStorage };
+/**
+ * Gets the Firebase Admin Firestore instance, initializing the app if necessary.
+ * @returns The Firebase Admin Firestore service.
+ */
+export function getAdminDb() {
+  const app = initializeAdminApp();
+  return app.firestore();
+}
+
+/**
+ * Gets the Firebase Admin Auth instance, initializing the app if necessary.
+ * @returns The Firebase Admin Auth service.
+ */
+export function getAdminAuth() {
+  const app = initializeAdminApp();
+  return app.auth();
+}

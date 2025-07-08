@@ -1,6 +1,6 @@
 'use server';
 
-import { adminStorage } from '@/lib/firebase-admin';
+import { getAdminStorage } from '@/lib/firebase-admin';
 
 /**
  * Uploads a buffer to Firebase Storage using the Admin SDK, bypassing security rules.
@@ -11,11 +11,8 @@ import { adminStorage } from '@/lib/firebase-admin';
  * @returns The public download URL of the uploaded file.
  */
 export async function uploadBufferToStorage(buffer: Buffer, path: string, contentType: string): Promise<string> {
-  if (!adminStorage) {
-    throw new Error("Firebase Admin SDK is not initialized. Cannot perform server-side upload. Ensure FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON is set in .env.");
-  }
-
   try {
+    const adminStorage = getAdminStorage();
     const bucket = adminStorage.bucket();
     const file = bucket.file(path);
     
