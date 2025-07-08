@@ -18,13 +18,27 @@ function initializeAdminApp(): admin.app.App {
 
   try {
     const serviceAccount = JSON.parse(serviceAccountJson);
+
+    // This is the critical fix. Environment variable parsing can mangle the `\n` characters
+    // in the private key. This explicitly replaces the escaped `\\n` with actual newlines.
+    if (serviceAccount.private_key) {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    } else {
+        throw new Error("Parsed service account is missing the 'private_key' field. Please check the format in your .env file.");
+    }
+    
     console.log("Initializing Firebase Admin SDK...");
     return admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
       storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     });
   } catch (error: any) {
-    throw new Error(`Error initializing Firebase Admin SDK: ${error.message}. Please ensure the service account JSON in your .env file is a valid, single-line string.`);
+    // We enhance the error message to be more helpful.
+    let detail = error.message;
+    if (error instanceof SyntaxError) {
+        detail = "The service account JSON is not formatted correctly. Please ensure it's a valid JSON string on a single line."
+    }
+    throw new Error(`Error initializing Firebase Admin SDK: ${detail}. Please ensure the service account JSON in your .env file is a valid, single-line string.`);
   }
 }
 
