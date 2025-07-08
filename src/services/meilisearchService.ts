@@ -2,7 +2,7 @@
 
 'use server';
 
-import MeiliSearch from 'meilisearch';
+import MeiliSearch, { MeiliSearchCommunicationError, MeiliSearchApiError } from 'meilisearch';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import type { ContentItem, SearchFilters } from '@/types';
@@ -23,9 +23,9 @@ const index = client ? client.index('content') : null;
 const handleMeiliError = (error: any, context: string): Error => {
     let errorMessage = `[MeiliSearch] An unknown error occurred during ${context}.`;
     
-    if (error instanceof MeiliSearch.MeiliSearchCommunicationError) {
+    if (error instanceof MeiliSearchCommunicationError) {
         errorMessage = `Could not communicate with the Meilisearch server during ${context}. Please ensure your Docker container is running and that MEILISEARCH_HOST is set correctly in your .env file (e.g., 'http://host.docker.internal:7700'). You may need to restart the dev server after changes.`;
-    } else if (error instanceof MeiliSearch.MeiliSearchApiError && error.code === 'index_not_found') {
+    } else if (error instanceof MeiliSearchApiError && error.code === 'index_not_found') {
         errorMessage = `The 'content' index doesn't exist yet. Please run a full re-index from the System admin page to create it.`;
     } else if (error instanceof Error) {
         errorMessage = `[MeiliSearch] Error during ${context}: ${error.message}`;
