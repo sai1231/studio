@@ -1,10 +1,11 @@
+
 'use client';
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Users, ShieldCheck, Server, Megaphone, Shield, LogOut, HardDrive } from 'lucide-react';
+import { LayoutDashboard, Users, ShieldCheck, Server, Megaphone, Shield, LogOut, HardDrive, CreditCard } from 'lucide-react';
 import type React from 'react';
 import { getAuth, signOut } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +15,7 @@ const adminNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/users', label: 'Users', icon: Users },
   { href: '/roles', label: 'Roles', icon: ShieldCheck },
+  { href: '/plans', label: 'Plans', icon: CreditCard },
   { href: '/announcements', label: 'Announcements', icon: Megaphone },
   { href: '/logs', label: 'Logs', icon: Server },
   { href: '/system', label: 'System', icon: HardDrive },
