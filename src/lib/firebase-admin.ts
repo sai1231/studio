@@ -34,7 +34,6 @@ function initializeAdminApp(): admin.app.App {
     addLog('INFO', "Successfully read service-account.json file content.");
     
     const serviceAccount = JSON.parse(serviceAccountContent);
-    addLog('INFO', "Successfully parsed service-account.json content.");
 
     // Check if the service account file is still the placeholder
     if (serviceAccount.comment && serviceAccount.comment.includes("placeholder")) {
@@ -49,6 +48,15 @@ function initializeAdminApp(): admin.app.App {
         throw new Error(errorMessage);
     }
     
+    // =================================================================
+    // THE FIX: Explicitly un-escape the private key's newline characters.
+    // This is the most common cause of the 'INTERNAL' error.
+    // =================================================================
+    if (serviceAccount.private_key) {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+        addLog('INFO', "Corrected private key newlines before initialization.");
+    }
+
     addLog('INFO', "Initializing Firebase Admin App with credentials from file...", { projectId: serviceAccount.project_id });
 
     const app = admin.initializeApp({
