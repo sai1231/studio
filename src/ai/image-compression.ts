@@ -2,8 +2,38 @@
 
 import sharp from 'sharp';
 import { addLog } from '@/services/loggingService';
-import { uploadBufferToStorage } from '@/services/storageService';
+import { getAdminStorage } from '@/lib/firebase-admin';
 import type { ContentItem } from '@/types';
+
+/**
+ * Uploads a buffer to Firebase Storage using the Admin SDK.
+ * This is a local helper function for the compression service.
+ */
+async function uploadBufferToStorage(buffer: Buffer, path: string, contentType: string): Promise<string> {
+  try {
+    addLog('INFO', `Attempting to upload buffer to Storage at path: ${path}`);
+    const adminStorage = getAdminStorage();
+    const bucket = adminStorage.bucket();
+    const file = bucket.file(path);
+    
+    await file.save(buffer, {
+      metadata: {
+        contentType: contentType,
+        cacheControl: 'public, max-age=31536000',
+      },
+    });
+
+    await file.makePublic();
+    
+    const publicUrl = file.publicUrl();
+    addLog('INFO', `Successfully uploaded buffer. Public URL: ${publicUrl}`);
+    return publicUrl;
+
+  } catch (error: any) {
+    addLog('ERROR', `Admin SDK: Failed to upload buffer to Storage at path ${path}`, { error: error.message });
+    throw error;
+  }
+}
 
 /**
  * Compresses an image for a given content item.

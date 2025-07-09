@@ -18,7 +18,7 @@ import { db } from '@/lib/firebase'; // Keep using client 'db' for consistency h
 import { addLog } from '@/services/loggingService';
 import type { ContentItem } from '@/types';
 import { getUserRoleId, getRoleById } from '@/services/adminService';
-import { compressAndStoreImage } from '@/services/imageService';
+import { compressAndStoreImage } from '@/ai/image-compression';
 
 const contentCollectionRef = collection(db, 'content');
 
