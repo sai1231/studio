@@ -57,6 +57,9 @@ const getIconComponent = (iconName?: string): React.ElementType => {
   return Bookmark;
 };
 
+// Instantiate the service once outside the component
+const turndownService = new TurndownService();
+
 const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenChange, zones, onZoneCreate }) => {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -71,8 +74,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
 
   const [editorMode, setEditorMode] = useState<'wysiwyg' | 'markdown'>('wysiwyg');
   const [rawMarkdown, setRawMarkdown] = useState('');
-  const turndownService = new TurndownService();
-
+  
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -91,6 +93,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
       },
     },
     onUpdate: ({ editor }) => {
+      // Correctly convert HTML to Markdown on every update
       setRawMarkdown(turndownService.turndown(editor.getHTML()));
     },
     autofocus: true,
@@ -106,7 +109,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
         setCurrentTags([]);
       } else {
         const html = marked.parse(item.description || '') as string;
-        editor.commands.setContent(html);
+        editor.commands.setContent(html, false); // Set content without triggering onUpdate
         setRawMarkdown(item.description || '');
         setSelectedZoneId(item.zoneId);
         setCurrentTags(item.tags || []);
@@ -120,7 +123,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
     setRawMarkdown(newMarkdown);
     if (editor) {
       const html = marked.parse(newMarkdown) as string;
-      editor.commands.setContent(html, false); // false to avoid re-triggering onUpdate
+      editor.commands.setContent(html, false);
     }
   };
   
