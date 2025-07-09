@@ -434,57 +434,57 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
   const hasVisual = !imageError && (item?.imageUrl || oembedHtml);
   
   const DialogBody = (
-    <>
-      <div className="flex-grow min-h-0 md:grid md:gap-0 h-full rounded-t-xl" style={{ gridTemplateColumns: hasVisual ? '1fr 1fr' : '1fr' }}>
-        {hasVisual && (
-          <div className="relative w-full md:h-full flex flex-col rounded-l-xl overflow-hidden p-4 bg-muted/20">
-            <div className="w-full flex-grow min-h-0 flex flex-col justify-center items-center">
-              {isFetchingOembed ? (
-                <div className="w-full aspect-video flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
-              ) : oembedHtml ? (
-                <div className="oembed-container w-full" dangerouslySetInnerHTML={{ __html: oembedHtml }} />
-              ) : item?.imageUrl && !imageError ? (
-                  <div className="relative w-full h-full"><img src={item.imageUrl} alt={editableTitle || 'Content Image'} data-ai-hint={item.title || "image"} className="w-full h-full object-contain" loading="lazy" onError={() => setImageError(true)}/></div>
-              ) : (item?.type === 'link' && item?.contentType === 'PDF' && item?.url) ? (
-                  <iframe src={item.url} className="w-full h-full min-h-[70vh] rounded-xl border-0" title={editableTitle || 'PDF Preview'}></iframe>
-              ) : null}
-            </div>
-             <div className="flex-shrink-0 pt-4">
-                 <ColorPalette palette={item?.colorPalette} />
-            </div>
+    <div className="flex-grow min-h-0 md:grid h-full rounded-t-xl" style={{ gridTemplateColumns: hasVisual ? '1fr 1fr' : '1fr' }}>
+      {hasVisual && (
+        <div className="relative w-full md:h-full flex flex-col rounded-l-xl overflow-hidden p-4 bg-muted/20">
+          <div className="w-full flex-grow min-h-0 flex flex-col justify-center items-center">
+            {isFetchingOembed ? (
+              <div className="w-full aspect-video flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+            ) : oembedHtml ? (
+              <div className="oembed-container w-full" dangerouslySetInnerHTML={{ __html: oembedHtml }} />
+            ) : item?.imageUrl && !imageError ? (
+                <div className="relative w-full h-full"><img src={item.imageUrl} alt={editableTitle || 'Content Image'} data-ai-hint={item.title || "image"} className="w-full h-full object-contain" loading="lazy" onError={() => setImageError(true)}/></div>
+            ) : (item?.type === 'link' && item?.contentType === 'PDF' && item?.url) ? (
+                <iframe src={item.url} className="w-full h-full min-h-[70vh] rounded-xl border-0" title={editableTitle || 'PDF Preview'}></iframe>
+            ) : null}
           </div>
-        )}
-        
-        <div className={cn("flex flex-col space-y-4 bg-card text-card-foreground shadow-lg overflow-y-auto custom-scrollbar p-6", hasVisual ? "rounded-r-xl" : "rounded-xl")}>
-          <DialogHeader className="text-left space-y-2">
-            {item?.domain && item.domain !== 'mati.internal.storage' && (
-                <div className="flex items-center text-sm text-muted-foreground">
-                <Globe className="h-4 w-4 mr-2" />
-                <span>{item.domain}</span>
-                {(item.type === 'link' || item.type === 'movie') && item.url && (
-                    <TooltipProvider>
-                        <Tooltip>
-                        <TooltipTrigger asChild>
-                            <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1 ml-1.5 text-primary hover:text-primary/80" title={`Open link: ${item.url}`}>
-                            <ExternalLink className="h-4 w-4" />
-                            </a>
-                        </TooltipTrigger>
-                        <TooltipContent><p>Open link</p></TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
+            <div className="flex-shrink-0 pt-4">
+                <ColorPalette palette={item?.colorPalette} />
+          </div>
+        </div>
+      )}
+      
+      <div className={cn("flex flex-col bg-card text-card-foreground shadow-lg overflow-y-auto custom-scrollbar", hasVisual ? "rounded-r-xl" : "rounded-xl")}>
+        <div className="p-6 space-y-4">
+            <DialogHeader className="text-left space-y-2">
+                <DialogTitle className="sr-only">Details for {editableTitle || 'content item'}</DialogTitle>
+                {item?.domain && item.domain !== 'mati.internal.storage' && (
+                    <div className="flex items-center text-sm text-muted-foreground">
+                    <Globe className="h-4 w-4 mr-2" />
+                    <span>{item.domain}</span>
+                    {(item.type === 'link' || item.type === 'movie') && item.url && (
+                        <TooltipProvider>
+                            <Tooltip>
+                            <TooltipTrigger asChild>
+                                <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1 ml-1.5 text-primary hover:text-primary/80" title={`Open link: ${item.url}`}>
+                                <ExternalLink className="h-4 w-4" />
+                                </a>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Open link</p></TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
+                    </div>
                 )}
-                </div>
-            )}
-            <Input
-                value={editableTitle}
-                onChange={handleTitleChange}
-                onBlur={handleTitleBlur}
-                className="text-2xl font-headline font-semibold border-0 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0 shadow-none p-0 h-auto flex-grow bg-transparent"
-                placeholder="Enter title"
-            />
-          </DialogHeader>
+                <Input
+                    value={editableTitle}
+                    onChange={handleTitleChange}
+                    onBlur={handleTitleBlur}
+                    className="text-2xl font-headline font-semibold border-0 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0 shadow-none p-0 h-auto flex-grow bg-transparent"
+                    placeholder="Enter title"
+                />
+            </DialogHeader>
 
-          <div className="flex-grow min-h-0 space-y-4">
             <Accordion type="single" collapsible className="w-full" defaultValue="description">
                 <AccordionItem value="description">
                     <AccordionTrigger><div className="flex items-center gap-2"><Sparkles className="h-4 w-4" /><span>Description</span></div></AccordionTrigger>
@@ -494,7 +494,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                 </AccordionItem>
                 <AccordionItem value="mind-note">
                     <AccordionTrigger><div className="flex items-center gap-2"><Pencil className="h-4 w-4" /><span>Mind Note</span></div></AccordionTrigger>
-                      <AccordionContent className="pl-2">
+                        <AccordionContent className="pl-2">
                         <Textarea
                         value={editableMindNote}
                         onChange={handleMindNoteChange}
@@ -502,7 +502,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                         placeholder="Add your personal thoughts..."
                         className="w-full min-h-[120px] focus-visible:ring-accent bg-muted/30 dark:bg-muted/20 border-border"
                         />
-                      </AccordionContent>
+                        </AccordionContent>
                 </AccordionItem>
             </Accordion>
             
@@ -528,38 +528,36 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
             <Separator />
 
             <div className="space-y-3 pt-2">
-              <div className="flex items-center justify-between"><label htmlFor="temporary-switch" className="font-medium text-foreground">Temporary Memory</label><Switch id="temporary-switch" checked={isTemporary} onCheckedChange={handleTemporaryToggle} /></div>
-              {isTemporary && (
-                  <div className="flex items-center gap-2">
-                      <Select value={expirySelection} onValueChange={handleExpiryChange}>
-                          <SelectTrigger className="flex-grow bg-background focus:ring-accent"><SelectValue /></SelectTrigger>
-                          <SelectContent>
+                <div className="flex items-center justify-between"><label htmlFor="temporary-switch" className="font-medium text-foreground">Temporary Memory</label><Switch id="temporary-switch" checked={isTemporary} onCheckedChange={handleTemporaryToggle} /></div>
+                {isTemporary && (
+                    <div className="flex items-center gap-2">
+                        <Select value={expirySelection} onValueChange={handleExpiryChange}>
+                            <SelectTrigger className="flex-grow bg-background focus:ring-accent"><SelectValue /></SelectTrigger>
+                            <SelectContent>
                             <SelectItem value="7">Delete after 7 days</SelectItem>
                             <SelectItem value="30">Delete after 30 days</SelectItem>
                             <SelectItem value="90">Delete after 90 days</SelectItem>
                             <SelectItem value="custom">Custom...</SelectItem>
-                          </SelectContent>
-                      </Select>
-                      {expirySelection === 'custom' && (
+                            </SelectContent>
+                        </Select>
+                        {expirySelection === 'custom' && (
                         <div className="flex items-center gap-1.5">
-                          <Input type="number" value={customExpiryDays} onChange={handleCustomExpiryChange} className="w-20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-                          <span className="text-sm text-muted-foreground">days</span>
+                            <Input type="number" value={customExpiryDays} onChange={handleCustomExpiryChange} className="w-20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                            <span className="text-sm text-muted-foreground">days</span>
                         </div>
-                      )}
-                  </div>
-              )}
+                        )}
+                    </div>
+                )}
             </div>
-          </div>
         </div>
+        <DialogFooter className="col-span-full border-t p-4 flex justify-end flex-shrink-0 bg-card rounded-b-xl">
+            <div className="text-xs text-muted-foreground flex items-center">
+                <CalendarDays className="h-3.5 w-3.5 mr-1.5 shrink-0" />
+                Saved {item && format(parseISO(item.createdAt), 'MMM d, yyyy @ h:mm a')}
+            </div>
+        </DialogFooter>
       </div>
-
-      <DialogFooter className="col-span-full border-t p-4 flex justify-end flex-shrink-0 bg-card rounded-b-xl">
-          <div className="text-xs text-muted-foreground flex items-center">
-              <CalendarDays className="h-3.5 w-3.5 mr-1.5 shrink-0" />
-              Saved {item && format(parseISO(item.createdAt), 'MMM d, yyyy @ h:mm a')}
-          </div>
-      </DialogFooter>
-    </>
+    </div>
   )
 
   return (
