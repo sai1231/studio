@@ -2,6 +2,7 @@
 import * as admin from 'firebase-admin';
 import * as fs from 'fs';
 import * as path from 'path';
+import { addLog } from '@/services/loggingService';
 
 /**
  * Initializes the Firebase Admin SDK, but only if it hasn't been initialized already.
@@ -11,43 +12,50 @@ import * as path from 'path';
 function initializeAdminApp(): admin.app.App {
   // Use the official way to check for existing apps to prevent re-initialization errors.
   if (admin.apps.length > 0) {
-    console.log("Firebase Admin SDK already initialized. Returning existing app.");
+    addLog('INFO', "Firebase Admin SDK already initialized. Returning existing app.");
     return admin.app(); // Return the default app instance
   }
   
-  console.log("Attempting to initialize Firebase Admin SDK for the first time...");
+  addLog('INFO', "Attempting to initialize Firebase Admin SDK for the first time...");
 
   const serviceAccountPath = path.resolve(process.cwd(), 'service-account.json');
+  addLog('INFO', `Resolved service account path: ${serviceAccountPath}`);
 
   if (!fs.existsSync(serviceAccountPath)) {
-    console.error("Firebase service account file not found at:", serviceAccountPath);
-    throw new Error("Firebase service account file not found. Please create 'service-account.json' in the project root and paste your credentials there.");
+    const errorMessage = "Firebase service account file not found.";
+    addLog('ERROR', errorMessage, { path: serviceAccountPath });
+    throw new Error(`${errorMessage} Please create 'service-account.json' in the project root.`);
   }
   
-  console.log("Found service-account.json at:", serviceAccountPath);
+  addLog('INFO', "Found service-account.json.");
 
   try {
     const serviceAccountContent = fs.readFileSync(serviceAccountPath, 'utf8');
+    addLog('INFO', "Successfully read service-account.json file content.");
+    
     const serviceAccount = JSON.parse(serviceAccountContent);
-    console.log("Successfully read and parsed service-account.json.");
+    addLog('INFO', "Successfully parsed service-account.json content.");
 
     // Check if the service account file is still the placeholder
     if (serviceAccount.comment && serviceAccount.comment.includes("placeholder")) {
-        console.error("Placeholder service account file detected. Please replace with your actual credentials.");
-        throw new Error("The 'service-account.json' file is a placeholder. Please paste your actual Firebase service account credentials into it.");
+        const errorMessage = "Placeholder service account file detected.";
+        addLog('ERROR', errorMessage, { fileContent: serviceAccount });
+        throw new Error(`The 'service-account.json' file is a placeholder. Please paste your actual Firebase service account credentials into it.`);
+    }
+
+    if (!serviceAccount.project_id) {
+        const errorMessage = "Service account is missing 'project_id'.";
+        addLog('ERROR', errorMessage, { parsedObject: serviceAccount });
+        throw new Error(errorMessage);
     }
     
-    console.log("Initializing Firebase Admin App with credentials...");
+    addLog('INFO', "Initializing Firebase Admin App with credentials from file...", { projectId: serviceAccount.project_id });
 
-    // *** THIS IS THE FIX: ***
-    // We only pass the credential. The SDK will infer the storage bucket
-    // and other necessary details from the service account file itself.
-    // This is the most robust method and avoids configuration conflicts.
     const app = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
     
-    console.log("Firebase Admin SDK initialized successfully.");
+    addLog('INFO', "Firebase Admin SDK initialized successfully.");
     return app;
 
   } catch (error: any) {
@@ -55,7 +63,7 @@ function initializeAdminApp(): admin.app.App {
     if (error instanceof SyntaxError) {
         detail = "The service account JSON is not formatted correctly. Please ensure it's valid JSON."
     }
-    console.error("Error initializing Firebase Admin SDK from service-account.json:", detail, error);
+    addLog('ERROR', `Critical error initializing Firebase Admin SDK from service-account.json.`, { errorDetail: detail, errorStack: error.stack });
     throw new Error(`Error initializing Firebase Admin SDK from service-account.json: ${detail}`);
   }
 }
@@ -65,10 +73,19 @@ function initializeAdminApp(): admin.app.App {
  * @returns The Firebase Admin Storage service.
  */
 export function getAdminStorage() {
+  addLog('INFO', 'getAdminStorage called. Getting admin app instance...');
   const app = initializeAdminApp();
-  // Get the default bucket associated with the app.
-  // Ensure NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET is set in .env for this to work.
-  return app.storage().bucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
+  addLog('INFO', 'Admin app instance retrieved. Getting storage bucket...');
+  const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+  if (!bucketName) {
+    const errorMessage = 'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET is not set in .env';
+    addLog('ERROR', errorMessage);
+    throw new Error(errorMessage);
+  }
+  addLog('INFO', `Attempting to get bucket: ${bucketName}`);
+  const storage = app.storage().bucket(bucketName);
+  addLog('INFO', 'Successfully got admin storage instance.');
+  return storage;
 }
 
 /**
