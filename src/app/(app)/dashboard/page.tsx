@@ -16,6 +16,7 @@ import { useDialog } from '@/context/DialogContext';
 import { useSearch } from '@/context/SearchContext';
 import TodoListCard from '@/components/dashboard/TodoListCard';
 import type { Unsubscribe } from 'firebase/firestore';
+import { AnimatePresence } from 'framer-motion';
 
 const pageLoadingMessages = [
   "Organizing your memories...",
@@ -294,17 +295,19 @@ function DashboardPageContent() {
           </div>
         )}
 
-        {selectedItemIdForDetail && (
-          <ContentDetailDialog
-            itemId={selectedItemIdForDetail}
-            open={isDetailDialogOpen}
-            onOpenChange={(open) => {
-              setIsDetailDialogOpen(open);
-              if (!open) setSelectedItemIdForDetail(null);
-            }}
-            onItemUpdate={handleItemUpdateInDialog}
-          />
-        )}
+        <AnimatePresence>
+          {selectedItemIdForDetail && (
+            <ContentDetailDialog
+              itemId={selectedItemIdForDetail}
+              open={isDetailDialogOpen}
+              onOpenChange={(open) => {
+                setIsDetailDialogOpen(open);
+                if (!open) setSelectedItemIdForDetail(null);
+              }}
+              onItemUpdate={handleItemUpdateInDialog}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </>
   );

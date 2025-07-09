@@ -25,6 +25,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Label } from '@/components/ui/label';
+import { motion } from 'framer-motion';
 
 
 const NO_ZONE_VALUE = "__NO_ZONE__";
@@ -415,7 +416,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
         <DialogHeader className="hidden">
             <DialogTitle className="sr-only">{dialogTitleText}</DialogTitle>
         </DialogHeader>
-          <div className="flex-grow overflow-y-auto custom-scrollbar md:grid md:grid-cols-2 md:gap-0 h-full">
+          <motion.div layoutId={`card-animation-${itemId}`} className="flex-grow overflow-y-auto custom-scrollbar md:grid md:grid-cols-2 md:gap-0 h-full">
             {isLoading ? (
               <div className="flex items-center justify-center h-full col-span-2">
                 <Loader2 className="h-8 w-8 animate-spin text-primary"/>
@@ -589,7 +590,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                 </div>
               </>
             )}
-          </div>
+          </motion.div>
       </DialogContent>
     </Dialog>
   );

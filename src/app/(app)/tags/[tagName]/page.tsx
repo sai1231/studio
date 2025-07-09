@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getContentItems, deleteContentItem, getZones, getUniqueContentTypesFromItems, getUniqueTagsFromItems } from '@/services/contentService';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
+import { AnimatePresence } from 'framer-motion';
 
 const pageLoadingMessages = [
   "Gathering tagged items...",
@@ -388,17 +389,19 @@ export default function TagPage() {
           ))}
         </div>
       )}
-      {selectedItemIdForDetail && (
-        <ContentDetailDialog
-          itemId={selectedItemIdForDetail}
-          open={isDetailDialogOpen}
-          onOpenChange={(open) => {
-            setIsDetailDialogOpen(open);
-            if (!open) setSelectedItemIdForDetail(null);
-          }}
-          onItemUpdate={handleItemUpdateInDialog}
-        />
-      )}
+      <AnimatePresence>
+        {selectedItemIdForDetail && (
+          <ContentDetailDialog
+            itemId={selectedItemIdForDetail}
+            open={isDetailDialogOpen}
+            onOpenChange={(open) => {
+              setIsDetailDialogOpen(open);
+              if (!open) setSelectedItemIdForDetail(null);
+            }}
+            onItemUpdate={handleItemUpdateInDialog}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
