@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -15,18 +16,51 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code } from 'lucide-react';
+import { Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code, Plus, Check, ChevronDown, Bookmark, Briefcase, Home, Library } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Separator } from '../ui/separator';
+import type { Zone, ContentItem, Tag } from '@/types';
+import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { cn } from '@/lib/utils';
+import { Loader2, X } from 'lucide-react';
 
 interface FocusModeDialogProps {
-  initialContent: string;
-  onSave: (content: string) => void;
   onClose: () => void;
+  onContentAdd: (newContent: Omit<ContentItem, 'id' | 'createdAt'>) => void;
+  zones: Zone[];
+  onZoneCreate: (zoneName: string) => Promise<void>;
 }
 
-const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ initialContent, onSave, onClose }) => {
-  const [content, setContent] = useState(initialContent);
+const iconMap: { [key: string]: React.ElementType } = {
+  Briefcase,
+  Home,
+  Library,
+  Bookmark,
+};
+
+const getIconComponent = (iconName?: string): React.ElementType => {
+  if (iconName && iconMap[iconName]) {
+    return iconMap[iconName];
+  }
+  return Bookmark;
+};
+
+const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ onClose, onContentAdd, zones, onZoneCreate }) => {
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // State for zone and tags
+  const [selectedZoneId, setSelectedZoneId] = useState<string | undefined>();
+  const [currentTags, setCurrentTags] = useState<Tag[]>([]);
+  const [tagInput, setTagInput] = useState('');
+  
+  // State for zone popover
+  const [isZonePopoverOpen, setIsZonePopoverOpen] = useState(false);
+  const [zoneSearchText, setZoneSearchText] = useState('');
 
   const editor = useEditor({
     extensions: [
@@ -36,10 +70,6 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ initialContent, onSav
         placeholder: 'Write something amazing...',
       }),
     ],
-    content: content,
-    onUpdate: ({ editor }) => {
-      setContent(editor.getHTML());
-    },
     editorProps: {
       attributes: {
         class: 'prose dark:prose-invert focus:outline-none max-w-full',
@@ -47,10 +77,59 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ initialContent, onSav
     },
   });
 
-  const handleSave = () => {
-    onSave(content);
+  const handleSave = async () => {
+    if (!editor) return;
+    const content = editor.getHTML();
+    const textContent = editor.getText();
+
+    if (!textContent.trim()) {
+      toast({
+        title: "Content is empty",
+        description: "Please write something before saving.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsSaving(true);
+    
+    const generatedTitle = textContent.split(/\s+/).slice(0, 5).join(' ') + (textContent.split(/\s+/).length > 5 ? '...' : '');
+    const contentData: Omit<ContentItem, 'id' | 'createdAt'> = {
+        type: 'note',
+        title: generatedTitle || 'Untitled Note',
+        description: content,
+        contentType: 'Note',
+        status: 'pending-analysis',
+        tags: currentTags,
+        zoneId: selectedZoneId
+    };
+
+    try {
+        await onContentAdd(contentData);
+        onClose(); // Close the dialog on successful save
+    } catch (error) {
+        console.error("Error saving from focus mode:", error);
+        toast({
+            title: "Error Saving",
+            description: "Could not save your note.",
+            variant: "destructive"
+        });
+    } finally {
+        setIsSaving(false);
+    }
   };
   
+  const handleAddTag = () => {
+    if (tagInput.trim() && !currentTags.find(tag => tag.name.toLowerCase() === tagInput.trim().toLowerCase())) {
+      setCurrentTags([...currentTags, { id: Date.now().toString(), name: tagInput.trim() }]);
+    }
+    setTagInput('');
+  };
+  const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); handleAddTag(); }
+  };
+  const removeTag = (tagToRemove: Tag) => setCurrentTags(currentTags.filter(tag => tag.id !== tagToRemove.id));
+
   if (!editor) {
     return null;
   }
@@ -60,6 +139,11 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ initialContent, onSav
     visible: { opacity: 1, scale: 1 },
     exit: { opacity: 0, scale: 0.95 },
   };
+
+  const selectedZone = zones.find(z => z.id === selectedZoneId);
+  const ZoneDisplayIcon = getIconComponent(selectedZone?.icon);
+  const zoneDisplayName = selectedZone?.name || 'Select a zone';
+  const filteredZones = zoneSearchText ? zones.filter(z => z.name.toLowerCase().includes(zoneSearchText.toLowerCase())) : zones;
 
   return (
     <Dialog open={true} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -102,11 +186,72 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ initialContent, onSav
                 </BubbleMenu>
             </div>
 
-            <DialogFooter className="p-4 border-t flex-shrink-0">
-              <Button variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button onClick={handleSave}>Done</Button>
+            <DialogFooter className="p-4 border-t flex-shrink-0 flex items-center justify-between w-full">
+                <div className="flex items-center gap-2 flex-wrap">
+                    <Popover open={isZonePopoverOpen} onOpenChange={setIsZonePopoverOpen}>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" role="combobox" aria-expanded={isZonePopoverOpen}
+                                className={cn("w-[200px] justify-between", !selectedZoneId && "text-muted-foreground")}>
+                                <div className="flex items-center"><ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" /><span className="truncate">{zoneDisplayName}</span></div>
+                                <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[200px] p-0">
+                            <Command>
+                                <CommandInput placeholder="Search or create zone..." value={zoneSearchText} onValueChange={setZoneSearchText} />
+                                <CommandList>
+                                <CommandEmpty>
+                                    <div className="py-6 text-center text-sm">{zoneSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}</div>
+                                </CommandEmpty>
+                                <CommandGroup>
+                                    {filteredZones.map((z) => {
+                                        const ListItemIcon = getIconComponent(z.icon);
+                                        return (
+                                        <CommandItem key={z.id} value={z.id} onSelect={() => { setSelectedZoneId(z.id); setIsZonePopoverOpen(false); }}>
+                                            <Check className={cn("mr-2 h-4 w-4", selectedZoneId === z.id ? "opacity-100" : "opacity-0")} />
+                                            <ListItemIcon className="mr-2 h-4 w-4 opacity-70" />
+                                            {z.name}
+                                        </CommandItem>
+                                        );
+                                    })}
+                                </CommandGroup>
+                                {zoneSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase()) && (
+                                    <CommandGroup className="border-t">
+                                    <CommandItem onSelect={() => onZoneCreate(zoneSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer justify-start">
+                                        <Plus className="mr-2 h-4 w-4" /><span>Create "{zoneSearchText.trim()}"</span>
+                                    </CommandItem>
+                                    </CommandGroup>
+                                )}
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
+                    
+                    <div className="flex items-center gap-2 border rounded-md pl-3 has-[:focus]:ring-2 has-[:focus]:ring-ring">
+                         {currentTags.map(tag => (
+                            <Badge key={tag.id} variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">
+                                {tag.name}
+                                <button type="button" onClick={() => removeTag(tag)} className="ml-1.5 focus:outline-none rounded-full hover:bg-destructive/20 p-0.5"><X className="h-3 w-3" /></button>
+                            </Badge>
+                         ))}
+                        <Input
+                            value={tagInput}
+                            onChange={handleTagInputKeyDown}
+                            onKeyDown={handleTagInputKeyDown}
+                            placeholder="Add tags..."
+                            className="h-8 border-0 shadow-none focus-visible:ring-0 p-0 flex-1 min-w-[100px]"
+                        />
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={onClose} disabled={isSaving}>
+                        Cancel
+                    </Button>
+                    <Button onClick={handleSave} disabled={isSaving}>
+                        {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Done
+                    </Button>
+                </div>
             </DialogFooter>
         </motion.div>
       </DialogContent>

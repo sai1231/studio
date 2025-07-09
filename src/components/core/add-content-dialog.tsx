@@ -327,6 +327,11 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     if (onOpenChange) onOpenChange(false);
     setIsSaving(false);
   }
+  
+  const handleFocusModeClick = () => {
+    if (onOpenChange) onOpenChange(false);
+    setIsFocusModeOpen(true);
+  };
 
   const selectedZone = internalZones.find(z => z.id === watchedZoneId);
   const ZoneDisplayIcon = getIconComponent(selectedZone?.icon);
@@ -358,7 +363,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
             variant="ghost" 
             size="sm"
             className="absolute bottom-2 right-2 text-muted-foreground hover:text-foreground"
-            onClick={() => setIsFocusModeOpen(true)}
+            onClick={handleFocusModeClick}
           >
             <Maximize className="h-4 w-4 mr-2" />
             Focus
@@ -571,12 +576,10 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       <AnimatePresence>
         {isFocusModeOpen && (
             <FocusModeDialog
-                initialContent={watchedMainContent}
-                onSave={(newContent) => {
-                    form.setValue('mainContent', newContent);
-                    setIsFocusModeOpen(false);
-                }}
                 onClose={() => setIsFocusModeOpen(false)}
+                onContentAdd={onContentAdd}
+                zones={internalZones}
+                onZoneCreate={handleCreateZone}
             />
         )}
       </AnimatePresence>
