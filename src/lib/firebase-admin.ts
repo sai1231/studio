@@ -1,4 +1,6 @@
 import * as admin from 'firebase-admin';
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * Initializes the Firebase Admin SDK, but only if it hasn't been initialized already.
@@ -10,35 +12,31 @@ function initializeAdminApp(): admin.app.App {
     return admin.apps[0];
   }
 
-  const serviceAccountJson = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON;
+  const serviceAccountPath = path.resolve(process.cwd(), 'service-account.json');
 
-  if (!serviceAccountJson) {
-    throw new Error("Firebase Admin SDK credentials are not set. Please set FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON in your .env file.");
+  if (!fs.existsSync(serviceAccountPath)) {
+    throw new Error("Firebase service account file not found. Please create 'service-account.json' in the project root and paste your credentials there.");
   }
 
   try {
-    const serviceAccount = JSON.parse(serviceAccountJson);
-
-    // This is the critical fix. Environment variable parsing can mangle the `\n` characters
-    // in the private key. This explicitly replaces the escaped `\\n` with actual newlines.
-    if (serviceAccount.private_key) {
-        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-    } else {
-        throw new Error("Parsed service account is missing the 'private_key' field. Please check the format in your .env file.");
+    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+    
+    // Check if the file is still the placeholder
+    if (serviceAccount.comment) {
+        throw new Error("The 'service-account.json' file is a placeholder. Please paste your actual Firebase service account credentials into it.");
     }
     
-    console.log("Initializing Firebase Admin SDK...");
+    console.log("Initializing Firebase Admin SDK from service-account.json...");
     return admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
       storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     });
   } catch (error: any) {
-    // We enhance the error message to be more helpful.
     let detail = error.message;
     if (error instanceof SyntaxError) {
-        detail = "The service account JSON is not formatted correctly. Please ensure it's a valid JSON string on a single line."
+        detail = "The service account JSON is not formatted correctly. Please ensure it's valid JSON."
     }
-    throw new Error(`Error initializing Firebase Admin SDK: ${detail}. Please ensure the service account JSON in your .env file is a valid, single-line string.`);
+    throw new Error(`Error initializing Firebase Admin SDK from service-account.json: ${detail}`);
   }
 }
 
