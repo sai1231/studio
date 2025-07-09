@@ -421,6 +421,9 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
             <X className="h-4 w-4" />
             <span className="sr-only">Close</span>
           </DialogClose>
+          
+          <DialogTitle className="sr-only">{dialogTitleText}</DialogTitle>
+
           <div className="flex-grow overflow-y-auto custom-scrollbar md:grid md:grid-cols-2 md:gap-0 h-full rounded-xl">
             {isLoading ? (
               <div className="flex items-center justify-center h-full col-span-2">
