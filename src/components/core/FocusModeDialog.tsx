@@ -163,11 +163,16 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
     
     try {
         if (item) { // This is an update
-            await updateContentItem(item.id, {
+            const updatePayload: {
+                description: string;
+                tags: Tag[];
+                zoneId: string | null;
+            } = {
                 description: finalMarkdown,
                 tags: currentTags,
-                zoneId: selectedZoneId
-            });
+                zoneId: selectedZoneId === undefined ? null : selectedZoneId,
+            };
+            await updateContentItem(item.id, updatePayload);
             toast({ title: "Note Updated" });
         } else { // This is a new creation
             const generatedTitle = textContent.split(/\s+/).slice(0, 5).join(' ') + (textContent.split(/\s+/).length > 5 ? '...' : '');
@@ -287,6 +292,10 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
                                 <div className="py-6 text-center text-sm">{zoneSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}</div>
                             </CommandEmpty>
                             <CommandGroup>
+                                 <CommandItem onSelect={() => { setSelectedZoneId(undefined); setIsZonePopoverOpen(false); }}>
+                                    <Check className={cn("mr-2 h-4 w-4", selectedZoneId === undefined ? "opacity-100" : "opacity-0")} />
+                                    No Zone
+                                </CommandItem>
                                 {filteredZones.map((z) => {
                                     const ListItemIcon = getIconComponent(z.icon);
                                     return (
