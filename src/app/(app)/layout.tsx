@@ -494,17 +494,17 @@ export default function AppLayout({
             )}
           </main>
         </div>
-        <AnimatePresence>
-          {isAddContentDialogOpen && (
-              <AddContentDialog
-                  open={isAddContentDialogOpen}
-                  onOpenChange={setIsAddContentDialogOpen}
-                  zones={zones}
-                  onContentAdd={handleAddContentAndRefresh}
-                  onZoneCreate={handleAddZoneInLayout}
-              />
-          )}
-        </AnimatePresence>
+        
+        {isAddContentDialogOpen && (
+            <AddContentDialog
+                open={isAddContentDialogOpen}
+                onOpenChange={setIsAddContentDialogOpen}
+                zones={zones}
+                onContentAdd={handleAddContentAndRefresh}
+                onZoneCreate={handleAddZoneInLayout}
+            />
+        )}
+        
         <AddTodoDialog
           open={isAddTodoDialogOpen}
           onOpenChange={setIsAddTodoDialogOpen}
@@ -514,8 +514,18 @@ export default function AppLayout({
           onOpenChange={setIsRecordVoiceDialogOpen}
           onRecordingSave={handleAddContentAndRefresh}
         />
-         <AnimatePresence>
-          {isFocusModeOpen && (
+        
+        {isFocusModeOpen && (
+            <FocusModeDialog
+                item={focusModeItem}
+                onClose={closeFocusMode}
+                zones={zones}
+                onZoneCreate={handleAddZoneInLayout}
+            />
+        )}
+      
+        <AnimatePresence>
+          {focusModeItem && (
               <FocusModeDialog
                   item={focusModeItem}
                   onClose={closeFocusMode}
@@ -523,7 +533,7 @@ export default function AppLayout({
                   onZoneCreate={handleAddZoneInLayout}
               />
           )}
-      </AnimatePresence>
+        </AnimatePresence>
 
         <Button
           size="lg"

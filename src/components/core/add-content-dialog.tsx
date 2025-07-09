@@ -35,7 +35,6 @@ import { useDialog } from '@/context/DialogContext';
 import { add } from 'date-fns';
 import { ScrollArea } from '../ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { motion, AnimatePresence } from 'framer-motion';
 
 const mainContentSchema = z.object({
   mainContent: z.string(), // This will be optional if a file is uploaded
@@ -340,12 +339,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     return null; // Avoid rendering anything until we know the screen size
   }
   
-  const dialogVariants = {
-    hidden: { opacity: 0, scale: 0.95 },
-    visible: { opacity: 1, scale: 1 },
-    exit: { opacity: 0, scale: 0.95 }
-  };
-  
   const FormFields = (
     <div className="flex-grow overflow-y-auto pr-4 pl-1 space-y-4 py-4">
       <div className="relative">
@@ -537,18 +530,10 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
         </Sheet>
       ) : (
         <Dialog open={open} onOpenChange={onOpenChange}>
-          <motion.div>
             <DialogContent 
-              className="bg-transparent border-0 shadow-none p-0 w-full max-w-[625px]"
+              className="max-w-[625px] flex flex-col max-h-[90vh]"
               onOpenAutoFocus={(e) => e.preventDefault()}
             >
-              <motion.div 
-                variants={dialogVariants} 
-                initial="hidden" 
-                animate="visible" 
-                exit="exit" 
-                className="bg-card rounded-lg shadow-lg flex flex-col max-h-[90vh]"
-              >
                 <DialogHeader className="p-6 pb-0">
                   <DialogTitle className="font-headline">Add Content</DialogTitle>
                 </DialogHeader>
@@ -562,9 +547,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                         </Button>
                     </DialogFooter>
                 </form>
-              </motion.div>
             </DialogContent>
-          </motion.div>
         </Dialog>
       )}
     </>
