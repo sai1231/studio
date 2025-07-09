@@ -17,9 +17,8 @@ import { collection, doc, getDoc, updateDoc, type Firestore, Timestamp } from 'f
 import { db } from '@/lib/firebase'; // Keep using client 'db' for consistency here
 import { addLog } from '@/services/loggingService';
 import type { ContentItem } from '@/types';
-import sharp from 'sharp';
 import { getUserRoleId, getRoleById } from '@/services/adminService';
-import { uploadBufferToStorage } from '@/services/storageService';
+import { compressAndStoreImage } from '@/services/imageService';
 
 const contentCollectionRef = collection(db, 'content');
 
@@ -201,45 +200,26 @@ const enrichContentFlow = ai.defineFlow(
         await addLog('INFO', `[${contentId}] 📝ℹ️ Skipping keyword extraction: description is empty or not a string.`);
       }
 
-      // START: New Role-Based Image Compression Logic
+      // START: Role-Based Image Compression Logic
       const userId = contentData.userId;
       if (!userId) {
           await addLog('WARN', `[${contentId}] No userId found, skipping role-based enrichment.`);
       } else {
           const roleId = await getUserRoleId(userId);
           const role = roleId ? await getRoleById(roleId) : null;
-          await addLog('INFO', `[${role}] detected.`);
+          await addLog('INFO', `[${contentId}] User role is "${role?.name || 'unknown'}".`);
 
           const isFreeUser = role?.name === 'free_user';
 
-          if (isFreeUser && contentData.type === 'image' && contentData.imageUrl) {
-              await addLog('INFO', `[${contentId}] Free user detected. Attempting image compression.`);
-              try {
-                  const imageResponse = await fetch(contentData.imageUrl);
-                  if (!imageResponse.ok) {
-                      throw new Error(`Failed to fetch original image for compression: ${imageResponse.statusText}`);
-                  }
-                  
-                  const originalBuffer = Buffer.from(await imageResponse.arrayBuffer());
-                  
-                  const compressedBuffer = await sharp(originalBuffer)
-                      .resize({ width: 1920, withoutEnlargement: true })
-                      .webp({ quality: 80 })
-                      .toBuffer();
-
-                  const newPath = `display/${userId}/${contentId}.webp`;
-                  const compressedImageUrl = await uploadBufferToStorage(compressedBuffer, newPath, 'image/webp');
-                  
-                  updatePayload.imageUrl = compressedImageUrl;
-                  await addLog('INFO', `[${contentId}] ✅ Successfully compressed and stored new image.`, { newUrl: compressedImageUrl });
-
-              } catch (e: any) {
-                  await addLog('ERROR', `[${contentId}] Image compression failed:`, { error: e.message });
-                  // Do not fail the whole enrichment, just log the error and continue.
+          if (isFreeUser && contentData.imageUrl) {
+              const contentItemForCompression: ContentItem = { id: contentId, ...contentData } as ContentItem;
+              const compressedUrl = await compressAndStoreImage(contentItemForCompression);
+              if (compressedUrl) {
+                  updatePayload.imageUrl = compressedUrl;
               }
           }
       }
-      // END: New Role-Based Image Compression Logic
+      // END: Role-Based Image Compression Logic
 
       if (enrichmentFailed) {
         updatePayload.status = 'failed-analysis';

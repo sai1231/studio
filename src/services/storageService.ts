@@ -1,6 +1,7 @@
 'use server';
 
 import { getAdminStorage } from '@/lib/firebase-admin';
+import { addLog } from '@/services/loggingService';
 
 /**
  * Uploads a buffer to Firebase Storage using the Admin SDK, bypassing security rules.
@@ -12,6 +13,7 @@ import { getAdminStorage } from '@/lib/firebase-admin';
  */
 export async function uploadBufferToStorage(buffer: Buffer, path: string, contentType: string): Promise<string> {
   try {
+    addLog(`Attempting to upload buffer to Storage at path: ${path} with content type: ${contentType}`);
     const adminStorage = getAdminStorage();
     const bucket = adminStorage.bucket();
     const file = bucket.file(path);
@@ -29,10 +31,12 @@ export async function uploadBufferToStorage(buffer: Buffer, path: string, conten
     await file.makePublic();
     
     // The publicUrl property gives us the direct https link to the file.
-    return file.publicUrl();
+    const publicUrl = file.publicUrl();
+    addLog(`Successfully uploaded buffer to Storage at path: ${path}. Public URL: ${publicUrl}`);
+    return publicUrl;
 
   } catch (error: any) {
-    console.error(`Admin SDK: Failed to upload buffer to Storage at path ${path}:`, error);
+    addLog(`Admin SDK: Failed to upload buffer to Storage at path ${path}: ${error}`, 'error');
     // Re-throw the error so the calling function can handle it.
     throw error;
   }
