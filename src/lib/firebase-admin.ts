@@ -38,9 +38,13 @@ function initializeAdminApp(): admin.app.App {
     }
     
     console.log("Initializing Firebase Admin App with credentials...");
+
+    // *** THIS IS THE FIX: ***
+    // We only pass the credential. The SDK will infer the storage bucket
+    // and other necessary details from the service account file itself.
+    // This is the most robust method and avoids configuration conflicts.
     const app = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     });
     
     console.log("Firebase Admin SDK initialized successfully.");
@@ -62,7 +66,9 @@ function initializeAdminApp(): admin.app.App {
  */
 export function getAdminStorage() {
   const app = initializeAdminApp();
-  return app.storage();
+  // Get the default bucket associated with the app.
+  // Ensure NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET is set in .env for this to work.
+  return app.storage().bucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
 }
 
 /**
