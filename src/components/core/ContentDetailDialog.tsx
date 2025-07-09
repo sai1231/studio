@@ -12,11 +12,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil, ChevronDown, Ban, Briefcase, Home, Library, Star, Film, Users, Clapperboard, Glasses, AlarmClock, Sparkles, Eye, ChevronsUpDown } from 'lucide-react';
+import { CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil, ChevronDown, Ban, Briefcase, Home, Library, Star, Film, Users, Clapperboard, Glasses, AlarmClock, Sparkles, Eye, ChevronsUpDown, Palette } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, add, parseISO } from 'date-fns';
@@ -26,6 +26,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Separator } from "@/components/ui/separator";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { ScrollArea } from '../ui/scroll-area';
 
 
 const NO_ZONE_VALUE = "__NO_ZONE__";
@@ -119,7 +120,10 @@ const TruncatedDescription: React.FC<{ text: string }> = ({ text }) => {
 
   return (
     <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground relative">
-      <div className={cn("transition-all", !isExpanded && "line-clamp-4")}>
+       <div 
+        className="overflow-hidden transition-[max-height] duration-500 ease-in-out"
+        style={{ maxHeight: isExpanded ? '1000px' : '80px' }} // 80px is approx 4 lines
+       >
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
       </div>
       {isPotentiallyTruncated && !isExpanded && (
@@ -416,140 +420,158 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
   
   const DialogBody = (
     <>
-      <DialogTitle className="sr-only">Details for {item?.title || 'content item'}</DialogTitle>
-      {hasVisual && (
-        <div className="hidden md:flex flex-col bg-muted/20 p-4">
-            <div className="relative w-full flex-grow min-h-0 flex justify-center items-center rounded-lg overflow-hidden">
-                {isFetchingOembed ? (
-                <div className="w-full aspect-video flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
-                ) : oembedHtml ? (
-                <div className="oembed-container w-full" dangerouslySetInnerHTML={{ __html: oembedHtml }} />
-                ) : item?.imageUrl && !imageError ? (
-                    <img src={item.imageUrl} alt={editableTitle || 'Content Image'} data-ai-hint={item.title || "image"} className="w-full h-full object-contain" loading="lazy" onError={() => setImageError(true)}/>
-                ) : (item?.type === 'link' && item?.contentType === 'PDF' && item?.url) ? (
-                    <iframe src={item.url} className="w-full h-full min-h-[70vh] rounded-xl border-0" title={editableTitle || 'PDF Preview'}></iframe>
-                ) : null}
-            </div>
-            <div className="flex-shrink-0 pt-4">
-                <ColorPalette palette={item?.colorPalette} />
-            </div>
-        </div>
-      )}
-      <div className="flex flex-col bg-card text-card-foreground shadow-lg overflow-hidden relative">
-          <div className="flex-grow min-h-0 overflow-y-auto p-6 space-y-4">
-            {item?.domain && item.domain !== 'mati.internal.storage' && (
-                <div className="flex items-center text-sm text-muted-foreground">
-                    <Globe className="h-4 w-4 mr-2" />
-                    <span>{item.domain}</span>
-                    {(item.type === 'link' || item.type === 'movie') && item.url && (
-                        <TooltipProvider>
-                            <Tooltip>
-                            <TooltipTrigger asChild>
-                                <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1 ml-1.5 text-primary hover:text-primary/80" title={`Open link: ${item.url}`}>
-                                <ExternalLink className="h-4 w-4" />
-                                </a>
-                            </TooltipTrigger>
-                            <TooltipContent><p>Open link</p></TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    )}
-                </div>
-            )}
-            <Input
-                value={editableTitle}
-                onChange={handleTitleChange}
-                onBlur={handleTitleBlur}
-                className="text-2xl font-headline font-semibold border-0 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0 shadow-none p-0 h-auto flex-grow bg-transparent"
-                placeholder="Enter title"
-            />
-            <Separator />
-            
-            {/* Description Section */}
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <h3 className="font-semibold text-foreground">Description</h3>
+      <div className={cn(
+        "grid flex-grow overflow-hidden",
+        hasVisual ? "md:grid-cols-2" : "md:grid-cols-1"
+      )}>
+        {hasVisual && (
+          <div className="hidden md:flex flex-col bg-muted p-4">
+              <div className="relative w-full flex-grow min-h-0 flex justify-center items-center rounded-lg overflow-hidden">
+                  {isFetchingOembed ? (
+                  <div className="w-full aspect-video flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+                  ) : oembedHtml ? (
+                  <div className="oembed-container w-full" dangerouslySetInnerHTML={{ __html: oembedHtml }} />
+                  ) : item?.imageUrl && !imageError ? (
+                      <img src={item.imageUrl} alt={editableTitle || 'Content Image'} data-ai-hint={item.title || "image"} className="w-full h-full object-contain" loading="lazy" onError={() => setImageError(true)}/>
+                  ) : (item?.type === 'link' && item?.contentType === 'PDF' && item?.url) ? (
+                      <iframe src={item.url} className="w-full h-full min-h-[70vh] rounded-xl border-0" title={editableTitle || 'PDF Preview'}></iframe>
+                  ) : null}
               </div>
-              <TruncatedDescription text={item?.description || ''} />
-            </div>
-
-            <Separator />
-
-            {/* Mind Note Section */}
-            <div>
-                <div className="flex items-center gap-2 mb-2">
-                    <Pencil className="h-4 w-4 text-primary" />
-                    <h3 className="font-semibold text-foreground">Mind Note</h3>
-                </div>
-                <Textarea
-                value={editableMindNote}
-                onChange={handleMindNoteChange}
-                onBlur={handleMindNoteBlur}
-                placeholder="Add your personal thoughts..."
-                className="w-full min-h-[120px] focus-visible:ring-accent bg-muted/30 dark:bg-muted/20 border-border"
-                />
-            </div>
-
-            <Separator />
-            
-            {/* Zone and Tags Section */}
-            <div className="space-y-4">
-                <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
-                    <PopoverTrigger asChild>
-                        <Button variant="outline" role="combobox" aria-expanded={isComboboxOpen} className={cn("w-full justify-between", isSaving ? "opacity-50" : "", !editableZoneId && "text-muted-foreground")} disabled={isSaving}>
-                            <div className="flex items-center"><ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" /><span className="truncate">{zoneDisplayName}</span></div><ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput placeholder="Search or create zone..." value={comboboxSearchText} onValueChange={setComboboxSearchText} /><CommandList><CommandEmpty><div className="py-6 text-center text-sm">{comboboxSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}</div></CommandEmpty><CommandGroup><CommandItem value={NO_ZONE_VALUE} onSelect={() => handleZoneSelection(undefined)}><Check className={cn("mr-2 h-4 w-4", !editableZoneId ? "opacity-100" : "opacity-0")} /><Ban className="mr-2 h-4 w-4 opacity-70 text-muted-foreground" />No Zone Assigned</CommandItem>{filteredZones.map((z) => {const ListItemIcon = getIconComponent(z.icon);return (<CommandItem key={z.id} value={z.id} onSelect={(currentValue) => {handleZoneSelection(currentValue === editableZoneId ? undefined : currentValue);}}><Check className={cn("mr-2 h-4 w-4", editableZoneId === z.id ? "opacity-100" : "opacity-0")} /><ListItemIcon className="mr-2 h-4 w-4 opacity-70" />{z.name}</CommandItem>);})}</CommandGroup>{comboboxSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === comboboxSearchText.trim().toLowerCase()) && (<CommandGroup className="border-t"><CommandItem onSelect={() => handleCreateZone(comboboxSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer"><Plus className="mr-2 h-4 w-4" /> Create "{comboboxSearchText.trim()}"</CommandItem></CommandGroup>)}</CommandList></Command></PopoverContent>
-                </Popover>
-
-                <div className="flex flex-wrap items-center gap-2">
-                    <Label className="text-sm font-medium mr-2">Tags:</Label>
-                    {editableTags.map(tag => (<Badge key={tag.id} variant="secondary" className="px-3 py-1 text-sm rounded-full font-medium group relative">{tag.name}<Button variant="ghost" size="icon" className="h-5 w-5 ml-1.5 p-0.5 opacity-50 group-hover:opacity-100 hover:bg-destructive/20 hover:text-destructive absolute -right-1.5 -top-1.5 rounded-full bg-background/50" onClick={() => handleRemoveTag(tag.id)} aria-label={`Remove tag ${tag.name}`}><X className="h-3 w-3" /></Button></Badge>))}
-                    {isAddingTag ? (<div className="flex items-center gap-1"><Input ref={newTagInputRef} value={newTagInput} onChange={(e) => setNewTagInput(e.target.value)} placeholder="New tag" onKeyDown={handleTagInputKeyDown} className="h-8 text-sm w-32 focus-visible:ring-accent" autoFocus /><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleAddNewTag} disabled={newTagInput.trim() === ''} aria-label="Confirm add tag" ><Check className="h-4 w-4 text-green-600" /></Button><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleCancelAddTag} aria-label="Cancel add tag" ><X className="h-4 w-4 text-destructive" /></Button></div>) : (<TooltipProvider><Tooltip><TooltipTrigger asChild><Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => setIsAddingTag(true)} aria-label="Add new tag" ><Plus className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Add new tag</p></TooltipContent></Tooltip></TooltipProvider>)}
-                </div>
-            </div>
-
-            <Separator />
-
-            {/* Temporary Memory Section */}
-            <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between"><label htmlFor="temporary-switch" className="font-medium text-foreground">Temporary Memory</label><Switch id="temporary-switch" checked={isTemporary} onCheckedChange={handleTemporaryToggle} /></div>
-                {isTemporary && (
-                    <div className="flex items-center gap-2">
-                        <Select value={expirySelection} onValueChange={handleExpiryChange}>
-                            <SelectTrigger className="flex-grow bg-background focus:ring-accent"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                            <SelectItem value="7">Delete after 7 days</SelectItem>
-                            <SelectItem value="30">Delete after 30 days</SelectItem>
-                            <SelectItem value="90">Delete after 90 days</SelectItem>
-                            <SelectItem value="custom">Custom...</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        {expirySelection === 'custom' && (
-                        <div className="flex items-center gap-1.5">
-                            <Input type="number" value={customExpiryDays} onChange={handleCustomExpiryChange} className="w-20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-                            <span className="text-sm text-muted-foreground">days</span>
-                        </div>
+          </div>
+        )}
+        <div className={cn(
+          "flex flex-col bg-card text-card-foreground shadow-lg overflow-hidden relative",
+          !hasVisual && "md:col-span-2"
+        )}>
+            <ScrollArea className="flex-grow">
+              <div className="p-6 space-y-4">
+                <DialogTitle className="sr-only">Details for {item?.title || 'content item'}</DialogTitle>
+                {item?.domain && item.domain !== 'mati.internal.storage' && (
+                    <div className="flex items-center text-sm text-muted-foreground">
+                        <Globe className="h-4 w-4 mr-2" />
+                        <span>{item.domain}</span>
+                        {(item.type === 'link' || item.type === 'movie') && item.url && (
+                            <TooltipProvider>
+                                <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1 ml-1.5 text-primary hover:text-primary/80" title={`Open link: ${item.url}`}>
+                                    <ExternalLink className="h-4 w-4" />
+                                    </a>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Open link</p></TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         )}
                     </div>
                 )}
-            </div>
+                <Input
+                    value={editableTitle}
+                    onChange={handleTitleChange}
+                    onBlur={handleTitleBlur}
+                    className="text-2xl font-headline font-semibold border-0 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0 shadow-none p-0 h-auto flex-grow bg-transparent"
+                    placeholder="Enter title"
+                />
+                <Separator />
+                
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <h3 className="font-semibold text-foreground">Description</h3>
+                  </div>
+                  <TruncatedDescription text={item?.description || ''} />
+                </div>
 
+                <Separator />
+                
+                <div>
+                    <div className="flex items-center gap-2 mb-2">
+                        <Pencil className="h-4 w-4 text-primary" />
+                        <h3 className="font-semibold text-foreground">Mind Note</h3>
+                    </div>
+                    <Textarea
+                    value={editableMindNote}
+                    onChange={handleMindNoteChange}
+                    onBlur={handleMindNoteBlur}
+                    placeholder="Add your personal thoughts..."
+                    className="w-full min-h-[120px] focus-visible:ring-accent bg-muted/30 dark:bg-muted/20 border-border"
+                    />
+                </div>
+
+                <Separator />
+                
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                      <Palette className="h-4 w-4 text-primary" />
+                      <h3 className="font-semibold text-foreground">Color Palette</h3>
+                  </div>
+                  <ColorPalette palette={item?.colorPalette} />
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                    <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" role="combobox" aria-expanded={isComboboxOpen} className={cn("w-full justify-between", isSaving ? "opacity-50" : "", !editableZoneId && "text-muted-foreground")} disabled={isSaving}>
+                                <div className="flex items-center"><ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" /><span className="truncate">{zoneDisplayName}</span></div><ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput placeholder="Search or create zone..." value={comboboxSearchText} onValueChange={setComboboxSearchText} /><CommandList><CommandEmpty><div className="py-6 text-center text-sm">{comboboxSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}</div></CommandEmpty><CommandGroup><CommandItem value={NO_ZONE_VALUE} onSelect={() => handleZoneSelection(undefined)}><Check className={cn("mr-2 h-4 w-4", !editableZoneId ? "opacity-100" : "opacity-0")} /><Ban className="mr-2 h-4 w-4 opacity-70 text-muted-foreground" />No Zone Assigned</CommandItem>{filteredZones.map((z) => {const ListItemIcon = getIconComponent(z.icon);return (<CommandItem key={z.id} value={z.id} onSelect={(currentValue) => {handleZoneSelection(currentValue === editableZoneId ? undefined : currentValue);}}><Check className={cn("mr-2 h-4 w-4", editableZoneId === z.id ? "opacity-100" : "opacity-0")} /><ListItemIcon className="mr-2 h-4 w-4 opacity-70" />{z.name}</CommandItem>);})}</CommandGroup>{comboboxSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === comboboxSearchText.trim().toLowerCase()) && (<CommandGroup className="border-t"><CommandItem onSelect={() => handleCreateZone(comboboxSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer"><Plus className="mr-2 h-4 w-4" /> Create "{comboboxSearchText.trim()}"</CommandItem></CommandGroup>)}</CommandList></Command></PopoverContent>
+                    </Popover>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Label className="text-sm font-medium mr-2">Tags:</Label>
+                        {editableTags.map(tag => (<Badge key={tag.id} variant="secondary" className="px-3 py-1 text-sm rounded-full font-medium group relative">{tag.name}<Button variant="ghost" size="icon" className="h-5 w-5 ml-1.5 p-0.5 opacity-50 group-hover:opacity-100 hover:bg-destructive/20 hover:text-destructive absolute -right-1.5 -top-1.5 rounded-full bg-background/50" onClick={() => handleRemoveTag(tag.id)} aria-label={`Remove tag ${tag.name}`}><X className="h-3 w-3" /></Button></Badge>))}
+                        {isAddingTag ? (<div className="flex items-center gap-1"><Input ref={newTagInputRef} value={newTagInput} onChange={(e) => setNewTagInput(e.target.value)} placeholder="New tag" onKeyDown={handleTagInputKeyDown} className="h-8 text-sm w-32 focus-visible:ring-accent" autoFocus /><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleAddNewTag} disabled={newTagInput.trim() === ''} aria-label="Confirm add tag" ><Check className="h-4 w-4 text-green-600" /></Button><Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleCancelAddTag} aria-label="Cancel add tag" ><X className="h-4 w-4 text-destructive" /></Button></div>) : (<TooltipProvider><Tooltip><TooltipTrigger asChild><Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => setIsAddingTag(true)} aria-label="Add new tag" ><Plus className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Add new tag</p></TooltipContent></Tooltip></TooltipProvider>)}
+                    </div>
+                </div>
+
+                <Separator />
+                
+                <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between"><label htmlFor="temporary-switch" className="font-medium text-foreground">Temporary Memory</label><Switch id="temporary-switch" checked={isTemporary} onCheckedChange={handleTemporaryToggle} /></div>
+                    {isTemporary && (
+                        <div className="flex items-center gap-2">
+                            <Select value={expirySelection} onValueChange={handleExpiryChange}>
+                                <SelectTrigger className="flex-grow bg-background focus:ring-accent"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                <SelectItem value="7">Delete after 7 days</SelectItem>
+                                <SelectItem value="30">Delete after 30 days</SelectItem>
+                                <SelectItem value="90">Delete after 90 days</SelectItem>
+                                <SelectItem value="custom">Custom...</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            {expirySelection === 'custom' && (
+                            <div className="flex items-center gap-1.5">
+                                <Input type="number" value={customExpiryDays} onChange={handleCustomExpiryChange} className="w-20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                                <span className="text-sm text-muted-foreground">days</span>
+                            </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+              </div>
+            </ScrollArea>
+        </div>
+      </div>
+       <div className="flex-shrink-0 flex justify-between items-center p-4 border-t">
+          <div className="text-xs text-muted-foreground flex items-center">
+              <CalendarDays className="h-3.5 w-3.5 mr-1.5 shrink-0" />
+              Saved {item && format(parseISO(item.createdAt), 'MMM d, yyyy @ h:mm a')}
           </div>
-          <div className="flex-shrink-0 border-t p-4 text-xs text-muted-foreground flex items-center justify-end">
-                <CalendarDays className="h-3.5 w-3.5 mr-1.5 shrink-0" />
-                Saved {item && format(parseISO(item.createdAt), 'MMM d, yyyy @ h:mm a')}
-          </div>
+          <DialogClose asChild>
+              <Button variant="outline">Close</Button>
+          </DialogClose>
       </div>
     </>
   )
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn(
-        "bg-transparent p-0 border-0 shadow-2xl transition-all flex flex-col max-h-[90vh]", 
-        hasVisual ? "md:grid md:grid-cols-2 max-w-6xl w-[95vw]" : "max-w-2xl w-[95vw]"
+       <DialogContent className={cn(
+        "p-0 border-0 shadow-2xl flex flex-col max-h-[90vh] bg-background rounded-lg",
+        hasVisual ? "max-w-6xl w-[95vw]" : "max-w-2xl w-[95vw]"
       )}>
         {isLoading ? (
           <div className="flex items-center justify-center h-full col-span-2 p-10 bg-card rounded-lg"><Loader2 className="h-8 w-8 animate-spin text-primary"/></div>
@@ -560,3 +582,4 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
     </Dialog>
   );
 }
+
