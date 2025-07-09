@@ -109,31 +109,20 @@ const ColorPalette: React.FC<{ palette: string[] | undefined }> = ({ palette }) 
   );
 };
 
-
-const loadingMessages = [
-  "Organizing your thoughts...",
-  "Fetching your inspirations...",
-  "Aligning your ideas...",
-  "Connecting the dots...",
-  "Unpacking wisdom...",
-  "Brewing brilliance...",
-];
-
 interface ContentDetailDialogProps {
-  itemId: string | null;
+  item: ContentItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onItemUpdate?: (updatedItem: ContentItem) => void;
 }
 
-export default function ContentDetailDialog({ itemId, open, onOpenChange, onItemUpdate }: ContentDetailDialogProps) {
+export default function ContentDetailDialog({ item: initialItem, open, onOpenChange, onItemUpdate }: ContentDetailDialogProps) {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const [item, setItem] = useState<ContentItem | null>(null);
+  const [item, setItem] = useState<ContentItem | null>(initialItem);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentLoadingMessage, setCurrentLoadingMessage] = useState(loadingMessages[0]);
 
   const [editableTitle, setEditableTitle] = useState('');
   const [editableDescription, setEditableDescription] = useState('');
@@ -159,49 +148,50 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
 
   const [isTemporary, setIsTemporary] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  
+  useEffect(() => {
+    if (open && initialItem) {
+      setItem(initialItem); // Use the passed item immediately
+      setIsLoading(false); // No loading state needed for initial render
+      setError(null);
+      setOembedHtml(null);
 
-  const fetchData = useCallback(async (id: string) => {
-    try {
-      const fetchedItem = await getContentItemById(id);
-      if (fetchedItem) {
-        setItem(fetchedItem);
-        setAllZones(await getZones(fetchedItem.userId!));
-        if (fetchedItem.type === 'link' && fetchedItem.url && fetchedItem.contentType !== 'PDF') {
+      // Fetch supporting data and fresh item data in the background
+      const fetchSupportingData = async () => {
+        try {
+          // Fetch fresh item data to ensure consistency
+          const freshItemPromise = getContentItemById(initialItem.id);
+          const zonesPromise = getZones(initialItem.userId!);
+          
+          const [freshItem, fetchedZones] = await Promise.all([freshItemPromise, zonesPromise]);
+          
+          if (freshItem) {
+            setItem(freshItem); // Update with the latest data
+          }
+          setAllZones(fetchedZones);
+          
+          // Fetch oEmbed if necessary
+          if (initialItem.type === 'link' && initialItem.url && initialItem.contentType !== 'PDF') {
             setIsFetchingOembed(true);
             try {
-                const oembedRes = await fetch(`/api/oembed?url=${encodeURIComponent(fetchedItem.url)}`);
-                if (oembedRes.ok) {
-                    const oembedData = await oembedRes.json();
-                    if (oembedData.html) setOembedHtml(oembedData.html);
-                }
+              const oembedRes = await fetch(`/api/oembed?url=${encodeURIComponent(initialItem.url)}`);
+              if (oembedRes.ok) {
+                const oembedData = await oembedRes.json();
+                if (oembedData.html) setOembedHtml(oembedData.html);
+              }
             } catch (e) {
-                console.error("Failed to fetch oEmbed data", e);
+              console.error("Failed to fetch oEmbed data", e);
             } finally {
-                setIsFetchingOembed(false);
+              setIsFetchingOembed(false);
             }
+          }
+        } catch (e) {
+          console.error('Error fetching supporting details for dialog:', e);
+          setError('Failed to load fresh details.');
         }
-      } else {
-        setError('Content item not found.');
-      }
-    } catch (e) {
-      console.error('Error fetching content details for dialog:', e);
-      setError('Failed to load content details.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+      };
 
-  useEffect(() => {
-    if (open && itemId) {
-      setIsLoading(true); 
-      setError(null);
-      setItem(null);
-      setOembedHtml(null);
-      
-      const randomIndex = Math.floor(Math.random() * loadingMessages.length);
-      setCurrentLoadingMessage(loadingMessages[randomIndex]);
-
-      fetchData(itemId);
+      fetchSupportingData();
 
     } else if (!open) {
       // Reset state when dialog is closed
@@ -210,7 +200,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
       setError(null);
       setOembedHtml(null);
     }
-  }, [itemId, open, fetchData]); 
+  }, [initialItem, open]); 
 
   useEffect(() => {
     if (item) {
@@ -398,9 +388,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
     const newExpiryDate = add(new Date(), { days: parseInt(value, 10) });
     handleFieldUpdate('expiresAt', newExpiryDate.toISOString());
   };
-  
-  const dialogTitleText = isLoading ? currentLoadingMessage : (item?.title || (error ? "Error Loading" : "Content Details"));
-  
+    
   const selectedZone = allZones.find(z => z.id === editableZoneId);
   const zoneDisplayName = selectedZone?.name || "No zone";
   const ZoneDisplayIcon = getIconComponent(selectedZone?.icon);
@@ -414,7 +402,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-transparent border-0 shadow-none p-0 flex items-center justify-center w-full h-full max-w-none">
         <motion.div
-          layoutId={`card-animation-${itemId}`}
+          layoutId={`card-animation-${initialItem?.id}`}
           className="relative flex flex-col bg-card rounded-xl shadow-2xl w-[calc(100vw-2rem)] h-[calc(100vh-2rem)] md:w-full md:h-auto md:max-h-[90vh] md:max-w-4xl"
         >
           <DialogClose className="absolute right-4 top-4 z-50 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
@@ -422,7 +410,7 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
             <span className="sr-only">Close</span>
           </DialogClose>
           
-          <DialogTitle className="sr-only">{dialogTitleText}</DialogTitle>
+          <DialogTitle className="sr-only">{item?.title || "Content Details"}</DialogTitle>
 
           <div className="flex-grow overflow-y-auto custom-scrollbar md:grid md:grid-cols-2 md:gap-0 h-full rounded-xl">
             {isLoading ? (

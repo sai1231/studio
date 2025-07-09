@@ -52,7 +52,7 @@ export default function ContentTypePage() {
   const [availableTags, setAvailableTags] = useState<AppTag[]>([]);
 
   const [clientLoadingMessage, setClientLoadingMessage] = useState<string | null>(null);
-  const [selectedItemIdForDetail, setSelectedItemIdForDetail] = useState<string | null>(null);
+  const [selectedItemForDetail, setSelectedItemForDetail] = useState<ContentItem | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
 
   // Applied filter states
@@ -174,7 +174,7 @@ export default function ContentTypePage() {
 
 
   const handleOpenDetailDialog = (item: ContentItem) => {
-    setSelectedItemIdForDetail(item.id);
+    setSelectedItemForDetail(item);
     setIsDetailDialogOpen(true);
   };
 
@@ -392,13 +392,13 @@ export default function ContentTypePage() {
         </div>
       )}
       <AnimatePresence>
-        {selectedItemIdForDetail && (
+        {selectedItemForDetail && (
           <ContentDetailDialog
-            itemId={selectedItemIdForDetail}
+            item={selectedItemForDetail}
             open={isDetailDialogOpen}
             onOpenChange={(open) => {
               setIsDetailDialogOpen(open);
-              if (!open) setSelectedItemIdForDetail(null);
+              if (!open) setSelectedItemForDetail(null);
             }}
             onItemUpdate={handleItemUpdateInDialog}
           />

@@ -40,7 +40,7 @@ function DashboardPageContent() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isUpdatingTodoStatus, setIsUpdatingTodoStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [selectedItemIdForDetail, setSelectedItemIdForDetail] = useState<string | null>(null);
+  const [selectedItemForDetail, setSelectedItemForDetail] = useState<ContentItem | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const { toast } = useToast();
   const [clientLoadingMessage, setClientLoadingMessage] = useState<string | null>(null);
@@ -132,7 +132,7 @@ function DashboardPageContent() {
 
 
   const handleOpenDetailDialog = (item: ContentItem) => {
-    setSelectedItemIdForDetail(item.id);
+    setSelectedItemForDetail(item);
     setIsDetailDialogOpen(true);
   };
   
@@ -155,8 +155,8 @@ function DashboardPageContent() {
   };
 
   const handleToggleTodoStatus = async (taskId: string) => {
-    if (!user || isUpdatingStatus === taskId) return;
-    setIsUpdatingStatus(taskId);
+    if (!user || isUpdatingTodoStatus === taskId) return;
+    setIsUpdatingTodoStatus(taskId);
 
     const updatedTasks = tasks.map(t => 
         t.id === taskId ? { ...t, status: t.status === 'completed' ? 'pending' : 'completed' } : t
@@ -170,7 +170,7 @@ function DashboardPageContent() {
       toast({ title: "Error", description: "Could not update task status. Reverting.", variant: "destructive" });
       // Revert logic could be implemented here if needed
     } finally {
-      setIsUpdatingStatus(null);
+      setIsUpdatingTodoStatus(null);
     }
   };
 
@@ -296,13 +296,13 @@ function DashboardPageContent() {
         )}
 
         <AnimatePresence>
-          {selectedItemIdForDetail && (
+          {selectedItemForDetail && (
             <ContentDetailDialog
-              itemId={selectedItemIdForDetail}
+              item={selectedItemForDetail}
               open={isDetailDialogOpen}
               onOpenChange={(open) => {
                 setIsDetailDialogOpen(open);
-                if (!open) setSelectedItemIdForDetail(null);
+                if (!open) setSelectedItemForDetail(null);
               }}
               onItemUpdate={handleItemUpdateInDialog}
             />
