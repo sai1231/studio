@@ -89,7 +89,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
     ],
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert focus:outline-none max-w-full',
+        class: 'prose dark:prose-invert focus:outline-none max-w-full my-0',
       },
     },
     onUpdate: ({ editor }) => {
@@ -147,7 +147,9 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
   const handleSave = async () => {
     if (!editor || !user) return;
     
-    const finalMarkdown = rawMarkdown;
+    // Get the latest content directly from the editor to avoid state timing issues
+    const htmlContent = editor.getHTML();
+    const markdownContent = turndownService.turndown(htmlContent);
     const textContent = editor.getText();
 
     if (!textContent.trim()) {
@@ -168,9 +170,9 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
                 tags: Tag[];
                 zoneId: string | null;
             } = {
-                description: finalMarkdown,
+                description: markdownContent,
                 tags: currentTags,
-                zoneId: selectedZoneId === undefined ? null : selectedZoneId,
+                zoneId: selectedZoneId ?? null,
             };
             await updateContentItem(item.id, updatePayload);
             toast({ title: "Note Updated" });
@@ -179,7 +181,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
             const contentData: Omit<ContentItem, 'id' | 'createdAt'> = {
                 type: 'note',
                 title: generatedTitle || 'Untitled Note',
-                description: finalMarkdown,
+                description: markdownContent,
                 contentType: 'Note',
                 status: 'pending-analysis',
                 tags: currentTags,
