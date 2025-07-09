@@ -28,7 +28,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { Loader2, X } from 'lucide-react';
-import { addContentItem, updateContentItem } from '@/services/contentService';
+import { addContentItem, updateContentItem, getContentItemById } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
 import TurndownService from 'turndown';
 import { marked } from 'marked';
@@ -65,6 +65,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
   const { user } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
   
+  const [internalItem, setInternalItem] = useState<ContentItem | null>(null);
   const [selectedZoneId, setSelectedZoneId] = useState<string | undefined>();
   const [currentTags, setCurrentTags] = useState<Tag[]>([]);
   const [tagInput, setTagInput] = useState('');
@@ -93,7 +94,6 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
       },
     },
     onUpdate: ({ editor }) => {
-      // Correctly convert HTML to Markdown on every update
       setRawMarkdown(turndownService.turndown(editor.getHTML()));
     },
     autofocus: true,
@@ -101,22 +101,30 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
 
   useEffect(() => {
     if (open && editor) {
-      const isNewNote = !item;
-      if (isNewNote) {
+      if (!item) { // New note mode
         editor.commands.clearContent();
         setRawMarkdown('');
         setSelectedZoneId(undefined);
         setCurrentTags([]);
-      } else {
-        const html = marked.parse(item.description || '') as string;
-        editor.commands.setContent(html, false); // Set content without triggering onUpdate
-        setRawMarkdown(item.description || '');
-        setSelectedZoneId(item.zoneId);
-        setCurrentTags(item.tags || []);
+        setInternalItem(null);
+      } else { // Editing existing note, so fetch fresh data
+        getContentItemById(item.id).then(freshItem => {
+          if (freshItem) {
+            setInternalItem(freshItem);
+            const html = marked.parse(freshItem.description || '') as string;
+            editor.commands.setContent(html, false);
+            setRawMarkdown(freshItem.description || '');
+            setSelectedZoneId(freshItem.zoneId);
+            setCurrentTags(freshItem.tags || []);
+          } else {
+            toast({ title: "Note not found", description: "This note may have been deleted.", variant: "destructive" });
+            onOpenChange(false);
+          }
+        });
       }
       setEditorMode('wysiwyg');
     }
-  }, [item, editor, open]);
+  }, [item, open, editor, onOpenChange, toast]);
 
   const handleRawMarkdownChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newMarkdown = e.target.value;
@@ -147,7 +155,6 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
   const handleSave = async () => {
     if (!editor || !user) return;
     
-    // Get the latest content directly from the editor to avoid state timing issues
     const htmlContent = editor.getHTML();
     const markdownContent = turndownService.turndown(htmlContent);
     const textContent = editor.getText();
@@ -164,17 +171,13 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
     setIsSaving(true);
     
     try {
-        if (item) { // This is an update
-            const updatePayload: {
-                description: string;
-                tags: Tag[];
-                zoneId: string | null;
-            } = {
+        if (internalItem) { // This is an update
+            const updatePayload = {
                 description: markdownContent,
                 tags: currentTags,
                 zoneId: selectedZoneId ?? null,
             };
-            await updateContentItem(item.id, updatePayload);
+            await updateContentItem(internalItem.id, updatePayload);
             toast({ title: "Note Updated" });
         } else { // This is a new creation
             const generatedTitle = textContent.split(/\s+/).slice(0, 5).join(' ') + (textContent.split(/\s+/).length > 5 ? '...' : '');
