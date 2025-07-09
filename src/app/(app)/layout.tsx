@@ -495,15 +495,13 @@ export default function AppLayout({
           </main>
         </div>
         
-        {isAddContentDialogOpen && (
-            <AddContentDialog
-                open={isAddContentDialogOpen}
-                onOpenChange={setIsAddContentDialogOpen}
-                zones={zones}
-                onContentAdd={handleAddContentAndRefresh}
-                onZoneCreate={handleAddZoneInLayout}
-            />
-        )}
+        <AddContentDialog
+            open={isAddContentDialogOpen}
+            onOpenChange={setIsAddContentDialogOpen}
+            zones={zones}
+            onContentAdd={handleAddContentAndRefresh}
+            onZoneCreate={handleAddZoneInLayout}
+        />
         
         <AddTodoDialog
           open={isAddTodoDialogOpen}
@@ -515,26 +513,14 @@ export default function AppLayout({
           onRecordingSave={handleAddContentAndRefresh}
         />
         
-        {isFocusModeOpen && (
-            <FocusModeDialog
-                item={focusModeItem}
-                onClose={closeFocusMode}
-                zones={zones}
-                onZoneCreate={handleAddZoneInLayout}
-            />
-        )}
+        <FocusModeDialog
+            item={focusModeItem}
+            open={isFocusModeOpen}
+            onOpenChange={(open) => !open && closeFocusMode()}
+            zones={zones}
+            onZoneCreate={handleAddZoneInLayout}
+        />
       
-        <AnimatePresence>
-          {focusModeItem && (
-              <FocusModeDialog
-                  item={focusModeItem}
-                  onClose={closeFocusMode}
-                  zones={zones}
-                  onZoneCreate={handleAddZoneInLayout}
-              />
-          )}
-        </AnimatePresence>
-
         <Button
           size="lg"
           className="fixed bottom-6 right-6 md:bottom-8 md:right-8 rounded-full h-16 w-16 shadow-xl z-40 bg-primary hover:bg-primary/90 text-primary-foreground hidden md:flex items-center justify-center"

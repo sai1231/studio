@@ -37,7 +37,8 @@ import { Textarea } from '../ui/textarea';
 
 interface FocusModeDialogProps {
   item: ContentItem | null;
-  onClose: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   zones: Zone[];
   onZoneCreate: (zoneName: string) => Promise<Zone | null>;
 }
@@ -56,7 +57,7 @@ const getIconComponent = (iconName?: string): React.ElementType => {
   return Bookmark;
 };
 
-const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, onClose, zones, onZoneCreate }) => {
+const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenChange, zones, onZoneCreate }) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
@@ -96,20 +97,23 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, onClose, zones,
   });
 
   useEffect(() => {
-    if (item && editor) {
-      const html = marked.parse(item.description || '') as string;
-      editor.commands.setContent(html);
-      setRawMarkdown(item.description || '');
-      setSelectedZoneId(item.zoneId);
-      setCurrentTags(item.tags || []);
-    } else if (!item && editor) {
-      editor.commands.clearContent();
-      setRawMarkdown('');
-      setSelectedZoneId(undefined);
-      setCurrentTags([]);
+    if (open && editor) {
+      const isNewNote = !item;
+      if (isNewNote) {
+        editor.commands.clearContent();
+        setRawMarkdown('');
+        setSelectedZoneId(undefined);
+        setCurrentTags([]);
+      } else {
+        const html = marked.parse(item.description || '') as string;
+        editor.commands.setContent(html);
+        setRawMarkdown(item.description || '');
+        setSelectedZoneId(item.zoneId);
+        setCurrentTags(item.tags || []);
+      }
+      setEditorMode('wysiwyg');
     }
-     setEditorMode('wysiwyg');
-  }, [item, editor]);
+  }, [item, editor, open]);
 
   const handleRawMarkdownChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newMarkdown = e.target.value;
@@ -177,7 +181,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, onClose, zones,
             await addContentItem(contentData);
             toast({ title: "Note Saved" });
         }
-        onClose();
+        onOpenChange(false);
     } catch (error) {
         console.error("Error saving from focus mode:", error);
         toast({
@@ -211,7 +215,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, onClose, zones,
   const filteredZones = zoneSearchText ? zones.filter(z => z.name.toLowerCase().includes(zoneSearchText.toLowerCase())) : zones;
 
   return (
-    <Dialog open={true} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         className="w-[95vw] max-w-7xl h-[95vh] flex flex-col p-0"
         onOpenAutoFocus={(e) => e.preventDefault()}
@@ -320,7 +324,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, onClose, zones,
                 </div>
             </div>
             <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={onClose} disabled={isSaving}>
+                <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
                     Cancel
                 </Button>
                 <Button onClick={handleSave} disabled={isSaving}>
