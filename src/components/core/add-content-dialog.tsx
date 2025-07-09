@@ -339,8 +339,8 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   
   const dialogVariants = {
     hidden: { opacity: 0, scale: 0.95 },
-    visible: { opacity: 1, scale: 1, transition: { duration: 0.2, ease: "easeInOut" } },
-    exit: { opacity: 0, scale: 0.95, transition: { duration: 0.15, ease: "easeIn" } }
+    visible: { opacity: 1, scale: 1 },
+    exit: { opacity: 0, scale: 0.95 }
   };
   
   const FormFields = (
@@ -521,14 +521,23 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
         </Sheet>
       ) : (
         <Dialog open={open} onOpenChange={onOpenChange}>
-          <DialogContent className="sm:max-w-[625px] max-h-[90vh] flex flex-col bg-card">
-              <motion.div variants={dialogVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col h-full">
-                <DialogHeader>
+          <DialogContent 
+            className="bg-transparent border-0 shadow-none p-0 w-full max-w-[625px]"
+            onOpenAutoFocus={(e) => e.preventDefault()}
+          >
+              <motion.div 
+                variants={dialogVariants} 
+                initial="hidden" 
+                animate="visible" 
+                exit="exit" 
+                className="bg-card rounded-lg shadow-lg flex flex-col max-h-[90vh]"
+              >
+                <DialogHeader className="p-6 pb-0">
                   <DialogTitle className="font-headline">Add Content</DialogTitle>
                 </DialogHeader>
-                <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-grow flex flex-col overflow-hidden">
+                <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-grow flex flex-col overflow-hidden px-6">
                     {FormFields}
-                    <DialogFooter className="pt-4 border-t mt-auto flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                    <DialogFooter className="pt-4 border-t mt-auto flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pb-6">
                         <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
                         <Button type="submit" form="add-content-form-desktop" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                         {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
