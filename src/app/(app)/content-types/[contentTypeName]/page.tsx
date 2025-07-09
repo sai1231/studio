@@ -21,7 +21,6 @@ import { getContentItems, deleteContentItem, getZones, getUniqueDomainsFromItems
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
-import { AnimatePresence } from 'framer-motion';
 
 const pageLoadingMessages = [
   "Categorizing your content...",
@@ -398,19 +397,15 @@ export default function ContentTypePage() {
           ))}
         </div>
       )}
-      <AnimatePresence>
-        {selectedItemForDetail && (
-          <ContentDetailDialog
-            item={selectedItemForDetail}
-            open={isDetailDialogOpen}
-            onOpenChange={(open) => {
-              setIsDetailDialogOpen(open);
-              if (!open) setSelectedItemForDetail(null);
-            }}
-            onItemUpdate={handleItemUpdateInDialog}
-          />
-        )}
-      </AnimatePresence>
+      <ContentDetailDialog
+        item={selectedItemForDetail}
+        open={isDetailDialogOpen}
+        onOpenChange={(open) => {
+          setIsDetailDialogOpen(open);
+          if (!open) setSelectedItemForDetail(null);
+        }}
+        onItemUpdate={handleItemUpdateInDialog}
+      />
     </div>
   );
 }
