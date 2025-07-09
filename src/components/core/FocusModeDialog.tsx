@@ -32,7 +32,7 @@ interface FocusModeDialogProps {
   onClose: () => void;
   onContentAdd: (newContent: Omit<ContentItem, 'id' | 'createdAt'>) => void;
   zones: Zone[];
-  onZoneCreate: (zoneName: string) => Promise<void>;
+  onZoneCreate: (zoneName: string) => Promise<Zone | null>;
 }
 
 const iconMap: { [key: string]: React.ElementType } = {
@@ -75,7 +75,26 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ onClose, onContentAdd
         class: 'prose dark:prose-invert focus:outline-none max-w-full',
       },
     },
+    autofocus: true,
   });
+  
+  const handleCreateZone = async (zoneName: string) => {
+    if (!zoneName.trim() || isSaving) return;
+    setIsSaving(true);
+    try {
+      const newZone = await onZoneCreate(zoneName);
+      if (newZone) {
+        setSelectedZoneId(newZone.id);
+      }
+    } catch(e) {
+        toast({ title: "Error", description: "Could not create new zone.", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+      setIsZonePopoverOpen(false);
+      setZoneSearchText('');
+    }
+  };
+
 
   const handleSave = async () => {
     if (!editor) return;
@@ -217,7 +236,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ onClose, onContentAdd
                                 </CommandGroup>
                                 {zoneSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase()) && (
                                     <CommandGroup className="border-t">
-                                    <CommandItem onSelect={() => onZoneCreate(zoneSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer justify-start">
+                                    <CommandItem onSelect={() => handleCreateZone(zoneSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer justify-start">
                                         <Plus className="mr-2 h-4 w-4" /><span>Create "{zoneSearchText.trim()}"</span>
                                     </CommandItem>
                                     </CommandGroup>
@@ -236,7 +255,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ onClose, onContentAdd
                          ))}
                         <Input
                             value={tagInput}
-                            onChange={handleTagInputKeyDown}
+                            onChange={(e) => setTagInput(e.target.value)}
                             onKeyDown={handleTagInputKeyDown}
                             placeholder="Add tags..."
                             className="h-8 border-0 shadow-none focus-visible:ring-0 p-0 flex-1 min-w-[100px]"

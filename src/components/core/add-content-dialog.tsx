@@ -29,15 +29,13 @@ import { Textarea } from '@/components/ui/textarea';
 import type { Zone, ContentItem, Tag } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { addZone, uploadFile } from '@/services/contentService';
+import { uploadFile } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
 import { add } from 'date-fns';
 import { ScrollArea } from '../ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { motion, AnimatePresence } from 'framer-motion';
-import FocusModeDialog from './FocusModeDialog';
-
 
 const mainContentSchema = z.object({
   mainContent: z.string(), // This will be optional if a file is uploaded
@@ -53,6 +51,7 @@ export interface AddContentDialogOpenChange {
 interface AddContentDialogProps extends AddContentDialogOpenChange {
   zones: Zone[];
   onContentAdd: (newContent: Omit<ContentItem, 'id' | 'createdAt'>) => void;
+  onZoneCreate: (zoneName: string) => Promise<Zone | null>;
   children?: React.ReactNode;
 }
 
@@ -71,14 +70,13 @@ const getIconComponent = (iconName?: string): React.ElementType => {
 };
 
 
-const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange, zones, onContentAdd, children }) => {
+const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange, zones, onContentAdd, onZoneCreate, children }) => {
   const [currentTags, setCurrentTags] = useState<Tag[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-  const router = useRouter();
-  const { setIsRecordVoiceDialogOpen } = useDialog();
+  const { setIsAddContentDialogOpen, setIsRecordVoiceDialogOpen, setIsFocusModeDialogOpen } = useDialog();
 
   const [internalZones, setInternalZones] = useState<Zone[]>(zones);
   const [isZonePopoverOpen, setIsZonePopoverOpen] = useState(false);
@@ -94,7 +92,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const [expiryDays, setExpiryDays] = useState('30');
   
   const isMobile = useIsMobile();
-  const [isFocusModeOpen, setIsFocusModeOpen] = useState(false);
 
   const form = useForm<z.infer<typeof mainContentSchema>>({
     resolver: zodResolver(mainContentSchema),
@@ -203,13 +200,13 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   };
 
   const handleCreateZone = async (zoneName: string) => {
-    if (!zoneName.trim() || isSaving || !user) return;
+    if (!zoneName.trim() || isSaving) return;
     setIsSaving(true);
     try {
-      const newZone = await addZone(zoneName.trim(), user.uid);
-      setInternalZones(prev => [...prev, newZone]);
-      form.setValue('zoneId', newZone.id, { shouldTouch: true, shouldValidate: true });
-      toast({ title: "Zone Created", description: `Zone "${newZone.name}" created and selected.` });
+      const newZone = await onZoneCreate(zoneName);
+      if (newZone) {
+          form.setValue('zoneId', newZone.id, { shouldTouch: true, shouldValidate: true });
+      }
     } catch (e) {
       console.error('Error creating zone:', e);
       toast({ title: "Error", description: "Could not create new zone.", variant: "destructive" });
@@ -329,8 +326,8 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   }
   
   const handleFocusModeClick = () => {
-    if (onOpenChange) onOpenChange(false);
-    setIsFocusModeOpen(true);
+    setIsAddContentDialogOpen(false);
+    setIsFocusModeDialogOpen(true);
   };
 
   const selectedZone = internalZones.find(z => z.id === watchedZoneId);
@@ -539,50 +536,37 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
             </SheetContent>
         </Sheet>
       ) : (
-        <Dialog open={open && !isFocusModeOpen} onOpenChange={onOpenChange}>
-            <AnimatePresence>
-            {open && !isFocusModeOpen && (
-              <DialogContent 
-                className="bg-transparent border-0 shadow-none p-0 w-full max-w-[625px]"
-                onOpenAutoFocus={(e) => e.preventDefault()}
+        <Dialog open={open} onOpenChange={onOpenChange}>
+          <motion.div>
+            <DialogContent 
+              className="bg-transparent border-0 shadow-none p-0 w-full max-w-[625px]"
+              onOpenAutoFocus={(e) => e.preventDefault()}
+            >
+              <motion.div 
+                variants={dialogVariants} 
+                initial="hidden" 
+                animate="visible" 
+                exit="exit" 
+                className="bg-card rounded-lg shadow-lg flex flex-col max-h-[90vh]"
               >
-                  <motion.div 
-                    variants={dialogVariants} 
-                    initial="hidden" 
-                    animate="visible" 
-                    exit="exit" 
-                    className="bg-card rounded-lg shadow-lg flex flex-col max-h-[90vh]"
-                  >
-                    <DialogHeader className="p-6 pb-0">
-                      <DialogTitle className="font-headline">Add Content</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-grow flex flex-col overflow-hidden px-6">
-                        {FormFields}
-                        <DialogFooter className="pt-4 border-t mt-auto flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pb-6">
-                            <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
-                            <Button type="submit" form="add-content-form-desktop" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                            {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                  </motion.div>
-              </DialogContent>
-              )}
-            </AnimatePresence>
+                <DialogHeader className="p-6 pb-0">
+                  <DialogTitle className="font-headline">Add Content</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-grow flex flex-col overflow-hidden px-6">
+                    {FormFields}
+                    <DialogFooter className="pt-4 border-t mt-auto flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pb-6">
+                        <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
+                        <Button type="submit" form="add-content-form-desktop" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                        {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
+                        </Button>
+                    </DialogFooter>
+                </form>
+              </motion.div>
+            </DialogContent>
+          </motion.div>
         </Dialog>
       )}
-
-      <AnimatePresence>
-        {isFocusModeOpen && (
-            <FocusModeDialog
-                onClose={() => setIsFocusModeOpen(false)}
-                onContentAdd={onContentAdd}
-                zones={internalZones}
-                onZoneCreate={handleCreateZone}
-            />
-        )}
-      </AnimatePresence>
     </>
   );
 };

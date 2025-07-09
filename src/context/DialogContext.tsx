@@ -12,6 +12,8 @@ interface DialogContextType {
   setIsAddTodoDialogOpen: (open: boolean) => void;
   isRecordVoiceDialogOpen: boolean;
   setIsRecordVoiceDialogOpen: (open: boolean) => void;
+  isFocusModeDialogOpen: boolean;
+  setIsFocusModeDialogOpen: (open: boolean) => void;
   newlyAddedItem: ContentItem | null;
   setNewlyAddedItem: (item: ContentItem | null) => void;
 }
@@ -22,6 +24,7 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
   const [isAddContentDialogOpen, setIsAddContentDialogOpen] = useState(false);
   const [isAddTodoDialogOpen, setIsAddTodoDialogOpen] = useState(false);
   const [isRecordVoiceDialogOpen, setIsRecordVoiceDialogOpen] = useState(false);
+  const [isFocusModeDialogOpen, setIsFocusModeDialogOpen] = useState(false);
   const [newlyAddedItem, setNewlyAddedItem] = useState<ContentItem | null>(null);
 
   return (
@@ -32,6 +35,8 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
         setIsAddTodoDialogOpen, 
         isRecordVoiceDialogOpen, 
         setIsRecordVoiceDialogOpen,
+        isFocusModeDialogOpen,
+        setIsFocusModeDialogOpen,
         newlyAddedItem,
         setNewlyAddedItem,
     }}>

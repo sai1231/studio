@@ -9,9 +9,10 @@ import AppSidebar from '@/components/core/app-sidebar';
 import AddContentDialog from '@/components/core/add-content-dialog';
 import AddTodoDialog from '@/components/core/AddTodoDialog';
 import RecordVoiceDialog from '@/components/core/RecordVoiceDialog';
+import FocusModeDialog from '@/components/core/FocusModeDialog';
 import type { Zone, ContentItem, Tag as TagType } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { addContentItem, getUniqueDomainsFromItems, getUniqueContentTypesFromItems, getUniqueTagsFromItems, uploadFile, subscribeToZones, subscribeToContentItems } from '@/services/contentService';
+import { addContentItem, getUniqueDomainsFromItems, getUniqueContentTypesFromItems, getUniqueTagsFromItems, uploadFile, subscribeToZones, subscribeToContentItems, addZone } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
 import { Plus, UploadCloud, Home, Bookmark as BookmarkIcon, Tag, ClipboardList, Globe, Newspaper, Film, Github, MessagesSquare, BookOpen, StickyNote, FileImage, Mic, ListChecks } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -164,6 +165,8 @@ export default function AppLayout({
     setIsAddTodoDialogOpen,
     isRecordVoiceDialogOpen,
     setIsRecordVoiceDialogOpen,
+    isFocusModeDialogOpen,
+    setIsFocusModeDialogOpen,
     setNewlyAddedItem,
   } = useDialog();
 
@@ -397,6 +400,20 @@ export default function AppLayout({
     }
   };
   
+  const handleAddZoneInLayout = async (zoneName: string): Promise<Zone | null> => {
+    if (!zoneName.trim() || !user) return null;
+    try {
+      const newZone = await addZone(zoneName.trim(), user.uid);
+      // The `zones` state will update automatically via the Firestore listener (subscribeToZones)
+      toast({ title: "Zone Created", description: `Zone "${newZone.name}" created.` });
+      return newZone;
+    } catch (e) {
+      console.error('Error creating zone:', e);
+      toast({ title: "Error", description: "Could not create new zone.", variant: "destructive" });
+      return null;
+    }
+  };
+  
   if (isAuthLoading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -477,14 +494,15 @@ export default function AppLayout({
           </main>
         </div>
         <AnimatePresence>
-            {isAddContentDialogOpen && (
-                <AddContentDialog
-                    open={isAddContentDialogOpen}
-                    onOpenChange={setIsAddContentDialogOpen}
-                    zones={zones}
-                    onContentAdd={handleAddContentAndRefresh}
-                />
-            )}
+          {isAddContentDialogOpen && (
+              <AddContentDialog
+                  open={isAddContentDialogOpen}
+                  onOpenChange={setIsAddContentDialogOpen}
+                  zones={zones}
+                  onContentAdd={handleAddContentAndRefresh}
+                  onZoneCreate={handleAddZoneInLayout}
+              />
+          )}
         </AnimatePresence>
         <AddTodoDialog
           open={isAddTodoDialogOpen}
@@ -495,6 +513,16 @@ export default function AppLayout({
           onOpenChange={setIsRecordVoiceDialogOpen}
           onRecordingSave={handleAddContentAndRefresh}
         />
+         <AnimatePresence>
+          {isFocusModeDialogOpen && (
+              <FocusModeDialog
+                  onClose={() => setIsFocusModeDialogOpen(false)}
+                  onContentAdd={handleAddContentAndRefresh}
+                  zones={zones}
+                  onZoneCreate={handleAddZoneInLayout}
+              />
+          )}
+      </AnimatePresence>
 
         <Button
           size="lg"
