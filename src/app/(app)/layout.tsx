@@ -165,8 +165,9 @@ export default function AppLayout({
     setIsAddTodoDialogOpen,
     isRecordVoiceDialogOpen,
     setIsRecordVoiceDialogOpen,
-    isFocusModeDialogOpen,
-    setIsFocusModeDialogOpen,
+    isFocusModeOpen,
+    focusModeItem,
+    closeFocusMode,
     setNewlyAddedItem,
   } = useDialog();
 
@@ -514,10 +515,10 @@ export default function AppLayout({
           onRecordingSave={handleAddContentAndRefresh}
         />
          <AnimatePresence>
-          {isFocusModeDialogOpen && (
+          {isFocusModeOpen && (
               <FocusModeDialog
-                  onClose={() => setIsFocusModeDialogOpen(false)}
-                  onContentAdd={handleAddContentAndRefresh}
+                  item={focusModeItem}
+                  onClose={closeFocusMode}
                   zones={zones}
                   onZoneCreate={handleAddZoneInLayout}
               />

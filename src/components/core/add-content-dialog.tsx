@@ -76,7 +76,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { setIsAddContentDialogOpen, setIsRecordVoiceDialogOpen, setIsFocusModeDialogOpen } = useDialog();
+  const { setIsAddContentDialogOpen, setIsRecordVoiceDialogOpen, openFocusMode } = useDialog();
 
   const [internalZones, setInternalZones] = useState<Zone[]>(zones);
   const [isZonePopoverOpen, setIsZonePopoverOpen] = useState(false);
@@ -327,7 +327,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   
   const handleFocusModeClick = () => {
     setIsAddContentDialogOpen(false);
-    setIsFocusModeDialogOpen(true);
+    openFocusMode(null);
   };
 
   const selectedZone = internalZones.find(z => z.id === watchedZoneId);

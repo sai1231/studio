@@ -27,7 +27,7 @@ const pageLoadingMessages = [
 
 function DashboardPageContent() {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const { setIsAddTodoDialogOpen, newlyAddedItem, setNewlyAddedItem } = useDialog();
+  const { setIsAddTodoDialogOpen, newlyAddedItem, setNewlyAddedItem, openFocusMode } = useDialog();
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
   const zoneId = searchParams.get('zone') || '';
@@ -131,9 +131,13 @@ function DashboardPageContent() {
   }, [isFetchingMore, hasMore, user, fetchMoreContent]);
 
 
-  const handleOpenDetailDialog = (item: ContentItem) => {
-    setSelectedItemForDetail(item);
-    setIsDetailDialogOpen(true);
+  const handleItemClick = (item: ContentItem) => {
+    if (item.type === 'note') {
+      openFocusMode(item);
+    } else {
+      setSelectedItemForDetail(item);
+      setIsDetailDialogOpen(true);
+    }
   };
   
   const handleItemUpdateInDialog = (updatedItem: ContentItem) => {
@@ -281,7 +285,7 @@ function DashboardPageContent() {
                 <ContentCard
                   key={item.id}
                   item={item}
-                  onEdit={handleOpenDetailDialog}
+                  onEdit={handleItemClick}
                   onDelete={handleDeleteContent}
                 />
               ))}

@@ -27,10 +27,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { Loader2, X } from 'lucide-react';
+import { addContentItem, updateContentItem } from '@/services/contentService';
+import { useAuth } from '@/context/AuthContext';
+
 
 interface FocusModeDialogProps {
+  item: ContentItem | null;
   onClose: () => void;
-  onContentAdd: (newContent: Omit<ContentItem, 'id' | 'createdAt'>) => void;
   zones: Zone[];
   onZoneCreate: (zoneName: string) => Promise<Zone | null>;
 }
@@ -49,16 +52,15 @@ const getIconComponent = (iconName?: string): React.ElementType => {
   return Bookmark;
 };
 
-const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ onClose, onContentAdd, zones, onZoneCreate }) => {
+const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, onClose, zones, onZoneCreate }) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
   
-  // State for zone and tags
   const [selectedZoneId, setSelectedZoneId] = useState<string | undefined>();
   const [currentTags, setCurrentTags] = useState<Tag[]>([]);
   const [tagInput, setTagInput] = useState('');
   
-  // State for zone popover
   const [isZonePopoverOpen, setIsZonePopoverOpen] = useState(false);
   const [zoneSearchText, setZoneSearchText] = useState('');
 
@@ -77,6 +79,18 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ onClose, onContentAdd
     },
     autofocus: true,
   });
+
+  useEffect(() => {
+    if (item && editor) {
+      editor.commands.setContent(item.description || '');
+      setSelectedZoneId(item.zoneId);
+      setCurrentTags(item.tags || []);
+    } else if (!item && editor) {
+      editor.commands.clearContent();
+      setSelectedZoneId(undefined);
+      setCurrentTags([]);
+    }
+  }, [item, editor]);
   
   const handleCreateZone = async (zoneName: string) => {
     if (!zoneName.trim() || isSaving) return;
@@ -97,7 +111,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ onClose, onContentAdd
 
 
   const handleSave = async () => {
-    if (!editor) return;
+    if (!editor || !user) return;
     const content = editor.getHTML();
     const textContent = editor.getText();
 
@@ -112,20 +126,30 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ onClose, onContentAdd
     
     setIsSaving(true);
     
-    const generatedTitle = textContent.split(/\s+/).slice(0, 5).join(' ') + (textContent.split(/\s+/).length > 5 ? '...' : '');
-    const contentData: Omit<ContentItem, 'id' | 'createdAt'> = {
-        type: 'note',
-        title: generatedTitle || 'Untitled Note',
-        description: content,
-        contentType: 'Note',
-        status: 'pending-analysis',
-        tags: currentTags,
-        zoneId: selectedZoneId
-    };
-
     try {
-        await onContentAdd(contentData);
-        onClose(); // Close the dialog on successful save
+        if (item) { // This is an update
+            await updateContentItem(item.id, {
+                description: content,
+                tags: currentTags,
+                zoneId: selectedZoneId
+            });
+            toast({ title: "Note Updated" });
+        } else { // This is a new creation
+            const generatedTitle = textContent.split(/\s+/).slice(0, 5).join(' ') + (textContent.split(/\s+/).length > 5 ? '...' : '');
+            const contentData: Omit<ContentItem, 'id' | 'createdAt'> = {
+                type: 'note',
+                title: generatedTitle || 'Untitled Note',
+                description: content,
+                contentType: 'Note',
+                status: 'pending-analysis',
+                tags: currentTags,
+                zoneId: selectedZoneId,
+                userId: user.uid,
+            };
+            await addContentItem(contentData);
+            toast({ title: "Note Saved" });
+        }
+        onClose();
     } catch (error) {
         console.error("Error saving from focus mode:", error);
         toast({

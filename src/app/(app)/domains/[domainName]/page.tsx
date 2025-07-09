@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import type React from 'react';
@@ -19,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getContentItems, deleteContentItem, getZones, getUniqueContentTypesFromItems, getUniqueTagsFromItems } from '@/services/contentService';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
+import { useDialog } from '@/context/DialogContext';
 import { AnimatePresence } from 'framer-motion';
 
 const pageLoadingMessages = [
@@ -34,6 +36,7 @@ export default function DomainPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, role } = useAuth();
+  const { openFocusMode } = useDialog();
 
   const [decodedDomainName, setDecodedDomainName] = useState<string>('');
   
@@ -168,9 +171,13 @@ export default function DomainPage() {
     setDisplayedContentItems(filtered);
   }, [appliedSearchTerm, appliedSelectedZoneId, appliedSelectedContentType, appliedSelectedTagIds, allContentForDomain]);
 
-  const handleOpenDetailDialog = (item: ContentItem) => {
-    setSelectedItemForDetail(item);
-    setIsDetailDialogOpen(true);
+  const handleItemClick = (item: ContentItem) => {
+    if (item.type === 'note') {
+      openFocusMode(item);
+    } else {
+      setSelectedItemForDetail(item);
+      setIsDetailDialogOpen(true);
+    }
   };
 
   const handleItemUpdateInDialog = (updatedItem: ContentItem) => {
@@ -378,7 +385,7 @@ export default function DomainPage() {
             <ContentCard
               key={item.id}
               item={item}
-              onEdit={handleOpenDetailDialog}
+              onEdit={handleItemClick}
               onDelete={handleDeleteItem}
             />
           ))}
