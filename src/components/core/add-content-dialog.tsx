@@ -540,7 +540,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
               <DialogContent 
                 className="bg-transparent border-0 shadow-none p-0 w-full max-w-[625px]"
                 onOpenAutoFocus={(e) => e.preventDefault()}
-                asChild
               >
                   <motion.div 
                     variants={dialogVariants} 
