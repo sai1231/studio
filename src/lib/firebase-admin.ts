@@ -22,18 +22,18 @@ function initializeAdminApp(): admin.app.App {
   }
   
   try {
-    // We still read the file once to check if it's the placeholder, to provide a better error message.
     const serviceAccountContent = fs.readFileSync(serviceAccountPath, 'utf8');
-    const serviceAccountCheck = JSON.parse(serviceAccountContent);
-    if (serviceAccountCheck.comment) {
+    const serviceAccount = JSON.parse(serviceAccountContent);
+
+    // Check if the service account file is still the placeholder
+    if (serviceAccount.comment) {
         throw new Error("The 'service-account.json' file is a placeholder. Please paste your actual Firebase service account credentials into it.");
     }
     
-    console.log("Initializing Firebase Admin SDK from service-account.json path...");
+    console.log("Initializing Firebase Admin SDK using service-account.json file...");
     
-    // Let the SDK read the file directly from the path. This is more robust.
     adminApp = admin.initializeApp({
-      credential: admin.credential.cert(serviceAccountPath),
+      credential: admin.credential.cert(serviceAccount),
       storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     });
     
