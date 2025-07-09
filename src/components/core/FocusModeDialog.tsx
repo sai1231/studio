@@ -38,7 +38,6 @@ import { Textarea } from '../ui/textarea';
 
 interface FocusModeDialogProps {
   item: ContentItem | null;
-  open: boolean;
   onClose: () => void;
   zones: Zone[];
   onZoneCreate: (zoneName: string) => Promise<Zone | null>;
@@ -58,7 +57,7 @@ const getIconComponent = (iconName?: string): React.ElementType => {
   return Bookmark;
 };
 
-const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onClose, zones, onZoneCreate }) => {
+const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, onClose, zones, onZoneCreate }) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
@@ -98,8 +97,6 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onClose, 
   });
 
   useEffect(() => {
-    if (!open) return;
-    
     if (item && editor) {
       const html = marked.parse(item.description || '') as string;
       editor.commands.setContent(html);
@@ -113,7 +110,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onClose, 
       setCurrentTags([]);
     }
      setEditorMode('wysiwyg');
-  }, [item, open, editor]);
+  }, [item, editor]);
 
   const handleRawMarkdownChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newMarkdown = e.target.value;
@@ -205,7 +202,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onClose, 
   };
   const removeTag = (tagToRemove: Tag) => setCurrentTags(currentTags.filter(tag => tag.id !== tagToRemove.id));
 
-  if (!editor || !open) {
+  if (!editor) {
     return null;
   }
 
@@ -221,7 +218,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onClose, 
   const filteredZones = zoneSearchText ? zones.filter(z => z.name.toLowerCase().includes(zoneSearchText.toLowerCase())) : zones;
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+    <Dialog open={true} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
       <DialogContent 
         className="bg-transparent border-0 shadow-none p-0 flex items-center justify-center w-full h-full max-w-none"
         onOpenAutoFocus={(e) => e.preventDefault()}
