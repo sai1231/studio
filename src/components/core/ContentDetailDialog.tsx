@@ -61,55 +61,6 @@ const getIconComponent = (iconName?: string): React.ElementType => {
   return Bookmark; // Default icon
 };
 
-const ColorPalette: React.FC<{ palette: string[] | undefined }> = ({ palette }) => {
-  const { toast } = useToast();
-
-  const handleColorCopy = (color: string) => {
-    navigator.clipboard.writeText(color);
-    toast({
-      title: "Color Copied!",
-      description: (
-        <div className="flex items-center gap-2">
-          <div className="h-4 w-4 rounded-full border" style={{ backgroundColor: color }} />
-          <span>{color} has been copied to your clipboard.</span>
-        </div>
-      )
-    });
-  };
-
-  if (!palette || palette.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="pt-2">
-      <div className="flex items-center gap-2">
-        {palette.slice(0, 10).map((color, index) => (
-          <TooltipProvider key={`${color}-${index}`} delayDuration={100}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className="h-6 w-6 rounded-full border shadow-inner transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ring focus:z-10"
-                  style={{ backgroundColor: color }}
-                  aria-label={`Copy color ${color}`}
-                  onClick={() => handleColorCopy(color)}
-                />
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="flex items-center gap-2">
-                  <div className="h-4 w-4 rounded-full border" style={{ backgroundColor: color }} />
-                  <p className="font-mono text-xs">{color}</p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 const TruncatedDescription: React.FC<{ text: string }> = ({ text }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const isPotentiallyTruncated = text.split('\n').length > 4 || text.length > 250;
@@ -417,15 +368,67 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
   const filteredZones = comboboxSearchText ? allZones.filter(z => z.name.toLowerCase().includes(comboboxSearchText.toLowerCase())) : allZones;
 
   const hasVisual = !imageError && (item?.imageUrl || oembedHtml);
+
+  const ColorPalette = ({ palette }: { palette: string[] | undefined }) => {
+    if (!palette || palette.length === 0) {
+      return null;
+    }
+    
+    const handleColorCopy = (color: string) => {
+      navigator.clipboard.writeText(color);
+      toast({
+        title: "Color Copied!",
+        description: (
+          <div className="flex items-center gap-2">
+            <div className="h-4 w-4 rounded-full border" style={{ backgroundColor: color }} />
+            <span>{color} has been copied to your clipboard.</span>
+          </div>
+        )
+      });
+    };
+  
+    return (
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+            <Palette className="h-4 w-4 text-primary" />
+            <h3 className="font-semibold text-foreground">Color Palette</h3>
+        </div>
+        <div className="flex items-center gap-2 pt-2">
+          {palette.slice(0, 10).map((color, index) => (
+            <TooltipProvider key={`${color}-${index}`} delayDuration={100}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="h-6 w-6 rounded-full border shadow-inner transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ring focus:z-10"
+                    style={{ backgroundColor: color }}
+                    aria-label={`Copy color ${color}`}
+                    onClick={() => handleColorCopy(color)}
+                  />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 rounded-full border" style={{ backgroundColor: color }} />
+                    <p className="font-mono text-xs">{color}</p>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ))}
+        </div>
+      </div>
+    );
+  };
   
   const DialogBody = (
     <>
+      <DialogTitle className="sr-only">Details for {item?.title || 'content item'}</DialogTitle>
       <div className={cn(
         "grid flex-grow overflow-hidden",
         hasVisual ? "md:grid-cols-2" : "md:grid-cols-1"
       )}>
         {hasVisual && (
-          <div className="hidden md:flex flex-col bg-muted p-4">
+          <div className="hidden md:flex flex-col bg-muted/50">
               <div className="relative w-full flex-grow min-h-0 flex justify-center items-center rounded-lg overflow-hidden">
                   {isFetchingOembed ? (
                   <div className="w-full aspect-video flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
@@ -445,7 +448,6 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
         )}>
             <ScrollArea className="flex-grow">
               <div className="p-6 space-y-4">
-                <DialogTitle className="sr-only">Details for {item?.title || 'content item'}</DialogTitle>
                 {item?.domain && item.domain !== 'mati.internal.storage' && (
                     <div className="flex items-center text-sm text-muted-foreground">
                         <Globe className="h-4 w-4 mr-2" />
@@ -499,13 +501,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
 
                 <Separator />
                 
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                      <Palette className="h-4 w-4 text-primary" />
-                      <h3 className="font-semibold text-foreground">Color Palette</h3>
-                  </div>
-                  <ColorPalette palette={item?.colorPalette} />
-                </div>
+                <ColorPalette palette={item?.colorPalette} />
 
                 <Separator />
 
@@ -555,14 +551,14 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
             </ScrollArea>
         </div>
       </div>
-       <div className="flex-shrink-0 flex justify-between items-center p-4 border-t">
-          <div className="text-xs text-muted-foreground flex items-center">
-              <CalendarDays className="h-3.5 w-3.5 mr-1.5 shrink-0" />
-              Saved {item && format(parseISO(item.createdAt), 'MMM d, yyyy @ h:mm a')}
-          </div>
-          <DialogClose asChild>
-              <Button variant="outline">Close</Button>
-          </DialogClose>
+      <div className="flex-shrink-0 flex justify-between items-center px-6 py-3 border-t">
+        <div className="text-xs text-muted-foreground flex items-center">
+            <CalendarDays className="h-3.5 w-3.5 mr-1.5 shrink-0" />
+            Saved {item && format(parseISO(item.createdAt), 'MMM d, yyyy @ h:mm a')}
+        </div>
+        <DialogClose asChild>
+            <Button variant="outline">Close</Button>
+        </DialogClose>
       </div>
     </>
   )
