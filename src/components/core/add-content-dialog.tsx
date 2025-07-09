@@ -12,12 +12,11 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -25,7 +24,7 @@ import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, Command
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { X, Loader2, Check, Plus, ChevronDown, Bookmark, Briefcase, Home, Library, FileUp, UploadCloud, Mic, AlarmClock } from 'lucide-react';
+import { X, Loader2, Check, Plus, ChevronDown, Bookmark, Briefcase, Home, Library, FileUp, UploadCloud, Mic, AlarmClock, Maximize } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import type { Zone, ContentItem, Tag } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -36,7 +35,8 @@ import { useDialog } from '@/context/DialogContext';
 import { add } from 'date-fns';
 import { ScrollArea } from '../ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import FocusModeDialog from './FocusModeDialog';
 
 
 const mainContentSchema = z.object({
@@ -94,6 +94,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const [expiryDays, setExpiryDays] = useState('30');
   
   const isMobile = useIsMobile();
+  const [isFocusModeOpen, setIsFocusModeOpen] = useState(false);
 
   const form = useForm<z.infer<typeof mainContentSchema>>({
     resolver: zodResolver(mainContentSchema),
@@ -345,12 +346,24 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   
   const FormFields = (
     <div className="flex-grow overflow-y-auto pr-4 pl-1 space-y-4 py-4">
-      <Textarea
-        id="mainContent"
-        {...form.register('mainContent')}
-        placeholder="Paste a link, type a note, or add a thought for your uploads..."
-        className={cn("min-h-[100px] text-base focus-visible:ring-accent bg-muted/50", form.formState.errors.mainContent && "border-destructive focus-visible:ring-destructive")}
-      />
+      <div className="relative">
+          <Textarea
+              id="mainContent"
+              {...form.register('mainContent')}
+              placeholder="Paste a link, type a note, or add a thought for your uploads..."
+              className={cn("min-h-[100px] text-base focus-visible:ring-accent bg-muted/50", form.formState.errors.mainContent && "border-destructive focus-visible:ring-destructive")}
+          />
+          <Button 
+            type="button" 
+            variant="ghost" 
+            size="sm"
+            className="absolute bottom-2 right-2 text-muted-foreground hover:text-foreground"
+            onClick={() => setIsFocusModeOpen(true)}
+          >
+            <Maximize className="h-4 w-4 mr-2" />
+            Focus
+          </Button>
+      </div>
       {form.formState.errors.mainContent && <p className="text-sm text-destructive">{form.formState.errors.mainContent.message}</p>}
 
       <div className="relative flex items-center pt-2">
@@ -501,6 +514,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   return (
     <>
       {children && <div onClick={(e) => e.stopPropagation()}>{children}</div>}
+      
       {isMobile ? (
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent side="bottom" className="h-[90vh] flex flex-col p-0 bg-card">
@@ -520,35 +534,53 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
             </SheetContent>
         </Sheet>
       ) : (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-          <DialogContent 
-            className="bg-transparent border-0 shadow-none p-0 w-full max-w-[625px]"
-            onOpenAutoFocus={(e) => e.preventDefault()}
-          >
-              <motion.div 
-                variants={dialogVariants} 
-                initial="hidden" 
-                animate="visible" 
-                exit="exit" 
-                className="bg-card rounded-lg shadow-lg flex flex-col max-h-[90vh]"
+        <Dialog open={open && !isFocusModeOpen} onOpenChange={onOpenChange}>
+            <AnimatePresence>
+            {open && !isFocusModeOpen && (
+              <DialogContent 
+                className="bg-transparent border-0 shadow-none p-0 w-full max-w-[625px]"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+                asChild
               >
-                <DialogHeader className="p-6 pb-0">
-                  <DialogTitle className="font-headline">Add Content</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-grow flex flex-col overflow-hidden px-6">
-                    {FormFields}
-                    <DialogFooter className="pt-4 border-t mt-auto flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pb-6">
-                        <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
-                        <Button type="submit" form="add-content-form-desktop" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                        {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
-                        </Button>
-                    </DialogFooter>
-                </form>
-              </motion.div>
-          </DialogContent>
+                  <motion.div 
+                    variants={dialogVariants} 
+                    initial="hidden" 
+                    animate="visible" 
+                    exit="exit" 
+                    className="bg-card rounded-lg shadow-lg flex flex-col max-h-[90vh]"
+                  >
+                    <DialogHeader className="p-6 pb-0">
+                      <DialogTitle className="font-headline">Add Content</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-grow flex flex-col overflow-hidden px-6">
+                        {FormFields}
+                        <DialogFooter className="pt-4 border-t mt-auto flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pb-6">
+                            <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
+                            <Button type="submit" form="add-content-form-desktop" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                            {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                  </motion.div>
+              </DialogContent>
+              )}
+            </AnimatePresence>
         </Dialog>
       )}
+
+      <AnimatePresence>
+        {isFocusModeOpen && (
+            <FocusModeDialog
+                initialContent={watchedMainContent}
+                onSave={(newContent) => {
+                    form.setValue('mainContent', newContent);
+                    setIsFocusModeOpen(false);
+                }}
+                onClose={() => setIsFocusModeOpen(false)}
+            />
+        )}
+      </AnimatePresence>
     </>
   );
 };

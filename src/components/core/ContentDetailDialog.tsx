@@ -26,8 +26,6 @@ import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 
 
 const NO_ZONE_VALUE = "__NO_ZONE__";
@@ -131,8 +129,6 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
   const [editableMindNote, setEditableMindNote] = useState('');
   const [editableZoneId, setEditableZoneId] = useState<string | undefined>(undefined);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-  const [editorMode, setEditorMode] = useState<'edit' | 'preview'>('edit');
-
 
   const [allZones, setAllZones] = useState<Zone[]>([]);
 
@@ -215,7 +211,6 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
       setIsTemporary(!!item.expiresAt);
       setIsDescriptionExpanded(false);
       setImageError(false);
-      setEditorMode('edit');
     }
   }, [item]);
 
@@ -408,6 +403,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
           className="relative flex flex-col bg-card rounded-xl shadow-2xl w-[calc(100vw-2rem)] h-[calc(100vh-2rem)] md:w-full md:h-auto md:max-h-[90vh] md:max-w-6xl"
         >
           <DialogHeader className="sr-only">
+            {/* The title is visually rendered in the main content but required for accessibility. */}
             <DialogTitle>{item?.title || "Content Details"}</DialogTitle>
           </DialogHeader>
 
@@ -534,30 +530,26 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                              </div>
                           </AccordionContent>
                       </AccordionItem>
+                      <AccordionItem value="mind-note">
+                          <AccordionTrigger>
+                              <div className="flex items-center gap-2">
+                              <Pencil className="h-4 w-4" />
+                              <span>Mind Note</span>
+                              </div>
+                          </AccordionTrigger>
+                           <AccordionContent>
+                             <div className="pl-2">
+                                <Textarea
+                                value={editableMindNote}
+                                onChange={handleMindNoteChange}
+                                onBlur={handleMindNoteBlur}
+                                placeholder="Add your personal thoughts..."
+                                className="w-full min-h-[120px] focus-visible:ring-accent bg-muted/30 dark:bg-muted/20 border-border"
+                                />
+                             </div>
+                          </AccordionContent>
+                      </AccordionItem>
                   </Accordion>
-                  
-                  <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                          <Label className="text-sm font-medium">Focus Note</Label>
-                          <Button variant="ghost" size="sm" onClick={() => setEditorMode(prev => prev === 'edit' ? 'preview' : 'edit')}>
-                            {editorMode === 'edit' ? <Eye className="h-4 w-4 mr-2" /> : <Pencil className="h-4 w-4 mr-2" />}
-                            {editorMode === 'edit' ? 'Preview' : 'Edit'}
-                          </Button>
-                      </div>
-                      {editorMode === 'edit' ? (
-                        <Textarea
-                          value={editableMindNote}
-                          onChange={handleMindNoteChange}
-                          onBlur={handleMindNoteBlur}
-                          placeholder="Add your personal thoughts. Markdown is supported."
-                          className="w-full min-h-[120px] focus-visible:ring-accent bg-muted/30 dark:bg-muted/20 border-border font-mono text-sm"
-                        />
-                      ) : (
-                        <div className="prose dark:prose-invert prose-sm max-w-none rounded-md border p-3 min-h-[120px] bg-muted/30">
-                            {editableMindNote ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{editableMindNote}</ReactMarkdown> : <p className="text-muted-foreground italic">Nothing written yet.</p>}
-                        </div>
-                      )}
-                  </div>
                   
                   <Separator />
                   
