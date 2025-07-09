@@ -412,11 +412,16 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-2rem)] h-[calc(100vh-2rem)] max-w-none flex flex-col p-0 gap-0">
-        <DialogHeader className="hidden">
-            <DialogTitle className="sr-only">{dialogTitleText}</DialogTitle>
-        </DialogHeader>
-          <motion.div layoutId={`card-animation-${itemId}`} className="flex-grow overflow-y-auto custom-scrollbar md:grid md:grid-cols-2 md:gap-0 h-full">
+      <DialogContent className="bg-transparent border-0 shadow-none p-0 flex items-center justify-center w-full h-full max-w-none">
+        <motion.div
+          layoutId={`card-animation-${itemId}`}
+          className="relative flex flex-col bg-card rounded-xl shadow-2xl w-[calc(100vw-2rem)] h-[calc(100vh-2rem)] md:w-full md:h-auto md:max-h-[90vh] md:max-w-4xl"
+        >
+          <DialogClose className="absolute right-4 top-4 z-50 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </DialogClose>
+          <div className="flex-grow overflow-y-auto custom-scrollbar md:grid md:grid-cols-2 md:gap-0 h-full rounded-xl">
             {isLoading ? (
               <div className="flex items-center justify-center h-full col-span-2">
                 <Loader2 className="h-8 w-8 animate-spin text-primary"/>
@@ -590,7 +595,8 @@ export default function ContentDetailDialog({ itemId, open, onOpenChange, onItem
                 </div>
               </>
             )}
-          </motion.div>
+          </div>
+        </motion.div>
       </DialogContent>
     </Dialog>
   );
