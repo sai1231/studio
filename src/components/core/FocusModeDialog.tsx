@@ -228,42 +228,42 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
           </div>
         </DialogHeader>
         
-        <div className="flex-grow overflow-y-auto p-8 md:p-12">
-            {editorMode === 'wysiwyg' ? (
-              <>
-                <EditorContent editor={editor} />
-                <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
-                    <ToggleGroup type="multiple" className="bg-background border rounded-md shadow-lg p-1">
-                        <ToggleGroupItem value="bold" aria-label="Toggle bold" onClick={() => editor.chain().focus().toggleBold().run()} data-active={editor.isActive('bold')}>
-                            <Bold className="h-4 w-4" />
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="italic" aria-label="Toggle italic" onClick={() => editor.chain().focus().toggleItalic().run()} data-active={editor.isActive('italic')}>
-                            <Italic className="h-4 w-4" />
-                        </ToggleGroupItem>
-                         <ToggleGroupItem value="underline" aria-label="Toggle underline" onClick={() => editor.chain().focus().toggleUnderline().run()} data-active={editor.isActive('underline')}>
-                            <UnderlineIcon className="h-4 w-4" />
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="strike" aria-label="Toggle strikethrough" onClick={() => editor.chain().focus().toggleStrike().run()} data-active={editor.isActive('strike')}>
-                            <Strikethrough className="h-4 w-4" />
-                        </ToggleGroupItem>
-                        <Separator orientation="vertical" className="h-6 mx-1" />
-                        <ToggleGroupItem value="tasks" aria-label="Toggle Task List" onClick={() => editor.chain().focus().toggleTaskList().run()} data-active={editor.isActive('taskList')}>
-                            <ListChecks className="h-4 w-4" />
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="code" aria-label="Toggle code" onClick={() => editor.chain().focus().toggleCode().run()} data-active={editor.isActive('code')}>
-                            <Code className="h-4 w-4" />
-                        </ToggleGroupItem>
-                    </ToggleGroup>
-                </BubbleMenu>
-              </>
-            ) : (
-                <Textarea
-                    value={rawMarkdown}
-                    onChange={handleRawMarkdownChange}
-                    className="w-full h-full font-mono text-sm bg-muted/30 resize-none border-0 focus-visible:ring-0"
-                    placeholder="Start typing markdown..."
-                />
-            )}
+        <div className="flex-grow overflow-y-auto p-8 md:p-12 relative">
+            <div className={cn('h-full', editorMode === 'wysiwyg' ? 'block' : 'hidden')}>
+              <EditorContent editor={editor} />
+              <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
+                  <ToggleGroup type="multiple" className="bg-background border rounded-md shadow-lg p-1">
+                      <ToggleGroupItem value="bold" aria-label="Toggle bold" onClick={() => editor.chain().focus().toggleBold().run()} data-active={editor.isActive('bold')}>
+                          <Bold className="h-4 w-4" />
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="italic" aria-label="Toggle italic" onClick={() => editor.chain().focus().toggleItalic().run()} data-active={editor.isActive('italic')}>
+                          <Italic className="h-4 w-4" />
+                      </ToggleGroupItem>
+                        <ToggleGroupItem value="underline" aria-label="Toggle underline" onClick={() => editor.chain().focus().toggleUnderline().run()} data-active={editor.isActive('underline')}>
+                          <UnderlineIcon className="h-4 w-4" />
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="strike" aria-label="Toggle strikethrough" onClick={() => editor.chain().focus().toggleStrike().run()} data-active={editor.isActive('strike')}>
+                          <Strikethrough className="h-4 w-4" />
+                      </ToggleGroupItem>
+                      <Separator orientation="vertical" className="h-6 mx-1" />
+                      <ToggleGroupItem value="tasks" aria-label="Toggle Task List" onClick={() => editor.chain().focus().toggleTaskList().run()} data-active={editor.isActive('taskList')}>
+                          <ListChecks className="h-4 w-4" />
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="code" aria-label="Toggle code" onClick={() => editor.chain().focus().toggleCode().run()} data-active={editor.isActive('code')}>
+                          <Code className="h-4 w-4" />
+                      </ToggleGroupItem>
+                  </ToggleGroup>
+              </BubbleMenu>
+            </div>
+            <Textarea
+                value={rawMarkdown}
+                onChange={handleRawMarkdownChange}
+                className={cn(
+                  "w-full h-full font-mono text-sm bg-muted/30 resize-none border-0 focus-visible:ring-0 absolute inset-0 p-8 md:p-12",
+                  editorMode === 'markdown' ? 'block' : 'hidden'
+                )}
+                placeholder="Start typing markdown..."
+            />
         </div>
 
         <DialogFooter className="p-4 border-t flex-shrink-0 flex items-center justify-between w-full">
