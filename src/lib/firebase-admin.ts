@@ -3,19 +3,19 @@ import * as admin from 'firebase-admin';
 import * as fs from 'fs';
 import * as path from 'path';
 
-let adminApp: admin.app.App | null = null;
-
 /**
  * Initializes the Firebase Admin SDK, but only if it hasn't been initialized already.
- * This lazy initialization prevents race conditions during server startup.
+ * This lazy initialization prevents race conditions and re-initialization errors during server hot-reloads.
  * @returns The initialized Firebase Admin App instance.
  */
 function initializeAdminApp(): admin.app.App {
-  if (adminApp) {
-    return adminApp;
+  // Use the official way to check for existing apps to prevent re-initialization errors.
+  if (admin.apps.length > 0) {
+    console.log("Firebase Admin SDK already initialized. Returning existing app.");
+    return admin.app(); // Return the default app instance
   }
   
-  console.log("Attempting to initialize Firebase Admin SDK...");
+  console.log("Attempting to initialize Firebase Admin SDK for the first time...");
 
   const serviceAccountPath = path.resolve(process.cwd(), 'service-account.json');
 
@@ -38,14 +38,13 @@ function initializeAdminApp(): admin.app.App {
     }
     
     console.log("Initializing Firebase Admin App with credentials...");
-    adminApp = admin.initializeApp({
+    const app = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
       storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-      
     });
     
     console.log("Firebase Admin SDK initialized successfully.");
-    return adminApp;
+    return app;
 
   } catch (error: any) {
     let detail = error.message;

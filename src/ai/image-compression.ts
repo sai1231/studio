@@ -12,9 +12,15 @@ import type { ContentItem } from '@/types';
 async function uploadBufferToStorage(buffer: Buffer, path: string, contentType: string): Promise<string> {
   try {
     addLog('INFO', `Attempting to upload buffer to Storage at path: ${path}`);
+    
     const adminStorage = getAdminStorage();
+    addLog('INFO', `Initialized adminStorage`);
+
     const bucket = adminStorage.bucket();
+    addLog('INFO', `Initialized bucket`);
+    
     const file = bucket.file(path);
+    addLog('INFO', `Initialized file object for path: ${path}`);
     
     await file.save(buffer, {
       metadata: {
