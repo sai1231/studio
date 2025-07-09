@@ -36,6 +36,7 @@ import { useDialog } from '@/context/DialogContext';
 import { add } from 'date-fns';
 import { ScrollArea } from '../ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { motion } from 'framer-motion';
 
 
 const mainContentSchema = z.object({
@@ -336,6 +337,12 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     return null; // Avoid rendering anything until we know the screen size
   }
   
+  const dialogVariants = {
+    hidden: { opacity: 0, scale: 0.95 },
+    visible: { opacity: 1, scale: 1, transition: { duration: 0.2, ease: "easeInOut" } },
+    exit: { opacity: 0, scale: 0.95, transition: { duration: 0.15, ease: "easeIn" } }
+  };
+  
   const FormFields = (
     <div className="flex-grow overflow-y-auto pr-4 pl-1 space-y-4 py-4">
       <Textarea
@@ -515,19 +522,21 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       ) : (
         <Dialog open={open} onOpenChange={onOpenChange}>
           <DialogContent className="sm:max-w-[625px] max-h-[90vh] flex flex-col bg-card">
-            <DialogHeader>
-              <DialogTitle className="font-headline">Add Content</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-grow flex flex-col overflow-hidden">
-                {FormFields}
-                <DialogFooter className="pt-4 border-t mt-auto flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
-                    <Button type="submit" form="add-content-form-desktop" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                    {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
-                    </Button>
-                </DialogFooter>
-            </form>
+              <motion.div variants={dialogVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col h-full">
+                <DialogHeader>
+                  <DialogTitle className="font-headline">Add Content</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-grow flex flex-col overflow-hidden">
+                    {FormFields}
+                    <DialogFooter className="pt-4 border-t mt-auto flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                        <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
+                        <Button type="submit" form="add-content-form-desktop" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                        {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
+                        </Button>
+                    </DialogFooter>
+                </form>
+              </motion.div>
           </DialogContent>
         </Dialog>
       )}

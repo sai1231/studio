@@ -24,6 +24,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import Link from 'next/link';
 import TodoListSheet from '@/components/core/TodoListSheet';
 import { Loader2 } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 
 const iconMap: { [key: string]: React.ElementType } = {
   Briefcase: StickyNote,
@@ -475,12 +476,16 @@ export default function AppLayout({
             )}
           </main>
         </div>
-        <AddContentDialog
-          open={isAddContentDialogOpen}
-          onOpenChange={setIsAddContentDialogOpen}
-          zones={zones}
-          onContentAdd={handleAddContentAndRefresh}
-        />
+        <AnimatePresence>
+            {isAddContentDialogOpen && (
+                <AddContentDialog
+                    open={isAddContentDialogOpen}
+                    onOpenChange={setIsAddContentDialogOpen}
+                    zones={zones}
+                    onContentAdd={handleAddContentAndRefresh}
+                />
+            )}
+        </AnimatePresence>
         <AddTodoDialog
           open={isAddTodoDialogOpen}
           onOpenChange={setIsAddTodoDialogOpen}
