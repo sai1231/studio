@@ -2,11 +2,13 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
 import {
   Dialog,
   DialogContent,
@@ -16,7 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code, Plus, Check, ChevronDown, Bookmark, Briefcase, Home, Library } from 'lucide-react';
+import { Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code, Plus, Check, ChevronDown, Bookmark, Briefcase, Home, Library, ListChecks } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Separator } from '../ui/separator';
 import type { Zone, ContentItem, Tag } from '@/types';
@@ -29,10 +31,14 @@ import { cn } from '@/lib/utils';
 import { Loader2, X } from 'lucide-react';
 import { addContentItem, updateContentItem } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
+import TurndownService from 'turndown';
+import { marked } from 'marked';
+import { Textarea } from '../ui/textarea';
 
 
 interface FocusModeDialogProps {
   item: ContentItem | null;
+  open: boolean;
   onClose: () => void;
   zones: Zone[];
   onZoneCreate: (zoneName: string) => Promise<Zone | null>;
@@ -52,7 +58,7 @@ const getIconComponent = (iconName?: string): React.ElementType => {
   return Bookmark;
 };
 
-const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, onClose, zones, onZoneCreate }) => {
+const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onClose, zones, onZoneCreate }) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
@@ -64,6 +70,10 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, onClose, zones,
   const [isZonePopoverOpen, setIsZonePopoverOpen] = useState(false);
   const [zoneSearchText, setZoneSearchText] = useState('');
 
+  const [editorMode, setEditorMode] = useState<'wysiwyg' | 'markdown'>('wysiwyg');
+  const [rawMarkdown, setRawMarkdown] = useState('');
+  const turndownService = new TurndownService();
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -71,26 +81,48 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, onClose, zones,
       Placeholder.configure({
         placeholder: 'Write something amazing...',
       }),
+      TaskList,
+      TaskItem.configure({
+        nested: true,
+      }),
     ],
     editorProps: {
       attributes: {
         class: 'prose dark:prose-invert focus:outline-none max-w-full',
       },
     },
+    onUpdate: ({ editor }) => {
+      setRawMarkdown(turndownService.turndown(editor.getHTML()));
+    },
     autofocus: true,
   });
 
   useEffect(() => {
+    if (!open) return;
+    
     if (item && editor) {
-      editor.commands.setContent(item.description || '');
+      const html = marked.parse(item.description || '') as string;
+      editor.commands.setContent(html);
+      setRawMarkdown(item.description || '');
       setSelectedZoneId(item.zoneId);
       setCurrentTags(item.tags || []);
     } else if (!item && editor) {
       editor.commands.clearContent();
+      setRawMarkdown('');
       setSelectedZoneId(undefined);
       setCurrentTags([]);
     }
-  }, [item, editor]);
+     setEditorMode('wysiwyg');
+  }, [item, open, editor]);
+
+  const handleRawMarkdownChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newMarkdown = e.target.value;
+    setRawMarkdown(newMarkdown);
+    if (editor) {
+      const html = marked.parse(newMarkdown) as string;
+      editor.commands.setContent(html, false); // false to avoid re-triggering onUpdate
+    }
+  };
   
   const handleCreateZone = async (zoneName: string) => {
     if (!zoneName.trim() || isSaving) return;
@@ -109,10 +141,10 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, onClose, zones,
     }
   };
 
-
   const handleSave = async () => {
     if (!editor || !user) return;
-    const content = editor.getHTML();
+    
+    const finalMarkdown = rawMarkdown;
     const textContent = editor.getText();
 
     if (!textContent.trim()) {
@@ -129,7 +161,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, onClose, zones,
     try {
         if (item) { // This is an update
             await updateContentItem(item.id, {
-                description: content,
+                description: finalMarkdown,
                 tags: currentTags,
                 zoneId: selectedZoneId
             });
@@ -139,7 +171,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, onClose, zones,
             const contentData: Omit<ContentItem, 'id' | 'createdAt'> = {
                 type: 'note',
                 title: generatedTitle || 'Untitled Note',
-                description: content,
+                description: finalMarkdown,
                 contentType: 'Note',
                 status: 'pending-analysis',
                 tags: currentTags,
@@ -173,7 +205,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, onClose, zones,
   };
   const removeTag = (tagToRemove: Tag) => setCurrentTags(currentTags.filter(tag => tag.id !== tagToRemove.id));
 
-  if (!editor) {
+  if (!editor || !open) {
     return null;
   }
 
@@ -189,7 +221,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, onClose, zones,
   const filteredZones = zoneSearchText ? zones.filter(z => z.name.toLowerCase().includes(zoneSearchText.toLowerCase())) : zones;
 
   return (
-    <Dialog open={true} onOpenChange={(isOpen) => !isOpen && onClose()}>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent 
         className="bg-transparent border-0 shadow-none p-0 flex items-center justify-center w-full h-full max-w-none"
         onOpenAutoFocus={(e) => e.preventDefault()}
@@ -201,32 +233,50 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, onClose, zones,
             exit="exit" 
             className="w-[95vw] max-w-7xl h-[95vh] flex flex-col p-0 bg-card rounded-lg shadow-2xl"
         >
-            <DialogHeader className="p-4 border-b flex-shrink-0">
+            <DialogHeader className="p-4 border-b flex-shrink-0 flex flex-row items-center justify-between">
               <DialogTitle className="font-headline">Focus Mode</DialogTitle>
+              <div className="flex items-center gap-2">
+                <Button variant={editorMode === 'wysiwyg' ? 'default' : 'outline'} size="sm" onClick={() => setEditorMode('wysiwyg')}>Editor</Button>
+                <Button variant={editorMode === 'markdown' ? 'default' : 'outline'} size="sm" onClick={() => setEditorMode('markdown')}>Markdown</Button>
+              </div>
             </DialogHeader>
             
             <div className="flex-grow overflow-y-auto p-8 md:p-12">
-                <EditorContent editor={editor} />
-                <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
-                    <ToggleGroup type="multiple" className="bg-background border rounded-md shadow-lg p-1">
-                        <ToggleGroupItem value="bold" aria-label="Toggle bold" onClick={() => editor.chain().focus().toggleBold().run()} data-active={editor.isActive('bold')}>
-                            <Bold className="h-4 w-4" />
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="italic" aria-label="Toggle italic" onClick={() => editor.chain().focus().toggleItalic().run()} data-active={editor.isActive('italic')}>
-                            <Italic className="h-4 w-4" />
-                        </ToggleGroupItem>
-                         <ToggleGroupItem value="underline" aria-label="Toggle underline" onClick={() => editor.chain().focus().toggleUnderline().run()} data-active={editor.isActive('underline')}>
-                            <UnderlineIcon className="h-4 w-4" />
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="strike" aria-label="Toggle strikethrough" onClick={() => editor.chain().focus().toggleStrike().run()} data-active={editor.isActive('strike')}>
-                            <Strikethrough className="h-4 w-4" />
-                        </ToggleGroupItem>
-                        <Separator orientation="vertical" className="h-6 mx-1" />
-                        <ToggleGroupItem value="code" aria-label="Toggle code" onClick={() => editor.chain().focus().toggleCode().run()} data-active={editor.isActive('code')}>
-                            <Code className="h-4 w-4" />
-                        </ToggleGroupItem>
-                    </ToggleGroup>
-                </BubbleMenu>
+                {editorMode === 'wysiwyg' ? (
+                  <>
+                    <EditorContent editor={editor} />
+                    <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
+                        <ToggleGroup type="multiple" className="bg-background border rounded-md shadow-lg p-1">
+                            <ToggleGroupItem value="bold" aria-label="Toggle bold" onClick={() => editor.chain().focus().toggleBold().run()} data-active={editor.isActive('bold')}>
+                                <Bold className="h-4 w-4" />
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value="italic" aria-label="Toggle italic" onClick={() => editor.chain().focus().toggleItalic().run()} data-active={editor.isActive('italic')}>
+                                <Italic className="h-4 w-4" />
+                            </ToggleGroupItem>
+                             <ToggleGroupItem value="underline" aria-label="Toggle underline" onClick={() => editor.chain().focus().toggleUnderline().run()} data-active={editor.isActive('underline')}>
+                                <UnderlineIcon className="h-4 w-4" />
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value="strike" aria-label="Toggle strikethrough" onClick={() => editor.chain().focus().toggleStrike().run()} data-active={editor.isActive('strike')}>
+                                <Strikethrough className="h-4 w-4" />
+                            </ToggleGroupItem>
+                            <Separator orientation="vertical" className="h-6 mx-1" />
+                            <ToggleGroupItem value="tasks" aria-label="Toggle Task List" onClick={() => editor.chain().focus().toggleTaskList().run()} data-active={editor.isActive('taskList')}>
+                                <ListChecks className="h-4 w-4" />
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value="code" aria-label="Toggle code" onClick={() => editor.chain().focus().toggleCode().run()} data-active={editor.isActive('code')}>
+                                <Code className="h-4 w-4" />
+                            </ToggleGroupItem>
+                        </ToggleGroup>
+                    </BubbleMenu>
+                  </>
+                ) : (
+                    <Textarea
+                        value={rawMarkdown}
+                        onChange={handleRawMarkdownChange}
+                        className="w-full h-full font-mono text-sm bg-muted/30 resize-none border-0 focus-visible:ring-0"
+                        placeholder="Start typing markdown..."
+                    />
+                )}
             </div>
 
             <DialogFooter className="p-4 border-t flex-shrink-0 flex items-center justify-between w-full">

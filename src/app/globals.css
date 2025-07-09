@@ -121,6 +121,22 @@ body {
   .ProseMirror em { @apply italic; }
   .ProseMirror u { @apply underline; }
   .ProseMirror s { @apply line-through; }
+  .ProseMirror ul[data-type="taskList"] {
+    @apply list-none p-0;
+  }
+  .ProseMirror li[data-type="taskItem"] {
+    @apply flex items-center gap-2;
+  }
+  .ProseMirror li[data-type="taskItem"] > label {
+    @apply flex items-center gap-2;
+  }
+  .ProseMirror li[data-type="taskItem"] > label > input {
+    @apply h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary;
+  }
+  .ProseMirror li[data-type="taskItem"][data-checked="true"] > div > p {
+    @apply line-through text-muted-foreground;
+  }
+
 
   /* Dark mode Tiptap styling */
   .dark .ProseMirror {

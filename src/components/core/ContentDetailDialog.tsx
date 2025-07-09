@@ -26,6 +26,8 @@ import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 
 const NO_ZONE_VALUE = "__NO_ZONE__";
@@ -125,10 +127,8 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
   const [error, setError] = useState<string | null>(null);
 
   const [editableTitle, setEditableTitle] = useState('');
-  const [editableDescription, setEditableDescription] = useState('');
   const [editableMindNote, setEditableMindNote] = useState('');
   const [editableZoneId, setEditableZoneId] = useState<string | undefined>(undefined);
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   const [allZones, setAllZones] = useState<Zone[]>([]);
 
@@ -157,10 +157,14 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
 
       // Fetch supporting data and fresh item data in the background
       const fetchSupportingData = async () => {
+        if (!initialItem.userId) {
+          setError("Item is missing user information.");
+          return;
+        }
         try {
           // Fetch fresh item data to ensure consistency
           const freshItemPromise = getContentItemById(initialItem.id);
-          const zonesPromise = getZones(initialItem.userId!);
+          const zonesPromise = getZones(initialItem.userId);
           
           const [freshItem, fetchedZones] = await Promise.all([freshItemPromise, zonesPromise]);
           
@@ -204,12 +208,10 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
   useEffect(() => {
     if (item) {
       setEditableTitle(item.title);
-      setEditableDescription(item.description || '');
       setEditableMindNote(item.mindNote || '');
       setEditableZoneId(item.zoneId);
       setEditableTags(item.tags || []);
       setIsTemporary(!!item.expiresAt);
-      setIsDescriptionExpanded(false);
       setImageError(false);
     }
   }, [item]);
@@ -232,7 +234,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
   }, [isAddingTag]);
 
   const handleFieldUpdate = useCallback(async (
-    fieldName: keyof Pick<ContentItem, 'title' | 'description' | 'mindNote' | 'zoneId' | 'expiresAt' | 'tags'>,
+    fieldName: keyof Pick<ContentItem, 'title' | 'mindNote' | 'zoneId' | 'expiresAt' | 'tags'>,
     value: any
   ) => {
     if (!item) return;
@@ -272,17 +274,6 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
   const handleTitleBlur = () => {
     if (item && editableTitle !== item.title) {
       handleFieldUpdate('title', editableTitle);
-    }
-  };
-
-  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setEditableDescription(e.target.value);
-  };
-  const handleDescriptionBlur = () => {
-    if (item && editableDescription !== (item.description || '')) {
-       if (item.type === 'note' || item.type === 'movie') {
-         handleFieldUpdate('description', editableDescription);
-       }
     }
   };
 
@@ -402,10 +393,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
           layoutId={`card-animation-${initialItem?.id}`}
           className="relative flex flex-col bg-card rounded-xl shadow-2xl w-[calc(100vw-2rem)] h-[calc(100vh-2rem)] md:w-full md:h-auto md:max-h-[90vh] md:max-w-6xl"
         >
-          <DialogHeader className="sr-only">
-            {/* The title is visually rendered in the main content but required for accessibility. */}
-            <DialogTitle>{item?.title || "Content Details"}</DialogTitle>
-          </DialogHeader>
+          {item && <DialogTitle className="sr-only">{item.title}</DialogTitle>}
 
           <DialogClose className="absolute right-4 top-4 z-50 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
             <X className="h-4 w-4" />
@@ -509,16 +497,9 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                                         <Skeleton className="h-16 w-full" />
                                         <Skeleton className="h-2.5 w-full" />
                                     </div>
-                                ) : editableDescription ? (
+                                ) : item.description ? (
                                     <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground">
-                                        <p className={cn(!isDescriptionExpanded && "line-clamp-4")}>
-                                            <span dangerouslySetInnerHTML={{ __html: editableDescription.replace(/\n/g, '<br />') }} />
-                                        </p>
-                                        {editableDescription.length > 280 && (
-                                            <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
-                                                {isDescriptionExpanded ? "Show less" : "Show more"}
-                                            </Button>
-                                        )}
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.description}</ReactMarkdown>
                                     </div>
                                 ) : (
                                     <p className="text-sm text-muted-foreground italic">No description generated.</p>
