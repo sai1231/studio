@@ -31,7 +31,6 @@ import { getUniqueContentTypesFromItems, getUniqueTagsFromItems, getUniqueDomain
 
 const AppHeader: React.FC = () => {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -58,40 +57,45 @@ const AppHeader: React.FC = () => {
     }
   }, [isFilterOpen, searchParams]);
 
-  // Derived filter options for the popover UI, based on pending selections
   const { popoverTags, popoverContentTypes, popoverDomains, popoverZones } = useMemo(() => {
-    if (!isFilterOpen) return { popoverTags: [], popoverContentTypes: [], popoverDomains: [], popoverZones: availableZones };
+    if (!isFilterOpen) return { popoverTags: [], popoverContentTypes: [], popoverDomains: [], popoverZones: [] };
+  
+    // Filter items based on pending selections for ContentType, Tags, and Domain
+    let itemsForZoneFilter = allItems;
+    if (pendingContentType) itemsForZoneFilter = itemsForZoneFilter.filter(item => item.contentType === pendingContentType);
+    if (pendingTagNames.length > 0) itemsForZoneFilter = itemsForZoneFilter.filter(item => pendingTagNames.every(tagName => item.tags.some(t => t.name === tagName)));
+    if (pendingDomain) itemsForZoneFilter = itemsForZoneFilter.filter(item => item.domain === pendingDomain);
+    const availableZoneIds = new Set(itemsForZoneFilter.map(item => item.zoneId).filter(Boolean));
+    const finalPopoverZones = availableZones.filter(zone => availableZoneIds.has(zone.id));
+  
+    // Filter items based on pending selections for Zone, Tags, and Domain
+    let itemsForContentTypeFilter = allItems;
+    if (pendingZoneId) itemsForContentTypeFilter = itemsForContentTypeFilter.filter(item => item.zoneId === pendingZoneId);
+    if (pendingTagNames.length > 0) itemsForContentTypeFilter = itemsForContentTypeFilter.filter(item => pendingTagNames.every(tagName => item.tags.some(t => t.name === tagName)));
+    if (pendingDomain) itemsForContentTypeFilter = itemsForContentTypeFilter.filter(item => item.domain === pendingDomain);
+    const finalPopoverContentTypes = getUniqueContentTypesFromItems(itemsForContentTypeFilter);
+  
+    // Filter items based on pending selections for Zone, ContentType, and Domain
+    let itemsForTagFilter = allItems;
+    if (pendingZoneId) itemsForTagFilter = itemsForTagFilter.filter(item => item.zoneId === pendingZoneId);
+    if (pendingContentType) itemsForTagFilter = itemsForTagFilter.filter(item => item.contentType === pendingContentType);
+    if (pendingDomain) itemsForTagFilter = itemsForTagFilter.filter(item => item.domain === pendingDomain);
+    const finalPopoverTags = getUniqueTagsFromItems(itemsForTagFilter);
+  
+     // Filter items based on pending selections for Zone, ContentType, and Tags
+    let itemsForDomainFilter = allItems;
+    if (pendingZoneId) itemsForDomainFilter = itemsForDomainFilter.filter(item => item.zoneId === pendingZoneId);
+    if (pendingContentType) itemsForDomainFilter = itemsForDomainFilter.filter(item => item.contentType === pendingContentType);
+    if (pendingTagNames.length > 0) itemsForDomainFilter = itemsForDomainFilter.filter(item => pendingTagNames.every(tagName => item.tags.some(t => t.name === tagName)));
+    const finalPopoverDomains = getUniqueDomainsFromItems(itemsForDomainFilter);
 
-    let filteredItems = allItems;
-
-    if (pendingZoneId) {
-      filteredItems = filteredItems.filter(item => item.zoneId === pendingZoneId);
-    }
-    if (pendingTagNames.length > 0) {
-      filteredItems = filteredItems.filter(item => 
-        pendingTagNames.every(tagName => item.tags.some(t => t.name === tagName))
-      );
-    }
-    if (pendingContentType) {
-      filteredItems = filteredItems.filter(item => item.contentType === pendingContentType);
-    }
-    if (pendingDomain) {
-      filteredItems = filteredItems.filter(item => item.domain === pendingDomain);
-    }
-
-    // Now, calculate the *other* available filters based on this narrowed down list
-    const relevantTags = getUniqueTagsFromItems(filteredItems);
-    const relevantContentTypes = getUniqueContentTypesFromItems(filteredItems);
-    const relevantDomains = getUniqueDomainsFromItems(filteredItems);
-
-    // For zones, we always show all available zones, as they are a primary filter
     return { 
-      popoverTags: relevantTags, 
-      popoverContentTypes: relevantContentTypes, 
-      popoverDomains: relevantDomains,
-      popoverZones: availableZones
+      popoverZones: finalPopoverZones,
+      popoverContentTypes: finalPopoverContentTypes,
+      popoverTags: finalPopoverTags,
+      popoverDomains: finalPopoverDomains,
     };
-  }, [isFilterOpen, pendingZoneId, pendingTagNames, pendingContentType, pendingDomain, allItems, availableZones]);
+  }, [isFilterOpen, allItems, availableZones, pendingZoneId, pendingContentType, pendingTagNames, pendingDomain]);
 
 
   const handleSearchInputChange = (search: string) => {
@@ -100,7 +104,7 @@ const AppHeader: React.FC = () => {
     else setIsCommandOpen(false);
   };
   
-  const handleCommandSelect = (type: 'zone' | 'tag' | 'domain' | 'type', value: string) => {
+  const handleFilterSelect = (type: 'zone' | 'tag' | 'domain' | 'type', value: string) => {
     const newParams = new URLSearchParams();
     if(inputValue) newParams.set('q', inputValue);
     newParams.set(type, value);
@@ -178,10 +182,10 @@ const AppHeader: React.FC = () => {
           {isCommandOpen && (
             <CommandList className="absolute top-full mt-1 w-full rounded-md border bg-popover shadow-lg z-50">
               <CommandEmpty>No results found.</CommandEmpty>
-              {popoverZones.filter(z => z.name.toLowerCase().includes(inputValue.toLowerCase())).length > 0 && (
+              {availableZones.filter(z => z.name.toLowerCase().includes(inputValue.toLowerCase())).length > 0 && (
                 <CommandGroup heading="Zones">
-                  {popoverZones.filter(z => z.name.toLowerCase().includes(inputValue.toLowerCase())).map(zone => (
-                    <CommandItem key={zone.id} onSelect={() => handleCommandSelect('zone', zone.id)}>
+                  {availableZones.filter(z => z.name.toLowerCase().includes(inputValue.toLowerCase())).map(zone => (
+                    <CommandItem key={zone.id} onSelect={() => handleFilterSelect('zone', zone.id)}>
                       <Bookmark className="mr-2 h-4 w-4" />
                       <span>{zone.name}</span>
                     </CommandItem>
@@ -191,7 +195,7 @@ const AppHeader: React.FC = () => {
                {popoverTags.filter(t => t.name.toLowerCase().includes(inputValue.toLowerCase())).length > 0 && (
                 <CommandGroup heading="Tags">
                   {popoverTags.filter(t => t.name.toLowerCase().includes(inputValue.toLowerCase())).map(tag => (
-                    <CommandItem key={tag.name} onSelect={() => handleCommandSelect('tag', tag.name)}>
+                    <CommandItem key={tag.name} onSelect={() => handleFilterSelect('tag', tag.name)}>
                       <Tag className="mr-2 h-4 w-4" />
                       <span>{tag.name}</span>
                     </CommandItem>
@@ -201,7 +205,7 @@ const AppHeader: React.FC = () => {
                 {popoverDomains.filter(d => d.toLowerCase().includes(inputValue.toLowerCase())).length > 0 && (
                  <CommandGroup heading="Domains">
                     {popoverDomains.filter(d => d.toLowerCase().includes(inputValue.toLowerCase())).map(domain => (
-                         <CommandItem key={domain} onSelect={() => handleCommandSelect('domain', domain)}>
+                         <CommandItem key={domain} onSelect={() => handleFilterSelect('domain', domain)}>
                            <Globe className="mr-2 h-4 w-4" />
                            <span>{domain}</span>
                          </CommandItem>
@@ -211,7 +215,7 @@ const AppHeader: React.FC = () => {
                 {popoverContentTypes.filter(c => c.toLowerCase().includes(inputValue.toLowerCase())).length > 0 && (
                   <CommandGroup heading="Content Types">
                     {popoverContentTypes.filter(c => c.toLowerCase().includes(inputValue.toLowerCase())).map(type => (
-                      <CommandItem key={type} onSelect={() => handleCommandSelect('type', type)}>
+                      <CommandItem key={type} onSelect={() => handleFilterSelect('type', type)}>
                         <ClipboardList className="mr-2 h-4 w-4" />
                         <span>{type}</span>
                       </CommandItem>
@@ -257,7 +261,7 @@ const AppHeader: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
+                 <div className="space-y-2">
                   <Label>Tags</Label>
                   <ScrollArea className="h-40 rounded-md border p-2">
                     {popoverTags.map(tag => (
@@ -321,3 +325,4 @@ const AppHeader: React.FC = () => {
 };
 
 export default AppHeader;
+
