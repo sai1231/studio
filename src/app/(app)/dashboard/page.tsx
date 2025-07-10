@@ -239,12 +239,6 @@ function DashboardPageContent() {
   return (
     <>
       <div className="container mx-auto py-2">
-        {isSearching ? (
-          <div className="text-center py-6">
-            <h2 className="text-2xl font-headline font-semibold">Search Results</h2>
-            <p className="text-muted-foreground">Found {totalHits} items for &quot;{query}&quot;</p>
-          </div>
-        ) : null}
 
         {noContentOnDashboard ? (
           <div className="text-center py-12">
@@ -336,5 +330,7 @@ export default function DashboardPage() {
     </Suspense>
   )
 }
+
+    
 
     
