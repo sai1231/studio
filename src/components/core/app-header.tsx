@@ -1,5 +1,4 @@
 
-
 'use client';
 import type React from 'react';
 import { useState, useEffect, useMemo } from 'react';
@@ -37,7 +36,7 @@ const AppHeader: React.FC = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const auth = getAuth();
-  const { availableZones, availableTags, availableContentTypes, search, isInitialized } = useSearch();
+  const { availableZones, availableTags, availableContentTypes, availableDomains, search, isInitialized } = useSearch();
 
   const query = searchParams.get('q') || '';
   const zoneId = searchParams.get('zone') || '';
@@ -143,69 +142,81 @@ const AppHeader: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-6">
-      <div className="flex-1">
-        <div className="relative">
-          <Command className="w-full rounded-lg border bg-muted" onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                  (e.target as HTMLElement).blur();
-              }
-          }}>
-            <div className="flex items-center w-full px-2.5">
-              <Search className="h-4 w-4 shrink-0 text-muted-foreground mr-2" />
-              <CommandInput
-                value={inputValue}
-                onValueChange={(search) => {
-                  setInputValue(search);
-                  if (search.length > 1) setIsCommandOpen(true);
-                  else setIsCommandOpen(false);
-                }}
-                onBlur={() => setIsCommandOpen(false)}
-                onFocus={() => { if (inputValue.length > 1) setIsCommandOpen(true); }}
-                placeholder="Search your memories or filter by type, zone, etc..."
-                className="h-9 w-full border-0 bg-transparent pl-1 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-              />
-            </div>
-            {isCommandOpen && (
-              <CommandList>
-                <CommandEmpty>No results found.</CommandEmpty>
-                <CommandGroup heading="Suggestions">
+      <div className="flex-1 flex items-center gap-2">
+        <Command className="w-full rounded-lg border bg-muted" onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+                (e.target as HTMLElement).blur();
+            }
+        }}>
+          <div className="flex items-center w-full px-2.5">
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground mr-2" />
+            <CommandInput
+              value={inputValue}
+              onValueChange={(search) => {
+                setInputValue(search);
+                if (search.length > 1) setIsCommandOpen(true);
+                else setIsCommandOpen(false);
+              }}
+              onBlur={() => setTimeout(() => setIsCommandOpen(false), 150)}
+              onFocus={() => { if (inputValue.length > 1) setIsCommandOpen(true); }}
+              placeholder="Search your memories or filter by type, zone, etc..."
+              className="h-9 w-full border-0 bg-transparent pl-1 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+            />
+          </div>
+          {isCommandOpen && (
+            <CommandList>
+              <CommandEmpty>No results found.</CommandEmpty>
+              {availableZones.length > 0 && (
+                <CommandGroup heading="Zones">
                   {availableZones.filter(z => z.name.toLowerCase().includes(inputValue.toLowerCase())).map(zone => (
                     <CommandItem key={zone.id} onSelect={() => handleFilterSelect('zone', zone.id)}>
                       <Bookmark className="mr-2 h-4 w-4" />
                       <span>{zone.name}</span>
                     </CommandItem>
                   ))}
+                </CommandGroup>
+              )}
+               {availableTags.length > 0 && (
+                <CommandGroup heading="Tags">
                   {availableTags.filter(t => t.name.toLowerCase().includes(inputValue.toLowerCase())).map(tag => (
                     <CommandItem key={tag.name} onSelect={() => handleFilterSelect('tag', tag.name)}>
                       <Tag className="mr-2 h-4 w-4" />
                       <span>{tag.name}</span>
                     </CommandItem>
                   ))}
-                   {availableDomains.filter(d => d.toLowerCase().includes(inputValue.toLowerCase())).map(domain => (
-                    <CommandItem key={domain} onSelect={() => handleFilterSelect('domain', domain)}>
-                      <Globe className="mr-2 h-4 w-4" />
-                      <span>{domain}</span>
-                    </CommandItem>
-                  ))}
-                  {availableContentTypes.filter(c => c.toLowerCase().includes(inputValue.toLowerCase())).map(type => (
-                    <CommandItem key={type} onSelect={() => handleFilterSelect('type', type)}>
-                      <ClipboardList className="mr-2 h-4 w-4" />
-                      <span>{type}</span>
-                    </CommandItem>
-                  ))}
                 </CommandGroup>
-              </CommandList>
-            )}
-          </Command>
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
+               )}
+                {availableDomains.length > 0 && (
+                 <CommandGroup heading="Domains">
+                    {availableDomains.filter(d => d.toLowerCase().includes(inputValue.toLowerCase())).map(domain => (
+                         <CommandItem key={domain} onSelect={() => handleFilterSelect('domain', domain)}>
+                           <Globe className="mr-2 h-4 w-4" />
+                           <span>{domain}</span>
+                         </CommandItem>
+                       ))}
+                 </CommandGroup>
+                )}
+                {availableContentTypes.length > 0 && (
+                  <CommandGroup heading="Content Types">
+                    {availableContentTypes.filter(c => c.toLowerCase().includes(inputValue.toLowerCase())).map(type => (
+                      <CommandItem key={type} onSelect={() => handleFilterSelect('type', type)}>
+                        <ClipboardList className="mr-2 h-4 w-4" />
+                        <span>{type}</span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
+            </CommandList>
+          )}
+        </Command>
+
         <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0 relative">
-              <ListFilter className="h-5 w-5" />
-                {activeFilterCount > 0 && (
-                  <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
+            <Button variant="outline" className="shrink-0 relative">
+              <ListFilter className="h-4 w-4 mr-2" />
+              Filter
+               {activeFilterCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
                     {activeFilterCount}
                   </span>
               )}
@@ -255,7 +266,9 @@ const AppHeader: React.FC = () => {
               </div>
           </PopoverContent>
         </Popover>
+      </div>
 
+      <div className="flex items-center gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full">
