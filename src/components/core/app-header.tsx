@@ -1,4 +1,5 @@
 
+
 'use client';
 import type React from 'react';
 import { useState, useEffect, useMemo } from 'react';
@@ -143,7 +144,7 @@ const AppHeader: React.FC = () => {
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-6">
       <div className="flex-1">
-        <div className="relative flex h-10 w-full items-center gap-2">
+        <div className="relative">
           <Command className="w-full rounded-lg border bg-muted" onKeyDown={(e) => {
               if (e.key === 'Escape') {
                   (e.target as HTMLElement).blur();
@@ -160,64 +161,9 @@ const AppHeader: React.FC = () => {
                 }}
                 onBlur={() => setIsCommandOpen(false)}
                 onFocus={() => { if (inputValue.length > 1) setIsCommandOpen(true); }}
-                placeholder="Type to search..."
-                className="h-full w-full border-0 bg-transparent pl-1 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                placeholder="Search your memories or filter by type, zone, etc..."
+                className="h-9 w-full border-0 bg-transparent pl-1 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
               />
-              <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 relative">
-                    <ListFilter className="h-4 w-4" />
-                     {activeFilterCount > 0 && (
-                       <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
-                         {activeFilterCount}
-                       </span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-80">
-                   <div className="space-y-4">
-                      <h4 className="font-medium leading-none">Filters</h4>
-                      <div className="space-y-2">
-                        <Label htmlFor="zone-filter">Zone</Label>
-                        <Select value={pendingZoneId} onValueChange={setPendingZoneId}>
-                          <SelectTrigger id="zone-filter"><SelectValue placeholder="All Zones" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Zones</SelectItem>
-                            {availableZones.map(zone => <SelectItem key={zone.id} value={zone.id}>{zone.name}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="content-type-filter">Content Type</Label>
-                        <Select value={pendingContentType} onValueChange={setPendingContentType}>
-                          <SelectTrigger id="content-type-filter"><SelectValue placeholder="All Types" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Types</SelectItem>
-                            {availableContentTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Tags</Label>
-                        <ScrollArea className="h-40 rounded-md border p-2">
-                          {availableTags.map(tag => (
-                            <div key={tag.name} className="flex items-center space-x-2 p-1">
-                              <Checkbox
-                                id={`tag-${tag.name}`}
-                                checked={pendingTagNames.includes(tag.name)}
-                                onCheckedChange={(checked) => {
-                                  setPendingTagNames(prev => checked ? [...prev, tag.name] : prev.filter(t => t !== tag.name));
-                                }}
-                              />
-                              <Label htmlFor={`tag-${tag.name}`} className="text-sm font-normal">{tag.name}</Label>
-                            </div>
-                          ))}
-                        </ScrollArea>
-                      </div>
-                      <Button onClick={handleApplyFilters} className="w-full">Apply Filters</Button>
-                   </div>
-                </PopoverContent>
-              </Popover>
             </div>
             {isCommandOpen && (
               <CommandList>
@@ -235,6 +181,12 @@ const AppHeader: React.FC = () => {
                       <span>{tag.name}</span>
                     </CommandItem>
                   ))}
+                   {availableDomains.filter(d => d.toLowerCase().includes(inputValue.toLowerCase())).map(domain => (
+                    <CommandItem key={domain} onSelect={() => handleFilterSelect('domain', domain)}>
+                      <Globe className="mr-2 h-4 w-4" />
+                      <span>{domain}</span>
+                    </CommandItem>
+                  ))}
                   {availableContentTypes.filter(c => c.toLowerCase().includes(inputValue.toLowerCase())).map(type => (
                     <CommandItem key={type} onSelect={() => handleFilterSelect('type', type)}>
                       <ClipboardList className="mr-2 h-4 w-4" />
@@ -248,6 +200,62 @@ const AppHeader: React.FC = () => {
         </div>
       </div>
       <div className="flex items-center gap-2">
+        <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0 relative">
+              <ListFilter className="h-5 w-5" />
+                {activeFilterCount > 0 && (
+                  <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
+                    {activeFilterCount}
+                  </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-80">
+              <div className="space-y-4">
+                <h4 className="font-medium leading-none">Filters</h4>
+                <div className="space-y-2">
+                  <Label htmlFor="zone-filter">Zone</Label>
+                  <Select value={pendingZoneId || 'all'} onValueChange={setPendingZoneId}>
+                    <SelectTrigger id="zone-filter"><SelectValue placeholder="All Zones" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Zones</SelectItem>
+                      {availableZones.map(zone => <SelectItem key={zone.id} value={zone.id}>{zone.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="content-type-filter">Content Type</Label>
+                  <Select value={pendingContentType || 'all'} onValueChange={setPendingContentType}>
+                    <SelectTrigger id="content-type-filter"><SelectValue placeholder="All Types" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      {availableContentTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Tags</Label>
+                  <ScrollArea className="h-40 rounded-md border p-2">
+                    {availableTags.map(tag => (
+                      <div key={tag.name} className="flex items-center space-x-2 p-1">
+                        <Checkbox
+                          id={`tag-${tag.name}`}
+                          checked={pendingTagNames.includes(tag.name)}
+                          onCheckedChange={(checked) => {
+                            setPendingTagNames(prev => checked ? [...prev, tag.name] : prev.filter(t => t !== tag.name));
+                          }}
+                        />
+                        <Label htmlFor={`tag-${tag.name}`} className="text-sm font-normal">{tag.name}</Label>
+                      </div>
+                    ))}
+                  </ScrollArea>
+                </div>
+                <Button onClick={handleApplyFilters} className="w-full">Apply Filters</Button>
+              </div>
+          </PopoverContent>
+        </Popover>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full">
