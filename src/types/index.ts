@@ -51,6 +51,7 @@ export interface ContentItem {
   mindNote?: string;
   url?: string;
   imageUrl?: string;
+  imageAspectRatio?: number;
   audioUrl?: string;
   faviconUrl?: string;
   tags: Tag[];
@@ -78,6 +79,7 @@ export interface SearchFilters {
   zoneId?: string | null;
   contentType?: string | null;
   tagNames?: string[];
+  domain?: string | null;
 }
 
 // Specific type for Link items, if needed for type guarding
@@ -100,3 +102,5 @@ export interface TaskList {
   userId: string;
   tasks: Task[];
 }
+
+    

@@ -50,6 +50,7 @@ const formatForIndex = (item: ContentItem) => ({
   description: item.description || '',
   url: item.url,
   imageUrl: item.imageUrl,
+  imageAspectRatio: item.imageAspectRatio,
   faviconUrl: item.faviconUrl,
   tags: item.tags?.map(t => t.name) || [],
   zoneId: item.zoneId,
@@ -75,6 +76,9 @@ export const searchContent = async (
     }
     if (filters.contentType) {
       filterClauses.push(`contentType = "${filters.contentType}"`);
+    }
+    if (filters.domain) {
+      filterClauses.push(`domain = "${filters.domain}"`);
     }
     if (filters.tagNames && filters.tagNames.length > 0) {
       const tagFilters = filters.tagNames.map(tag => `tags = "${tag}"`);
@@ -177,3 +181,5 @@ export const reindexAllContent = async (): Promise<{ count: number }> => {
         throw handleMeiliError(error, 'full re-index');
     }
 };
+
+    

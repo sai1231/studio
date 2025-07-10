@@ -28,9 +28,15 @@ function DashboardPageContent() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { setIsAddTodoDialogOpen, newlyAddedItem, setNewlyAddedItem, openFocusMode } = useDialog();
   const searchParams = useSearchParams();
+  
+  // Extract all potential search params
   const query = searchParams.get('q') || '';
   const zoneId = searchParams.get('zone') || '';
-  const isSearching = !!query.trim() || !!zoneId.trim();
+  const tagNames = searchParams.get('tag')?.split(',') || [];
+  const domainName = searchParams.get('domain') || '';
+  const contentType = searchParams.get('type') || '';
+  
+  const isSearching = !!query.trim() || !!zoneId.trim() || tagNames.length > 0 || !!domainName.trim() || !!contentType.trim();
 
   // Search state is now the primary source of truth for content
   const { search, searchResults, isLoading: isSearchLoading, isInitialized, hasMore, totalHits } = useSearch();
@@ -64,9 +70,13 @@ function DashboardPageContent() {
     if (isInitialized) {
        const filters: SearchFilters = {};
        if (zoneId) filters.zoneId = zoneId;
+       if (tagNames.length > 0) filters.tagNames = tagNames;
+       if (domainName) filters.domain = domainName;
+       if (contentType) filters.contentType = contentType;
+       
        search(query, filters, { limit: 100, append: false });
     }
-  }, [query, zoneId, isInitialized, search]);
+  }, [query, zoneId, tagNames.join(','), domainName, contentType, isInitialized, search]);
   
   // Effect for initial data load (empty search)
   useEffect(() => {
@@ -102,10 +112,13 @@ function DashboardPageContent() {
     setIsFetchingMore(true);
     const filters: SearchFilters = {};
     if (zoneId) filters.zoneId = zoneId;
+    if (tagNames.length > 0) filters.tagNames = tagNames;
+    if (domainName) filters.domain = domainName;
+    if (contentType) filters.contentType = contentType;
     await search(query, filters, { limit: 100, offset: contentToDisplay.length, append: true });
     setIsFetchingMore(false);
 
-  }, [isFetchingMore, hasMore, search, query, zoneId, contentToDisplay.length]);
+  }, [isFetchingMore, hasMore, search, query, zoneId, tagNames, domainName, contentType, contentToDisplay.length]);
   
   // Effect for infinite scroll
   useEffect(() => {
@@ -173,7 +186,7 @@ function DashboardPageContent() {
       toast({ title: "Error", description: "Could not update task status. Reverting.", variant: "destructive" });
       // Revert logic could be implemented here if needed
     } finally {
-      setIsUpdatingTodoStatus(null);
+      setIsUpdatingStatus(null);
     }
   };
 
@@ -323,3 +336,5 @@ export default function DashboardPage() {
     </Suspense>
   )
 }
+
+    
