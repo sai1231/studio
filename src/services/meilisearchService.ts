@@ -82,7 +82,7 @@ export const searchContent = async (
     }
     if (filters.tagNames && filters.tagNames.length > 0) {
       const tagFilters = filters.tagNames.map(tag => `tags = "${tag}"`);
-      filterClauses.push(`(${tagFilters.join(' AND ')})`);
+      filterClauses.push(`(${tagFilters.join(' OR ')})`);
     }
 
     const searchResults = await index.search(query, {
