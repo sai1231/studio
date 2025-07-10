@@ -4,7 +4,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { subscribeToContentItems, subscribeToZones } from '@/services/contentService';
+import { subscribeToContentItems, subscribeToZones, getUniqueTagsFromItems, getUniqueContentTypesFromItems, getUniqueDomainsFromItems } from '@/services/contentService';
 import { performSearch } from '@/app/actions/searchActions';
 import type { ContentItem, Tag, SearchFilters, Zone } from '@/types';
 import type { Unsubscribe } from 'firebase/firestore';
@@ -13,9 +13,11 @@ interface SearchContextType {
   isInitialized: boolean;
   isLoading: boolean;
   searchResults: ContentItem[];
+  allItems: ContentItem[]; // Expose all items for client-side filtering
   availableZones: Zone[];
   availableTags: Tag[];
   availableContentTypes: string[];
+  availableDomains: string[];
   search: (query: string, filters: SearchFilters, options: { limit?: number; offset?: number; append?: boolean }) => Promise<void>;
   hasMore: boolean;
   totalHits: number;
@@ -91,33 +93,19 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user]);
   
-  const availableTags = useMemo(() => {
-    const tagsMap = new Map<string, Tag>();
-    allItems.forEach(item => {
-        (item.tags || []).forEach(tag => {
-            if (!tagsMap.has(tag.name.toLowerCase())) {
-                tagsMap.set(tag.name.toLowerCase(), tag);
-            }
-        });
-    });
-    return Array.from(tagsMap.values()).sort((a,b) => a.name.localeCompare(b.name));
-  }, [allItems]);
-
-  const availableContentTypes = useMemo(() => {
-      const typesSet = new Set<string>();
-      allItems.forEach(item => {
-          if(item.contentType) typesSet.add(item.contentType);
-      });
-      return Array.from(typesSet).sort();
-  }, [allItems]);
+  const availableTags = useMemo(() => getUniqueTagsFromItems(allItems), [allItems]);
+  const availableContentTypes = useMemo(() => getUniqueContentTypesFromItems(allItems), [allItems]);
+  const availableDomains = useMemo(() => getUniqueDomainsFromItems(allItems), [allItems]);
 
   const value = {
     isInitialized,
     isLoading,
     searchResults,
+    allItems, // Expose all items
     availableZones,
     availableTags,
     availableContentTypes,
+    availableDomains,
     search,
     hasMore,
     totalHits,
