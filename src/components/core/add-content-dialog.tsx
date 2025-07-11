@@ -334,6 +334,8 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const zoneDisplayName = selectedZone?.name || 'Select a zone';
   const filteredZones = zoneSearchText ? internalZones.filter(z => z.name.toLowerCase().includes(zoneSearchText.toLowerCase())) : internalZones;
   const isSubmitDisabled = isSaving || isUploading || (uploadedFiles.length === 0 && !watchedMainContent.trim());
+  const showCreateZoneOption = zoneSearchText.trim() !== '' && !internalZones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase());
+
 
   if (isMobile === undefined) {
     return null; // Avoid rendering anything until we know the screen size
@@ -462,7 +464,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                       <CommandInput placeholder="Search or create zone..." value={zoneSearchText} onValueChange={setZoneSearchText} />
                       <CommandList>
                           <CommandEmpty>
-                            <div className="py-6 text-center text-sm">{zoneSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}</div>
+                            <div className="py-6 text-center text-sm">No matching zones found.</div>
                           </CommandEmpty>
                           <CommandGroup>
                               {filteredZones.map((z) => {
@@ -476,7 +478,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                                 );
                               })}
                           </CommandGroup>
-                          {zoneSearchText.trim() !== '' && !internalZones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase()) && (
+                          {showCreateZoneOption && (
                             <CommandGroup className="border-t">
                               <CommandItem onSelect={() => handleCreateZone(zoneSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer justify-start">
                                   <Plus className="mr-2 h-4 w-4" /><span>Create "{zoneSearchText.trim()}"</span>
@@ -512,7 +514,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       
       {isMobile ? (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent side="bottom" className="h-[90vh] flex flex-col p-0 bg-card">
+            <SheetContent side="bottom" className="h-[90vh] flex flex-col p-0 bg-background">
                 <SheetHeader className="p-4 border-b">
                     <SheetTitle className="font-headline">Add Content</SheetTitle>
                 </SheetHeader>
