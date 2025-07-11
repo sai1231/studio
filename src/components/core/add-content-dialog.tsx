@@ -464,7 +464,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                       <CommandInput placeholder="Search or create zone..." value={zoneSearchText} onValueChange={setZoneSearchText} />
                       <CommandList>
                           <CommandEmpty>
-                            <div className="py-6 text-center text-sm">No matching zones found.</div>
+                            <div className="py-6 text-center text-sm">{zoneSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}</div>
                           </CommandEmpty>
                           <CommandGroup>
                               {filteredZones.map((z) => {
@@ -514,7 +514,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       
       {isMobile ? (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent side="bottom" className="h-[90vh] flex flex-col p-0 bg-background">
+            <SheetContent side="bottom" className="h-[90vh] flex flex-col p-0 bg-card">
                 <SheetHeader className="p-4 border-b">
                     <SheetTitle className="font-headline">Add Content</SheetTitle>
                 </SheetHeader>
