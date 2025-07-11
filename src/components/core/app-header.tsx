@@ -168,17 +168,14 @@ const AppHeader: React.FC = () => {
         <Command className="relative w-full rounded-lg border bg-muted" onKeyDown={(e) => {
             if (e.key === 'Escape') (e.target as HTMLElement).blur();
         }}>
-          <div className="flex items-center w-full px-2.5">
-            <Search className="h-4 w-4 shrink-0 text-muted-foreground mr-2" />
             <CommandInput
               value={inputValue}
               onValueChange={handleSearchInputChange}
               onBlur={() => setTimeout(() => setIsCommandOpen(false), 150)}
               onFocus={() => { if (inputValue.length > 1) setIsCommandOpen(true); }}
-              placeholder="Search or filter..."
+              placeholder="Search Memories..."
               className="h-9 w-full border-0 bg-transparent pl-1 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
             />
-          </div>
           {isCommandOpen && (
             <CommandList className="absolute top-full mt-1 w-full rounded-md border bg-popover shadow-lg z-50">
               <CommandEmpty>No results found.</CommandEmpty>
@@ -325,4 +322,3 @@ const AppHeader: React.FC = () => {
 };
 
 export default AppHeader;
-
