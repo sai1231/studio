@@ -531,22 +531,22 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       ) : (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent 
-              className="max-w-[625px] flex flex-col max-h-[90vh] p-0 border-0"
+              className="max-w-[625px] flex flex-col max-h-[90vh] border-0 p-0 bg-card"
               onOpenAutoFocus={(e) => e.preventDefault()}
             >
-                <DialogHeader className="p-6 pb-0">
+                <DialogHeader className="px-6 pt-6 pb-0">
                   <DialogTitle className="font-headline">Add Content</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-grow flex flex-col overflow-hidden px-6">
                     {FormFields}
-                    <DialogFooter className="pt-4 border-t mt-auto flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pb-6">
-                        <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
-                        <Button type="submit" form="add-content-form-desktop" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                        {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
-                        </Button>
-                    </DialogFooter>
                 </form>
+                <DialogFooter className="px-6 pb-6 pt-4 border-t mt-auto flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
+                    <Button type="submit" form="add-content-form-desktop" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                    {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
+                    </Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
       )}
