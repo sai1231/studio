@@ -245,4 +245,4 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
   );
 };
 
-export default ContentCard;
+export default React.memo(ContentCard);

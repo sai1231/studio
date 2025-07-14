@@ -143,20 +143,20 @@ function DashboardPageContent() {
   }, [isFetchingMore, hasMore, user, fetchMoreContent]);
 
 
-  const handleItemClick = (item: ContentItem) => {
+  const handleItemClick = useCallback((item: ContentItem) => {
     if (item.type === 'note') {
       openFocusMode(item);
     } else {
       setSelectedItemForDetail(item);
       setIsDetailDialogOpen(true);
     }
-  };
+  }, [openFocusMode]);
   
   const handleItemUpdateInDialog = (updatedItem: ContentItem) => {
     setContentToDisplay(prevItems => prevItems.map(item => item.id === updatedItem.id ? updatedItem : item));
   };
   
-  const handleDeleteContent = async (itemId: string) => {
+  const handleDeleteContent = useCallback(async (itemId: string) => {
     // Optimistic update
     setContentToDisplay(prevItems => prevItems.filter(item => item.id !== itemId));
     const {id: toastId} = toast({ title: "Deleting Item...", description: "Removing content item."});
@@ -168,7 +168,7 @@ function DashboardPageContent() {
       toast({id: toastId, title: "Error Deleting", description: "Could not delete item.", variant: "destructive"});
       // Note: A full re-fetch might be warranted here in a real-world scenario
     }
-  };
+  }, [toast]);
 
   const handleToggleTodoStatus = async (taskId: string) => {
     if (!user || isUpdatingTodoStatus === taskId) return;
@@ -186,7 +186,7 @@ function DashboardPageContent() {
       toast({ title: "Error", description: "Could not update task status. Reverting.", variant: "destructive" });
       // Revert logic could be implemented here if needed
     } finally {
-      setIsUpdatingStatus(null);
+      setIsUpdatingTodoStatus(null);
     }
   };
 
@@ -331,7 +331,3 @@ export default function DashboardPage() {
     </Suspense>
   )
 }
-
-    
-
-    
