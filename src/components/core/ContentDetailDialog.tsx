@@ -521,20 +521,6 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
 
                 <Separator />
                 
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <Pencil className="h-4 w-4 text-primary" />
-                        <h3 className="font-semibold text-foreground">Mind Note</h3>
-                    </div>
-                    <Textarea
-                    value={editableMindNote}
-                    onChange={handleMindNoteChange}
-                    onBlur={handleMindNoteBlur}
-                    placeholder="Add your personal thoughts..."
-                    className="w-full min-h-[120px] focus-visible:ring-accent bg-muted/30 dark:bg-muted/20 border-border"
-                    />
-                </div>
-
                 {item?.colorPalette && item.colorPalette.length > 0 && (
                   <ColorPalette palette={item?.colorPalette} />
                 )}
@@ -619,6 +605,22 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                             )}
                         </div>
                     )}
+                </div>
+
+                <Separator />
+                
+                <div>
+                    <div className="flex items-center gap-2 mb-2">
+                        <Pencil className="h-4 w-4 text-primary" />
+                        <h3 className="font-semibold text-foreground">Mind Note</h3>
+                    </div>
+                    <Textarea
+                    value={editableMindNote}
+                    onChange={handleMindNoteChange}
+                    onBlur={handleMindNoteBlur}
+                    placeholder="Add your personal thoughts..."
+                    className="w-full min-h-[120px] focus-visible:ring-accent bg-muted/30 dark:bg-muted/20 border-border"
+                    />
                 </div>
 
               </div>
