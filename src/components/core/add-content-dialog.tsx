@@ -206,7 +206,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       if (newZone) {
           form.setValue('zoneId', newZone.id, { shouldTouch: true, shouldValidate: true });
       }
-    } catch (e) {
+    } catch(e) {
       console.error('Error creating zone:', e);
       toast({ title: "Error", description: "Could not create new zone.", variant: "destructive" });
     } finally {
@@ -335,6 +335,9 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   
   const isSubmitDisabled = isSaving || isUploading || (uploadedFiles.length === 0 && !watchedMainContent.trim());
 
+  const filteredZones = zoneSearchText ? internalZones.filter(z => z.name.toLowerCase().includes(zoneSearchText.toLowerCase())) : internalZones;
+  const showCreateZoneOption = zoneSearchText.trim() !== '' && !internalZones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase());
+
 
   if (isMobile === undefined) {
     return null; // Avoid rendering anything until we know the screen size
@@ -460,11 +463,26 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
               </PopoverTrigger>
               <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                   <Command>
-                      <CommandInput placeholder="Search or create zone..." value={zoneSearchText} onValueChange={setZoneSearchText} />
+                    <div className="flex items-center border-b px-3">
+                        <Input
+                            placeholder="Search or create zone..."
+                            value={zoneSearchText}
+                            onChange={(e) => setZoneSearchText(e.target.value)}
+                            className="h-9 w-full border-0 bg-transparent pl-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        />
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className={cn("ml-2", !showCreateZoneOption && "hidden")}
+                            onClick={() => handleCreateZone(zoneSearchText)}
+                        >
+                            Create
+                        </Button>
+                    </div>
                       <CommandList>
                            <CommandEmpty>No matching zones found.</CommandEmpty>
                            <CommandGroup>
-                              {internalZones.map((z) => {
+                              {filteredZones.map((z) => {
                                 const ListItemIcon = getIconComponent(z.icon);
                                 return (
                                   <CommandItem key={z.id} value={z.name} onSelect={() => { form.setValue('zoneId', z.id, { shouldTouch: true, shouldValidate: true }); setIsZonePopoverOpen(false); }}>
@@ -475,14 +493,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                                 );
                               })}
                            </CommandGroup>
-                            <CommandItem
-                                data-visible={zoneSearchText.trim() !== ''}
-                                onSelect={() => handleCreateZone(zoneSearchText)}
-                                className="text-primary hover:!bg-primary/10 cursor-pointer justify-start data-[visible=false]:hidden"
-                              >
-                                  <Plus className="mr-2 h-4 w-4" />
-                                  <span>Create "{zoneSearchText.trim()}"</span>
-                              </CommandItem>
                       </CommandList>
                   </Command>
               </PopoverContent>
@@ -512,7 +522,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       
       {isMobile ? (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent side="bottom" className="h-[90vh] flex flex-col p-0 bg-card">
+            <SheetContent side="bottom" className="h-[90vh] flex flex-col p-0 bg-background">
                 <SheetHeader className="p-4 border-b">
                     <SheetTitle className="font-headline">Add Content</SheetTitle>
                 </SheetHeader>
@@ -531,7 +541,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       ) : (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent 
-              className="max-w-[625px] flex flex-col max-h-[90vh] p-0 bg-card"
+              className="max-w-[625px] flex flex-col max-h-[90vh] p-0 bg-background"
               onOpenAutoFocus={(e) => e.preventDefault()}
             >
                 <DialogHeader className="px-6 pt-6 pb-0">
@@ -555,5 +565,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
 };
 
 export default AddContentDialog;
+
 
 
