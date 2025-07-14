@@ -1,26 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -32,55 +25,11 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     </svg>
 );
 
-const formSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email address.' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
-});
-
 export function LoginForm() {
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
   const provider = new GoogleAuthProvider();
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
-  });
-
-  async function handleEmailSignIn(values: z.infer<typeof formSchema>) {
-    setIsLoading(true);
-    if (!auth) {
-      toast({
-        title: 'Configuration Error',
-        description: 'Firebase is not configured. Please add your credentials to the .env file.',
-        variant: 'destructive',
-      });
-      setIsLoading(false);
-      return;
-    }
-    try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
-      toast({
-        title: 'Login Successful',
-        description: 'Welcome back to Mäti!',
-      });
-      router.push('/dashboard');
-    } catch (error: any) {
-      console.error("Email Sign-In error:", error);
-      toast({
-        title: 'Sign-In Failed',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }
 
   async function handleGoogleSignIn() {
     setIsGoogleLoading(true);
@@ -123,55 +72,11 @@ export function LoginForm() {
   return (
     <Card className="shadow-xl">
       <CardHeader>
-        <CardTitle className="text-2xl font-headline">Welcome Back to Mäti</CardTitle>
-        <CardDescription>Enter your credentials or sign in with Google.</CardDescription>
+        <CardTitle className="text-2xl font-headline">Welcome to Mäti</CardTitle>
+        <CardDescription>Sign in with your Google account to continue.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleEmailSignIn)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="you@example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Sign In
-            </Button>
-          </form>
-        </Form>
-        
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-          </div>
-        </div>
-
-        <Button onClick={handleGoogleSignIn} variant="outline" className="w-full" disabled={isLoading || isGoogleLoading}>
+        <Button onClick={handleGoogleSignIn} variant="outline" className="w-full" disabled={isGoogleLoading}>
           {isGoogleLoading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
@@ -180,14 +85,6 @@ export function LoginForm() {
           Sign In with Google
         </Button>
       </CardContent>
-      <CardFooter className="flex justify-center">
-        <p className="text-sm text-muted-foreground">
-            Don't have an account?{' '}
-            <Link href="/signup" className="font-medium text-primary hover:underline">
-                Sign up
-            </Link>
-        </p>
-      </CardFooter>
     </Card>
   );
 }

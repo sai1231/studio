@@ -90,7 +90,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           // Set admin status based on the role's features
           // In a production app, you would use this line:
-          setIsAdmin(fetchedRole?.features?.hasAdminAccess || false);
+          // setIsAdmin(fetchedRole?.features?.hasAdminAccess || false);
 
         } catch (error) {
             console.error("Error in AuthContext during user setup:", error);
