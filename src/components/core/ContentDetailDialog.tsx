@@ -68,12 +68,27 @@ const TruncatedDescription: React.FC<{ text: string }> = ({ text }) => {
   const [isTruncated, setIsTruncated] = useState(false);
 
   useEffect(() => {
-    // Check if the content is overflowing after it has rendered
     if (contentRef.current) {
-      // 80px is the max-height for the collapsed view.
-      setIsTruncated(contentRef.current.scrollHeight > 80);
+        const checkTruncation = () => {
+            if (contentRef.current) {
+                const { scrollHeight, clientHeight } = contentRef.current;
+                setIsTruncated(scrollHeight > clientHeight);
+            }
+        };
+
+        // Check initially and on window resize
+        checkTruncation();
+        window.addEventListener('resize', checkTruncation);
+        
+        // Use a timeout to re-check after a slight delay to allow for rendering changes
+        const timeoutId = setTimeout(checkTruncation, 100);
+
+        return () => {
+            window.removeEventListener('resize', checkTruncation);
+            clearTimeout(timeoutId);
+        };
     }
-  }, [text]);
+}, [text]);
 
 
   if (!text) {
@@ -83,19 +98,20 @@ const TruncatedDescription: React.FC<{ text: string }> = ({ text }) => {
   return (
     <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground relative">
        <div
-        className="overflow-hidden transition-[max-height] duration-500 ease-in-out"
-        style={{ maxHeight: isExpanded ? '1000px' : '80px' }} // 80px is approx 4 lines
+        ref={contentRef}
+        className={cn(
+          "overflow-hidden transition-[max-height] duration-500 ease-in-out",
+          !isExpanded && "max-h-20"
+        )}
       >
-        <div ref={contentRef}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
-        </div>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
       </div>
       {isTruncated && !isExpanded && (
         <Button variant="link" onClick={() => setIsExpanded(true)} className="p-0 h-auto text-primary mt-1">
           Show more
         </Button>
       )}
-      {isTruncated && isExpanded && (
+      {isExpanded && (
         <Button variant="link" onClick={() => setIsExpanded(false)} className="p-0 h-auto text-primary mt-1">
           Show less
         </Button>
@@ -143,6 +159,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
   const [expirySelection, setExpirySelection] = useState<string>('30');
   const [customExpiryDays, setCustomExpiryDays] = useState<string>('30');
   const [isSaving, setIsSaving] = useState(false);
+  const oembedContainerRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     if (open && initialItem) {
@@ -209,15 +226,29 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
   }, [item]);
 
   useEffect(() => {
-    if (oembedHtml) {
-      if (oembedHtml.includes('twitter-tweet') && window.twttr) {
-        window.twttr.widgets.load();
-      }
-      if (oembedHtml.includes('instagram-media') && window.instgrm) {
-        window.instgrm.Embeds.process();
-      }
+    if (oembedHtml && oembedContainerRef.current) {
+        // Specific handlers for known script-based widgets
+        if (oembedHtml.includes('twitter-tweet') && window.twttr) {
+            window.twttr.widgets.load(oembedContainerRef.current);
+            return;
+        }
+        if (oembedHtml.includes('instagram-media') && window.instgrm) {
+            window.instgrm.Embeds.process();
+            return;
+        }
+
+        // Generic script handler for others like WordPress
+        const container = oembedContainerRef.current;
+        const scripts = Array.from(container.getElementsByTagName('script'));
+        scripts.forEach(oldScript => {
+            const newScript = document.createElement('script');
+            Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+            newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+            oldScript.parentNode?.replaceChild(newScript, oldScript);
+        });
     }
   }, [oembedHtml]);
+
 
   useEffect(() => {
     if (isAddingTag && newTagInputRef.current) {
@@ -469,7 +500,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                   {isFetchingOembed ? (
                   <div className="w-full aspect-video flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
                   ) : oembedHtml ? (
-                  <div className="oembed-container w-full" dangerouslySetInnerHTML={{ __html: oembedHtml }} />
+                  <div ref={oembedContainerRef} className="oembed-container w-full" dangerouslySetInnerHTML={{ __html: oembedHtml }} />
                   ) : item?.imageUrl && !imageError ? (
                       <img src={item.imageUrl} alt={editableTitle || 'Content Image'} data-ai-hint={item.title || "image"} className="w-full h-full object-contain" loading="lazy" onError={() => setImageError(true)}/>
                   ) : (item?.type === 'link' && item?.contentType === 'PDF' && item?.url) ? (
