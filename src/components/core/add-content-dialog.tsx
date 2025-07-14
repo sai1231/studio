@@ -338,6 +338,15 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const filteredZones = zoneSearchText ? internalZones.filter(z => z.name.toLowerCase().includes(zoneSearchText.toLowerCase())) : internalZones;
   const showCreateZoneOption = zoneSearchText.trim() !== '' && !internalZones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase());
 
+  const handleZoneInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+        e.preventDefault(); 
+        if (showCreateZoneOption) {
+            handleCreateZone(zoneSearchText);
+        }
+    }
+  };
+
 
   if (isMobile === undefined) {
     return null; // Avoid rendering anything until we know the screen size
@@ -468,6 +477,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                             placeholder="Search or create zone..."
                             value={zoneSearchText}
                             onChange={(e) => setZoneSearchText(e.target.value)}
+                            onKeyDown={handleZoneInputKeyDown}
                             className="h-9 w-full border-0 bg-transparent pl-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                         />
                         <Button 
@@ -565,6 +575,3 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
 };
 
 export default AddContentDialog;
-
-
-
