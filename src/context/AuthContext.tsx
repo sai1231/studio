@@ -51,6 +51,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           if (userDocSnap.exists() && userDocSnap.data().hasOwnProperty('roleId')) {
             userRoleId = userDocSnap.data().roleId;
+
+            // Also ensure photoURL is updated if it has changed since last login
+            if (currentUser.photoURL && userDocSnap.data().photoURL !== currentUser.photoURL) {
+              await setDoc(userDocRef, { photoURL: currentUser.photoURL }, { merge: true });
+            }
+
           } else {
             // New user, or existing user missing a role. Assign 'free_user'.
             const rolesRef = collection(db, 'roles');

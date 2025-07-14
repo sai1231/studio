@@ -19,7 +19,7 @@ export async function fetchImageColors(buffer: Buffer, contentId: string): Promi
       distance: 0.22, // Lower value means more colors, default is 0.22
       saturation: 0.2, // Lower value means more colors, default is 0.2
       lightness: 0.6, // Lower value means more colors, default is 0.6
-      colors: 5, // Max number of colors to return
+      colors: 2, // Max number of colors to return
 
     });
 
