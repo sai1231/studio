@@ -64,27 +64,38 @@ const getIconComponent = (iconName?: string): React.ElementType => {
 
 const TruncatedDescription: React.FC<{ text: string }> = ({ text }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  useEffect(() => {
+    // Check if the content is overflowing after it has rendered
+    if (contentRef.current) {
+      // 80px is the max-height for the collapsed view.
+      setIsTruncated(contentRef.current.scrollHeight > 80);
+    }
+  }, [text]);
+
 
   if (!text) {
     return <p className="text-sm text-muted-foreground italic">No description available.</p>;
   }
-  
-  const isPotentiallyTruncated = text.split('\n').length > 4 || text.length > 250;
 
   return (
     <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground relative">
-      <div 
+       <div
         className="overflow-hidden transition-[max-height] duration-500 ease-in-out"
         style={{ maxHeight: isExpanded ? '1000px' : '80px' }} // 80px is approx 4 lines
       >
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+        <div ref={contentRef}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+        </div>
       </div>
-      {isPotentiallyTruncated && !isExpanded && (
+      {isTruncated && !isExpanded && (
         <Button variant="link" onClick={() => setIsExpanded(true)} className="p-0 h-auto text-primary mt-1">
           Show more
         </Button>
       )}
-      {isPotentiallyTruncated && isExpanded && (
+      {isTruncated && isExpanded && (
         <Button variant="link" onClick={() => setIsExpanded(false)} className="p-0 h-auto text-primary mt-1">
           Show less
         </Button>
@@ -528,9 +539,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                   <ColorPalette palette={item?.colorPalette} />
                 )}
 
-                <Separator />
-
-                <div className="space-y-4">
+                <div className="space-y-4 pt-2">
                     <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
                         <PopoverTrigger asChild>
                             <Button variant="outline" role="combobox" aria-expanded={isComboboxOpen} className={cn("w-full justify-between", isSaving ? "opacity-50" : "", !editableZoneId && "text-muted-foreground")} disabled={isSaving}>
