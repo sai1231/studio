@@ -15,7 +15,9 @@ import { add } from 'date-fns';
 import { ScrollArea } from '../ui/scroll-area';
 import { DialogVisuals } from '@/components/dialog/DialogVisuals';
 import { DialogHeaderSection } from '@/components/dialog/DialogHeaderSection';
+import { DialogDescription } from '@/components/dialog/DialogDescription';
 import { DialogMetadata } from '@/components/dialog/DialogMetadata';
+import { DialogMemoryNote } from '@/components/dialog/DialogMemoryNote';
 import { DialogFooterActions } from '@/components/dialog/DialogFooterActions';
 
 
@@ -282,6 +284,8 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                     onTitleChange={(e) => setEditableTitle(e.target.value)}
                     onTitleBlur={handleTitleBlur}
                 />}
+
+                {item && item.description && <DialogDescription description={item.description} />}
                 
                 <DialogMetadata 
                     isSaving={isSaving}
@@ -308,9 +312,11 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                     onExpiryChange={handleExpiryChange}
                     customExpiryDays={customExpiryDays}
                     onCustomExpiryChange={handleCustomExpiryChange}
-                    editableMemoryNote={editableMemoryNote}
-                    onMemoryNoteChange={(e) => setEditableMemoryNote(e.target.value)}
-                    onMemoryNoteBlur={handleMemoryNoteBlur}
+                />
+                 <DialogMemoryNote
+                  editableMemoryNote={editableMemoryNote}
+                  onMemoryNoteChange={(e) => setEditableMemoryNote(e.target.value)}
+                  onMemoryNoteBlur={onMemoryNoteBlur}
                 />
               </div>
             </ScrollArea>

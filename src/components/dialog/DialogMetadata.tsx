@@ -4,7 +4,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
@@ -47,11 +46,6 @@ interface DialogMetadataProps {
   onExpiryChange: (value: string) => void;
   customExpiryDays: string;
   onCustomExpiryChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  
-  // Memory Note Props
-  editableMemoryNote: string;
-  onMemoryNoteChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  onMemoryNoteBlur: () => void;
 }
 
 const iconMap: { [key: string]: React.ElementType } = {
@@ -77,7 +71,6 @@ export const DialogMetadata: React.FC<DialogMetadataProps> = (props) => {
     allZones, editableZoneId, isZoneComboboxOpen, onZoneComboboxOpenChange, zoneComboboxSearchText, onZoneComboboxSearchTextChange, handleZoneSelection, handleCreateZone,
     editableTags, isAddingTag, onIsAddingTagChange, newTagInput, onNewTagInputChange, handleAddNewTag, handleTagInputKeyDown, handleRemoveTag, newTagInputRef,
     isTemporary, onTemporaryToggle, expirySelection, onExpiryChange, customExpiryDays, onCustomExpiryChange,
-    editableMemoryNote, onMemoryNoteChange, onMemoryNoteBlur
   } = props;
 
   const selectedZone = allZones.find(z => z.id === editableZoneId);
@@ -178,20 +171,6 @@ export const DialogMetadata: React.FC<DialogMetadataProps> = (props) => {
             )}
           </div>
         )}
-      </div>
-
-      <div>
-        <div className="flex items-center gap-2 mb-2">
-          <Pencil className="h-4 w-4 text-primary" />
-          <h3 className="font-semibold text-foreground">Memory Note</h3>
-        </div>
-        <Textarea
-          value={editableMemoryNote}
-          onChange={onMemoryNoteChange}
-          onBlur={onMemoryNoteBlur}
-          placeholder="Add your personal thoughts..."
-          className="w-full min-h-[120px] focus-visible:ring-accent bg-muted/30 dark:bg-muted/20 border-border"
-        />
       </div>
     </div>
   );
