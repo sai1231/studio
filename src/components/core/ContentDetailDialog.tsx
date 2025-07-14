@@ -4,7 +4,7 @@
 
 import type React from 'react';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { getContentItemById, updateContentItem, getZones, addZone } from '@/services/contentService';
+import { getContentItemById, updateContentItem, getZones, addZone, deleteContentItem } from '@/services/contentService';
 import type { ContentItem, Zone, Tag, MovieDetails } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,7 @@ import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil, ChevronDown, Ban, Briefcase, Home, Library, Star, Film, Users, Clapperboard, Glasses, AlarmClock, Sparkles, Eye, ChevronsUpDown, Palette } from 'lucide-react';
+import { CalendarDays, ExternalLink, StickyNote, Plus, X, Loader2, Check, Edit3, Globe, Bookmark, Pencil, ChevronDown, Ban, Briefcase, Home, Library, Star, Film, Users, Clapperboard, Glasses, AlarmClock, Sparkles, Eye, ChevronsUpDown, Palette, Trash2, AlertTriangle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, add, parseISO } from 'date-fns';
@@ -27,6 +27,7 @@ import { Separator } from "@/components/ui/separator";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ScrollArea } from '../ui/scroll-area';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 
 const NO_ZONE_VALUE = "__NO_ZONE__";
@@ -92,9 +93,10 @@ interface ContentDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onItemUpdate?: (updatedItem: ContentItem) => void;
+  onItemDelete?: (itemId: string) => void;
 }
 
-export default function ContentDetailDialog({ item: initialItem, open, onOpenChange, onItemUpdate }: ContentDetailDialogProps) {
+export default function ContentDetailDialog({ item: initialItem, open, onOpenChange, onItemUpdate, onItemDelete }: ContentDetailDialogProps) {
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -205,6 +207,12 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
       newTagInputRef.current.focus();
     }
   }, [isAddingTag]);
+  
+  const handleDelete = async () => {
+    if (!item || !onItemDelete) return;
+    onItemDelete(item.id);
+    onOpenChange(false); // Close main dialog after confirming delete
+  };
 
   const handleFieldUpdate = useCallback(async (
     fieldName: keyof Pick<ContentItem, 'title' | 'mindNote' | 'zoneId' | 'expiresAt' | 'tags'>,
@@ -511,10 +519,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                 </div>
 
                 {item?.colorPalette && item.colorPalette.length > 0 && (
-                    <>
-                        <Separator />
-                        <ColorPalette palette={item?.colorPalette} />
-                    </>
+                  <ColorPalette palette={item?.colorPalette} />
                 )}
 
                 <Separator />
@@ -570,9 +575,34 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
             <CalendarDays className="h-3.5 w-3.5 mr-1.5 shrink-0" />
             Saved {item && format(parseISO(item.createdAt), 'MMM d, yyyy @ h:mm a')}
         </div>
-        <DialogClose asChild>
-            <Button variant="outline">Close</Button>
-        </DialogClose>
+        <div className="flex items-center gap-2">
+            {onItemDelete && (
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10">
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will permanently delete "{item?.title}" and cannot be undone.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                                Delete
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            )}
+            <DialogClose asChild>
+                <Button variant="outline">Close</Button>
+            </DialogClose>
+        </div>
       </div>
     </>
   )

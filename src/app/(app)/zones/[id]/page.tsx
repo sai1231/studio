@@ -362,6 +362,7 @@ export default function ZonePage() {
           if (!open) setSelectedItemForDetail(null);
         }}
         onItemUpdate={handleItemUpdateInDialog}
+        onItemDelete={handleDeleteItem}
       />
     </div>
   );

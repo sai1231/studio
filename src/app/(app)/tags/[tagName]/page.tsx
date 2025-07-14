@@ -403,6 +403,7 @@ export default function TagPage() {
           if (!open) setSelectedItemForDetail(null);
         }}
         onItemUpdate={handleItemUpdateInDialog}
+        onItemDelete={handleDeleteItem}
       />
     </div>
   );
