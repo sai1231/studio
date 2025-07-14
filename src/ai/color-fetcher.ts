@@ -1,5 +1,6 @@
 import { extractColors } from 'extract-colors';
 import { addLog } from '@/services/loggingService';
+import sharp from 'sharp'; // Add this dependency
 
 export async function fetchImageColors(buffer: Buffer, contentId: string): Promise<string[]> {
   try {
@@ -14,7 +15,7 @@ export async function fetchImageColors(buffer: Buffer, contentId: string): Promi
 
 
     // Extract colors (already sorted by dominance)
-    const colors = await extractColors(imageData, {
+    const colors = await extractColors({ src: buffer }, {
       pixels: 64000,
       distance: 0.22,
     });

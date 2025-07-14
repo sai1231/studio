@@ -463,9 +463,11 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                   <Command>
                       <CommandInput placeholder="Search or create zone..." value={zoneSearchText} onValueChange={setZoneSearchText} />
                       <CommandList>
-                          <CommandEmpty>
-                            <div className="py-6 text-center text-sm">{zoneSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}</div>
-                          </CommandEmpty>
+                          {filteredZones.length === 0 && !showCreateZoneOption && (
+                            <CommandEmpty>
+                                <div className="py-6 text-center text-sm">No zones found.</div>
+                            </CommandEmpty>
+                          )}
                           <CommandGroup>
                               {filteredZones.map((z) => {
                                 const ListItemIcon = getIconComponent(z.icon);
