@@ -110,11 +110,15 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
   const [customExpiryDays, setCustomExpiryDays] = useState<string>('30');
   const [isSaving, setIsSaving] = useState(false);
   
+  // State to hold oEmbed result to determine layout
+  const [oembedHtml, setOembedHtml] = useState<string | null>(null);
+
   useEffect(() => {
     if (open && initialItem) {
       setItem(initialItem); 
       setIsLoading(false); 
       setError(null);
+      setOembedHtml(null); // Reset oembed on item change
 
       const fetchSupportingData = async () => {
         if (!initialItem.userId) {
@@ -142,6 +146,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
       setItem(null);
       setIsLoading(true); 
       setError(null);
+      setOembedHtml(null);
     }
   }, [initialItem, open]); 
 
@@ -311,7 +316,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
     }
   };
   
-  const hasVisual = item?.imageUrl || item?.url;
+  const hasVisual = item?.imageUrl || oembedHtml || (item?.contentType === 'PDF' && item?.url);
     
   const DialogBody = (
     <>
@@ -320,11 +325,11 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
         "grid flex-grow overflow-hidden",
         hasVisual ? "md:grid-cols-2" : "md:grid-cols-1"
       )}>
-        {item && hasVisual && <DialogVisuals item={item} />}
+        {item && hasVisual && <DialogVisuals item={item} onOembedLoad={setOembedHtml} />}
 
         <div className={cn(
           "flex flex-col bg-card text-card-foreground shadow-lg overflow-hidden relative",
-          !hasVisual && "md:col-span-2"
+          !hasVisual && "md:col-span-1" // Corrected: use col-span-1 for single column
         )}>
             <ScrollArea className="flex-grow">
               <div className="p-6 space-y-4">
@@ -368,9 +373,9 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                     isTemporary={isTemporary}
                     onTemporaryToggle={handleTemporaryToggle}
                     expirySelection={expirySelection}
-                    onExpiryChange={handleExpiryChange}
+                    onExpiryChange={onExpiryChange}
                     customExpiryDays={customExpiryDays}
-                    onCustomExpiryChange={handleCustomExpiryChange}
+                    onCustomExpiryChange={onCustomExpiryChange}
                     editableMemoryNote={editableMemoryNote}
                     onMemoryNoteChange={(e) => setEditableMemoryNote(e.target.value)}
                     onMemoryNoteBlur={handleMemoryNoteBlur}
