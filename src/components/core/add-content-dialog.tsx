@@ -333,7 +333,10 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const ZoneDisplayIcon = getIconComponent(selectedZone?.icon);
   const zoneDisplayName = selectedZone?.name || 'Select a zone';
   const filteredZones = zoneSearchText ? internalZones.filter(z => z.name.toLowerCase().includes(zoneSearchText.toLowerCase())) : internalZones;
-  const showCreateZoneOption = zoneSearchText.trim() !== '';
+  
+  // This is the key change for the bug fix.
+  const showCreateZoneOption = zoneSearchText.trim() !== '' && !internalZones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase());
+  
   const isSubmitDisabled = isSaving || isUploading || (uploadedFiles.length === 0 && !watchedMainContent.trim());
 
 
@@ -463,6 +466,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                   <Command>
                       <CommandInput placeholder="Search or create zone..." value={zoneSearchText} onValueChange={setZoneSearchText} />
                       <CommandList>
+                           <CommandEmpty>No matching zones found.</CommandEmpty>
                            <CommandGroup>
                               {filteredZones.map((z) => {
                                 const ListItemIcon = getIconComponent(z.icon);
@@ -481,9 +485,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                                     <Plus className="mr-2 h-4 w-4" /><span>Create "{zoneSearchText.trim()}"</span>
                                 </CommandItem>
                                 </CommandGroup>
-                            )}
-                            {filteredZones.length === 0 && !showCreateZoneOption && (
-                                <CommandEmpty>No zones found.</CommandEmpty>
                             )}
                       </CommandList>
                   </Command>
@@ -557,3 +558,4 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
 };
 
 export default AddContentDialog;
+
