@@ -264,18 +264,18 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     };
 
     if (uploadedFiles.length > 0) {
-        const mindNoteFromInput = mainContent.trim() ? mainContent.trim() : undefined;
+        const memoryNoteFromInput = mainContent.trim() ? mainContent.trim() : undefined;
         
         for (const uploadedFile of uploadedFiles) {
             const contentData = uploadedFile.type === 'image'
             ? {
                 type: 'image' as const, title: uploadedFile.name, imageUrl: uploadedFile.url,
-                mindNote: mindNoteFromInput, status: 'pending-analysis' as const,
+                memoryNote: memoryNoteFromInput, status: 'pending-analysis' as const,
                 ...commonData
               }
             : {
                 type: 'link' as const, title: uploadedFile.name, url: uploadedFile.url, contentType: 'PDF',
-                mindNote: mindNoteFromInput, domain: 'mati.internal.storage',
+                memoryNote: memoryNoteFromInput, domain: 'mati.internal.storage',
                 status: 'pending-analysis' as const,
                 ...commonData
               };
@@ -301,7 +301,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
             const isMedia = knownMediaDomains.some(d => new URL(extractedUrl).hostname.includes(d));
             
             contentData = {
-                type: 'link', url: extractedUrl, mindNote: mainContent,
+                type: 'link', url: extractedUrl, memoryNote: mainContent,
                 domain: new URL(extractedUrl).hostname.replace(/^www\./, ''),
                 status: 'pending-analysis', title: metadata.title, description: metadata.description,
                 faviconUrl: metadata.faviconUrl, imageUrl: metadata.imageUrl,

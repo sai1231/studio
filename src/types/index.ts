@@ -48,7 +48,7 @@ export interface ContentItem {
   type: ContentItemType;
   title: string;
   description?: string;
-  mindNote?: string;
+  memoryNote?: string;
   url?: string;
   imageUrl?: string;
   imageAspectRatio?: number;
