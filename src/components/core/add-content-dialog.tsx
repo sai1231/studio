@@ -332,10 +332,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const selectedZone = internalZones.find(z => z.id === watchedZoneId);
   const ZoneDisplayIcon = getIconComponent(selectedZone?.icon);
   const zoneDisplayName = selectedZone?.name || 'Select a zone';
-  const filteredZones = zoneSearchText ? internalZones.filter(z => z.name.toLowerCase().includes(zoneSearchText.toLowerCase())) : internalZones;
-  
-  // This is the key change for the bug fix.
-  const showCreateZoneOption = zoneSearchText.trim() !== '' && !internalZones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase());
   
   const isSubmitDisabled = isSaving || isUploading || (uploadedFiles.length === 0 && !watchedMainContent.trim());
 
@@ -468,10 +464,10 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                       <CommandList>
                            <CommandEmpty>No matching zones found.</CommandEmpty>
                            <CommandGroup>
-                              {filteredZones.map((z) => {
+                              {internalZones.map((z) => {
                                 const ListItemIcon = getIconComponent(z.icon);
                                 return (
-                                  <CommandItem key={z.id} value={z.id} onSelect={() => { form.setValue('zoneId', z.id, { shouldTouch: true, shouldValidate: true }); setIsZonePopoverOpen(false); }}>
+                                  <CommandItem key={z.id} value={z.name} onSelect={() => { form.setValue('zoneId', z.id, { shouldTouch: true, shouldValidate: true }); setIsZonePopoverOpen(false); }}>
                                       <Check className={cn("mr-2 h-4 w-4", watchedZoneId === z.id ? "opacity-100" : "opacity-0")} />
                                       <ListItemIcon className="mr-2 h-4 w-4 opacity-70" />
                                       {z.name}
@@ -479,13 +475,14 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                                 );
                               })}
                            </CommandGroup>
-                           {showCreateZoneOption && (
-                                <CommandGroup className="border-t">
-                                <CommandItem onSelect={() => handleCreateZone(zoneSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer justify-start">
-                                    <Plus className="mr-2 h-4 w-4" /><span>Create "{zoneSearchText.trim()}"</span>
-                                </CommandItem>
-                                </CommandGroup>
-                            )}
+                            <CommandItem
+                                data-visible={zoneSearchText.trim() !== ''}
+                                onSelect={() => handleCreateZone(zoneSearchText)}
+                                className="text-primary hover:!bg-primary/10 cursor-pointer justify-start data-[visible=false]:hidden"
+                              >
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  <span>Create "{zoneSearchText.trim()}"</span>
+                              </CommandItem>
                       </CommandList>
                   </Command>
               </PopoverContent>
@@ -558,4 +555,5 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
 };
 
 export default AddContentDialog;
+
 
