@@ -68,7 +68,7 @@ const HoverNavButton = ({ icon: Icon, label, children }: { icon: React.ElementTy
 const ZoneHoverCardItem: React.FC<{ zone: Zone }> = ({ zone }) => {
   const Icon = getIconComponent(zone.icon);
   return (
-    <Link href={`/zones/${zone.id}`} className="block group focus:outline-none focus:ring-2 focus:ring-primary rounded-lg p-1">
+    <Link href={`/dashboard?zone=${zone.id}`} className="block group focus:outline-none focus:ring-2 focus:ring-primary rounded-lg p-1">
         <div className="relative transition-transform duration-300 ease-in-out group-hover:scale-105 group-focus:scale-105">
             {/* Background Cards */}
             <div className="absolute inset-0 bg-card rounded-lg shadow-md transform-gpu rotate-2"></div>
@@ -166,7 +166,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones, tags, domains, contentTy
 
               <HoverNavButton icon={Tag} label="Tags">
                 {tags.length > 0 ? tags.map(tag => (
-                  <Link key={tag.name} href={`/tags/${encodeURIComponent(tag.name)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                  <Link key={tag.name} href={`/dashboard?tag=${encodeURIComponent(tag.name)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
                       <span className="text-muted-foreground">#</span>
                       <span className="truncate">{tag.name}</span>
                   </Link>
@@ -175,7 +175,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones, tags, domains, contentTy
 
               <HoverNavButton icon={Globe} label="Domains">
                 {domains.length > 0 ? domains.map(domain => (
-                  <Link key={domain} href={`/domains/${encodeURIComponent(domain)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                  <Link key={domain} href={`/dashboard?domain=${encodeURIComponent(domain)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
                       <Globe className="h-4 w-4 opacity-70" />
                       <span className="truncate">{formatDomainName(domain)}</span>
                   </Link>
@@ -188,7 +188,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones, tags, domains, contentTy
                    if (!typeDetails) return null;
                    const Icon = typeDetails.icon;
                    return (
-                      <Link key={typeKey} href={`/content-types/${encodeURIComponent(typeKey)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                      <Link key={typeKey} href={`/dashboard?type=${encodeURIComponent(typeKey)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
                           <Icon className="h-4 w-4 opacity-70" />
                           <span className="truncate">{typeDetails.name}</span>
                       </Link>
