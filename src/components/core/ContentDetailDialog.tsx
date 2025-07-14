@@ -316,7 +316,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                  <DialogMemoryNote
                   editableMemoryNote={editableMemoryNote}
                   onMemoryNoteChange={(e) => setEditableMemoryNote(e.target.value)}
-                  onMemoryNoteBlur={onMemoryNoteBlur}
+                  onMemoryNoteBlur={handleMemoryNoteBlur}
                 />
               </div>
             </ScrollArea>
