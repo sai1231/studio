@@ -64,18 +64,19 @@ const getIconComponent = (iconName?: string): React.ElementType => {
 
 const TruncatedDescription: React.FC<{ text: string }> = ({ text }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const isPotentiallyTruncated = text.split('\n').length > 4 || text.length > 250;
-
+  
   if (!text) {
     return <p className="text-sm text-muted-foreground italic">No description available.</p>;
   }
+  
+  const isPotentiallyTruncated = text.split('\n').length > 4 || text.length > 250;
 
   return (
     <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground relative">
-       <div 
+      <div 
         className="overflow-hidden transition-[max-height] duration-500 ease-in-out"
         style={{ maxHeight: isExpanded ? '1000px' : '80px' }} // 80px is approx 4 lines
-       >
+      >
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
       </div>
       {isPotentiallyTruncated && !isExpanded && (
@@ -531,7 +532,47 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                                 <div className="flex items-center"><ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" /><span className="truncate">{zoneDisplayName}</span></div><ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><div className="flex items-center border-b px-3"><Input placeholder="Search or create zone..." value={comboboxSearchText} onChange={(e) => setComboboxSearchText(e.target.value)} onKeyDown={handleZoneInputKeyDown} className="h-9 w-full border-0 bg-transparent pl-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0" /><Button variant="ghost" size="sm" className={cn("ml-2", !showCreateZoneButton && "hidden")} onClick={() => handleCreateZone(comboboxSearchText)}>Create</Button></div><CommandList><CommandEmpty>No matching zones found.</CommandEmpty><CommandGroup><CommandItem value={NO_ZONE_VALUE} onSelect={() => handleZoneSelection(undefined)}><Check className={cn("mr-2 h-4 w-4", !editableZoneId ? "opacity-100" : "opacity-0")} /><Ban className="mr-2 h-4 w-4 opacity-70 text-muted-foreground" />No Zone Assigned</CommandItem>{filteredZones.map((z) => {const ListItemIcon = getIconComponent(z.icon);return (<CommandItem key={z.id} value={z.id} onSelect={(currentValue) => {handleZoneSelection(currentValue === editableZoneId ? undefined : currentValue);}}><Check className={cn("mr-2 h-4 w-4", editableZoneId === z.id ? "opacity-100" : "opacity-0")} /><ListItemIcon className="mr-2 h-4 w-4 opacity-70" />{z.name}</CommandItem>);})}</CommandGroup></CommandList></Command></PopoverContent>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                            <Command>
+                                <div className="flex items-center border-b px-3">
+                                    <Input 
+                                        placeholder="Search or create zone..." 
+                                        value={comboboxSearchText} 
+                                        onChange={(e) => setComboboxSearchText(e.target.value)} 
+                                        onKeyDown={handleZoneInputKeyDown} 
+                                        className="h-9 w-full border-0 bg-transparent pl-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                                    />
+                                    <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className={cn("ml-2", !showCreateZoneButton && "hidden")} 
+                                        onClick={() => handleCreateZone(comboboxSearchText)}
+                                    >
+                                        Create
+                                    </Button>
+                                </div>
+                                <CommandList>
+                                    <CommandEmpty>No matching zones found.</CommandEmpty>
+                                    <CommandGroup>
+                                        <CommandItem value={NO_ZONE_VALUE} onSelect={() => handleZoneSelection(undefined)}>
+                                            <Check className={cn("mr-2 h-4 w-4", !editableZoneId ? "opacity-100" : "opacity-0")} />
+                                            <Ban className="mr-2 h-4 w-4 opacity-70 text-muted-foreground" />
+                                            No Zone Assigned
+                                        </CommandItem>
+                                        {filteredZones.map((z) => {
+                                            const ListItemIcon = getIconComponent(z.icon);
+                                            return (
+                                                <CommandItem key={z.id} value={z.id} onSelect={(currentValue) => {handleZoneSelection(currentValue === editableZoneId ? undefined : currentValue);}}>
+                                                    <Check className={cn("mr-2 h-4 w-4", editableZoneId === z.id ? "opacity-100" : "opacity-0")} />
+                                                    <ListItemIcon className="mr-2 h-4 w-4 opacity-70" />
+                                                    {z.name}
+                                                </CommandItem>
+                                            );
+                                        })}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
                     </Popover>
 
                     <div className="flex flex-wrap items-center gap-2">
