@@ -320,7 +320,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
         "grid flex-grow overflow-hidden",
         hasVisual ? "md:grid-cols-2" : "md:grid-cols-1"
       )}>
-        {item && <DialogVisuals item={item} />}
+        {item && hasVisual && <DialogVisuals item={item} />}
 
         <div className={cn(
           "flex flex-col bg-card text-card-foreground shadow-lg overflow-hidden relative",
