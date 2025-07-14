@@ -124,7 +124,8 @@ const enrichContentFlow = ai.defineFlow(
                 const arrayBuffer = await imageResponse.arrayBuffer();
                 const imageBuffer = Buffer.from(arrayBuffer);
 
-                const colors = await fetchImageColors(imageBuffer, contentId);
+                const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg'; // Default to jpeg if mime type is not available
+                const colors = await fetchImageColors(imageBuffer, contentId, mimeType);
                 if (colors && colors.length > 0) {
                     updatePayload.colorPalette = colors;
                     await addLog('INFO', `[${contentId}] 🎨✅ Successfully fetched color palette.`);

@@ -1,46 +1,31 @@
 import { extractColors } from 'extract-colors';
 import { addLog } from '@/services/loggingService';
-import sharp from 'sharp'; // Add this dependency
 
-export async function fetchImageColors(buffer: Buffer, contentId: string): Promise<string[]> {
+export async function fetchImageColors(buffer: Buffer, contentId: string, mimeType: string): Promise<string[]> {
   try {
-    await addLog('INFO', `[${contentId}] Attempting to extract colors from image buffer.`);
-
-
-    const imageData = {
-      data: new Uint8Array(buffer),
-      width: 100,  // Replace with actual dimensions if known
-      height: 100,
+    await addLog('INFO', `[${contentId}] Attempting to extract colors from image buffer using 'extract-colors'.`);
+    
+    const options = {
+      pixels: 20000, // Amount of pixels to resize the image to, default: 64000
+      distance: 0.2, // Color distance, default: 0.22
+      saturation: 0.2, // Saturation threshold, default: 0.2
+      lightness: 0.2, // Lightness threshold, default: 0.2
     };
 
-
-    // Extract colors (already sorted by dominance)
-    const colors = await extractColors({ src: buffer }, {
-      pixels: 64000,
-      distance: 0.22,
-    });
+    const colors = await extractColors(buffer, options);
 
     if (!colors || colors.length === 0) {
       await addLog('WARN', `[${contentId}] No colors extracted.`);
       return [];
     }
 
- // 1. Filter out invalid colors (e.g., where red/green/blue is null)
- const validColors = colors.filter(
-  color => color.red !== null && color.green !== null && color.blue !== null
-);
+    const hexColors = colors.map(color => color.hex);
 
-// 2. Sort by area (descending)
-const sortedByArea = [...validColors].sort((a, b) => b.area - a.area);
-
-// 3. Extract top 10 hex codes
-const top10HexCodes = sortedByArea.slice(0, 10).map(color => color.hex);
-    
-    await addLog('INFO', `[${contentId}] Extracted top 10 hex codes: ${JSON.stringify(top10HexCodes)}`);
-    return top10HexCodes;
+    await addLog('INFO', `[${contentId}] Extracted hex codes: ${JSON.stringify(hexColors)}`);
+    return hexColors;
   } catch (error: any) {
     console.error(`Error extracting colors:`, error);
-    await addLog('ERROR', `[${contentId}] Failed to extract colors: ${error.message}`);
+    await addLog('ERROR', `[${contentId}] Failed to extract colors with 'extract-colors': ${error.message}`);
     throw error;
   }
 }
