@@ -12,6 +12,7 @@ interface DialogDescriptionProps {
 }
 
 const TRUNCATION_THRESHOLD = 250; // characters
+const COLLAPSED_MAX_HEIGHT = '6rem'; // Roughly 4 lines of text (4 * 1.5rem line-height)
 
 export const DialogDescription: React.FC<DialogDescriptionProps> = ({ description }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -45,6 +46,8 @@ export const DialogDescription: React.FC<DialogDescriptionProps> = ({ descriptio
   }
   
   const htmlDescription = marked.parse(description);
+  
+  const contentHeight = contentRef.current ? `${contentRef.current.scrollHeight}px` : 'auto';
 
   return (
     <div>
@@ -53,12 +56,17 @@ export const DialogDescription: React.FC<DialogDescriptionProps> = ({ descriptio
         <h3 className="font-semibold text-foreground">Description</h3>
       </div>
       <div
-        className={cn(
-          "prose prose-sm dark:prose-invert max-w-none text-muted-foreground p-3 bg-muted/30 dark:bg-muted/20 rounded-md overflow-hidden transition-all duration-300 ease-in-out",
-          !isExpanded && isTruncatable && "line-clamp-4"
-        )}
+        className="relative overflow-hidden transition-[max-height] duration-500 ease-in-out"
+        style={{ maxHeight: isExpanded ? contentHeight : COLLAPSED_MAX_HEIGHT }}
       >
-        <div ref={contentRef} dangerouslySetInnerHTML={{ __html: htmlDescription }} />
+        <div 
+          ref={contentRef}
+          className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground p-3 bg-muted/30 dark:bg-muted/20 rounded-md"
+          dangerouslySetInnerHTML={{ __html: htmlDescription }}
+        />
+        {!isExpanded && isTruncatable && (
+            <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-muted/80 to-transparent" />
+        )}
       </div>
       {isTruncatable && (
         <Button
