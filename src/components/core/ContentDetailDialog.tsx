@@ -329,7 +329,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
 
         <div className={cn(
           "flex flex-col bg-card text-card-foreground shadow-lg overflow-hidden relative",
-          !hasVisual && "md:col-span-1" // Corrected: use col-span-1 for single column
+          !hasVisual && "md:col-span-2"
         )}>
             <ScrollArea className="flex-grow">
               <div className="p-6 space-y-4">
@@ -373,12 +373,12 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                     isTemporary={isTemporary}
                     onTemporaryToggle={handleTemporaryToggle}
                     expirySelection={expirySelection}
-                    onExpiryChange={onExpiryChange}
+                    onExpiryChange={handleExpiryChange}
                     customExpiryDays={customExpiryDays}
                     onCustomExpiryChange={onCustomExpiryChange}
                     editableMemoryNote={editableMemoryNote}
                     onMemoryNoteChange={(e) => setEditableMemoryNote(e.target.value)}
-                    onMemoryNoteBlur={handleMemoryNoteBlur}
+                    onMemoryNoteBlur={onMemoryNoteBlur}
                 />
               </div>
             </ScrollArea>
