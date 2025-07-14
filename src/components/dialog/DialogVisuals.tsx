@@ -5,6 +5,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { ContentItem } from '@/types';
+import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
 
 interface DialogVisualsProps {
   item: ContentItem;
@@ -19,12 +22,10 @@ declare global {
 }
 
 export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad }) => {
+  const { toast } = useToast();
   const [isFetchingOembed, setIsFetchingOembed] = useState(false);
   const [imageError, setImageError] = useState(false);
   const oembedContainerRef = useRef<HTMLDivElement>(null);
-  
-  // Use a ref to prevent re-fetching on minor state changes.
-  // The effect will now only re-run if item.id changes.
   const oembedHtmlRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -50,7 +51,6 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
         .catch(async (error) => {
             if (error instanceof Response) {
                 const errorBody = await error.text();
-                // It's common for oEmbed to fail with 404, so we'll log it as a warning.
                 console.warn(`Could not fetch oEmbed data. Status: ${error.status}. Body: ${errorBody}`);
             } else {
                 console.error("Failed to fetch oEmbed data with a non-response error", error);
@@ -58,8 +58,7 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
         })
         .finally(() => setIsFetchingOembed(false));
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [item.id]); // Only re-run when the item ID changes
+  }, [item.id, item.type, item.url, item.contentType, onOembedLoad]);
 
   useEffect(() => {
     if (oembedHtmlRef.current && oembedContainerRef.current) {
@@ -77,11 +76,18 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
           const newScript = document.createElement('script');
           newScript.src = oldScript.src;
           newScript.async = false;
-          // Important: Append to body to ensure script executes in the global scope
           document.body.appendChild(newScript);
       });
     }
   }, [oembedHtmlRef.current]);
+
+  const handleCopyColor = (color: string) => {
+    navigator.clipboard.writeText(color);
+    toast({
+      title: "Color Copied!",
+      description: `${color} has been copied to your clipboard.`,
+    });
+  };
 
   const hasVisual = !imageError && (item.imageUrl || oembedHtmlRef.current || (item.contentType === 'PDF' && item.url));
 
@@ -91,19 +97,33 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
 
   return (
     <div className="hidden md:flex flex-col bg-muted/50">
-      <div className="relative w-full flex-grow min-h-0 flex justify-center items-center rounded-lg overflow-hidden">
+      <div className="relative w-full flex-grow min-h-0 flex justify-center items-center rounded-lg overflow-hidden p-6">
         {isFetchingOembed ? (
           <div className="w-full aspect-video flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
         ) : oembedHtmlRef.current ? (
           <div ref={oembedContainerRef} className="oembed-container w-full" dangerouslySetInnerHTML={{ __html: oembedHtmlRef.current }} />
         ) : item.imageUrl && !imageError ? (
           <div className="w-full h-full flex flex-col items-center justify-center">
-            <img src={item.imageUrl} alt={item.title || 'Content Image'} data-ai-hint={item.title || "image"} className="w-full h-auto object-contain" loading="lazy" onError={() => setImageError(true)}/>
+            <img src={item.imageUrl} alt={item.title || 'Content Image'} data-ai-hint={item.title || "image"} className="w-full h-auto object-contain max-h-[70vh] rounded-md shadow-lg" loading="lazy" onError={() => setImageError(true)}/>
             {item.colorPalette && item.colorPalette.length > 0 && (
-                <div className="flex w-full mt-auto">
+                <div className="flex w-full mt-4 rounded-md overflow-hidden shadow-md">
+                  <TooltipProvider>
                     {item.colorPalette.map((color, index) => (
-                        <div key={index} style={{ backgroundColor: color }} className="h-4 flex-grow" title={color} />
+                      <Tooltip key={index}>
+                        <TooltipTrigger asChild>
+                           <button
+                              onClick={() => handleCopyColor(color)}
+                              style={{ backgroundColor: color }}
+                              className="h-8 flex-grow transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 z-10"
+                              aria-label={`Copy color ${color}`}
+                            />
+                        </TooltipTrigger>
+                         <TooltipContent>
+                          <p>Copy {color}</p>
+                        </TooltipContent>
+                      </Tooltip>
                     ))}
+                   </TooltipProvider>
                 </div>
             )}
           </div>
