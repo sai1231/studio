@@ -54,6 +54,18 @@ const knownProviders: { [domain: string]: string } = {
     'flickr.com': 'https://www.flickr.com/services/oembed/',
     'open.spotify.com': 'https://open.spotify.com/oembed',
     'spotify.com': 'https://open.spotify.com/oembed',
+    'instagram.com': 'https://graph.facebook.com/v19.0/instagram_oembed', // Note: Needs special handling
+    'tiktok.com': 'https://www.tiktok.com/oembed',
+    'reddit.com': 'https://www.reddit.com/oembed',
+    'twitch.tv': 'https://api.twitch.tv/v5/oembed',
+    'slideshare.net': 'https://www.slideshare.net/api/oembed/2',
+    'issuu.com': 'https://issuu.com/oembed',
+    'codepen.io': 'https://codepen.io/api/oembed',
+    'gist.github.com': 'https://github.com/api/oembed',
+    'dailymotion.com': 'https://www.dailymotion.com/services/oembed',
+    'ted.com': 'https://www.ted.com/services/v1/oembed.json',
+    'kickstarter.com': 'https://www.kickstarter.com/services/oembed',
+    'medium.com': 'https://medium.com/oembed'
 };
 
 export async function GET(request: NextRequest) {
