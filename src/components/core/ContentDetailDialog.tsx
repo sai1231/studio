@@ -7,72 +7,16 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { getContentItemById, updateContentItem, getZones, addZone } from '@/services/contentService';
 import type { ContentItem, Zone, Tag } from '@/types';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, X, Sparkles } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
-import { Separator } from "@/components/ui/separator";
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { add } from 'date-fns';
 import { ScrollArea } from '../ui/scroll-area';
 import { DialogVisuals } from '@/components/dialog/DialogVisuals';
 import { DialogHeaderSection } from '@/components/dialog/DialogHeaderSection';
 import { DialogMetadata } from '@/components/dialog/DialogMetadata';
 import { DialogFooterActions } from '@/components/dialog/DialogFooterActions';
-import { add } from 'date-fns';
-
-const TruncatedDescription: React.FC<{ text: string }> = ({ text }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [isTruncated, setIsTruncated] = useState(false);
-
-  useEffect(() => {
-    if (contentRef.current) {
-        const checkTruncation = () => {
-            if (contentRef.current) {
-                const { scrollHeight, clientHeight } = contentRef.current;
-                setIsTruncated(scrollHeight > clientHeight);
-            }
-        };
-        checkTruncation();
-        window.addEventListener('resize', checkTruncation);
-        const timeoutId = setTimeout(checkTruncation, 100);
-        return () => {
-            window.removeEventListener('resize', checkTruncation);
-            clearTimeout(timeoutId);
-        };
-    }
-}, [text]);
-
-
-  if (!text) {
-    return <p className="text-sm text-muted-foreground italic">No description available.</p>;
-  }
-
-  return (
-    <div className="prose dark:prose-invert prose-sm max-w-none text-muted-foreground relative">
-       <div
-        ref={contentRef}
-        className={cn(
-          "overflow-hidden transition-[max-height] duration-500 ease-in-out",
-          !isExpanded && "max-h-20"
-        )}
-      >
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
-      </div>
-      {isTruncated && !isExpanded && (
-        <button onClick={() => setIsExpanded(true)} className="text-primary text-sm font-medium hover:underline mt-1">
-          Show more
-        </button>
-      )}
-      {isExpanded && (
-        <button onClick={() => setIsExpanded(false)} className="text-primary text-sm font-medium hover:underline mt-1">
-          Show less
-        </button>
-      )}
-    </div>
-  );
-};
 
 
 interface ContentDetailDialogProps {
@@ -110,7 +54,6 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
   const [customExpiryDays, setCustomExpiryDays] = useState<string>('30');
   const [isSaving, setIsSaving] = useState(false);
   
-  // State to hold oEmbed result to determine layout
   const [oembedHtml, setOembedHtml] = useState<string | null>(null);
 
   useEffect(() => {
@@ -118,7 +61,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
       setItem(initialItem); 
       setIsLoading(false); 
       setError(null);
-      setOembedHtml(null); // Reset oembed on item change
+      setOembedHtml(null); 
 
       const fetchSupportingData = async () => {
         if (!initialItem.userId) {
@@ -339,17 +282,6 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                     onTitleChange={(e) => setEditableTitle(e.target.value)}
                     onTitleBlur={handleTitleBlur}
                 />}
-                <Separator />
-                
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                    <h3 className="font-semibold text-foreground">Description</h3>
-                  </div>
-                  <TruncatedDescription text={item?.description || ''} />
-                </div>
-
-                <Separator />
                 
                 <DialogMetadata 
                     isSaving={isSaving}
@@ -378,7 +310,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                     onCustomExpiryChange={handleCustomExpiryChange}
                     editableMemoryNote={editableMemoryNote}
                     onMemoryNoteChange={(e) => setEditableMemoryNote(e.target.value)}
-                    onMemoryNoteBlur={onMemoryNoteBlur}
+                    onMemoryNoteBlur={handleMemoryNoteBlur}
                 />
               </div>
             </ScrollArea>
