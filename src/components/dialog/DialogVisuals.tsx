@@ -29,11 +29,26 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item }) => {
     if (item.type === 'link' && item.url && item.contentType !== 'PDF') {
       setIsFetchingOembed(true);
       fetch(`/api/oembed?url=${encodeURIComponent(item.url)}`)
-        .then(res => res.ok ? res.json() : Promise.reject(res))
+        .then(res => {
+            if (!res.ok) {
+                // If the response is not ok, we reject the promise with the response object
+                // so we can inspect its body in the catch block.
+                return Promise.reject(res);
+            }
+            return res.json();
+        })
         .then(data => {
           if (data.html) setOembedHtml(data.html);
         })
-        .catch(e => console.error("Failed to fetch oEmbed data", e))
+        .catch(async (error) => {
+            // Check if the caught error is a Response object
+            if (error instanceof Response) {
+                const errorBody = await error.text();
+                console.error(`Failed to fetch oEmbed data. Status: ${error.status}. Body: ${errorBody}`);
+            } else {
+                console.error("Failed to fetch oEmbed data", error);
+            }
+        })
         .finally(() => setIsFetchingOembed(false));
     }
   }, [item]);
@@ -48,6 +63,18 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item }) => {
         window.instgrm.Embeds.process();
         return;
       }
+
+      if (oembedHtml.includes('wp-embedded-content') && oembedHtml.includes('wp-embed-js')) {
+        const scripts = Array.from(oembedContainerRef.current.querySelectorAll('script'));
+        scripts.forEach(oldScript => {
+            const newScript = document.createElement('script');
+            newScript.src = oldScript.src;
+            newScript.async = false; // Important for some embed scripts
+            document.body.appendChild(newScript);
+        });
+        return;
+      }
+
       const container = oembedContainerRef.current;
       const scripts = Array.from(container.getElementsByTagName('script'));
       scripts.forEach(oldScript => {
