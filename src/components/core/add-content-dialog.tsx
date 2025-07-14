@@ -463,12 +463,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                   <Command>
                       <CommandInput placeholder="Search or create zone..." value={zoneSearchText} onValueChange={setZoneSearchText} />
                       <CommandList>
-                          {filteredZones.length === 0 && !showCreateZoneOption && (
-                            <CommandEmpty>
-                                <div className="py-6 text-center text-sm">No zones found.</div>
-                            </CommandEmpty>
-                          )}
-                          <CommandGroup>
+                           <CommandGroup>
                               {filteredZones.map((z) => {
                                 const ListItemIcon = getIconComponent(z.icon);
                                 return (
@@ -479,14 +474,17 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                                   </CommandItem>
                                 );
                               })}
-                          </CommandGroup>
-                          {showCreateZoneOption && (
-                            <CommandGroup className="border-t">
-                              <CommandItem onSelect={() => handleCreateZone(zoneSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer justify-start">
-                                  <Plus className="mr-2 h-4 w-4" /><span>Create "{zoneSearchText.trim()}"</span>
-                              </CommandItem>
-                            </CommandGroup>
-                          )}
+                           </CommandGroup>
+                           {showCreateZoneOption && (
+                                <CommandGroup className="border-t">
+                                <CommandItem onSelect={() => handleCreateZone(zoneSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer justify-start">
+                                    <Plus className="mr-2 h-4 w-4" /><span>Create "{zoneSearchText.trim()}"</span>
+                                </CommandItem>
+                                </CommandGroup>
+                            )}
+                            {filteredZones.length === 0 && !showCreateZoneOption && (
+                                <CommandEmpty>No zones found.</CommandEmpty>
+                            )}
                       </CommandList>
                   </Command>
               </PopoverContent>
@@ -535,7 +533,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       ) : (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent 
-              className="max-w-[625px] flex flex-col max-h-[90vh] border-0 p-0 bg-card"
+              className="max-w-[625px] flex flex-col max-h-[90vh] p-0 bg-card"
               onOpenAutoFocus={(e) => e.preventDefault()}
             >
                 <DialogHeader className="px-6 pt-6 pb-0">
