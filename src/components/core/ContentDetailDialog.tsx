@@ -64,7 +64,7 @@ const getIconComponent = (iconName?: string): React.ElementType => {
 
 const TruncatedDescription: React.FC<{ text: string }> = ({ text }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  
+
   if (!text) {
     return <p className="text-sm text-muted-foreground italic">No description available.</p>;
   }
@@ -82,6 +82,11 @@ const TruncatedDescription: React.FC<{ text: string }> = ({ text }) => {
       {isPotentiallyTruncated && !isExpanded && (
         <Button variant="link" onClick={() => setIsExpanded(true)} className="p-0 h-auto text-primary mt-1">
           Show more
+        </Button>
+      )}
+      {isPotentiallyTruncated && isExpanded && (
+        <Button variant="link" onClick={() => setIsExpanded(false)} className="p-0 h-auto text-primary mt-1">
+          Show less
         </Button>
       )}
     </div>
