@@ -510,9 +510,12 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                     />
                 </div>
 
-                <Separator />
-                
-                <ColorPalette palette={item?.colorPalette} />
+                {item?.colorPalette && item.colorPalette.length > 0 && (
+                    <>
+                        <Separator />
+                        <ColorPalette palette={item?.colorPalette} />
+                    </>
+                )}
 
                 <Separator />
 
