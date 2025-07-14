@@ -44,9 +44,10 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item }) => {
             // Check if the caught error is a Response object
             if (error instanceof Response) {
                 const errorBody = await error.text();
-                console.error(`Failed to fetch oEmbed data. Status: ${error.status}. Body: ${errorBody}`);
+                // It's not a critical error if oEmbed isn't found, so use warn instead.
+                console.warn(`Could not fetch oEmbed data. Status: ${error.status}. Body: ${errorBody}`);
             } else {
-                console.error("Failed to fetch oEmbed data", error);
+                console.error("Failed to fetch oEmbed data with a non-response error", error);
             }
         })
         .finally(() => setIsFetchingOembed(false));
