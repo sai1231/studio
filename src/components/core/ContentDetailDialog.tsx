@@ -75,8 +75,17 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
             getZones(initialItem.userId)
           ]);
           
-          if (freshItem) setItem(freshItem);
-          setAllZones(fetchedZones);
+          if (freshItem) {
+            setItem(freshItem);
+            const regularZones = fetchedZones.filter(z => !z.isMoodboard);
+            setAllZones(regularZones);
+            
+            // Find the first ID in zoneIds that is a regular zone
+            const assignedRegularZone = freshItem.zoneIds?.find(id => regularZones.some(z => z.id === id));
+            setEditableZoneId(assignedRegularZone);
+          } else {
+            setAllZones([]);
+          }
           
         } catch (e) {
           console.error('Error fetching supporting details for dialog:', e);
@@ -98,7 +107,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
     if (item) {
       setEditableTitle(item.title);
       setEditableMemoryNote(item.memoryNote || '');
-      setEditableZoneId(item.zoneIds?.[0]);
+      // editableZoneId is now set in the fetch effect above
       setEditableTags(item.tags || []);
       setIsTemporary(!!item.expiresAt);
     }
@@ -164,9 +173,12 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
   const handleZoneSelection = async (selectedZoneValue?: string) => {
     setIsZoneComboboxOpen(false);
     setZoneComboboxSearchText('');
+    
     const newZoneId = selectedZoneValue === undefined ? undefined : selectedZoneValue;
-    if (item && item.zoneIds?.[0] !== newZoneId) {
-        await handleFieldUpdate('zoneIds', newZoneId ? [newZoneId] : []);
+    if (item && editableZoneId !== newZoneId) {
+        const otherMoodboardIds = item.zoneIds?.filter(id => !allZones.some(z => z.id === id)) || [];
+        const newZoneIds = newZoneId ? [newZoneId, ...otherMoodboardIds] : otherMoodboardIds;
+        await handleFieldUpdate('zoneIds', newZoneIds);
     }
     setEditableZoneId(newZoneId);
   };
@@ -177,7 +189,11 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
     try {
       const newZone = await addZone(zoneName.trim(), user.uid);
       setAllZones(prev => [...prev, newZone]); 
-      await handleFieldUpdate('zoneIds', [newZone.id]);
+      
+      const otherMoodboardIds = item?.zoneIds?.filter(id => !allZones.some(z => z.id === id)) || [];
+      const newZoneIds = [newZone.id, ...otherMoodboardIds];
+      await handleFieldUpdate('zoneIds', newZoneIds);
+
       setEditableZoneId(newZone.id);
       toast({ title: "Zone Created", description: `Zone "${newZone.name}" created and assigned.` });
     } catch (e) {
@@ -230,7 +246,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
       setIsAddingTag(false);
     }
   };
-
+  
   const handleTemporaryToggle = (checked: boolean) => {
       setIsTemporary(checked);
       if (checked) {
