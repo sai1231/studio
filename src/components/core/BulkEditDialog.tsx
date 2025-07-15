@@ -292,9 +292,13 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
                       <FormControl>
                         <Switch
                           checked={field.value === 'on'}
-                          onCheckedChange={(checked) => field.onChange(checked ? 'on' : 'off')}
-                          data-state={field.value}
-                          className="data-[state=indeterminate]:bg-muted-foreground"
+                          onCheckedChange={(checked) => {
+                            if (field.value === 'indeterminate') {
+                              field.onChange(checked ? 'on' : 'off');
+                            } else {
+                              field.onChange(checked ? 'on' : 'off');
+                            }
+                          }}
                         />
                       </FormControl>
                     </FormItem>
