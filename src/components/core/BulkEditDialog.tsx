@@ -165,7 +165,7 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
             Apply changes to all selected items. Fields left blank will not be changed.
           </DialogDescription>
         </DialogHeader>
-        <div className="px-6 pb-6">
+        <div className="bg-card px-6 pb-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} id="bulk-edit-form" className="space-y-4">
               <FormField
