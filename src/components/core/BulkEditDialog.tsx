@@ -186,7 +186,7 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={handleTagInputKeyDown}
                 placeholder="Type & enter..."
-                className="h-8 flex-grow min-w-[120px] p-0 border-0 shadow-none focus-visible:ring-0"
+                className="h-8 flex-grow min-w-[120px] p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent"
               />
             </div>
           </div>
@@ -234,7 +234,7 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isLoading}>Cancel</Button>
           <Button onClick={handleSubmit} disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Apply Changes
+            Apply
           </Button>
         </DialogFooter>
       </DialogContent>
