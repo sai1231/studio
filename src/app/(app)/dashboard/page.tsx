@@ -6,11 +6,11 @@ import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ContentCard from '@/components/core/link-card';
 import ContentDetailDialog from '@/components/core/ContentDetailDialog';
-import type { ContentItem, AppZone, Task, SearchFilters, Zone } from '@/types';
+import type { ContentItem, AppZone, Task, SearchFilters, Zone, Tag } from '@/types';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Loader2, FolderOpen, ListChecks } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { deleteContentItem, subscribeToTaskList, updateTaskList, updateContentItem } from '@/services/contentService';
+import { deleteContentItem, subscribeToTaskList, updateTaskList, updateContentItem, getContentItemById } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
 import { useSearch } from '@/context/SearchContext';
@@ -223,28 +223,65 @@ function DashboardPageContent() {
   const handleAddTodoClick = () => setIsAddTodoDialogOpen(true);
   
   const handleToggleSelection = (itemId: string) => {
-    setSelectedItems(prev => prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]);
+    setSelectedItems(prev => prev.includes(itemId) ? prev.filter(id => id !== item.id) : [...prev, item.id]);
   };
   
-  const handleMoveToZone = async (newZoneId: string | null) => {
-    const { id: toastId } = toast({ title: 'Moving Items...', description: `Assigning ${selectedItems.length} items.` });
-    const originalItems = [...contentToDisplay];
+  const handleBulkEdit = async (updates: {
+    zoneId?: string | null;
+    tagsToAdd?: string[];
+    memoryNoteToAppend?: string;
+    expiresAt?: string | null;
+  }) => {
+    const { id: toastId } = toast({ title: 'Applying changes...', description: `Updating ${selectedItems.length} items.` });
 
-    // Optimistic update
-    const newItems = contentToDisplay.map(item =>
-        selectedItems.includes(item.id) ? { ...item, zoneId: newZoneId || undefined } : item
-    );
-    setContentToDisplay(newItems);
-    
     try {
-        await Promise.all(
-            selectedItems.map(itemId => updateContentItem(itemId, { zoneId: newZoneId }))
-        );
-        toast({ id: toastId, title: 'Items Moved!', description: `${selectedItems.length} items successfully moved.` });
-        setSelectedItems([]);
+      const updatePromises = selectedItems.map(async (itemId) => {
+        const itemToUpdate = contentToDisplay.find(item => item.id === itemId) || await getContentItemById(itemId);
+        if (!itemToUpdate) return;
+
+        let finalUpdates: Partial<ContentItem> = {};
+
+        if (updates.zoneId !== undefined) {
+          finalUpdates.zoneId = updates.zoneId === null ? undefined : updates.zoneId;
+        }
+
+        if (updates.tagsToAdd && updates.tagsToAdd.length > 0) {
+          const existingTags = itemToUpdate.tags || [];
+          const newTags = updates.tagsToAdd.map(tagName => ({ id: tagName.toLowerCase(), name: tagName }));
+          const combined = [...existingTags, ...newTags];
+          finalUpdates.tags = combined.filter((tag, index, self) => index === self.findIndex(t => t.name.toLowerCase() === tag.name.toLowerCase()));
+        }
+
+        if (updates.memoryNoteToAppend) {
+          const existingNote = itemToUpdate.memoryNote || '';
+          finalUpdates.memoryNote = existingNote ? `${existingNote}\n\n${updates.memoryNoteToAppend}` : updates.memoryNoteToAppend;
+        }
+
+        if (updates.expiresAt !== undefined) {
+          finalUpdates.expiresAt = updates.expiresAt === null ? undefined : updates.expiresAt;
+        }
+        
+        if (Object.keys(finalUpdates).length > 0) {
+          await updateContentItem(itemId, finalUpdates);
+        }
+      });
+
+      await Promise.all(updatePromises);
+      
+      // Manually trigger a search to refresh the UI with the new data
+      const currentParams = new URLSearchParams(searchParams.toString());
+      search(currentParams.get('q') || '', {
+        zoneId: currentParams.get('zone'),
+        tagNames: currentParams.has('tag') ? currentParams.get('tag')!.split(',') : [],
+        domain: currentParams.get('domain'),
+        contentType: currentParams.get('type')
+      }, { limit: 100, append: false });
+
+      toast({ id: toastId, title: 'Update Complete!', description: `${selectedItems.length} items have been updated.` });
+      setSelectedItems([]);
+
     } catch (error) {
-        toast({ id: toastId, title: 'Move Failed', description: 'Could not move items. Reverting.', variant: 'destructive' });
-        setContentToDisplay(originalItems);
+        toast({ id: toastId, title: 'Update Failed', description: 'Could not update all items.', variant: 'destructive' });
     }
   };
   
@@ -368,7 +405,7 @@ function DashboardPageContent() {
                     selectedCount={selectedItems.length}
                     onClearSelection={() => setSelectedItems([])}
                     availableZones={availableZones}
-                    onMoveToZone={handleMoveToZone}
+                    onBulkEdit={handleBulkEdit}
                     onDelete={handleDeleteSelected}
                 />
             )}

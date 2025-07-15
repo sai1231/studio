@@ -292,6 +292,16 @@ export async function updateContentItem(
     if (Object.prototype.hasOwnProperty.call(updates, 'expiresAt') && updates.expiresAt === undefined) {
         updateData.expiresAt = null; 
     }
+    
+    // Special handling for memoryNote to append
+    if (updates.memoryNote) {
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            const existingNote = docSnap.data().memoryNote || '';
+            updateData.memoryNote = existingNote ? `${existingNote}\n\n${updates.memoryNote}` : updates.memoryNote;
+        }
+    }
+
 
     await updateDoc(docRef, updateData);
     
