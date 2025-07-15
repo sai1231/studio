@@ -52,9 +52,9 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40"
+        className="fixed inset-0 flex items-center justify-center z-40 pointer-events-none"
       >
-        <div className="flex items-center gap-4 rounded-full bg-background p-3 shadow-2xl border">
+        <div className="flex items-center gap-4 rounded-full bg-background p-3 shadow-2xl border pointer-events-auto">
           <div className="flex items-center gap-2">
               <Button variant="ghost" size="icon" className="rounded-full h-8 w-8" onClick={onClearSelection}>
                   <X className="h-5 w-5" />
