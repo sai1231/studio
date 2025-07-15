@@ -315,6 +315,10 @@ function DashboardPageContent() {
     }
   };
 
+  const handleSelectAll = () => {
+    setSelectedItems(contentToDisplay.map(item => item.id));
+  };
+
 
   const isPageLoading = isAuthLoading || !isInitialized || (isSearchLoading && contentToDisplay.length === 0);
 
@@ -418,6 +422,7 @@ function DashboardPageContent() {
                 <BulkActionBar
                     selectedCount={selectedItems.length}
                     onClearSelection={() => setSelectedItems([])}
+                    onSelectAll={handleSelectAll}
                     availableZones={availableZones}
                     onBulkEdit={handleBulkEdit}
                     onDelete={handleDeleteSelected}

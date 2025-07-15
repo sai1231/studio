@@ -17,10 +17,12 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { BulkEditDialog } from './BulkEditDialog';
+import { Separator } from '../ui/separator';
 
 interface BulkActionBarProps {
   selectedCount: number;
   onClearSelection: () => void;
+  onSelectAll: () => void;
   availableZones: Zone[];
   onBulkEdit: (updates: {
     zoneId?: string | null;
@@ -35,6 +37,7 @@ interface BulkActionBarProps {
 const BulkActionBar: React.FC<BulkActionBarProps> = ({
   selectedCount,
   onClearSelection,
+  onSelectAll,
   availableZones,
   onBulkEdit,
   onDelete,
@@ -59,6 +62,12 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
               <span className="font-medium text-foreground">{selectedCount} selected</span>
           </div>
           
+          <Separator orientation="vertical" className="h-6" />
+
+           <Button variant="link" onClick={onSelectAll} className="p-0 h-auto text-primary">Select All</Button>
+
+          <Separator orientation="vertical" className="h-6" />
+
           <div className="flex items-center gap-2">
               <Button onClick={() => setIsEditDialogOpen(true)}>
                   Actions
