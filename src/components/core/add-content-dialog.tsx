@@ -557,8 +557,10 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                 <DialogHeader className="px-6 pt-6 pb-0">
                   <DialogTitle className="font-headline">Add Content</DialogTitle>
                 </DialogHeader>
-                <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-grow flex flex-col overflow-hidden px-6">
-                    {FormFields}
+                <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-grow flex flex-col overflow-hidden">
+                    <div className="bg-card px-6">
+                        {FormFields}
+                    </div>
                 </form>
                 <DialogFooter className="px-6 pb-6 pt-4 border-t mt-auto flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
                     <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
