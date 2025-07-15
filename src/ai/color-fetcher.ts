@@ -1,49 +1,56 @@
+import sharp from 'sharp';
 import { extractColors } from 'extract-colors';
+import convert from 'color-convert';
+import colorNameList from 'color-name-list';
 import { addLog } from '@/services/loggingService';
 
-export async function fetchImageColors(buffer: Buffer, contentId: string): Promise<string[]> {
-  try {
-    await addLog('INFO', `[${contentId}] Attempting to extract colors from image buffer.`);
+type ColorResult = {
+  hex: string;
+  keyword?: string;
+  name: string;
+};
 
+export async function fetchImageColorsWithNames(buffer: Buffer, contentId: string): Promise<ColorResult[]> {
+  await addLog('INFO', `[${contentId}] Starting named color extraction.`);
 
-    const imageData = {
-      data: new Uint8Array(buffer),
-      width: 100,  // Replace with actual dimensions if known
-      height: 100,
-    };
+  const img = sharp(buffer).raw().ensureAlpha();
+  const { data, info } = await img.toBuffer({ resolveWithObject: true });
+  const uintData = new Uint8Array(data);
 
+  const colors = await extractColors(
+    { data: uintData, width: info.width, height: info.height },
+    { pixels: 64000, distance: 0.22, saturation: 0.2, lightness: 0.6, colors: 10 }
+  );
 
-    // Extract colors (already sorted by dominance)
-    const colors = await extractColors(imageData, {
-      pixels: 64000,
-      distance: 0.22, // Lower value means more colors, default is 0.22
-      saturation: 0.2, // Lower value means more colors, default is 0.2
-      lightness: 0.6, // Lower value means more colors, default is 0.6
-      colors: 2, // Max number of colors to return
+  const results: ColorResult[] = colors
+    .filter(c => c.red !== null && c.green !== null && c.blue !== null)
+    .sort((a, b) => b.area - a.area)
+    .slice(0, 10)
+    .map(c => {
+      const hex = c.hex.toLowerCase();
+      // 1️⃣ Try CSS keyword (basic)
+      let keyword = convert.keyword(hex.replace('#', '')) ?? undefined;
 
+      // 2️⃣ Fallback to nearest from large name list
+      let name = keyword ?? (() => {
+        const [r, g, b] = convert.hex.rgb(hex.replace('#', ''));
+        let minDist = Infinity;
+        let best: string = hex;
+
+        for (const entry of colorNameList) {
+          const [cr, cg, cb] = convert.hex.rgb(entry.hex.replace('#', ''));
+          const dist = (r - cr) ** 2 + (g - cg) ** 2 + (b - cb) ** 2;
+          if (dist < minDist) {
+            minDist = dist;
+            best = entry.name;
+          }
+        }
+        return best;
+      })();
+
+      return { hex, keyword, name };
     });
 
-    if (!colors || colors.length === 0) {
-      await addLog('WARN', `[${contentId}] No colors extracted.`);
-      return [];
-    }
-
-    // 1. Filter out invalid colors (e.g., where red/green/blue is null)
-    const validColors = colors.filter(
-      color => color.red !== null && color.green !== null && color.blue !== null
-    );
-
-    // 2. Sort by area (descending)
-    const sortedByArea = [...validColors].sort((a, b) => b.area - a.area);
-
-    // 3. Extract top 10 hex codes
-    const top10HexCodes = sortedByArea.slice(0, 10).map(color => color.hex);
-
-    await addLog('INFO', `[${contentId}] Extracted top 10 hex codes: ${JSON.stringify(top10HexCodes)}`);
-    return top10HexCodes;
-  } catch (error: any) {
-    console.error(`Error extracting colors:`, error);
-    await addLog('ERROR', `[${contentId}] Failed to extract colors: ${error.message}`);
-    throw error;
-  }
+  await addLog('INFO', `[${contentId}] Named colors: ${JSON.stringify(results)}`);
+  return results;
 }

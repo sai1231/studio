@@ -11,9 +11,9 @@ import { addLog } from '@/services/loggingService';
  */
 function initializeAdminApp(): admin.app.App {
   // Use the official way to check for existing apps to prevent re-initialization errors.
-  if (admin.apps.length > 0) {
+  if (admin.apps.length > 0 && admin.apps[0]) {
     addLog('INFO', "Firebase Admin SDK already initialized. Returning existing app.");
-    return admin.app(); // Return the default app instance
+    return admin.apps[0];
   }
   
   addLog('INFO', "Attempting to initialize Firebase Admin SDK for the first time...");
