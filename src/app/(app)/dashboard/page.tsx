@@ -10,7 +10,7 @@ import type { ContentItem, AppZone, Task, SearchFilters, Zone, Tag } from '@/typ
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Loader2, FolderOpen, ListChecks } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { deleteContentItem, subscribeToTaskList, updateTaskList, updateContentItem, getContentItemById } from '@/services/contentService';
+import { deleteContentItem, subscribeToTaskList, updateTaskList, updateContentItem, getContentItemById, addZone } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
 import { useSearch } from '@/context/SearchContext';
@@ -301,6 +301,20 @@ function DashboardPageContent() {
     }
   };
 
+  const handleCreateZone = async (zoneName: string): Promise<Zone | null> => {
+    if (!zoneName.trim() || !user) return null;
+    try {
+      const newZone = await addZone(zoneName.trim(), user.uid);
+      // The `zones` state in SearchContext will update automatically via the Firestore listener
+      toast({ title: "Zone Created", description: `Zone "${newZone.name}" created.` });
+      return newZone;
+    } catch (e) {
+      console.error('Error creating zone:', e);
+      toast({ title: "Error", description: "Could not create new zone.", variant: "destructive" });
+      return null;
+    }
+  };
+
 
   const isPageLoading = isAuthLoading || !isInitialized || (isSearchLoading && contentToDisplay.length === 0);
 
@@ -407,6 +421,7 @@ function DashboardPageContent() {
                     availableZones={availableZones}
                     onBulkEdit={handleBulkEdit}
                     onDelete={handleDeleteSelected}
+                    onZoneCreate={handleCreateZone}
                 />
             )}
         </AnimatePresence>

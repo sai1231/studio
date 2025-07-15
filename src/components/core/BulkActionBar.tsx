@@ -29,6 +29,7 @@ interface BulkActionBarProps {
     expiresAt?: string | null;
   }) => void;
   onDelete: () => void;
+  onZoneCreate: (zoneName: string) => Promise<Zone | null>;
 }
 
 const BulkActionBar: React.FC<BulkActionBarProps> = ({
@@ -37,6 +38,7 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
   availableZones,
   onBulkEdit,
   onDelete,
+  onZoneCreate,
 }) => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
@@ -92,6 +94,7 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
         availableZones={availableZones}
         onBulkEdit={onBulkEdit}
         selectedCount={selectedCount}
+        onZoneCreate={onZoneCreate}
       />
     </>
   );

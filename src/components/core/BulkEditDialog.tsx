@@ -40,6 +40,7 @@ interface BulkEditDialogProps {
     expiresAt?: string | null;
   }) => void;
   selectedCount: number;
+  onZoneCreate: (zoneName: string) => Promise<Zone | null>;
 }
 
 const formSchema = z.object({
@@ -52,7 +53,7 @@ const formSchema = z.object({
 
 const NO_ZONE_VALUE = "__NO_ZONE__";
 
-export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit, selectedCount }: BulkEditDialogProps) {
+export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit, selectedCount, onZoneCreate }: BulkEditDialogProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [tagInput, setTagInput] = useState('');
@@ -71,7 +72,21 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
   });
 
   const handleCreateZone = async (zoneName: string) => {
-    toast({ title: "Feature not implemented", description: "Creating zones from this dialog is not yet supported." });
+    if (!zoneName.trim() || isLoading) return;
+    setIsLoading(true);
+    try {
+      const newZone = await onZoneCreate(zoneName);
+      if (newZone) {
+        form.setValue('zoneId', newZone.id);
+        toast({ title: "Zone Created", description: `Zone "${newZone.name}" created and selected.` });
+      }
+    } catch(e) {
+      toast({ title: "Error", description: "Could not create new zone.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+      setIsZonePopoverOpen(false);
+      setZoneSearchText('');
+    }
   };
   
   const isTemporary = form.watch('isTemporary');
@@ -134,7 +149,6 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-lg p-0">
-        <div className="bg-card text-card-foreground rounded-lg">
           <DialogHeader className="p-6 pb-4">
             <DialogTitle>Bulk Edit {selectedCount} Items</DialogTitle>
             <DialogDescription>
@@ -162,7 +176,7 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
                             </PopoverTrigger>
                             <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                                 <Command>
-                                    <CommandInput placeholder="Search zones..." value={zoneSearchText} onValueChange={setZoneSearchText} />
+                                    <CommandInput placeholder="Search or create zone..." value={zoneSearchText} onValueChange={setZoneSearchText} />
                                     <CommandList>
                                         <CommandEmpty>No matching zones found.</CommandEmpty>
                                         <CommandGroup>
@@ -298,7 +312,6 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
               Apply
             </Button>
           </DialogFooter>
-        </div>
       </DialogContent>
     </Dialog>
   );

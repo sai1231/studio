@@ -250,7 +250,6 @@ export async function getUserById(id: string): Promise<AdminUser | undefined> {
         return mockUser;
     }
   
-    await new Promise(resolve => setTimeout(resolve, 500));
     const userDocRef = doc(db, 'users', id);
     const userDocSnap = await getDoc(userDocRef);
 
