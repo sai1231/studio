@@ -71,6 +71,11 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
     },
   });
 
+  // This function was missing but is needed for the create zone flow
+  const handleCreateZone = async (zoneName: string) => {
+    toast({ title: "Feature not implemented", description: "Creating zones from this dialog is not yet supported." });
+  };
+  
   const isTemporary = form.watch('isTemporary');
   const tagsToAdd = form.watch('tagsToAdd') || [];
 
@@ -130,14 +135,13 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg p-0">
-        <DialogHeader className="p-6 pb-4">
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
           <DialogTitle>Bulk Edit {selectedCount} Items</DialogTitle>
           <DialogDescription>
             Apply changes to all selected items. Fields left blank will not be changed.
           </DialogDescription>
         </DialogHeader>
-        <div className="px-6 pb-6">
           <Form {...form}>
               <form onSubmit={form.handleSubmit(handleSubmit)} id="bulk-edit-form" className="space-y-4">
                   <FormField
@@ -286,8 +290,7 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
                   </div>
               </form>
           </Form>
-        </div>
-        <DialogFooter className="border-t p-6">
+        <DialogFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isLoading}>Cancel</Button>
           <Button type="submit" form="bulk-edit-form" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
