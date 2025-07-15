@@ -204,7 +204,7 @@ function DashboardPageContent() {
       toast({ title: "Error", description: "Could not update task status. Reverting.", variant: "destructive" });
       // Revert logic could be implemented here if needed
     } finally {
-      setIsUpdatingStatus(null);
+      setIsUpdatingTodoStatus(null);
     }
   };
 
@@ -416,7 +416,7 @@ function DashboardPageContent() {
                       tasks={tasks}
                       onToggleStatus={handleToggleTodoStatus}
                       onDeleteItem={handleDeleteTask}
-                      isUpdatingStatus={isUpdatingStatus}
+                      isUpdatingStatus={isUpdatingTodoStatus}
                       onAddTodoClick={handleAddTodoClick}
                     />
                   ) : (
