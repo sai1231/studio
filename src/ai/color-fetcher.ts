@@ -11,22 +11,31 @@ export interface NamedColor {
   name: string;
 }
 
+/**
+ * Extracts top colors from an image buffer and returns hex + CSS name.
+ * @param buffer - image file buffer
+ * @param contentId - identifier for logging
+ */
 export async function fetchImageColors(
   buffer: Buffer,
-  contentId: string
+  contentId: string,
 ): Promise<NamedColor[]> {
   try {
     await addLog('INFO', `[${contentId}] Starting color extraction with sharp.`);
 
-    const img = sharp(buffer).raw().ensureAlpha();
+    // Decode image to raw RGBA
+    const img = sharp(buffer)
+      .raw()
+      .ensureAlpha();
     const { data, info } = await img.toBuffer({ resolveWithObject: true });
     await addLog(
       'DEBUG',
-      `[${contentId}] Decoded image – width: ${info.width}, height: ${info.height}, channels: ${info.channels}`
+      `[${contentId}] Image decoded: ${info.width}×${info.height}, ${info.channels} channels`
     );
 
     const uintData = new Uint8Array(data);
 
+    // Extract dominant colors
     const colors = await extractColors(
       { data: uintData, width: info.width, height: info.height },
       {
@@ -43,15 +52,22 @@ export async function fetchImageColors(
       return [];
     }
 
-    const top = colors
+    // Sort by area and pick top 10
+    const topColors = colors
       .filter(c => c.red !== null && c.green !== null && c.blue !== null)
       .sort((a, b) => b.area - a.area)
       .slice(0, 10);
 
-    const namedColors: NamedColor[] = top.map(c => {
+    // Map to {hex, name}
+    const namedColors: NamedColor[] = topColors.map(c => {
       const hex = c.hex;
-      const info = closest(hex, undefined, { info: true });
-      return { hex, name: info.name };
+      try {
+        const colorInfo = closest(hex);
+        return { hex, name: colorInfo.name };
+      } catch (e) {
+        // Fallback for colors that might not be in the list
+        return { hex, name: 'unknown' };
+      }
     });
 
     await addLog(

@@ -68,7 +68,7 @@ const formatForIndex = async (item: ContentItem): Promise<any> => {
     contentType: item.contentType,
     createdAt: new Date(item.createdAt).getTime(), // for sorting
     movieDetails: item.movieDetails,
-    colorPalette: item.colorPalette?.map(c => c.name) || [], // Add color names
+    colorPalette: item.colorPalette?.map(c => c.name) || [], // Convert array of objects to array of strings (color names)
   };
 };
 
@@ -105,12 +105,28 @@ export const searchContent = async (
       sort: ['createdAt:desc']
     });
 
-    const hits = searchResults.hits.map((hit: any) => ({
-      ...hit,
-      tags: hit.tags.map((t: string) => ({ id: t.toLowerCase(), name: t })),
-      createdAt: new Date(hit.createdAt).toISOString(),
-    }));
+    // Re-fetch full data from Firestore for the hits to ensure UI has the complete objects
+    const hitIds = searchResults.hits.map(hit => hit.id);
+    if (!db) return { hits: [], total: 0 };
     
+    if (hitIds.length === 0) {
+        return { hits: [], total: 0 };
+    }
+
+    const contentPromises = hitIds.map(id => getDoc(doc(db, 'content', id)));
+    const contentDocs = await Promise.all(contentPromises);
+    
+    const hits = contentDocs
+        .filter(docSnap => docSnap.exists())
+        .map(docSnap => {
+            const data = docSnap.data();
+            return {
+                id: docSnap.id,
+                ...data,
+                createdAt: data.createdAt.toDate().toISOString(),
+            } as ContentItem;
+        });
+
     return { hits, total: searchResults.estimatedTotalHits };
   } catch (error) {
     throw handleMeiliError(error, 'search');

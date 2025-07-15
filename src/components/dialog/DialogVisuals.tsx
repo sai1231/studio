@@ -112,14 +112,14 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
                       <Tooltip key={index}>
                         <TooltipTrigger asChild>
                            <button
-                              onClick={() => handleCopyColor(color)}
-                              style={{ backgroundColor: color }}
+                              onClick={() => handleCopyColor(color.hex)}
+                              style={{ backgroundColor: color.hex }}
                               className="h-8 flex-grow transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 z-10"
-                              aria-label={`Copy color ${color}`}
+                              aria-label={`Copy color ${color.name} (${color.hex})`}
                             />
                         </TooltipTrigger>
                          <TooltipContent>
-                          <p>Copy {color}</p>
+                          <p>Copy {color.hex}</p>
                         </TooltipContent>
                       </Tooltip>
                     ))}
