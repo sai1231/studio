@@ -59,7 +59,7 @@ function DashboardPageContent() {
   const loaderRef = useRef<HTMLDivElement | null>(null);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<ViewMode>('moodboard');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
 
   // Update local display state when search results change from context
