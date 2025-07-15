@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Plus, X, ChevronDown, Bookmark, Ban } from 'lucide-react';
+import { Loader2, Plus, X, ChevronDown, Bookmark, Ban, Check } from 'lucide-react';
 import type { Zone } from '@/types';
 import { add } from 'date-fns';
 import { cn } from '@/lib/utils';
