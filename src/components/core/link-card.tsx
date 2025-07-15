@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
@@ -16,6 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 interface ContentCardProps {
   item: ContentItem;
+  viewMode?: 'grid' | 'moodboard';
   onEdit: (item: ContentItem) => void;
   onDelete: (itemId: string) => void;
   isSelected: boolean;
@@ -61,7 +63,7 @@ const domainIconMap: { [key: string]: React.ElementType } = {
   'spotify.com': SpotifyIcon,
 };
 
-const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete, isSelected, onToggleSelection, isSelectionActive }) => {
+const ContentCard: React.FC<ContentCardProps> = ({ item, viewMode = 'grid', onEdit, onDelete, isSelected, onToggleSelection, isSelectionActive }) => {
   const [faviconError, setFaviconError] = useState(false);
   const [imageError, setImageError] = useState(false);
   
@@ -138,6 +140,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete, isSel
         className={cn(
           "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex w-full flex-col group rounded-xl relative h-full",
           isSelected ? "ring-2 ring-primary shadow-2xl" : "cursor-pointer",
+          viewMode === 'moodboard' && hasImage && "bg-transparent shadow-md hover:shadow-lg",
         )}
         onClick={() => onEdit(item)}
       >
@@ -153,7 +156,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete, isSel
             {isSelected ? <Check className="h-4 w-4" /> : <div className="h-3.5 w-3.5 rounded-full border-2 border-primary/50" />}
           </div>
 
-          {item.domain && item.domain !== 'mati.internal.storage' && (
+          {viewMode === 'grid' && item.domain && item.domain !== 'mati.internal.storage' && (
             <div className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <div className="flex items-center gap-1.5 rounded-full bg-background/70 backdrop-blur-sm px-2 py-1 text-xs text-muted-foreground">
                 <Landmark className="h-3.5 w-3.5 opacity-80 shrink-0" />
@@ -203,7 +206,23 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete, isSel
             </TooltipProvider>
           </div>
 
-          {hasImage && <div className="relative w-full overflow-hidden bg-muted">
+          {hasImage && viewMode === 'moodboard' ? (
+             <motion.div 
+                className="relative w-full overflow-hidden"
+                whileHover={{ scale: 1.05 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            >
+              <img
+                  src={item.imageUrl!}
+                  alt={item.title}
+                  data-ai-hint={(item.title || "media content").split(' ').slice(0,2).join(' ')}
+                  className="w-full h-auto object-cover transition-opacity duration-300 rounded-lg"
+                  loading="lazy"
+                  onError={() => setImageError(true)}
+                />
+            </motion.div>
+          ) : hasImage && viewMode === 'grid' ? (
+             <div className="relative w-full overflow-hidden bg-muted">
               <img
                   src={item.imageUrl!}
                   alt={item.title}
@@ -212,9 +231,10 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete, isSel
                   loading="lazy"
                   onError={() => setImageError(true)}
                 />
-            </div>}
+            </div>
+          ) : null}
 
-          {item.type === 'note' ? (
+          {viewMode === 'grid' && (item.type === 'note' ? (
             <div className="pt-4 px-4 pb-6 flex flex-col flex-grow relative">
               <span className="absolute top-2 left-2 text-6xl text-muted-foreground/20 font-serif z-0">“</span>
               <div className="flex-grow pt-4">
@@ -254,7 +274,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete, isSel
                   )}
                 </div>
               </div>
-          )}
+          ))}
         </div>
       </Card>
     </motion.div>

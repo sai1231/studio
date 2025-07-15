@@ -8,7 +8,7 @@ import ContentCard from '@/components/core/link-card';
 import ContentDetailDialog from '@/components/core/ContentDetailDialog';
 import type { ContentItem, AppZone, Task, SearchFilters, Zone, Tag } from '@/types';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, FolderOpen, ListChecks } from 'lucide-react';
+import { PlusCircle, Loader2, FolderOpen, ListChecks, LayoutGrid, Rows3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { deleteContentItem, subscribeToTaskList, updateTaskList, updateContentItem, getContentItemById, addZone } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
@@ -18,6 +18,8 @@ import TodoListCard from '@/components/dashboard/TodoListCard';
 import type { Unsubscribe } from 'firebase/firestore';
 import { AnimatePresence } from 'framer-motion';
 import BulkActionBar from '@/components/core/BulkActionBar';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { cn } from '@/lib/utils';
 
 const pageLoadingMessages = [
   "Organizing your memories...",
@@ -25,6 +27,8 @@ const pageLoadingMessages = [
   "Aligning your ideas...",
   "Connecting the dots...",
 ];
+
+type ViewMode = 'grid' | 'moodboard';
 
 function DashboardPageContent() {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -55,6 +59,7 @@ function DashboardPageContent() {
   const loaderRef = useRef<HTMLDivElement | null>(null);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
 
   // Update local display state when search results change from context
@@ -349,6 +354,17 @@ function DashboardPageContent() {
     <>
       <div className="container mx-auto py-2">
 
+      <div className="flex justify-end mb-4">
+          <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as ViewMode)} aria-label="View Mode">
+            <ToggleGroupItem value="grid" aria-label="Grid View">
+              <LayoutGrid className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="moodboard" aria-label="Moodboard View">
+              <Rows3 className="h-4 w-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+
         {noContentOnDashboard ? (
           <div className="text-center py-12">
             <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -372,7 +388,10 @@ function DashboardPageContent() {
           </div>
         ) : (
           <div>
-            <div className={'columns-2 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
+            <div className={cn(
+                'gap-4',
+                viewMode === 'grid' ? 'columns-2 md:columns-2 lg:columns-3 xl:columns-4' : 'columns-2 md:columns-3 lg:columns-4 xl:columns-5'
+            )}>
               {!isSearching && (
                 <>
                   {tasks.length > 0 ? (
@@ -400,6 +419,7 @@ function DashboardPageContent() {
                 <ContentCard
                   key={item.id}
                   item={item}
+                  viewMode={viewMode}
                   onEdit={handleItemClick}
                   onDelete={handleDeleteContent}
                   isSelected={selectedItems.includes(item.id)}
