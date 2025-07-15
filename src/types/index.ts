@@ -64,7 +64,7 @@ export interface ContentItem {
   contentType?: string;
   movieDetails?: MovieDetails; // Added for movie type
   status?: 'pending-analysis'; // Status is now only for content enrichment
-  colorPalette?: string[];
+  colorPalette?: { hex: string; name: string }[];
 }
 
 // New type for shareable links

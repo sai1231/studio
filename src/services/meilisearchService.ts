@@ -68,6 +68,7 @@ const formatForIndex = async (item: ContentItem): Promise<any> => {
     contentType: item.contentType,
     createdAt: new Date(item.createdAt).getTime(), // for sorting
     movieDetails: item.movieDetails,
+    colorPalette: item.colorPalette?.map(c => c.name) || [], // Add color names
   };
 };
 
@@ -161,9 +162,9 @@ export const reindexAllContent = async (): Promise<{ count: number }> => {
         
         addLog('INFO', '[MeiliSearch] Updating index settings...');
         const settingsTask = await index.updateSettings({
-            filterableAttributes: ['userId', 'zoneIds', 'contentType', 'tags', 'domain'],
+            filterableAttributes: ['userId', 'zoneIds', 'contentType', 'tags', 'domain', 'colorPalette'],
             sortableAttributes: ['createdAt'],
-            searchableAttributes: ['title', 'description', 'tags', 'url', 'domain', 'zoneNames']
+            searchableAttributes: ['title', 'description', 'tags', 'url', 'domain', 'zoneNames', 'colorPalette']
         });
         await client.waitForTask(settingsTask.taskUid);
         addLog('INFO', '[MeiliSearch] Index settings updated.');
