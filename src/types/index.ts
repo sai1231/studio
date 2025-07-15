@@ -66,6 +66,19 @@ export interface ContentItem {
   colorPalette?: string[];
 }
 
+// New type for shareable links
+export interface Share {
+    id: string; // The unique ID for the URL
+    userId: string; // The owner of the content
+    contentId?: string; // The single item being shared
+    zoneId?: string; // The Zone being shared
+    type: 'item' | 'zone';
+    createdAt: string; // ISO String
+    expiresAt?: string | null; // Optional ISO string for expiration
+    password?: string; // Hashed password
+}
+
+
 export interface MovieDetails {
   posterPath?: string;
   releaseYear?: string;
