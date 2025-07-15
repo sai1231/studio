@@ -79,7 +79,7 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, editMode, o
     try {
       const newZone = await onZoneCreate(zoneName);
       if (newZone) {
-        form.setValue('zoneId', newZone.id);
+        form.setValue('zoneId', newZone.id, { shouldTouch: true, shouldValidate: true });
         toast({ title: "Collection Created", description: `"${newZone.name}" created and selected.` });
       }
     } catch(e) {
