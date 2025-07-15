@@ -284,7 +284,7 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
                 name="temporaryStatus"
                 render={({ field }) => (
                     <FormItem className="space-y-3 rounded-lg border p-4">
-                        <FormLabel>Temporary Content Status</FormLabel>
+                        <FormLabel>Temporary Memory</FormLabel>
                         <FormControl>
                             <RadioGroup
                                 onValueChange={field.onChange}
