@@ -2,7 +2,7 @@
 
 'use client';
 import type React from 'react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { UserCircle, Settings, LogOut, Search, Bookmark, X, Tag, Globe, ClipboardList, ListFilter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -35,7 +35,7 @@ const AppHeader: React.FC = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const auth = getAuth();
-  const { allItems, availableZones, search } = useSearch();
+  const { allItems, availableZones } = useSearch();
 
   const [inputValue, setInputValue] = useState(searchParams.get('q') || '');
   const [isCommandOpen, setIsCommandOpen] = useState(false);
@@ -56,6 +56,12 @@ const AppHeader: React.FC = () => {
       setPendingDomain(searchParams.get('domain') || undefined);
     }
   }, [isFilterOpen, searchParams]);
+
+  // Sync input value with URL search parameter 'q'
+  useEffect(() => {
+    setInputValue(searchParams.get('q') || '');
+  }, [searchParams]);
+
 
   const { popoverTags, popoverContentTypes, popoverDomains, popoverZones } = useMemo(() => {
     if (!isFilterOpen) return { popoverTags: [], popoverContentTypes: [], popoverDomains: [], popoverZones: [] };
@@ -111,6 +117,20 @@ const AppHeader: React.FC = () => {
     router.push(`/dashboard?${newParams.toString()}`);
     setIsCommandOpen(false);
   };
+  
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const currentParams = new URLSearchParams(searchParams.toString());
+      if (inputValue.trim()) {
+        currentParams.set('q', inputValue.trim());
+      } else {
+        currentParams.delete('q');
+      }
+      router.push(`/dashboard?${currentParams.toString()}`);
+      setIsCommandOpen(false);
+    }
+  };
+
 
   const handleApplyFilters = () => {
     const newParams = new URLSearchParams();
@@ -171,6 +191,7 @@ const AppHeader: React.FC = () => {
             <CommandInput
               value={inputValue}
               onValueChange={handleSearchInputChange}
+              onKeyDown={handleSearchKeyDown}
               onBlur={() => setTimeout(() => setIsCommandOpen(false), 150)}
               onFocus={() => { if (inputValue.length > 1) setIsCommandOpen(true); }}
               placeholder="Search Memories..."
