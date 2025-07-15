@@ -4,18 +4,23 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ExternalLink, Trash2, Globe, StickyNote, FileImage, Mic, Landmark, PlayCircle, Film, Github, Youtube, Twitter } from 'lucide-react';
+import { ExternalLink, Trash2, Globe, StickyNote, FileImage, Mic, Landmark, PlayCircle, Film, Github, Youtube, Twitter, Check } from 'lucide-react';
 import type { ContentItem } from '@/types';
 import { cn } from '@/lib/utils';
 import { format, isSameYear, parseISO } from 'date-fns';
 import PdfIcon from '@/components/core/PdfIcon';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
+import { Checkbox } from '@/components/ui/checkbox';
+
 
 interface ContentCardProps {
   item: ContentItem;
   onEdit: (item: ContentItem) => void;
   onDelete: (itemId: string) => void;
+  isSelected: boolean;
+  onToggleSelection: (itemId: string) => void;
+  isSelectionActive: boolean;
 }
 
 const SpotifyIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -56,7 +61,7 @@ const domainIconMap: { [key: string]: React.ElementType } = {
   'spotify.com': SpotifyIcon,
 };
 
-const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => {
+const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete, isSelected, onToggleSelection, isSelectionActive }) => {
   const [faviconError, setFaviconError] = useState(false);
   const [imageError, setImageError] = useState(false);
   
@@ -131,12 +136,23 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
         draggable="true"
         onDragStart={handleDragStart}
         className={cn(
-          "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex w-full flex-col group rounded-xl",
-          "cursor-pointer relative h-full"
+          "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex w-full flex-col group rounded-xl relative h-full",
+          isSelected ? "ring-2 ring-primary shadow-2xl" : "cursor-pointer",
         )}
         onClick={() => onEdit(item)}
       >
         <div className="flex-grow min-h-0">
+          <div 
+            onClick={(e) => { e.stopPropagation(); onToggleSelection(item.id); }}
+            className={cn(
+                "absolute top-2 left-2 z-20 h-6 w-6 rounded-full bg-background/70 backdrop-blur-sm flex items-center justify-center transition-all duration-200",
+                isSelectionActive ? "opacity-100 scale-100" : "opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100",
+                isSelected ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+            )}
+          >
+            {isSelected ? <Check className="h-4 w-4" /> : <div className="h-3.5 w-3.5 rounded-full border-2 border-primary/50" />}
+          </div>
+
           {item.domain && item.domain !== 'mati.internal.storage' && (
             <div className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <div className="flex items-center gap-1.5 rounded-full bg-background/70 backdrop-blur-sm px-2 py-1 text-xs text-muted-foreground">
@@ -177,7 +193,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, onEdit, onDelete }) => 
                                 onDelete(item.id);
                             }}
                             aria-label="Forget item"
-                            className="h-8 w-8 p-0 rounded-full bg-background/70 backdrop-blur-sm text-card-foreground hover:bg-primary hover:text-primary-foreground"
+                            className="h-8 w-8 p-0 rounded-full bg-background/70 backdrop-blur-sm text-card-foreground hover:bg-destructive hover:text-destructive-foreground"
                         >
                             <Trash2 className="h-4 w-4" />
                         </Button>

@@ -6,16 +6,18 @@ import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ContentCard from '@/components/core/link-card';
 import ContentDetailDialog from '@/components/core/ContentDetailDialog';
-import type { ContentItem, AppZone, Task, SearchFilters } from '@/types';
+import type { ContentItem, AppZone, Task, SearchFilters, Zone } from '@/types';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Loader2, FolderOpen, ListChecks } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { deleteContentItem, subscribeToTaskList, updateTaskList } from '@/services/contentService';
+import { deleteContentItem, subscribeToTaskList, updateTaskList, updateContentItem } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
 import { useSearch } from '@/context/SearchContext';
 import TodoListCard from '@/components/dashboard/TodoListCard';
 import type { Unsubscribe } from 'firebase/firestore';
+import { AnimatePresence } from 'framer-motion';
+import BulkActionBar from '@/components/core/BulkActionBar';
 
 const pageLoadingMessages = [
   "Organizing your memories...",
@@ -28,18 +30,19 @@ function DashboardPageContent() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { setIsAddTodoDialogOpen, newlyAddedItem, setNewlyAddedItem, openFocusMode } = useDialog();
   const searchParams = useSearchParams();
+  const router = useRouter();
   
   // Extract all potential search params
   const query = searchParams.get('q') || '';
   const zoneId = searchParams.get('zone') || '';
-  const tagNames = searchParams.get('tag')?.split(',') || [];
+  const tagNames = searchParams.has('tag') ? searchParams.get('tag')!.split(',') : [];
   const domainName = searchParams.get('domain') || '';
   const contentType = searchParams.get('type') || '';
   
   const isSearching = !!query.trim() || !!zoneId.trim() || tagNames.length > 0 || !!domainName.trim() || !!contentType.trim();
 
   // Search state is now the primary source of truth for content
-  const { search, searchResults, isLoading: isSearchLoading, isInitialized, hasMore, totalHits } = useSearch();
+  const { search, searchResults, isLoading: isSearchLoading, isInitialized, hasMore, totalHits, availableZones } = useSearch();
 
   const [contentToDisplay, setContentToDisplay] = useState<ContentItem[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -51,6 +54,8 @@ function DashboardPageContent() {
   const [clientLoadingMessage, setClientLoadingMessage] = useState<string | null>(null);
   const loaderRef = useRef<HTMLDivElement | null>(null);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+
 
   // Update local display state when search results change from context
   useEffect(() => {
@@ -144,13 +149,19 @@ function DashboardPageContent() {
 
 
   const handleItemClick = useCallback((item: ContentItem) => {
-    if (item.type === 'note') {
-      openFocusMode(item);
+    if (selectedItems.length > 0) {
+      // If in selection mode, a click toggles selection
+      setSelectedItems(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id]);
     } else {
-      setSelectedItemForDetail(item);
-      setIsDetailDialogOpen(true);
+      // Otherwise, open detail view
+      if (item.type === 'note') {
+        openFocusMode(item);
+      } else {
+        setSelectedItemForDetail(item);
+        setIsDetailDialogOpen(true);
+      }
     }
-  }, [openFocusMode]);
+  }, [openFocusMode, selectedItems.length]);
   
   const handleItemUpdateInDialog = (updatedItem: ContentItem) => {
     setContentToDisplay(prevItems => prevItems.map(item => item.id === updatedItem.id ? updatedItem : item));
@@ -210,6 +221,49 @@ function DashboardPageContent() {
   }, []);
   
   const handleAddTodoClick = () => setIsAddTodoDialogOpen(true);
+  
+  const handleToggleSelection = (itemId: string) => {
+    setSelectedItems(prev => prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]);
+  };
+  
+  const handleMoveToZone = async (newZoneId: string | null) => {
+    const { id: toastId } = toast({ title: 'Moving Items...', description: `Assigning ${selectedItems.length} items.` });
+    const originalItems = [...contentToDisplay];
+
+    // Optimistic update
+    const newItems = contentToDisplay.map(item =>
+        selectedItems.includes(item.id) ? { ...item, zoneId: newZoneId || undefined } : item
+    );
+    setContentToDisplay(newItems);
+    
+    try {
+        await Promise.all(
+            selectedItems.map(itemId => updateContentItem(itemId, { zoneId: newZoneId }))
+        );
+        toast({ id: toastId, title: 'Items Moved!', description: `${selectedItems.length} items successfully moved.` });
+        setSelectedItems([]);
+    } catch (error) {
+        toast({ id: toastId, title: 'Move Failed', description: 'Could not move items. Reverting.', variant: 'destructive' });
+        setContentToDisplay(originalItems);
+    }
+  };
+  
+  const handleDeleteSelected = async () => {
+    const { id: toastId } = toast({ title: 'Deleting Items...', description: `Removing ${selectedItems.length} items.` });
+    const originalItems = [...contentToDisplay];
+    
+    setContentToDisplay(prev => prev.filter(item => !selectedItems.includes(item.id)));
+    
+    try {
+        await Promise.all(selectedItems.map(deleteContentItem));
+        toast({ id: toastId, title: 'Items Deleted!', description: `${selectedItems.length} items have been removed.` });
+        setSelectedItems([]);
+    } catch(error) {
+        toast({ id: toastId, title: 'Delete Failed', description: 'Could not delete all items. Reverting.', variant: 'destructive' });
+        setContentToDisplay(originalItems);
+    }
+  };
+
 
   const isPageLoading = isAuthLoading || !isInitialized || (isSearchLoading && contentToDisplay.length === 0);
 
@@ -293,6 +347,9 @@ function DashboardPageContent() {
                   item={item}
                   onEdit={handleItemClick}
                   onDelete={handleDeleteContent}
+                  isSelected={selectedItems.includes(item.id)}
+                  onToggleSelection={handleToggleSelection}
+                  isSelectionActive={selectedItems.length > 0}
                 />
               ))}
             </div>
@@ -304,6 +361,18 @@ function DashboardPageContent() {
             </div>
           </div>
         )}
+
+        <AnimatePresence>
+            {selectedItems.length > 0 && (
+                <BulkActionBar
+                    selectedCount={selectedItems.length}
+                    onClearSelection={() => setSelectedItems([])}
+                    availableZones={availableZones}
+                    onMoveToZone={handleMoveToZone}
+                    onDelete={handleDeleteSelected}
+                />
+            )}
+        </AnimatePresence>
 
         <ContentDetailDialog
           item={selectedItemForDetail}
