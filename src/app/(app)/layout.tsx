@@ -1,4 +1,5 @@
 
+
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback, Suspense } from 'react';
@@ -157,14 +158,12 @@ export default function AppLayout({
     setNewlyAddedItem,
   } = useDialog();
 
-  const [zones, setZones] = useState<Zone[]>([]);
-  const [moodboards, setMoodboards] = useState<Zone[]>([]);
+  const [allZones, setAllZones] = useState<Zone[]>([]);
   const [tags, setTags] = useState<TagType[]>([]);
   const [domains, setDomains] = useState<string[]>([]);
   const [contentTypes, setContentTypes] = useState<string[]>([]);
   const [allContentItems, setAllContentItems] = useState<ContentItem[]>([]);
   const [zonesWithLatestItems, setZonesWithLatestItems] = useState<Zone[]>([]);
-  const [moodboardsWithLatestItems, setMoodboardsWithLatestItems] = useState<Zone[]>([]);
   const { toast } = useToast();
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [activeMobileSheet, setActiveMobileSheet] = useState<'zones' | 'types' | 'todos' | null>(null);
@@ -185,8 +184,7 @@ export default function AppLayout({
         toast({ title: "Real-time Error", description: "Could not update zones list.", variant: "destructive" });
         return;
       }
-      setZones(fetchedZones.filter(z => !z.isMoodboard));
-      setMoodboards(fetchedZones.filter(z => z.isMoodboard));
+      setAllZones(fetchedZones);
     });
 
     const unsubscribeContent = subscribeToContentItems(user.uid, (items, error) => {
@@ -221,18 +219,13 @@ export default function AppLayout({
     });
 
     // Map over the original zones to preserve order and add the latest item
-    const newZonesWithItems = zones.map(zone => ({
+    const newZonesWithItems = allZones.map(zone => ({
         ...zone,
         latestItem: collectionsMap.get(zone.id)
     }));
-    const newMoodboardsWithItems = moodboards.map(moodboard => ({
-        ...moodboard,
-        latestItem: collectionsMap.get(moodboard.id)
-    }));
     
     setZonesWithLatestItems(newZonesWithItems);
-    setMoodboardsWithLatestItems(newMoodboardsWithItems);
-  }, [zones, moodboards, allContentItems]);
+  }, [allZones, allContentItems]);
   
 
   const handleAddContentAndRefresh = useCallback(async (newContentData: Omit<ContentItem, 'id' | 'createdAt'>) => {
@@ -399,7 +392,7 @@ export default function AppLayout({
     if (!zoneName.trim() || !user) return null;
     try {
       const newZone = await addZone(zoneName.trim(), user.uid, isMoodboard);
-      // The `zones` state will update automatically via the Firestore listener (subscribeToZones)
+      // The `allZones` state will update automatically via the Firestore listener (subscribeToZones)
       toast({ title: "Collection Created", description: `"${newZone.name}" has been created.` });
       return newZone;
     } catch (e) {
@@ -441,9 +434,9 @@ export default function AppLayout({
   const sheetContentMap = {
     zones: {
         title: 'Browse Zones',
-        content: zonesWithLatestItems.length > 0 
+        content: zonesWithLatestItems.filter(z => !z.isMoodboard).length > 0 
             ? <div className="grid grid-cols-2 gap-x-4 gap-y-6 p-2">
-                {zonesWithLatestItems.map(zone => (
+                {zonesWithLatestItems.filter(z => !z.isMoodboard).map(zone => (
                     <ZoneStackCard key={zone.id} zone={zone} />
                 ))}
               </div>
@@ -471,7 +464,6 @@ export default function AppLayout({
       <div className="flex min-h-screen w-full relative">
         <AppSidebar 
             zones={zonesWithLatestItems} 
-            moodboards={moodboardsWithLatestItems}
             tags={tags} 
             domains={domains} 
             contentTypes={contentTypes} 
@@ -498,7 +490,7 @@ export default function AppLayout({
         <AddContentDialog
             open={isAddContentDialogOpen}
             onOpenChange={setIsAddContentDialogOpen}
-            zones={zones}
+            zones={allZones.filter(z => !z.isMoodboard)}
             onContentAdd={handleAddContentAndRefresh}
             onZoneCreate={(name) => handleAddZoneInLayout(name, false)}
         />
@@ -517,7 +509,7 @@ export default function AppLayout({
             item={focusModeItem}
             open={isFocusModeOpen}
             onOpenChange={(open) => !open && closeFocusMode()}
-            zones={zones}
+            zones={allZones.filter(z => !z.isMoodboard)}
             onZoneCreate={(name) => handleAddZoneInLayout(name, false)}
         />
       

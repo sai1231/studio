@@ -1,4 +1,5 @@
 
+
 'use client';
 import type React from 'react';
 import { Home, Tag, LogOut, Globe, ClipboardList, Bookmark, Newspaper, Film, Github, MessagesSquare, BookOpen, LucideIcon, StickyNote, Sparkles, Shield, Brain, Image as ImageIcon } from 'lucide-react';
@@ -90,16 +91,18 @@ const ZoneHoverCardItem: React.FC<{ zone: Zone }> = ({ zone }) => {
 
 interface AppSidebarProps {
     zones: Zone[];
-    moodboards: Zone[];
     tags: TagType[];
     domains: string[];
     contentTypes: string[];
 }
 
-const AppSidebar: React.FC<AppSidebarProps> = ({ zones, moodboards, tags, domains, contentTypes }) => {
+const AppSidebar: React.FC<AppSidebarProps> = ({ zones: allCollections, tags, domains, contentTypes }) => {
   const { toast } = useToast();
   const router = useRouter();
   const auth = getAuth();
+
+  const zones = allCollections.filter(c => !c.isMoodboard);
+  const moodboards = allCollections.filter(c => c.isMoodboard);
 
   const handleLogout = async () => {
     try {
