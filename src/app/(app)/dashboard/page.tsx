@@ -61,6 +61,8 @@ function DashboardPageContent() {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
+  const regularZones = availableZones.filter(z => !z.isMoodboard);
+  const moodboards = availableZones.filter(z => z.isMoodboard);
 
   // Update local display state when search results change from context
   useEffect(() => {
@@ -202,7 +204,7 @@ function DashboardPageContent() {
       toast({ title: "Error", description: "Could not update task status. Reverting.", variant: "destructive" });
       // Revert logic could be implemented here if needed
     } finally {
-      setIsUpdatingTodoStatus(null);
+      setIsUpdatingStatus(null);
     }
   };
 
@@ -247,7 +249,7 @@ function DashboardPageContent() {
         let finalUpdates: Partial<ContentItem> = {};
 
         if (updates.zoneId !== undefined) {
-          finalUpdates.zoneId = updates.zoneId === null ? undefined : updates.zoneId;
+          finalUpdates.zoneIds = updates.zoneId === null ? [] : [updates.zoneId];
         }
 
         if (updates.tagsToAdd && updates.tagsToAdd.length > 0) {
@@ -289,6 +291,32 @@ function DashboardPageContent() {
         toast({ id: toastId, title: 'Update Failed', description: 'Could not update all items.', variant: 'destructive' });
     }
   };
+
+  const handleAddToMoodboard = async (moodboardId: string) => {
+    const { id: toastId } = toast({ title: 'Adding to Moodboard...', description: `Adding ${selectedItems.length} items.` });
+    
+    try {
+       const updatePromises = selectedItems.map(itemId => {
+         return updateContentItem(itemId, { zoneIds: [moodboardId] });
+       });
+       
+       await Promise.all(updatePromises);
+       
+       const currentParams = new URLSearchParams(searchParams.toString());
+       search(currentParams.get('q') || '', {
+         zoneId: currentParams.get('zone'),
+         tagNames: currentParams.has('tag') ? currentParams.get('tag')!.split(',') : [],
+         domain: currentParams.get('domain'),
+         contentType: currentParams.get('type')
+       }, { limit: 100, append: false });
+       
+       toast({ id: toastId, title: 'Update Complete!', description: `${selectedItems.length} items added to moodboard.` });
+       setSelectedItems([]);
+
+    } catch (error) {
+        toast({ id: toastId, title: 'Update Failed', description: 'Could not add items to moodboard.', variant: 'destructive' });
+    }
+  };
   
   const handleDeleteSelected = async () => {
     const { id: toastId } = toast({ title: 'Deleting Items...', description: `Removing ${selectedItems.length} items.` });
@@ -306,16 +334,16 @@ function DashboardPageContent() {
     }
   };
 
-  const handleCreateZone = async (zoneName: string): Promise<Zone | null> => {
+  const handleCreateZone = async (zoneName: string, isMoodboard = false): Promise<Zone | null> => {
     if (!zoneName.trim() || !user) return null;
     try {
-      const newZone = await addZone(zoneName.trim(), user.uid);
+      const newZone = await addZone(zoneName.trim(), user.uid, isMoodboard);
       // The `zones` state in SearchContext will update automatically via the Firestore listener
-      toast({ title: "Zone Created", description: `Zone "${newZone.name}" created.` });
+      toast({ title: "Collection Created", description: `"${newZone.name}" created.` });
       return newZone;
     } catch (e) {
       console.error('Error creating zone:', e);
-      toast({ title: "Error", description: "Could not create new zone.", variant: "destructive" });
+      toast({ title: "Error", description: "Could not create new collection.", variant: "destructive" });
       return null;
     }
   };
@@ -388,7 +416,7 @@ function DashboardPageContent() {
                       tasks={tasks}
                       onToggleStatus={handleToggleTodoStatus}
                       onDeleteItem={handleDeleteTask}
-                      isUpdatingStatus={isUpdatingTodoStatus}
+                      isUpdatingStatus={isUpdatingStatus}
                       onAddTodoClick={handleAddTodoClick}
                     />
                   ) : (
@@ -432,8 +460,10 @@ function DashboardPageContent() {
                     selectedCount={selectedItems.length}
                     onClearSelection={() => setSelectedItems([])}
                     onSelectAll={handleSelectAll}
-                    availableZones={availableZones}
+                    availableZones={regularZones}
+                    availableMoodboards={moodboards}
                     onBulkEdit={handleBulkEdit}
+                    onAddToMoodboard={handleAddToMoodboard}
                     onDelete={handleDeleteSelected}
                     onZoneCreate={handleCreateZone}
                 />

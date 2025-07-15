@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState } from 'react';
@@ -27,7 +28,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { getIconComponent } from '@/lib/icon-map';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 interface BulkEditDialogProps {
   open: boolean;
@@ -160,8 +160,11 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, editMode, o
   const selectedZone = zones.find(z => z.id === watchedZoneId);
   const zoneDisplayName = watchedZoneId === NO_ZONE_VALUE ? "No Zone" : selectedZone?.name || `Select a ${editMode}...`;
   const ZoneDisplayIcon = editMode === 'moodboard' ? ImageIcon : getIconComponent(selectedZone?.icon || (watchedZoneId === NO_ZONE_VALUE ? 'Ban' : ''));
-  const filteredZones = zoneSearchText ? zones.filter(z => z.name.toLowerCase().includes(zoneSearchText.toLowerCase())) : zones;
-  const showCreateZoneOption = zoneSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase());
+  
+  const collectionsToList = zones; // Use the passed list directly based on mode
+  const filteredCollections = zoneSearchText ? collectionsToList.filter(z => z.name.toLowerCase().includes(zoneSearchText.toLowerCase())) : collectionsToList;
+  
+  const showCreateZoneOption = zoneSearchText.trim() !== '' && !filteredCollections.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase());
 
   const handleZoneInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -230,7 +233,7 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, editMode, o
                                     No Zone
                                 </CommandItem>
                               )}
-                              {filteredZones.map((z) => {
+                              {filteredCollections.map((z) => {
                                 const ListItemIcon = editMode === 'moodboard' ? ImageIcon : getIconComponent(z.icon);
                                 return (
                                   <CommandItem key={z.id} value={z.id} onSelect={() => { field.onChange(z.id); setIsZonePopoverOpen(false); }}>
