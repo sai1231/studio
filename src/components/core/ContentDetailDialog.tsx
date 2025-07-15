@@ -98,7 +98,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
     if (item) {
       setEditableTitle(item.title);
       setEditableMemoryNote(item.memoryNote || '');
-      setEditableZoneId(item.zoneId);
+      setEditableZoneId(item.zoneIds?.[0]);
       setEditableTags(item.tags || []);
       setIsTemporary(!!item.expiresAt);
     }
@@ -117,7 +117,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
   };
 
   const handleFieldUpdate = useCallback(async (
-    fieldName: keyof Pick<ContentItem, 'title' | 'memoryNote' | 'zoneId' | 'expiresAt' | 'tags'>,
+    fieldName: keyof Pick<ContentItem, 'title' | 'memoryNote' | 'zoneIds' | 'expiresAt' | 'tags'>,
     value: any
   ) => {
     if (!item) return;
@@ -165,8 +165,8 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
     setIsZoneComboboxOpen(false);
     setZoneComboboxSearchText('');
     const newZoneId = selectedZoneValue === undefined ? undefined : selectedZoneValue;
-    if (item && item.zoneId !== newZoneId) {
-        await handleFieldUpdate('zoneId', newZoneId);
+    if (item && item.zoneIds?.[0] !== newZoneId) {
+        await handleFieldUpdate('zoneIds', newZoneId ? [newZoneId] : []);
     }
     setEditableZoneId(newZoneId);
   };
@@ -177,7 +177,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
     try {
       const newZone = await addZone(zoneName.trim(), user.uid);
       setAllZones(prev => [...prev, newZone]); 
-      await handleFieldUpdate('zoneId', newZone.id);
+      await handleFieldUpdate('zoneIds', [newZone.id]);
       setEditableZoneId(newZone.id);
       toast({ title: "Zone Created", description: `Zone "${newZone.name}" created and assigned.` });
     } catch (e) {
@@ -306,11 +306,11 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                     handleRemoveTag={handleRemoveTag}
                     newTagInputRef={newTagInputRef}
                     isTemporary={isTemporary}
-                    onTemporaryToggle={handleTemporaryToggle}
+                    onTemporaryToggle={onTemporaryToggle}
                     expirySelection={expirySelection}
-                    onExpiryChange={handleExpiryChange}
+                    onExpiryChange={onExpiryChange}
                     customExpiryDays={customExpiryDays}
-                    onCustomExpiryChange={handleCustomExpiryChange}
+                    onCustomExpiryChange={onCustomExpiryChange}
                     editableMemoryNote={editableMemoryNote}
                     onMemoryNoteChange={(e) => setEditableMemoryNote(e.target.value)}
                     onMemoryNoteBlur={handleMemoryNoteBlur}

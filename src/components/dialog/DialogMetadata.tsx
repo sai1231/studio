@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -15,6 +16,7 @@ import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/comp
 import { cn } from '@/lib/utils';
 import type { Zone, Tag } from '@/types';
 import { DialogMemoryNote } from './DialogMemoryNote';
+import { getIconComponent } from '@/lib/icon-map';
 
 interface DialogMetadataProps {
   isSaving: boolean;
@@ -54,21 +56,6 @@ interface DialogMetadataProps {
   onMemoryNoteBlur: () => void;
 }
 
-const iconMap: { [key: string]: React.ElementType } = {
-  Briefcase,
-  Home,
-  Library,
-  Bookmark,
-  Ban,
-};
-
-const getIconComponent = (iconName?: string): React.ElementType => {
-  if (iconName && iconMap[iconName]) {
-    return iconMap[iconName];
-  }
-  return Bookmark;
-};
-
 const NO_ZONE_VALUE = "__NO_ZONE__";
 
 export const DialogMetadata: React.FC<DialogMetadataProps> = (props) => {
@@ -82,7 +69,7 @@ export const DialogMetadata: React.FC<DialogMetadataProps> = (props) => {
 
   const selectedZone = allZones.find(z => z.id === editableZoneId);
   const zoneDisplayName = selectedZone?.name || "No zone";
-  const ZoneDisplayIcon = getIconComponent(selectedZone?.icon);
+  const ZoneDisplayIcon = getIconComponent(selectedZone?.icon || (editableZoneId ? undefined : 'Ban'));
   const filteredZones = zoneComboboxSearchText ? allZones.filter(z => z.name.toLowerCase().includes(zoneComboboxSearchText.toLowerCase())) : allZones;
   const showCreateZoneButton = zoneComboboxSearchText.trim() !== '' && !allZones.some(z => z.name.toLowerCase() === zoneComboboxSearchText.trim().toLowerCase());
 
