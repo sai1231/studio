@@ -35,7 +35,7 @@ export async function createShareLink(shareData: {
   const uniqueId = randomBytes(8).toString('hex'); // Generates a 16-character hex string
   const docRef = doc(sharesCollection, uniqueId);
   
-  let hashedPassword = undefined;
+  let hashedPassword: string | undefined = undefined;
   if (shareData.password) {
     const salt = await bcrypt.genSalt(10);
     hashedPassword = await bcrypt.hash(shareData.password, salt);
@@ -51,13 +51,18 @@ export async function createShareLink(shareData: {
     password: hashedPassword,
   };
 
-  const dataToSave = {
-    ...newShare,
-    contentId: newShare.contentId ?? null, // Ensure undefined is converted to null
-    zoneId: newShare.zoneId ?? null,       // Ensure undefined is converted to null
+  const dataToSave: { [key: string]: any } = {
+    userId: newShare.userId,
+    type: newShare.type,
+    contentId: newShare.contentId ?? null,
+    zoneId: newShare.zoneId ?? null,
     createdAt: Timestamp.fromDate(new Date(newShare.createdAt)),
     expiresAt: newShare.expiresAt ? Timestamp.fromDate(new Date(newShare.expiresAt)) : null,
   };
+
+  if (hashedPassword) {
+    dataToSave.password = hashedPassword;
+  }
 
   await setDoc(docRef, dataToSave);
 
