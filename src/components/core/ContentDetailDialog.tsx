@@ -308,7 +308,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                     isTemporary={isTemporary}
                     onTemporaryToggle={handleTemporaryToggle}
                     expirySelection={expirySelection}
-                    onExpiryChange={onExpiryChange}
+                    onExpiryChange={handleExpiryChange}
                     customExpiryDays={customExpiryDays}
                     onCustomExpiryChange={handleCustomExpiryChange}
                     editableMemoryNote={editableMemoryNote}
