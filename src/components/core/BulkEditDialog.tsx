@@ -138,147 +138,154 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
           </DialogDescription>
         </DialogHeader>
         <div className="px-6 pb-6">
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleSubmit)} id="bulk-edit-form" className="space-y-6">
-                    <FormField
-                        control={form.control}
-                        name="zoneId"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Zone</FormLabel>
-                            <Popover open={isZonePopoverOpen} onOpenChange={setIsZonePopoverOpen}>
-                            <PopoverTrigger asChild>
-                                <FormControl>
-                                    <Button variant="outline" role="combobox" aria-expanded={isZonePopoverOpen}
-                                        className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                        <div className="flex items-center"><ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" /><span className="truncate">{zoneDisplayName}</span></div>
-                                        <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                <Command>
-                                    <CommandInput placeholder="Search zones..." value={zoneSearchText} onValueChange={setZoneSearchText} />
-                                    <CommandList>
-                                        <CommandEmpty>No matching zones found.</CommandEmpty>
-                                        <CommandGroup>
-                                            <CommandItem value={NO_ZONE_VALUE} onSelect={() => { field.onChange(NO_ZONE_VALUE); setIsZonePopoverOpen(false); }}>
-                                                <Check className={cn("mr-2 h-4 w-4", field.value === NO_ZONE_VALUE ? "opacity-100" : "opacity-0")} />
-                                                <Ban className="mr-2 h-4 w-4 opacity-70 text-muted-foreground" />
-                                                No Zone
-                                            </CommandItem>
-                                            {filteredZones.map((z) => {
-                                                const ListItemIcon = getIconComponent(z.icon);
-                                                return (
-                                                <CommandItem key={z.id} value={z.id} onSelect={() => { field.onChange(z.id); setIsZonePopoverOpen(false); }}>
-                                                    <Check className={cn("mr-2 h-4 w-4", field.value === z.id ? "opacity-100" : "opacity-0")} />
-                                                    <ListItemIcon className="mr-2 h-4 w-4 opacity-70" />
-                                                    {z.name}
-                                                </CommandItem>
-                                                );
-                                            })}
-                                        </CommandGroup>
-                                    </CommandList>
-                                </Command>
-                            </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    
-                    <FormField
-                        control={form.control}
-                        name="tagsToAdd"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Add Tags</FormLabel>
-                            <FormControl>
-                                <div className="flex flex-col gap-2">
-                                    <div className="flex flex-wrap gap-2 items-center p-2 rounded-md border border-input min-h-10 has-[:focus]:ring-2 has-[:focus]:ring-ring">
-                                        {field.value?.map(tag => (
-                                            <Badge key={tag} variant="secondary">
-                                            {tag}
-                                            <button onClick={() => handleRemoveTag(tag)} className="ml-1.5 focus:outline-none rounded-full hover:bg-destructive/20 p-0.5"><X className="h-3 w-3" /></button>
-                                            </Badge>
-                                        ))}
-                                        <Input
-                                            value={tagInput}
-                                            onChange={(e) => setTagInput(e.target.value)}
-                                            onKeyDown={handleTagInputKeyDown}
-                                            placeholder="Type & enter..."
-                                            className="h-8 flex-grow min-w-[120px] p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent"
-                                        />
-                                    </div>
-                                </div>
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
+          <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} id="bulk-edit-form" className="space-y-4">
+                  <FormField
+                      control={form.control}
+                      name="zoneId"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>Zone</FormLabel>
+                          <Popover open={isZonePopoverOpen} onOpenChange={setIsZonePopoverOpen}>
+                          <PopoverTrigger asChild>
+                              <FormControl>
+                                  <Button variant="outline" role="combobox" aria-expanded={isZonePopoverOpen}
+                                      className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                                      <div className="flex items-center"><ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" /><span className="truncate">{zoneDisplayName}</span></div>
+                                      <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                              </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                              <Command>
+                                  <CommandInput placeholder="Search zones..." value={zoneSearchText} onValueChange={setZoneSearchText} />
+                                  <CommandList>
+                                      <CommandEmpty>No matching zones found.</CommandEmpty>
+                                      <CommandGroup>
+                                          <CommandItem value={NO_ZONE_VALUE} onSelect={() => { field.onChange(NO_ZONE_VALUE); setIsZonePopoverOpen(false); }}>
+                                              <Check className={cn("mr-2 h-4 w-4", field.value === NO_ZONE_VALUE ? "opacity-100" : "opacity-0")} />
+                                              <Ban className="mr-2 h-4 w-4 opacity-70 text-muted-foreground" />
+                                              No Zone
+                                          </CommandItem>
+                                          {filteredZones.map((z) => {
+                                              const ListItemIcon = getIconComponent(z.icon);
+                                              return (
+                                              <CommandItem key={z.id} value={z.id} onSelect={() => { field.onChange(z.id); setIsZonePopoverOpen(false); }}>
+                                                  <Check className={cn("mr-2 h-4 w-4", field.value === z.id ? "opacity-100" : "opacity-0")} />
+                                                  <ListItemIcon className="mr-2 h-4 w-4 opacity-70" />
+                                                  {z.name}
+                                              </CommandItem>
+                                              );
+                                          })}
+                                      </CommandGroup>
+                                      {zoneSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase()) && (
+                                          <CommandGroup className="border-t">
+                                          <CommandItem onSelect={() => handleCreateZone(zoneSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer justify-start">
+                                              <Plus className="mr-2 h-4 w-4" /><span>Create "{zoneSearchText.trim()}"</span>
+                                          </CommandItem>
+                                          </CommandGroup>
+                                      )}
+                                  </CommandList>
+                              </Command>
+                          </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
+                  
+                  <FormField
+                      control={form.control}
+                      name="tagsToAdd"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>Add Tags</FormLabel>
+                          <FormControl>
+                              <div className="flex flex-col gap-2">
+                                  <div className="flex flex-wrap gap-2 items-center p-2 rounded-md border border-input min-h-10 has-[:focus]:ring-2 has-[:focus]:ring-ring">
+                                      {field.value?.map(tag => (
+                                          <Badge key={tag} variant="secondary">
+                                          {tag}
+                                          <button onClick={() => handleRemoveTag(tag)} className="ml-1.5 focus:outline-none rounded-full hover:bg-destructive/20 p-0.5"><X className="h-3 w-3" /></button>
+                                          </Badge>
+                                      ))}
+                                      <Input
+                                          value={tagInput}
+                                          onChange={(e) => setTagInput(e.target.value)}
+                                          onKeyDown={handleTagInputKeyDown}
+                                          placeholder="Type & enter..."
+                                          className="h-8 flex-grow min-w-[120px] p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent"
+                                      />
+                                  </div>
+                              </div>
+                          </FormControl>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
 
-                    <FormField
-                        control={form.control}
-                        name="memoryNoteToAppend"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Append to Memory Note</FormLabel>
-                            <FormControl>
-                                <Textarea
-                                    {...field}
-                                    placeholder="Add thoughts to all selected items..."
-                                    className="min-h-[80px]"
-                                />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
+                  <FormField
+                      control={form.control}
+                      name="memoryNoteToAppend"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>Append to Memory Note</FormLabel>
+                          <FormControl>
+                              <Textarea
+                                  {...field}
+                                  placeholder="Add thoughts to all selected items..."
+                                  className="min-h-[80px]"
+                              />
+                          </FormControl>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
 
-                    <div className="space-y-3 pt-2">
-                        <FormField
-                            control={form.control}
-                            name="isTemporary"
-                            render={({ field }) => (
-                            <FormItem className="flex items-center justify-between p-3 rounded-lg border">
-                                <div>
-                                    <FormLabel>Temporary Content</FormLabel>
-                                    <p className="text-xs text-muted-foreground">"On" sets an expiration, "Off" removes it.</p>
-                                </div>
-                                <FormControl>
-                                    <Switch
-                                        checked={field.value === 'on'}
-                                        onCheckedChange={(checked) => field.onChange(checked ? 'on' : 'off')}
-                                        data-state={field.value}
-                                        className="data-[state=indeterminate]:bg-muted-foreground"
-                                    />
-                                </FormControl>
-                            </FormItem>
-                            )}
-                        />
-                        {isTemporary === 'on' && (
-                            <FormField
-                                control={form.control}
-                                name="expiryDays"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger><SelectValue placeholder="Select expiration" /></SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="7">Delete after 7 days</SelectItem>
-                                            <SelectItem value="30">Delete after 30 days</SelectItem>
-                                            <SelectItem value="90">Delete after 90 days</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </FormItem>
-                                )}
-                            />
-                        )}
-                    </div>
-                </form>
-            </Form>
+                  <div className="space-y-3 pt-2">
+                      <FormField
+                          control={form.control}
+                          name="isTemporary"
+                          render={({ field }) => (
+                          <FormItem className="flex items-center justify-between p-3 rounded-lg border">
+                              <div>
+                                  <FormLabel>Temporary Content</FormLabel>
+                                  <p className="text-xs text-muted-foreground">"On" sets an expiration, "Off" removes it.</p>
+                              </div>
+                              <FormControl>
+                                  <Switch
+                                      checked={field.value === 'on'}
+                                      onCheckedChange={(checked) => field.onChange(checked ? 'on' : 'off')}
+                                      data-state={field.value}
+                                      className="data-[state=indeterminate]:bg-muted-foreground"
+                                  />
+                              </FormControl>
+                          </FormItem>
+                          )}
+                      />
+                      {isTemporary === 'on' && (
+                          <FormField
+                              control={form.control}
+                              name="expiryDays"
+                              render={({ field }) => (
+                              <FormItem>
+                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                      <FormControl>
+                                          <SelectTrigger><SelectValue placeholder="Select expiration" /></SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                          <SelectItem value="7">Delete after 7 days</SelectItem>
+                                          <SelectItem value="30">Delete after 30 days</SelectItem>
+                                          <SelectItem value="90">Delete after 90 days</SelectItem>
+                                      </SelectContent>
+                                  </Select>
+                              </FormItem>
+                              )}
+                          />
+                      )}
+                  </div>
+              </form>
+          </Form>
         </div>
         <DialogFooter className="border-t p-6">
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isLoading}>Cancel</Button>
