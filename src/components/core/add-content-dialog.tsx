@@ -551,7 +551,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       ) : (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent 
-              className="max-w-[625px] flex flex-col max-h-[90vh] p-0 bg-background"
+              className="max-w-[625px] flex flex-col max-h-[90vh] p-0 bg-card"
               onOpenAutoFocus={(e) => e.preventDefault()}
             >
                 <DialogHeader className="px-6 pt-6 pb-0">
