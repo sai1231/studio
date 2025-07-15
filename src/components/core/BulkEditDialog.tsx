@@ -152,10 +152,11 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, editMode, o
   };
 
   const watchedZoneId = form.watch('zoneId');
-  const selectedZone = availableZones.find(z => z.id === watchedZoneId);
+  const zones = availableZones || []; // Ensure availableZones is an array
+  const selectedZone = zones.find(z => z.id === watchedZoneId);
   const zoneDisplayName = watchedZoneId === NO_ZONE_VALUE ? "No Zone" : selectedZone?.name || `Select a ${editMode}...`;
   const ZoneDisplayIcon = editMode === 'moodboard' ? ImageIcon : getIconComponent(selectedZone?.icon || (watchedZoneId === NO_ZONE_VALUE ? 'Ban' : ''));
-  const filteredZones = zoneSearchText ? availableZones.filter(z => z.name.toLowerCase().includes(zoneSearchText.toLowerCase())) : availableZones;
+  const filteredZones = zoneSearchText ? zones.filter(z => z.name.toLowerCase().includes(zoneSearchText.toLowerCase())) : zones;
   const showCreateZoneOption = zoneSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase());
 
   const handleZoneInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
