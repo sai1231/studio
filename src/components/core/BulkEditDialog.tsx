@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Plus, X, ChevronDown, Bookmark, Ban, Check } from 'lucide-react';
+import { Loader2, Plus, X, ChevronDown, Ban, Check } from 'lucide-react';
 import type { Zone } from '@/types';
 import { add } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -22,12 +22,12 @@ import { Badge } from '../ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Switch } from '../ui/switch';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { getIconComponent } from '@/lib/icon-map';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 interface BulkEditDialogProps {
   open: boolean;
@@ -47,7 +47,7 @@ const formSchema = z.object({
   zoneId: z.string().optional(),
   tagsToAdd: z.array(z.string()).optional(),
   memoryNoteToAppend: z.string().optional(),
-  isTemporary: z.enum(['indeterminate', 'on', 'off']).default('indeterminate'),
+  temporaryStatus: z.enum(['no-change', 'temporary', 'permanent']).default('no-change'),
   expiryDays: z.string().optional(),
 });
 
@@ -66,7 +66,7 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
       zoneId: undefined,
       tagsToAdd: [],
       memoryNoteToAppend: '',
-      isTemporary: 'indeterminate',
+      temporaryStatus: 'no-change',
       expiryDays: '30',
     },
   });
@@ -89,7 +89,7 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
     }
   };
   
-  const isTemporary = form.watch('isTemporary');
+  const temporaryStatus = form.watch('temporaryStatus');
   const tagsToAdd = form.watch('tagsToAdd') || [];
 
   const handleOpenChange = (isOpen: boolean) => {
@@ -103,11 +103,11 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
   const handleSubmit = (data: z.infer<typeof formSchema>) => {
     setIsLoading(true);
 
-    let expiresAt: string | null | undefined = undefined;
-    if (data.isTemporary === 'on') {
+    let expiresAt: string | null | undefined = undefined; // undefined means no change
+    if (data.temporaryStatus === 'temporary') {
       expiresAt = add(new Date(), { days: parseInt(data.expiryDays || '30', 10) }).toISOString();
-    } else if (data.isTemporary === 'off') {
-      expiresAt = null;
+    } else if (data.temporaryStatus === 'permanent') {
+      expiresAt = null; // null signals to remove the expiration
     }
     
     onBulkEdit({
@@ -279,52 +279,62 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
                 )}
               />
 
-              <div className="space-y-3 pt-2">
-                <FormField
-                  control={form.control}
-                  name="isTemporary"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center justify-between p-3 rounded-lg border">
-                      <div>
-                        <FormLabel>Temporary Content</FormLabel>
-                        <p className="text-xs text-muted-foreground">"On" sets an expiration, "Off" removes it.</p>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value === 'on'}
-                          onCheckedChange={(checked) => {
-                            if (field.value === 'indeterminate') {
-                              field.onChange(checked ? 'on' : 'off');
-                            } else {
-                              field.onChange(checked ? 'on' : 'off');
-                            }
-                          }}
-                        />
-                      </FormControl>
+              <FormField
+                control={form.control}
+                name="temporaryStatus"
+                render={({ field }) => (
+                    <FormItem className="space-y-3 rounded-lg border p-4">
+                        <FormLabel>Temporary Content Status</FormLabel>
+                        <FormControl>
+                            <RadioGroup
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                                className="space-y-2"
+                            >
+                                <FormItem className="flex items-center space-x-3 space-y-0">
+                                    <FormControl>
+                                        <RadioGroupItem value="no-change" />
+                                    </FormControl>
+                                    <FormLabel className="font-normal">No Change</FormLabel>
+                                </FormItem>
+                                <FormItem className="flex items-center space-x-3 space-y-0">
+                                    <FormControl>
+                                        <RadioGroupItem value="temporary" />
+                                    </FormControl>
+                                    <FormLabel className="font-normal">Make Temporary</FormLabel>
+                                </FormItem>
+                                <FormItem className="flex items-center space-x-3 space-y-0">
+                                    <FormControl>
+                                        <RadioGroupItem value="permanent" />
+                                    </FormControl>
+                                    <FormLabel className="font-normal">Make Permanent (Remove Expiration)</FormLabel>
+                                </FormItem>
+                            </RadioGroup>
+                        </FormControl>
+                        {temporaryStatus === 'temporary' && (
+                          <FormField
+                            control={form.control}
+                            name="expiryDays"
+                            render={({ field: expiryField }) => (
+                              <FormItem className="pl-8 pt-2">
+                                <Select onValueChange={expiryField.onChange} defaultValue={expiryField.value}>
+                                  <FormControl>
+                                    <SelectTrigger><SelectValue placeholder="Select expiration" /></SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="7">Delete after 7 days</SelectItem>
+                                    <SelectItem value="30">Delete after 30 days</SelectItem>
+                                    <SelectItem value="90">Delete after 90 days</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                        <FormMessage />
                     </FormItem>
-                  )}
-                />
-                {isTemporary === 'on' && (
-                  <FormField
-                    control={form.control}
-                    name="expiryDays"
-                    render={({ field }) => (
-                      <FormItem>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger><SelectValue placeholder="Select expiration" /></SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="7">Delete after 7 days</SelectItem>
-                            <SelectItem value="30">Delete after 30 days</SelectItem>
-                            <SelectItem value="90">Delete after 90 days</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
                 )}
-              </div>
+              />
             </form>
           </Form>
         </div>
