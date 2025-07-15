@@ -53,6 +53,8 @@ export async function createShareLink(shareData: {
 
   const dataToSave = {
     ...newShare,
+    contentId: newShare.contentId ?? null, // Ensure undefined is converted to null
+    zoneId: newShare.zoneId ?? null,       // Ensure undefined is converted to null
     createdAt: Timestamp.fromDate(new Date(newShare.createdAt)),
     expiresAt: newShare.expiresAt ? Timestamp.fromDate(new Date(newShare.expiresAt)) : null,
   };
