@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { X, Trash2, CheckSquare, Wand2 } from 'lucide-react';
+import { X, Trash2, CheckSquare, Wand2, PlusCircle, Bookmark, ImageIcon } from 'lucide-react';
 import type { Zone } from '@/types';
 import {
   AlertDialog,
@@ -24,14 +24,16 @@ interface BulkActionBarProps {
   onClearSelection: () => void;
   onSelectAll: () => void;
   availableZones: Zone[];
+  availableMoodboards: Zone[];
   onBulkEdit: (updates: {
     zoneId?: string | null;
     tagsToAdd?: string[];
     memoryNoteToAppend?: string;
     expiresAt?: string | null;
   }) => void;
+  onAddToMoodboard: (moodboardId: string) => void;
   onDelete: () => void;
-  onZoneCreate: (zoneName: string) => Promise<Zone | null>;
+  onZoneCreate: (zoneName: string, isMoodboard?: boolean) => Promise<Zone | null>;
 }
 
 const BulkActionBar: React.FC<BulkActionBarProps> = ({
@@ -39,11 +41,19 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
   onClearSelection,
   onSelectAll,
   availableZones,
+  availableMoodboards,
   onBulkEdit,
+  onAddToMoodboard,
   onDelete,
   onZoneCreate,
 }) => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editMode, setEditMode] = useState<'zone' | 'moodboard'>('zone');
+  
+  const handleOpenEditDialog = (mode: 'zone' | 'moodboard') => {
+    setEditMode(mode);
+    setIsEditDialogOpen(true);
+  }
 
   return (
     <>
@@ -72,12 +82,13 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
           <Separator orientation="vertical" className="h-6" />
 
           <div className="flex items-center gap-2">
-              <Button onClick={() => setIsEditDialogOpen(true)}>
-                  <Wand2 className="mr-2 h-4 w-4" />
-                  Actions
-              </Button>
-
-              <AlertDialog>
+            <Button onClick={() => handleOpenEditDialog('zone')}>
+              <Bookmark className="mr-2 h-4 w-4" /> Move to Zone
+            </Button>
+            <Button onClick={() => handleOpenEditDialog('moodboard')} variant="secondary">
+              <ImageIcon className="mr-2 h-4 w-4" /> Add to Moodboard
+            </Button>
+            <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" size="icon">
                       <Trash2 className="h-4 w-4" />
@@ -104,10 +115,12 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
       <BulkEditDialog
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
-        availableZones={availableZones}
+        availableZones={editMode === 'zone' ? availableZones : availableMoodboards}
+        editMode={editMode}
         onBulkEdit={onBulkEdit}
+        onAddToMoodboard={onAddToMoodboard}
         selectedCount={selectedCount}
-        onZoneCreate={onZoneCreate}
+        onZoneCreate={(name) => onZoneCreate(name, editMode === 'moodboard')}
       />
     </>
   );

@@ -1,5 +1,4 @@
 
-
 'use client';
 import type React from 'react';
 import { useState, useEffect, useCallback, Suspense } from 'react';
@@ -26,22 +25,9 @@ import Link from 'next/link';
 import TodoListSheet from '@/components/core/TodoListSheet';
 import { Loader2 } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
+import { getIconComponent } from '@/lib/icon-map';
 
-const iconMap: { [key: string]: React.ElementType } = {
-  Briefcase: StickyNote,
-  Home,
-  Library: BookOpen,
-  Bookmark: BookmarkIcon,
-};
-
-const getIconComponent = (iconName?: string): React.ElementType => {
-  if (iconName && iconMap[iconName]) {
-    return iconMap[iconName];
-  }
-  return BookmarkIcon; 
-};
-
-// New component for the stacked card effect in the mobile sheet
+// This component was moved out from app-sidebar to be reused in the mobile sheet.
 const ZoneStackCard: React.FC<{ zone: Zone }> = ({ zone }) => {
     const Icon = getIconComponent(zone.icon);
     return (

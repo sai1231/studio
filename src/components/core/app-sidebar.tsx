@@ -1,8 +1,7 @@
 
-
 'use client';
 import type React from 'react';
-import { Home, Tag, LogOut, Globe, ClipboardList, Bookmark, Newspaper, Film, Github, MessagesSquare, BookOpen, LucideIcon, StickyNote, Sparkles, Shield, Brain } from 'lucide-react';
+import { Home, Tag, LogOut, Globe, ClipboardList, Bookmark, Newspaper, Film, Github, MessagesSquare, BookOpen, LucideIcon, StickyNote, Sparkles, Shield, Brain, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import { ThemeToggle } from './theme-toggle';
 import { useToast } from '@/hooks/use-toast';
 import { getAuth, signOut } from 'firebase/auth';
 import { cn } from '@/lib/utils';
+import { getIconComponent } from '@/lib/icon-map';
 
 const predefinedContentTypes: Record<string, { icon: LucideIcon, name: string }> = {
   Post: { icon: Newspaper, name: 'Post' },
@@ -24,18 +24,6 @@ const predefinedContentTypes: Record<string, { icon: LucideIcon, name: string }>
   PDF: { icon: BookOpen, name: 'PDF' },
 };
 
-const iconMap: { [key: string]: React.ElementType } = {
-  Briefcase: StickyNote,
-  Home: Home,
-  Library: BookOpen,
-  Bookmark: Bookmark,
-};
-
-const getIconComponent = (iconName?: string): React.ElementType => {
-    if (iconName && iconMap[iconName]) return iconMap[iconName];
-    return Bookmark;
-};
-
 const SidebarLink = ({ href, icon: Icon, children, ...props }: { href: string, icon: LucideIcon, children: React.ReactNode, [key: string]: any }) => (
   <Link href={href} className="flex flex-col items-center justify-center text-center gap-1 rounded-lg p-2 text-sidebar-foreground transition-all w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" {...props}>
     <Icon className="h-5 w-5" />
@@ -43,7 +31,7 @@ const SidebarLink = ({ href, icon: Icon, children, ...props }: { href: string, i
   </Link>
 );
 
-const HoverNavButton = ({ icon: Icon, label, children }: { icon: React.ElementType, label: string, children: React.ReactNode }) => (
+const HoverNavButton = ({ icon: Icon, label, children, isEmpty }: { icon: React.ElementType, label: string, children: React.ReactNode, isEmpty: boolean }) => (
     <HoverCard openDelay={100} closeDelay={100}>
         <HoverCardTrigger asChild>
             <Button
@@ -54,12 +42,14 @@ const HoverNavButton = ({ icon: Icon, label, children }: { icon: React.ElementTy
                 <span className="text-[10px] font-medium leading-none">{label}</span>
             </Button>
         </HoverCardTrigger>
-        <HoverCardContent side="right" align="start" className="w-64 p-2 ml-2">
+        <HoverCardContent side="right" align="start" className="w-[420px] p-2 ml-2">
             <div className="text-lg font-semibold p-2 border-b mb-2">{label}</div>
             <div className="max-h-[70vh] overflow-y-auto">
-                <div className="flex flex-col gap-1 p-1">
-                    {children}
-                </div>
+                {isEmpty ? (
+                    <p className="p-4 text-xs text-muted-foreground text-center">No {label.toLowerCase()} yet.</p>
+                ) : (
+                   children
+                )}
             </div>
         </HoverCardContent>
     </HoverCard>
@@ -68,7 +58,7 @@ const HoverNavButton = ({ icon: Icon, label, children }: { icon: React.ElementTy
 const ZoneHoverCardItem: React.FC<{ zone: Zone }> = ({ zone }) => {
   const Icon = getIconComponent(zone.icon);
   return (
-    <Link href={`/dashboard?zone=${zone.id}`} className="block group focus:outline-none focus:ring-2 focus:ring-primary rounded-lg p-1">
+    <Link href={`/zones/${zone.id}`} className="block group focus:outline-none focus:ring-2 focus:ring-primary rounded-lg p-1">
         <div className="relative transition-transform duration-300 ease-in-out group-hover:scale-105 group-focus:scale-105">
             {/* Background Cards */}
             <div className="absolute inset-0 bg-card rounded-lg shadow-md transform-gpu rotate-2"></div>
@@ -100,12 +90,13 @@ const ZoneHoverCardItem: React.FC<{ zone: Zone }> = ({ zone }) => {
 
 interface AppSidebarProps {
     zones: Zone[];
+    moodboards: Zone[];
     tags: TagType[];
     domains: string[];
     contentTypes: string[];
 }
 
-const AppSidebar: React.FC<AppSidebarProps> = ({ zones, tags, domains, contentTypes }) => {
+const AppSidebar: React.FC<AppSidebarProps> = ({ zones, moodboards, tags, domains, contentTypes }) => {
   const { toast } = useToast();
   const router = useRouter();
   const auth = getAuth();
@@ -141,49 +132,42 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones, tags, domains, contentTy
               <SidebarLink href="/dashboard" icon={Home}>Home</SidebarLink>
               <SidebarLink href="/declutter" icon={Sparkles}>Declutter</SidebarLink>
               
-              <HoverCard openDelay={100} closeDelay={100}>
-                <HoverCardTrigger asChild>
-                    <Button variant="ghost" className="flex flex-col items-center justify-center text-center gap-1 rounded-lg p-2 text-sidebar-foreground transition-all w-full h-auto hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
-                        <Bookmark className="h-5 w-5" />
-                        <span className="text-[10px] font-medium leading-none">Zones</span>
-                    </Button>
-                </HoverCardTrigger>
-                <HoverCardContent side="right" align="start" className="w-[420px] p-2 ml-2">
-                    <div className="text-lg font-semibold p-2 border-b mb-2">Zones</div>
-                    <div className="max-h-[70vh] overflow-y-auto">
-                        {zones.length > 0 ? (
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-6 p-2">
-                                {zones.map(zone => (
-                                    <ZoneHoverCardItem key={zone.id} zone={zone} />
-                                ))}
-                            </div>
-                        ) : (
-                            <p className="p-2 text-xs text-muted-foreground text-center">No zones created yet.</p>
-                        )}
-                    </div>
-                </HoverCardContent>
-              </HoverCard>
+              <HoverNavButton icon={Bookmark} label="Zones" isEmpty={zones.length === 0}>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-6 p-2">
+                    {zones.map(zone => (
+                        <ZoneHoverCardItem key={zone.id} zone={zone} />
+                    ))}
+                </div>
+              </HoverNavButton>
+              
+              <HoverNavButton icon={ImageIcon} label="Moodboards" isEmpty={moodboards.length === 0}>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-6 p-2">
+                    {moodboards.map(board => (
+                        <ZoneHoverCardItem key={board.id} zone={board} />
+                    ))}
+                </div>
+              </HoverNavButton>
 
-              <HoverNavButton icon={Tag} label="Tags">
-                {tags.length > 0 ? tags.map(tag => (
+              <HoverNavButton icon={Tag} label="Tags" isEmpty={tags.length === 0}>
+                {tags.map(tag => (
                   <Link key={tag.name} href={`/dashboard?tag=${encodeURIComponent(tag.name)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
                       <span className="text-muted-foreground">#</span>
                       <span className="truncate">{tag.name}</span>
                   </Link>
-                )) : <p className="p-2 text-xs text-muted-foreground">No tags found.</p>}
+                ))}
               </HoverNavButton>
-
-              <HoverNavButton icon={Globe} label="Domains">
-                {domains.length > 0 ? domains.map(domain => (
+              
+               <HoverNavButton icon={Globe} label="Domains" isEmpty={domains.length === 0}>
+                {domains.map(domain => (
                   <Link key={domain} href={`/dashboard?domain=${encodeURIComponent(domain)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
                       <Globe className="h-4 w-4 opacity-70" />
                       <span className="truncate">{formatDomainName(domain)}</span>
                   </Link>
-                )) : <p className="p-2 text-muted-foreground">No domains found.</p>}
+                ))}
               </HoverNavButton>
 
-              <HoverNavButton icon={ClipboardList} label="Types">
-                {contentTypes.length > 0 ? contentTypes.map(typeKey => {
+               <HoverNavButton icon={ClipboardList} label="Types" isEmpty={contentTypes.length === 0}>
+                {contentTypes.map(typeKey => {
                    const typeDetails = predefinedContentTypes[typeKey];
                    if (!typeDetails) return null;
                    const Icon = typeDetails.icon;
@@ -193,7 +177,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones, tags, domains, contentTy
                           <span className="truncate">{typeDetails.name}</span>
                       </Link>
                    )
-                }) : <p className="p-2 text-xs text-muted-foreground">No content types found.</p>}
+                })}
               </HoverNavButton>
             </nav>
           </div>
