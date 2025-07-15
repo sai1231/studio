@@ -4,8 +4,8 @@
 
 import MeiliSearch, { MeiliSearchCommunicationError, MeiliSearchApiError } from 'meilisearch';
 import { db } from '@/lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
-import type { ContentItem, SearchFilters } from '@/types';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import type { ContentItem, SearchFilters, Zone } from '@/types';
 import { addLog } from './loggingService';
 
 // Initialize client only if host and key are provided. This prevents client-side crashes.
@@ -42,23 +42,34 @@ const handleMeiliError = (error: any, context: string): Error => {
 };
 
 // Store all fields needed to render a card to avoid a second DB fetch
-const formatForIndex = (item: ContentItem) => ({
-  id: item.id,
-  userId: item.userId,
-  type: item.type,
-  title: item.title,
-  description: item.description || '',
-  url: item.url,
-  imageUrl: item.imageUrl,
-  imageAspectRatio: item.imageAspectRatio,
-  faviconUrl: item.faviconUrl,
-  tags: item.tags?.map(t => t.name) || [],
-  zoneIds: item.zoneIds || [],
-  domain: item.domain,
-  contentType: item.contentType,
-  createdAt: new Date(item.createdAt).getTime(), // for sorting
-  movieDetails: item.movieDetails,
-});
+const formatForIndex = async (item: ContentItem): Promise<any> => {
+  let zoneNames: string[] = [];
+  if (db && item.zoneIds && item.zoneIds.length > 0) {
+    const zonePromises = item.zoneIds.map(zoneId => getDoc(doc(db, 'zones', zoneId)));
+    const zoneDocs = await Promise.all(zonePromises);
+    zoneNames = zoneDocs
+      .filter(docSnap => docSnap.exists())
+      .map(docSnap => (docSnap.data() as Zone).name);
+  }
+
+  return {
+    id: item.id,
+    userId: item.userId,
+    type: item.type,
+    title: item.title,
+    description: item.description || '',
+    url: item.url,
+    imageUrl: item.imageUrl,
+    faviconUrl: item.faviconUrl,
+    tags: item.tags?.map(t => t.name) || [],
+    zoneIds: item.zoneIds || [],
+    zoneNames: zoneNames, // Add zone names to the document
+    domain: item.domain,
+    contentType: item.contentType,
+    createdAt: new Date(item.createdAt).getTime(), // for sorting
+    movieDetails: item.movieDetails,
+  };
+};
 
 export const searchContent = async (
   userId: string,
@@ -109,7 +120,7 @@ export const searchContent = async (
 export const addOrUpdateDocument = async (item: ContentItem) => {
   if (!index) return; // Silently fail if not configured
   try {
-    const doc = formatForIndex(item);
+    const doc = await formatForIndex(item);
     await index.addDocuments([doc]);
     addLog('INFO', `[MeiliSearch] Indexed document ${item.id}`);
   } catch (error) {
@@ -152,7 +163,7 @@ export const reindexAllContent = async (): Promise<{ count: number }> => {
         const settingsTask = await index.updateSettings({
             filterableAttributes: ['userId', 'zoneIds', 'contentType', 'tags', 'domain'],
             sortableAttributes: ['createdAt'],
-            searchableAttributes: ['title', 'description', 'tags', 'url', 'domain']
+            searchableAttributes: ['title', 'description', 'tags', 'url', 'domain', 'zoneNames']
         });
         await client.waitForTask(settingsTask.taskUid);
         addLog('INFO', '[MeiliSearch] Index settings updated.');
@@ -165,7 +176,7 @@ export const reindexAllContent = async (): Promise<{ count: number }> => {
             return { count: 0 };
         }
 
-        const formattedItems = allItems.map(formatForIndex);
+        const formattedItems = await Promise.all(allItems.map(formatForIndex));
         
         // Batch the documents to avoid hitting payload limits
         const batchSize = 1000;
