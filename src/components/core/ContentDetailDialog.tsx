@@ -306,11 +306,11 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                     handleRemoveTag={handleRemoveTag}
                     newTagInputRef={newTagInputRef}
                     isTemporary={isTemporary}
-                    onTemporaryToggle={onTemporaryToggle}
+                    onTemporaryToggle={handleTemporaryToggle}
                     expirySelection={expirySelection}
                     onExpiryChange={onExpiryChange}
                     customExpiryDays={customExpiryDays}
-                    onCustomExpiryChange={onCustomExpiryChange}
+                    onCustomExpiryChange={handleCustomExpiryChange}
                     editableMemoryNote={editableMemoryNote}
                     onMemoryNoteChange={(e) => setEditableMemoryNote(e.target.value)}
                     onMemoryNoteBlur={handleMemoryNoteBlur}
