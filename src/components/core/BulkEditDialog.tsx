@@ -34,13 +34,13 @@ interface BulkEditDialogProps {
   onOpenChange: (open: boolean) => void;
   availableZones: Zone[];
   editMode: 'zone' | 'moodboard';
-  onBulkEdit: (updates: {
+  onBulkEdit?: (updates: {
     zoneId?: string | null;
     tagsToAdd?: string[];
     memoryNoteToAppend?: string;
     expiresAt?: string | null;
   }) => void;
-  onAddToMoodboard: (moodboardId: string) => void;
+  onAddToMoodboard?: (moodboardId: string) => void;
   selectedCount: number;
   onZoneCreate: (zoneName: string) => Promise<Zone | null>;
 }
@@ -110,7 +110,9 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, editMode, o
             setIsLoading(false);
             return;
         }
-        onAddToMoodboard(data.zoneId);
+        if (onAddToMoodboard) {
+          onAddToMoodboard(data.zoneId);
+        }
     } else {
         let expiresAt: string | null | undefined = undefined; // undefined means no change
         if (data.temporaryStatus === 'temporary') {
@@ -119,12 +121,14 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, editMode, o
           expiresAt = null; // null signals to remove the expiration
         }
         
-        onBulkEdit({
-          zoneId: data.zoneId === undefined ? undefined : (data.zoneId === NO_ZONE_VALUE ? null : data.zoneId),
-          tagsToAdd: data.tagsToAdd,
-          memoryNoteToAppend: data.memoryNoteToAppend,
-          expiresAt,
-        });
+        if (onBulkEdit) {
+          onBulkEdit({
+            zoneId: data.zoneId === undefined ? undefined : (data.zoneId === NO_ZONE_VALUE ? null : data.zoneId),
+            tagsToAdd: data.tagsToAdd,
+            memoryNoteToAppend: data.memoryNoteToAppend,
+            expiresAt,
+          });
+        }
     }
 
 
