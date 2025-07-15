@@ -14,7 +14,7 @@ import type { Zone, ContentItem, Tag as TagType } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { addContentItem, getUniqueDomainsFromItems, getUniqueContentTypesFromItems, getUniqueTagsFromItems, uploadFile, subscribeToZones, subscribeToContentItems, addZone } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
-import { Plus, UploadCloud, Home, Bookmark as BookmarkIcon, Tag, ClipboardList, Globe, Newspaper, Film, Github, MessagesSquare, BookOpen, StickyNote, FileImage, Mic, ListChecks } from 'lucide-react';
+import { Plus, UploadCloud, Home, Bookmark as BookmarkIcon, Tag, ClipboardList, Globe, Newspaper, Film, Github, MessagesSquare, BookOpen, StickyNote, FileImage, Mic, ListChecks, View } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
@@ -172,11 +172,13 @@ export default function AppLayout({
   } = useDialog();
 
   const [zones, setZones] = useState<Zone[]>([]);
+  const [moodboards, setMoodboards] = useState<Zone[]>([]);
   const [tags, setTags] = useState<TagType[]>([]);
   const [domains, setDomains] = useState<string[]>([]);
   const [contentTypes, setContentTypes] = useState<string[]>([]);
   const [allContentItems, setAllContentItems] = useState<ContentItem[]>([]);
   const [zonesWithLatestItems, setZonesWithLatestItems] = useState<Zone[]>([]);
+  const [moodboardsWithLatestItems, setMoodboardsWithLatestItems] = useState<Zone[]>([]);
   const { toast } = useToast();
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [activeMobileSheet, setActiveMobileSheet] = useState<'zones' | 'types' | 'todos' | null>(null);
@@ -197,7 +199,8 @@ export default function AppLayout({
         toast({ title: "Real-time Error", description: "Could not update zones list.", variant: "destructive" });
         return;
       }
-      setZones(fetchedZones);
+      setZones(fetchedZones.filter(z => !z.isMoodboard));
+      setMoodboards(fetchedZones.filter(z => z.isMoodboard));
     });
 
     const unsubscribeContent = subscribeToContentItems(user.uid, (items, error) => {
@@ -219,26 +222,31 @@ export default function AppLayout({
   }, [user, toast]);
 
   useEffect(() => {
-    const zonesMap = new Map<string, ContentItem>();
+    const collectionsMap = new Map<string, ContentItem>();
     
-    // Create a map of the most recent item for each zoneId
+    // Create a map of the most recent item for each zone/moodboard
     allContentItems.forEach(item => {
-        if (item.zoneId) {
-            const existingLatest = zonesMap.get(item.zoneId);
+        item.zoneIds?.forEach(zoneId => {
+            const existingLatest = collectionsMap.get(zoneId);
             if (!existingLatest || new Date(item.createdAt) > new Date(existingLatest.createdAt)) {
-                zonesMap.set(item.zoneId, item);
+                collectionsMap.set(zoneId, item);
             }
-        }
+        })
     });
 
     // Map over the original zones to preserve order and add the latest item
     const newZonesWithItems = zones.map(zone => ({
         ...zone,
-        latestItem: zonesMap.get(zone.id)
+        latestItem: collectionsMap.get(zone.id)
+    }));
+    const newMoodboardsWithItems = moodboards.map(moodboard => ({
+        ...moodboard,
+        latestItem: collectionsMap.get(moodboard.id)
     }));
     
     setZonesWithLatestItems(newZonesWithItems);
-  }, [zones, allContentItems]);
+    setMoodboardsWithLatestItems(newMoodboardsWithItems);
+  }, [zones, moodboards, allContentItems]);
   
 
   const handleAddContentAndRefresh = useCallback(async (newContentData: Omit<ContentItem, 'id' | 'createdAt'>) => {
@@ -401,16 +409,16 @@ export default function AppLayout({
     }
   };
   
-  const handleAddZoneInLayout = async (zoneName: string): Promise<Zone | null> => {
+  const handleAddZoneInLayout = async (zoneName: string, isMoodboard: boolean = false): Promise<Zone | null> => {
     if (!zoneName.trim() || !user) return null;
     try {
-      const newZone = await addZone(zoneName.trim(), user.uid);
+      const newZone = await addZone(zoneName.trim(), user.uid, isMoodboard);
       // The `zones` state will update automatically via the Firestore listener (subscribeToZones)
-      toast({ title: "Zone Created", description: `Zone "${newZone.name}" created.` });
+      toast({ title: "Collection Created", description: `"${newZone.name}" has been created.` });
       return newZone;
     } catch (e) {
       console.error('Error creating zone:', e);
-      toast({ title: "Error", description: "Could not create new zone.", variant: "destructive" });
+      toast({ title: "Error", description: "Could not create new collection.", variant: "destructive" });
       return null;
     }
   };
@@ -475,7 +483,13 @@ export default function AppLayout({
         <ExtensionSaveHandler />
       </Suspense>
       <div className="flex min-h-screen w-full relative">
-        <AppSidebar zones={zonesWithLatestItems} tags={tags} domains={domains} contentTypes={contentTypes} />
+        <AppSidebar 
+            zones={zonesWithLatestItems} 
+            moodboards={moodboardsWithLatestItems}
+            tags={tags} 
+            domains={domains} 
+            contentTypes={contentTypes} 
+        />
         <div className="flex flex-col flex-1 min-w-0 md:ml-20">
           <AppHeader />
           <main
@@ -500,7 +514,7 @@ export default function AppLayout({
             onOpenChange={setIsAddContentDialogOpen}
             zones={zones}
             onContentAdd={handleAddContentAndRefresh}
-            onZoneCreate={handleAddZoneInLayout}
+            onZoneCreate={(name) => handleAddZoneInLayout(name, false)}
         />
         
         <AddTodoDialog
@@ -518,7 +532,7 @@ export default function AppLayout({
             open={isFocusModeOpen}
             onOpenChange={(open) => !open && closeFocusMode()}
             zones={zones}
-            onZoneCreate={handleAddZoneInLayout}
+            onZoneCreate={(name) => handleAddZoneInLayout(name, false)}
         />
       
         <Button

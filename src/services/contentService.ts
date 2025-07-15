@@ -19,6 +19,7 @@ import {
   startAfter,
   type DocumentSnapshot,
   setDoc,
+  arrayUnion,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { ContentItem, Zone, Tag, MovieDetails, SearchFilters, TaskList, Task } from '@/types';
@@ -302,6 +303,14 @@ export async function updateContentItem(
         }
     }
 
+    // Special handling for adding items to a moodboard (a specific zone)
+    if (updates.zoneIds && updates.zoneIds.length > 0) {
+      await updateDoc(docRef, {
+        zoneIds: arrayUnion(...updates.zoneIds)
+      });
+      delete updateData.zoneIds; // Remove from main update payload
+    }
+
 
     await updateDoc(docRef, updateData);
     
@@ -459,14 +468,19 @@ export async function getZoneById(id: string): Promise<Zone | undefined> {
   }
 }
 
-export async function addZone(name: string, userId: string): Promise<Zone> {
+export async function addZone(name: string, userId: string, isMoodboard: boolean = false): Promise<Zone> {
   try {
     if (!db) throw new Error("Firestore is not initialized.");
     if (!userId) {
         throw new Error("User ID is required to add a zone.");
     }
     const zonesCollection = collection(db, 'zones');
-    const newZone = { name: name.trim(), icon: 'Bookmark', userId }; // Default icon and add userId
+    const newZone = { 
+        name: name.trim(), 
+        icon: 'Bookmark', 
+        userId,
+        isMoodboard: isMoodboard
+    };
     const docRef = await addDoc(zonesCollection, newZone);
     return { id: docRef.id, ...newZone };
   } catch (error) {

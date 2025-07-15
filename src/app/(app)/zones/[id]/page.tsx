@@ -90,7 +90,7 @@ export default function ZonePage() {
 
       if (zoneDetails) {
         setCurrentZone(zoneDetails);
-        const itemsInThisZone = allItems.filter(item => item.zoneId === zoneId);
+        const itemsInThisZone = allItems.filter(item => item.zoneIds?.includes(zoneId));
         setAllContentInZone(itemsInThisZone);
         
         const contentTypes = getUniqueContentTypesFromItems(itemsInThisZone);
@@ -163,7 +163,7 @@ export default function ZonePage() {
   
   const handleItemUpdateInDialog = (updatedItem: ContentItem) => {
     const wasInZone = allContentInZone.some(item => item.id === updatedItem.id);
-    const stillInZone = updatedItem.zoneId === zoneId;
+    const stillInZone = updatedItem.zoneIds?.includes(zoneId);
 
     if (wasInZone && !stillInZone) { // Moved out of current zone
       setAllContentInZone(prev => prev.filter(item => item.id !== updatedItem.id));
@@ -243,6 +243,8 @@ export default function ZonePage() {
         </div>
     );
   }
+  
+  const viewMode = currentZone.isMoodboard ? 'moodboard' : 'grid';
 
   return (
     <div className="container mx-auto py-2">
@@ -343,13 +345,20 @@ export default function ZonePage() {
           </p>
         </div>
       ) : (
-        <div className={'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
+        <div className={cn(
+          'gap-4',
+          viewMode === 'grid' ? 'columns-1 md:columns-2 lg:columns-3 xl:columns-4' : 'columns-2 md:columns-3 lg:columns-4 xl:columns-5'
+        )}>
           {displayedContentItems.map(item => (
             <ContentCard
               key={item.id}
               item={item}
+              viewMode={viewMode}
               onEdit={handleItemClick} 
               onDelete={handleDeleteItem}
+              isSelected={false} // Selection not enabled on this page yet
+              onToggleSelection={() => {}} // No-op
+              isSelectionActive={false}
             />
           ))}
         </div>

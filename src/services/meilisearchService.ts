@@ -53,7 +53,7 @@ const formatForIndex = (item: ContentItem) => ({
   imageAspectRatio: item.imageAspectRatio,
   faviconUrl: item.faviconUrl,
   tags: item.tags?.map(t => t.name) || [],
-  zoneId: item.zoneId,
+  zoneIds: item.zoneIds || [],
   domain: item.domain,
   contentType: item.contentType,
   createdAt: new Date(item.createdAt).getTime(), // for sorting
@@ -72,7 +72,8 @@ export const searchContent = async (
   try {
     const filterClauses = [`userId = "${userId}"`];
     if (filters.zoneId) {
-      filterClauses.push(`zoneId = "${filters.zoneId}"`);
+      // Updated to search within the zoneIds array
+      filterClauses.push(`zoneIds = "${filters.zoneId}"`);
     }
     if (filters.contentType) {
       filterClauses.push(`contentType = "${filters.contentType}"`);
@@ -149,7 +150,7 @@ export const reindexAllContent = async (): Promise<{ count: number }> => {
         
         addLog('INFO', '[MeiliSearch] Updating index settings...');
         const settingsTask = await index.updateSettings({
-            filterableAttributes: ['userId', 'zoneId', 'contentType', 'tags', 'domain'],
+            filterableAttributes: ['userId', 'zoneIds', 'contentType', 'tags', 'domain'],
             sortableAttributes: ['createdAt'],
             searchableAttributes: ['title', 'description', 'tags', 'url', 'domain']
         });

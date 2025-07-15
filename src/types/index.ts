@@ -9,6 +9,7 @@ export interface Zone {
   id:string;
   name: string;
   icon?: string; 
+  isMoodboard?: boolean;
   latestItem?: ContentItem;
 }
 
@@ -55,7 +56,7 @@ export interface ContentItem {
   audioUrl?: string;
   faviconUrl?: string;
   tags: Tag[];
-  zoneId?: string;
+  zoneIds?: string[];
   userId?: string;
   createdAt: string; // ISO date string
   expiresAt?: string; // ISO date string for when the content should be deleted
