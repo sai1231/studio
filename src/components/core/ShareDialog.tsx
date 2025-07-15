@@ -20,6 +20,7 @@ import { Loader2, Copy, Check, Share2, Link as LinkIcon, Lock, CalendarClock } f
 import { add } from 'date-fns';
 import type { ContentItem } from '@/types';
 import { createShareLink } from '@/services/shareService';
+import { cn } from '@/lib/utils';
 
 interface ShareDialogProps {
   item: ContentItem | null;
@@ -87,7 +88,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ item, open, onOpenChan
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="p-0">
+      <DialogContent className="p-0 bg-card">
         <DialogHeader className="p-6 pb-4">
           <DialogTitle className="flex items-center gap-2">
             <Share2 className="h-5 w-5 text-primary" />
@@ -153,7 +154,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ item, open, onOpenChan
           )}
         </div>
 
-        <DialogFooter className="p-6 pt-4 mt-auto border-t">
+        <DialogFooter className="p-6 pt-4 mt-auto border-t bg-card rounded-b-lg">
           {!generatedLink ? (
             <Button onClick={handleGenerateLink} disabled={isLoading || (usePassword && !password)}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
