@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { X, Trash2 } from 'lucide-react';
+import { X, Trash2, CheckSquare, Wand2 } from 'lucide-react';
 import type { Zone } from '@/types';
 import {
   AlertDialog,
@@ -64,19 +64,23 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
           
           <Separator orientation="vertical" className="h-6" />
 
-           <Button variant="link" onClick={onSelectAll} className="p-0 h-auto text-primary">Select All</Button>
+           <Button variant="link" onClick={onSelectAll} className="p-0 h-auto text-primary">
+              <CheckSquare className="mr-2 h-4 w-4" />
+              Select All
+            </Button>
 
           <Separator orientation="vertical" className="h-6" />
 
           <div className="flex items-center gap-2">
               <Button onClick={() => setIsEditDialogOpen(true)}>
+                  <Wand2 className="mr-2 h-4 w-4" />
                   Actions
               </Button>
 
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive">
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
+                  <Button variant="destructive" size="icon">
+                      <Trash2 className="h-4 w-4" />
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
