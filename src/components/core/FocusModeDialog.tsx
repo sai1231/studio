@@ -230,7 +230,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="w-[95vw] max-w-7xl h-[95vh] flex flex-col p-0"
+        className="w-[95vw] max-w-7xl h-[95vh] flex flex-col p-0 bg-card"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHeader className="p-4 border-b flex-shrink-0 flex flex-row items-center justify-between">
