@@ -59,7 +59,7 @@ function DashboardPageContent() {
   const loaderRef = useRef<HTMLDivElement | null>(null);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [viewMode, setViewMode] = useState<ViewMode>('moodboard');
 
 
   // Update local display state when search results change from context
@@ -228,7 +228,7 @@ function DashboardPageContent() {
   const handleAddTodoClick = () => setIsAddTodoDialogOpen(true);
   
   const handleToggleSelection = (itemId: string) => {
-    setSelectedItems(prev => prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]);
+    setSelectedItems(prev => prev.includes(itemId) ? prev.filter(id => id !== item.id) : [...prev, item.id]);
   };
   
   const handleBulkEdit = async (updates: {
@@ -353,17 +353,6 @@ function DashboardPageContent() {
   return (
     <>
       <div className="container mx-auto py-2">
-
-      <div className="flex justify-end mb-4">
-          <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as ViewMode)} aria-label="View Mode">
-            <ToggleGroupItem value="grid" aria-label="Grid View">
-              <LayoutGrid className="h-4 w-4" />
-            </ToggleGroupItem>
-            <ToggleGroupItem value="moodboard" aria-label="Moodboard View">
-              <Rows3 className="h-4 w-4" />
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </div>
 
         {noContentOnDashboard ? (
           <div className="text-center py-12">
