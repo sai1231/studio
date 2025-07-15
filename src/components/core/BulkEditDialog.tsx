@@ -127,7 +127,7 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Bulk Edit {selectedCount} Items</DialogTitle>
           <DialogDescription>
@@ -140,7 +140,7 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
             <Popover open={isZonePopoverOpen} onOpenChange={setIsZonePopoverOpen}>
               <PopoverTrigger asChild>
                   <Button variant="outline" role="combobox" aria-expanded={isZonePopoverOpen}
-                      className={cn("w-full justify-between", zoneId === undefined && "text-muted-foreground")}>
+                      className={cn("w-full justify-between bg-background", zoneId === undefined && "text-muted-foreground")}>
                       <div className="flex items-center"><ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" /><span className="truncate">{zoneDisplayName}</span></div>
                       <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
                   </Button>
@@ -174,7 +174,7 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
           </div>
           <div className="space-y-2">
             <Label>Add Tags</Label>
-            <div className="flex flex-wrap gap-2 items-center">
+            <div className="flex flex-wrap gap-2 items-center p-2 rounded-md border border-input min-h-10 bg-background has-[:focus]:ring-2 has-[:focus]:ring-ring">
               {tagsToAdd.map(tag => (
                 <Badge key={tag} variant="secondary">
                   {tag}
@@ -185,8 +185,8 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={handleTagInputKeyDown}
-                placeholder="Type & enter to add..."
-                className="h-8 flex-grow min-w-[120px]"
+                placeholder="Type & enter..."
+                className="h-8 flex-grow min-w-[120px] p-0 border-0 shadow-none focus-visible:ring-0"
               />
             </div>
           </div>
@@ -196,12 +196,17 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
               value={memoryNoteToAppend}
               onChange={(e) => setMemoryNoteToAppend(e.target.value)}
               placeholder="Add thoughts to all selected items..."
-              className="min-h-[80px]"
+              className="min-h-[80px] bg-background"
             />
           </div>
           <div className="space-y-3 pt-2">
-            <div className="flex items-center justify-between">
-              <label htmlFor="bulk-temporary-switch" className="font-medium text-foreground">Temporary Content</label>
+            <div className="flex items-center justify-between p-3 rounded-lg border">
+              <div className="space-y-0.5">
+                  <label htmlFor="bulk-temporary-switch" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Temporary Content
+                  </label>
+                  <p className="text-xs text-muted-foreground">"On" sets an expiration, "Off" removes it.</p>
+              </div>
               <Switch id="bulk-temporary-switch"
                 checked={isTemporary === true}
                 onCheckedChange={(checked) => setIsTemporary(checked)}
@@ -222,7 +227,7 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, onBulkEdit,
                 </Select>
               </div>
             )}
-            <p className="text-xs text-muted-foreground">"On" sets an expiration date, "Off" removes it. The default state makes no changes.</p>
+            
           </div>
         </div>
         <DialogFooter>
