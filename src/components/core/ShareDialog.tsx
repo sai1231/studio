@@ -99,7 +99,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ item, open, onOpenChan
         </DialogHeader>
 
         {generatedLink ? (
-            <div className="py-4 space-y-4">
+            <div className="py-4 space-y-4 bg-card">
                 <p className="text-sm text-muted-foreground">Your secure link is ready. Copy and share it.</p>
                 <div className="flex items-center space-x-2">
                     <Input id="generated-link" value={generatedLink} readOnly />
@@ -110,7 +110,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ item, open, onOpenChan
                  <Button variant="outline" onClick={() => setGeneratedLink(null)}>Create a different link</Button>
             </div>
         ) : (
-          <div className="py-4 space-y-6">
+          <div className="py-4 space-y-6 bg-card">
             <div className="space-y-3">
                <Label className="flex items-center gap-2 font-medium">
                   <Lock className="h-4 w-4" />
