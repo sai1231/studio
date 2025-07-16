@@ -230,7 +230,7 @@ function DashboardPageContent() {
   const handleAddTodoClick = () => setIsAddTodoDialogOpen(true);
   
   const handleToggleSelection = (itemId: string) => {
-    setSelectedItems(prev => prev.includes(itemId) ? prev.filter(id => id !== item.id) : [...prev, item.id]);
+    setSelectedItems(prev => prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]);
   };
   
   const handleBulkEdit = async (updates: {
