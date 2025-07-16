@@ -2,16 +2,14 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { subscribeToTrashedItems, restoreItemFromTrash, permanentlyDeleteContentItem } from '@/services/contentService';
 import type { ContentItem } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Loader2, Trash2, Undo, AlertCircle } from 'lucide-react';
+import { Loader2, Trash2, Undo } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import ContentCard from '@/components/core/link-card';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +21,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import ContentCard from '@/components/core/link-card';
 
 export default function TrashPage() {
   const { user } = useAuth();
@@ -52,12 +51,16 @@ export default function TrashPage() {
 
   const handleRestore = async (item: ContentItem) => {
     setIsProcessing(item.id);
+    const originalItems = [...trashedItems];
+    setTrashedItems(prev => prev.filter(i => i.id !== item.id));
+
     try {
       await restoreItemFromTrash(item.id);
       toast({ title: "Item Restored", description: `"${item.title}" has been restored to your collection.` });
     } catch (error) {
       console.error("Error restoring item:", error);
       toast({ title: "Error", description: "Could not restore the item.", variant: "destructive" });
+      setTrashedItems(originalItems); // Revert on failure
     } finally {
       setIsProcessing(null);
     }
@@ -65,12 +68,16 @@ export default function TrashPage() {
 
   const handlePermanentDelete = async (item: ContentItem) => {
     setIsProcessing(item.id);
+    const originalItems = [...trashedItems];
+    setTrashedItems(prev => prev.filter(i => i.id !== item.id));
+
     try {
       await permanentlyDeleteContentItem(item.id);
       toast({ title: "Item Permanently Deleted", description: `"${item.title}" has been deleted forever.` });
     } catch (error) {
       console.error("Error permanently deleting item:", error);
       toast({ title: "Error", description: "Could not permanently delete the item.", variant: "destructive" });
+      setTrashedItems(originalItems); // Revert on failure
     } finally {
       setIsProcessing(null);
     }
@@ -80,31 +87,27 @@ export default function TrashPage() {
     const timeInTrash = item.trashedAt ? formatDistanceToNow(new Date(item.trashedAt), { addSuffix: true }) : 'a while ago';
 
     return (
-        <Card className="flex flex-col sm:flex-row items-start sm:items-center p-4 gap-4">
-            <div className="w-full sm:w-1/3 md:w-1/4">
-                <ContentCard 
-                    item={item} 
-                    onEdit={() => {}} 
-                    onDelete={() => {}} 
-                    isSelected={false}
-                    onToggleSelection={() => {}}
-                    isSelectionActive={false}
-                />
-            </div>
-            <div className="flex-grow space-y-2">
-                <p className="font-semibold text-lg">{item.title}</p>
-                <p className="text-sm text-muted-foreground">Moved to trash {timeInTrash}</p>
-            </div>
-            <div className="flex sm:flex-col gap-2 self-start sm:self-center">
-                <Button variant="outline" onClick={() => handleRestore(item)} disabled={isProcessing === item.id}>
+      <div className="flex flex-col gap-2">
+        <ContentCard 
+            item={item} 
+            onEdit={() => {}} 
+            onDelete={() => {}} 
+            isSelected={false}
+            onToggleSelection={() => {}}
+            isSelectionActive={false}
+        />
+        <div className="p-2 bg-muted/50 rounded-lg space-y-2">
+            <p className="text-xs text-muted-foreground text-center">Moved to trash {timeInTrash}</p>
+            <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" size="sm" onClick={() => handleRestore(item)} disabled={!!isProcessing}>
                     {isProcessing === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo className="h-4 w-4" />}
-                    <span className="ml-2 hidden sm:inline">Restore</span>
+                    <span className="ml-2">Restore</span>
                 </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="destructive" disabled={isProcessing === item.id}>
+                    <Button variant="destructive" size="sm" disabled={!!isProcessing}>
                         {isProcessing === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                        <span className="ml-2 hidden sm:inline">Delete Forever</span>
+                        <span className="ml-2">Delete</span>
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
@@ -123,10 +126,10 @@ export default function TrashPage() {
                   </AlertDialogContent>
                 </AlertDialog>
             </div>
-        </Card>
+        </div>
+      </div>
     );
   };
-
 
   if (isLoading) {
     return (
@@ -146,7 +149,7 @@ export default function TrashPage() {
       <p className="text-muted-foreground mb-6">Items in the trash will be permanently deleted after 10 days.</p>
       
       {trashedItems.length > 0 ? (
-        <div className="space-y-4">
+        <div className="columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4">
           {trashedItems.map(item => <TrashedItemCard key={item.id} item={item} />)}
         </div>
       ) : (
