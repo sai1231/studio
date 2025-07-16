@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import MeiliSearch, { MeiliSearchCommunicationError, MeiliSearchApiError } from 'meilisearch';

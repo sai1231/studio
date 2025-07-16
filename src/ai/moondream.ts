@@ -25,7 +25,7 @@ export async function generateCaptionFromImage(imageUrl: string): Promise<string
       },
       body: JSON.stringify({
         image_url: dataUri,
-        length: 'long', // Or 'short'
+        length: 'short', // Or 'short'
       }),
       signal: AbortSignal.timeout(15000), // 15-second timeout
     });
