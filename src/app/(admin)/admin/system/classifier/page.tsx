@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -11,12 +11,14 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { getClassificationRules, saveClassificationRules, type ClassificationRule } from '@/services/classifierService';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, PlusCircle, Trash2, Filter, AlertTriangle, GripVertical } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Filter, AlertTriangle, GripVertical, Upload, Download } from 'lucide-react';
 import { nanoid } from 'nanoid';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import Papa from 'papaparse';
+
 
 const ruleSchema = z.object({
   id: z.string(),
@@ -33,13 +35,14 @@ const formSchema = z.object({
 export default function ClassifierPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: { rules: [] },
   });
 
-  const { control, handleSubmit } = form;
+  const { control, handleSubmit, getValues } = form;
   const { fields, append, remove, move } = useFieldArray({ control, name: 'rules' });
 
   const fetchRules = useCallback(async () => {
@@ -82,6 +85,71 @@ export default function ClassifierPage() {
     });
   };
 
+  const handleExportCsv = () => {
+    const rules = getValues('rules').map(({ regex, contentType, priority }) => ({
+      regex,
+      contentType,
+      priority,
+    }));
+
+    if (rules.length === 0) {
+      toast({ title: 'No rules to export', description: 'Add some rules before exporting.', variant: 'default' });
+      return;
+    }
+
+    const csv = Papa.unparse(rules);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.href) {
+      URL.revokeObjectURL(link.href);
+    }
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.setAttribute('download', 'mati-classification-rules.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+  
+  const handleImportCsv = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const importedRules = results.data.map((row: any, index: number) => {
+            if (!row.regex || !row.contentType) {
+                toast({ title: 'Import Warning', description: `Skipping row ${index + 2} due to missing data.`, variant: 'destructive' });
+                return null;
+            }
+            return {
+                id: nanoid(),
+                regex: row.regex,
+                contentType: row.contentType,
+                priority: parseInt(row.priority, 10) || 0,
+            };
+        }).filter(Boolean); // Filter out nulls from invalid rows
+
+        // Sort by priority from CSV, highest first
+        const sortedImportedRules = (importedRules as ClassificationRule[]).sort((a, b) => b.priority - a.priority);
+
+        form.reset({ rules: sortedImportedRules });
+        toast({ title: 'Import Successful', description: `${sortedImportedRules.length} rules loaded from CSV. Click "Save All Rules" to apply.` });
+      },
+      error: (error: any) => {
+        toast({ title: 'Import Error', description: `Failed to parse CSV file: ${error.message}`, variant: 'destructive' });
+      }
+    });
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -102,7 +170,7 @@ export default function ClassifierPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-start flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-headline font-semibold text-foreground flex items-center">
             <Filter className="mr-3 h-6 w-6 text-primary" />
@@ -110,7 +178,12 @@ export default function ClassifierPage() {
           </h1>
           <p className="text-muted-foreground">Define regex rules to automatically assign a content type. Rules are checked from top to bottom.</p>
         </div>
-        <Button onClick={addNewRule}><PlusCircle className="mr-2 h-4 w-4"/> Add New Rule</Button>
+        <div className="flex items-center gap-2">
+            <input type="file" ref={fileInputRef} onChange={handleImportCsv} accept=".csv" className="hidden" />
+            <Button variant="outline" onClick={() => fileInputRef.current?.click()}><Upload className="mr-2 h-4 w-4"/> Import CSV</Button>
+            <Button variant="outline" onClick={handleExportCsv}><Download className="mr-2 h-4 w-4"/> Export CSV</Button>
+            <Button onClick={addNewRule}><PlusCircle className="mr-2 h-4 w-4"/> Add New Rule</Button>
+        </div>
       </div>
 
       <Alert variant="default" className="bg-muted/50">
@@ -170,7 +243,7 @@ const SortableRuleCard = ({ ruleIndex, form, removeRule }: { ruleIndex: number, 
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Regex Pattern</FormLabel>
-                        <FormControl><Input {...field} placeholder="e.g., instagram\.com\/reel\/"/></FormControl>
+                        <FormControl><Input {...field} placeholder="e.g., instagram\\.com\\/reel\\/"/></FormControl>
                         <FormMessage />
                     </FormItem>
                     )}
