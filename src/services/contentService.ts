@@ -209,10 +209,19 @@ export async function moveItemToTrash(itemId: string): Promise<void> {
       trashedAt: Timestamp.now(),
     };
     await updateDoc(docRef, updateData);
-    const updatedDoc = await getContentItemById(itemId);
-    if (updatedDoc) {
-      addOrUpdateDocument(updatedDoc);
+    
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      const plainItem: ContentItem = {
+        id: docSnap.id,
+        ...data,
+        createdAt: data.createdAt.toDate().toISOString(),
+        trashedAt: data.trashedAt?.toDate().toISOString(),
+      } as ContentItem;
+      addOrUpdateDocument(plainItem);
     }
+    
   } catch(error) {
     console.error(`Failed to move item ${itemId} to trash:`, error);
     throw error;
