@@ -2,17 +2,16 @@
 
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
+import { Card, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ExternalLink, Trash2, Globe, StickyNote, FileImage, Mic, Landmark, PlayCircle, Film, Github, Youtube, Twitter, Check } from 'lucide-react';
+import { ExternalLink, Trash2, Globe, StickyNote, FileImage, Mic, Landmark, PlayCircle, Film, Github, Youtube, Twitter, Check, Undo, Loader2 } from 'lucide-react';
 import type { ContentItem } from '@/types';
 import { cn } from '@/lib/utils';
-import { format, isSameYear, parseISO } from 'date-fns';
+import { format, isSameYear, parseISO, formatDistanceToNow } from 'date-fns';
 import PdfIcon from '@/components/core/PdfIcon';
-import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
-import { Checkbox } from '@/components/ui/checkbox';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 
 interface ContentCardProps {
@@ -23,6 +22,12 @@ interface ContentCardProps {
   isSelected: boolean;
   onToggleSelection: (itemId: string) => void;
   isSelectionActive: boolean;
+  isTrashView?: boolean;
+  trashActions?: {
+    onRestore: () => void;
+    onDeletePermanent: () => void;
+    isProcessing: boolean;
+  }
 }
 
 const SpotifyIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -63,7 +68,17 @@ const domainIconMap: { [key: string]: React.ElementType } = {
   'spotify.com': SpotifyIcon,
 };
 
-const ContentCard: React.FC<ContentCardProps> = ({ item, viewMode = 'grid', onEdit, onDelete, isSelected, onToggleSelection, isSelectionActive }) => {
+const ContentCard: React.FC<ContentCardProps> = ({ 
+  item, 
+  viewMode = 'grid', 
+  onEdit, 
+  onDelete, 
+  isSelected, 
+  onToggleSelection, 
+  isSelectionActive,
+  isTrashView = false,
+  trashActions
+}) => {
   const [faviconError, setFaviconError] = useState(false);
   const [imageError, setImageError] = useState(false);
   
@@ -132,31 +147,36 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, viewMode = 'grid', onEd
     return React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) });
   }, [item, specifics, hasImage, faviconError]);
 
+  const timeInTrash = item.trashedAt ? formatDistanceToNow(new Date(item.trashedAt), { addSuffix: true }) : 'a while ago';
+
   return (
     <motion.div layoutId={`card-animation-${item.id}`} className="w-full break-inside-avoid mb-4">
       <Card
-        draggable="true"
+        draggable={!isTrashView}
         onDragStart={handleDragStart}
         className={cn(
           "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex w-full flex-col group rounded-xl relative h-full",
           isSelected ? "ring-2 ring-primary shadow-2xl" : "cursor-pointer",
           viewMode === 'moodboard' && hasImage && "bg-transparent shadow-md hover:shadow-lg",
+          isTrashView && "opacity-90 hover:opacity-100"
         )}
-        onClick={() => onEdit(item)}
+        onClick={() => !isTrashView && onEdit(item)}
       >
         <div className="flex-grow min-h-0">
-          <div 
-            onClick={(e) => { e.stopPropagation(); onToggleSelection(item.id); }}
-            className={cn(
-                "absolute top-2 left-2 z-20 h-6 w-6 rounded-full bg-background/70 backdrop-blur-sm flex items-center justify-center transition-all duration-200",
-                isSelectionActive ? "opacity-100 scale-100" : "opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100",
-                isSelected ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-            )}
-          >
-            {isSelected ? <Check className="h-4 w-4" /> : <div className="h-3.5 w-3.5 rounded-full border-2 border-primary/50" />}
-          </div>
+          {!isTrashView && (
+              <div 
+                onClick={(e) => { e.stopPropagation(); onToggleSelection(item.id); }}
+                className={cn(
+                    "absolute top-2 left-2 z-20 h-6 w-6 rounded-full bg-background/70 backdrop-blur-sm flex items-center justify-center transition-all duration-200",
+                    isSelectionActive ? "opacity-100 scale-100" : "opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100",
+                    isSelected ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                )}
+              >
+                {isSelected ? <Check className="h-4 w-4" /> : <div className="h-3.5 w-3.5 rounded-full border-2 border-primary/50" />}
+              </div>
+          )}
 
-          {viewMode === 'grid' && item.domain && item.domain !== 'mati.internal.storage' && (
+          {!isTrashView && viewMode === 'grid' && item.domain && item.domain !== 'mati.internal.storage' && (
             <div className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <div className="flex items-center gap-1.5 rounded-full bg-background/70 backdrop-blur-sm px-2 py-1 text-xs text-muted-foreground">
                 <Landmark className="h-3.5 w-3.5 opacity-80 shrink-0" />
@@ -164,47 +184,49 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, viewMode = 'grid', onEd
               </div>
             </div>
           )}
-          <div className="absolute bottom-3 right-3 z-20 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            {(item.type === 'link' || item.type === 'movie') && item.url && (
+          {!isTrashView && (
+              <div className="absolute bottom-3 right-3 z-20 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                {(item.type === 'link' || item.type === 'movie') && item.url && (
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    asChild 
+                                    onClick={handleActionClick}
+                                    className="h-8 w-8 p-0 rounded-full bg-background/70 backdrop-blur-sm text-card-foreground hover:bg-primary hover:text-primary-foreground" 
+                                >
+                                    <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Open link in new tab">
+                                        <ExternalLink className="h-4 w-4" />
+                                    </a>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Open link</p></TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                )}
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                asChild 
-                                onClick={handleActionClick}
-                                className="h-8 w-8 p-0 rounded-full bg-background/70 backdrop-blur-sm text-card-foreground hover:bg-primary hover:text-primary-foreground" 
+                                onClick={(e) => {
+                                    handleActionClick(e);
+                                    onDelete(item.id);
+                                }}
+                                aria-label="Forget item"
+                                className="h-8 w-8 p-0 rounded-full bg-background/70 backdrop-blur-sm text-card-foreground hover:bg-destructive hover:text-destructive-foreground"
                             >
-                                <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Open link in new tab">
-                                    <ExternalLink className="h-4 w-4" />
-                                </a>
+                                <Trash2 className="h-4 w-4" />
                             </Button>
                         </TooltipTrigger>
-                        <TooltipContent><p>Open link</p></TooltipContent>
+                        <TooltipContent><p>Move to Trash</p></TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
-            )}
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                                handleActionClick(e);
-                                onDelete(item.id);
-                            }}
-                            aria-label="Forget item"
-                            className="h-8 w-8 p-0 rounded-full bg-background/70 backdrop-blur-sm text-card-foreground hover:bg-destructive hover:text-destructive-foreground"
-                        >
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent><p>Move to Trash</p></TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
-          </div>
+              </div>
+          )}
 
           {hasImage && viewMode === 'moodboard' ? (
              <motion.div 
@@ -276,6 +298,41 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, viewMode = 'grid', onEd
               </div>
           ))}
         </div>
+        {isTrashView && trashActions && (
+          <CardFooter className="p-2 bg-muted/50 border-t">
+            <div className="w-full space-y-2">
+                <p className="text-xs text-muted-foreground text-center">Moved to trash {timeInTrash}</p>
+                <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" size="sm" onClick={trashActions.onRestore} disabled={trashActions.isProcessing}>
+                        {trashActions.isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo className="h-4 w-4" />}
+                        <span className="ml-2">Restore</span>
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm" disabled={trashActions.isProcessing}>
+                            {trashActions.isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                            <span className="ml-2">Delete</span>
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete "{item.title}". This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={trashActions.onDeletePermanent} className="bg-destructive hover:bg-destructive/90">
+                            Delete Forever
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                </div>
+            </div>
+          </CardFooter>
+        )}
       </Card>
     </motion.div>
   );

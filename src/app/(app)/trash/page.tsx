@@ -83,53 +83,6 @@ export default function TrashPage() {
     }
   };
 
-  const TrashedItemCard: React.FC<{ item: ContentItem }> = ({ item }) => {
-    const timeInTrash = item.trashedAt ? formatDistanceToNow(new Date(item.trashedAt), { addSuffix: true }) : 'a while ago';
-
-    return (
-      <div className="flex flex-col gap-2">
-        <ContentCard 
-            item={item} 
-            onEdit={() => {}} 
-            onDelete={() => {}} 
-            isSelected={false}
-            onToggleSelection={() => {}}
-            isSelectionActive={false}
-        />
-        <div className="p-2 bg-muted/50 rounded-lg space-y-2">
-            <p className="text-xs text-muted-foreground text-center">Moved to trash {timeInTrash}</p>
-            <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" size="sm" onClick={() => handleRestore(item)} disabled={!!isProcessing}>
-                    {isProcessing === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo className="h-4 w-4" />}
-                    <span className="ml-2">Restore</span>
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm" disabled={!!isProcessing}>
-                        {isProcessing === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                        <span className="ml-2">Delete</span>
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will permanently delete "{item.title}". This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handlePermanentDelete(item)} className="bg-destructive hover:bg-destructive/90">
-                        Delete Forever
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-            </div>
-        </div>
-      </div>
-    );
-  };
 
   if (isLoading) {
     return (
@@ -150,7 +103,23 @@ export default function TrashPage() {
       
       {trashedItems.length > 0 ? (
         <div className="columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4">
-          {trashedItems.map(item => <TrashedItemCard key={item.id} item={item} />)}
+          {trashedItems.map(item => (
+            <ContentCard
+              key={item.id}
+              item={item}
+              onEdit={() => {}}
+              onDelete={() => {}}
+              isSelected={false}
+              onToggleSelection={() => {}}
+              isSelectionActive={false}
+              isTrashView={true}
+              trashActions={{
+                onRestore: () => handleRestore(item),
+                onDeletePermanent: () => handlePermanentDelete(item),
+                isProcessing: isProcessing === item.id,
+              }}
+            />
+          ))}
         </div>
       ) : (
         <div className="text-center py-16 border-2 border-dashed rounded-lg">
