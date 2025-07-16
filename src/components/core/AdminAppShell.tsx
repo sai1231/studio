@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Users, Server, Megaphone, Shield, LogOut, ShieldCheck, CreditCard, HardDrive } from 'lucide-react';
+import { LayoutDashboard, Users, Server, Megaphone, Shield, LogOut, ShieldCheck, CreditCard, HardDrive, Filter } from 'lucide-react';
 import type React from 'react';
 import { getAuth, signOut } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -16,7 +16,14 @@ const adminNavItems = [
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/roles', label: 'Roles', icon: ShieldCheck },
   { href: '/admin/plans', label: 'Plans', icon: CreditCard },
-  { href: '/admin/system', label: 'System', icon: HardDrive },
+  {
+    label: 'System',
+    icon: HardDrive,
+    subItems: [
+      { href: '/admin/system', label: 'Meilisearch' },
+      { href: '/admin/system/classifier', label: 'Classifier' },
+    ],
+  },
   { href: '/admin/logs', label: 'Logs', icon: Server },
   { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
 ];
@@ -57,18 +64,44 @@ export default function AdminAppShell({ children }: { children: React.ReactNode 
             <aside className="w-full">
             <nav className="flex flex-col gap-1">
                 {adminNavItems.map((item) => (
-                <Link key={item.label} href={item.href}>
-                    <Button
-                    variant="ghost"
-                    className={cn(
-                        "w-full justify-start gap-3",
-                        pathname.startsWith(item.href) ? "bg-muted font-semibold" : ""
+                  <div key={item.label}>
+                    {item.subItems ? (
+                      <div>
+                        <div className="flex items-center gap-3 px-3 py-2 text-sm font-semibold">
+                          <item.icon className="h-5 w-5" />
+                          {item.label}
+                        </div>
+                        <div className="pl-4">
+                          {item.subItems.map(subItem => (
+                            <Link key={subItem.label} href={subItem.href}>
+                              <Button
+                                variant="ghost"
+                                className={cn(
+                                  "w-full justify-start gap-3",
+                                  pathname === subItem.href ? "bg-muted font-semibold" : ""
+                                )}
+                              >
+                                {subItem.label}
+                              </Button>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <Link href={item.href!}>
+                        <Button
+                          variant="ghost"
+                          className={cn(
+                            "w-full justify-start gap-3",
+                            pathname.startsWith(item.href!) ? "bg-muted font-semibold" : ""
+                          )}
+                        >
+                          <item.icon className="h-5 w-5" />
+                          {item.label}
+                        </Button>
+                      </Link>
                     )}
-                    >
-                    <item.icon className="h-5 w-5" />
-                    {item.label}
-                    </Button>
-                </Link>
+                  </div>
                 ))}
             </nav>
             </aside>

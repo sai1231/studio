@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import type React from 'react';
@@ -35,6 +34,7 @@ import { useDialog } from '@/context/DialogContext';
 import { add } from 'date-fns';
 import { ScrollArea } from '../ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { classifyUrl } from '@/services/classifierService';
 
 const mainContentSchema = z.object({
   mainContent: z.string(), // This will be optional if a file is uploaded
@@ -296,16 +296,14 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                 catch { metadata.title = "Untitled Link"; }
             }
 
-            // Heuristic to determine content type
-            const knownMediaDomains = ['youtube.com', 'youtu.be', 'vimeo.com', 'soundcloud.com', 'spotify.com', 'x.com', 'twitter.com', 'instagram.com'];
-            const isMedia = knownMediaDomains.some(d => new URL(extractedUrl).hostname.includes(d));
+            const determinedContentType = await classifyUrl(extractedUrl);
             
             contentData = {
                 type: 'link', url: extractedUrl, memoryNote: mainContent,
                 domain: new URL(extractedUrl).hostname.replace(/^www\./, ''),
                 status: 'pending-analysis', title: metadata.title, description: metadata.description,
                 faviconUrl: metadata.faviconUrl, imageUrl: metadata.imageUrl,
-                contentType: isMedia ? 'Link' : 'Article', // Set default contentType
+                contentType: determinedContentType,
                 ...commonData
             };
         } else {

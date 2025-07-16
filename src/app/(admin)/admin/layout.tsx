@@ -48,7 +48,7 @@ export default function AdminRouteLayout({ children }: { children: React.ReactNo
     );
   }
   
-  // If user is an admin, show the admin app shell.
+  // If user is an admin, show the admin app shell. The AdminAppShell now contains another layer for system routes.
   if (isAdmin) {
     return <AdminAppShell>{children}</AdminAppShell>;
   }

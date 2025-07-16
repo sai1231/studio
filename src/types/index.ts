@@ -1,5 +1,4 @@
 
-
 export interface Tag {
   id: string;
   name: string;
@@ -120,4 +119,21 @@ export interface TaskList {
   tasks: Task[];
 }
 
-    
+// Types for the new classification engine
+export type Fact = 'domain' | 'path' | 'full_url' | 'meta_tag_value';
+export type Operator = 'equals' | 'contains' | 'startsWith' | 'endsWith' | 'matchesRegex';
+
+export interface Condition {
+  id: string;
+  fact: Fact;
+  operator: Operator;
+  value: string;
+  metaProperty?: string; // e.g., 'og:type'
+}
+
+export interface ClassificationRule {
+  id: string;
+  contentType: string;
+  priority: number;
+  conditions: Condition[];
+}

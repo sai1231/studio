@@ -5,10 +5,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, HardDrive, AlertTriangle, Database, CheckCircle, Search } from 'lucide-react';
+import { Loader2, HardDrive, AlertTriangle, Database, CheckCircle, Search, Filter } from 'lucide-react';
 import { getIndexStats, reindexAllContent } from '@/services/meilisearchService';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
 
 const StatCard = ({ title, value, icon: Icon, isLoading }: { title: string; value: string | number; icon: React.ElementType; isLoading?: boolean }) => (
     <div className="flex items-center p-4 bg-muted/50 rounded-lg">
@@ -132,3 +133,4 @@ export default function SystemPage() {
         </div>
     );
 }
+
