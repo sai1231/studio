@@ -26,6 +26,7 @@ import type { ContentItem, Zone, Tag, MovieDetails, SearchFilters, TaskList, Tas
 import { enrichContent } from '@/ai/flows/enrich-content-flow';
 import { addLog } from '@/services/loggingService';
 import { addOrUpdateDocument, deleteDocument } from './meilisearchService';
+import { classifyUrl } from './classifierService';
 
 // --- ContentItem Functions ---
 
@@ -164,7 +165,12 @@ export async function addContentItem(
 
     if (dataToSave.type === 'link' && dataToSave.url && !dataToSave.domain) {
       try {
-        dataToSave.domain = new URL(dataToSave.url).hostname.replace(/^www\./, '');
+        const url = new URL(dataToSave.url);
+        dataToSave.domain = url.hostname.replace(/^www\./, '');
+        // Classify the URL to set a smart content type
+        if (!dataToSave.contentType) {
+          dataToSave.contentType = await classifyUrl(dataToSave.url);
+        }
       } catch (e) {
         console.warn("Could not extract domain from URL:", dataToSave.url);
       }

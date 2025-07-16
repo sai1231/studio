@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import type React from 'react';
@@ -259,7 +260,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
 
     const commonData = {
       tags: currentTags,
-      zoneId: zoneId || undefined,
+      zoneIds: zoneId ? [zoneId] : [],
       expiresAt: expiresAtDate ? expiresAtDate.toISOString() : undefined,
     };
 
