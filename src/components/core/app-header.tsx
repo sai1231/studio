@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { getUniqueContentTypesFromItems, getUniqueTagsFromItems, getUniqueDomainsFromItems } from '@/services/contentService';
+import type { Zone as AppZone, Tag as AppTag } from '@/types';
 
 
 const AppHeader: React.FC = () => {
@@ -62,44 +63,26 @@ const AppHeader: React.FC = () => {
     setInputValue(searchParams.get('q') || '');
   }, [searchParams]);
 
-
   const { popoverTags, popoverContentTypes, popoverDomains, popoverZones } = useMemo(() => {
     if (!isFilterOpen) return { popoverTags: [], popoverContentTypes: [], popoverDomains: [], popoverZones: [] };
-  
-    // Filter items based on pending selections for ContentType, Tags, and Domain
-    let itemsForZoneFilter = allItems;
-    if (pendingContentType) itemsForZoneFilter = itemsForZoneFilter.filter(item => item.contentType === pendingContentType);
-    if (pendingTagNames.length > 0) itemsForZoneFilter = itemsForZoneFilter.filter(item => pendingTagNames.every(tagName => item.tags.some(t => t.name === tagName)));
-    if (pendingDomain) itemsForZoneFilter = itemsForZoneFilter.filter(item => item.domain === pendingDomain);
-    const availableZoneIds = new Set(itemsForZoneFilter.map(item => item.zoneId).filter(Boolean));
-    const finalPopoverZones = availableZones.filter(zone => availableZoneIds.has(zone.id));
-  
-    // Filter items based on pending selections for Zone, Tags, and Domain
-    let itemsForContentTypeFilter = allItems;
-    if (pendingZoneId) itemsForContentTypeFilter = itemsForContentTypeFilter.filter(item => item.zoneId === pendingZoneId);
-    if (pendingTagNames.length > 0) itemsForContentTypeFilter = itemsForContentTypeFilter.filter(item => pendingTagNames.every(tagName => item.tags.some(t => t.name === tagName)));
-    if (pendingDomain) itemsForContentTypeFilter = itemsForContentTypeFilter.filter(item => item.domain === pendingDomain);
-    const finalPopoverContentTypes = getUniqueContentTypesFromItems(itemsForContentTypeFilter);
-  
-    // Filter items based on pending selections for Zone, ContentType, and Domain
-    let itemsForTagFilter = allItems;
-    if (pendingZoneId) itemsForTagFilter = itemsForTagFilter.filter(item => item.zoneId === pendingZoneId);
-    if (pendingContentType) itemsForTagFilter = itemsForTagFilter.filter(item => item.contentType === pendingContentType);
-    if (pendingDomain) itemsForTagFilter = itemsForTagFilter.filter(item => item.domain === pendingDomain);
-    const finalPopoverTags = getUniqueTagsFromItems(itemsForTagFilter);
-  
-     // Filter items based on pending selections for Zone, ContentType, and Tags
-    let itemsForDomainFilter = allItems;
-    if (pendingZoneId) itemsForDomainFilter = itemsForDomainFilter.filter(item => item.zoneId === pendingZoneId);
-    if (pendingContentType) itemsForDomainFilter = itemsForDomainFilter.filter(item => item.contentType === pendingContentType);
-    if (pendingTagNames.length > 0) itemsForDomainFilter = itemsForDomainFilter.filter(item => pendingTagNames.every(tagName => item.tags.some(t => t.name === tagName)));
-    const finalPopoverDomains = getUniqueDomainsFromItems(itemsForDomainFilter);
+
+    let filteredItems = allItems;
+    if (pendingZoneId) filteredItems = filteredItems.filter(item => item.zoneId === pendingZoneId);
+    if (pendingContentType) filteredItems = filteredItems.filter(item => item.contentType === pendingContentType);
+    if (pendingTagNames.length > 0) filteredItems = filteredItems.filter(item => pendingTagNames.every(tagName => item.tags.some(t => t.name === tagName)));
+    if (pendingDomain) filteredItems = filteredItems.filter(item => item.domain === pendingDomain);
+
+    const contentTypesInFiltered = getUniqueContentTypesFromItems(filteredItems);
+    const domainsInFiltered = getUniqueDomainsFromItems(filteredItems);
+    const tagsInFiltered = getUniqueTagsFromItems(filteredItems);
+    const zoneIdsInFiltered = new Set(filteredItems.map(item => item.zoneId).filter(Boolean));
+    const zonesInFiltered = availableZones.filter(zone => zoneIdsInFiltered.has(zone.id));
 
     return { 
-      popoverZones: finalPopoverZones,
-      popoverContentTypes: finalPopoverContentTypes,
-      popoverTags: finalPopoverTags,
-      popoverDomains: finalPopoverDomains,
+      popoverZones: zonesInFiltered,
+      popoverContentTypes: contentTypesInFiltered,
+      popoverTags: tagsInFiltered,
+      popoverDomains: domainsInFiltered,
     };
   }, [isFilterOpen, allItems, availableZones, pendingZoneId, pendingContentType, pendingTagNames, pendingDomain]);
 
@@ -265,7 +248,7 @@ const AppHeader: React.FC = () => {
                     <SelectTrigger id="zone-filter"><SelectValue placeholder="All Zones" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Zones</SelectItem>
-                      {popoverZones.map(zone => <SelectItem key={zone.id} value={zone.id}>{zone.name}</SelectItem>)}
+                      {availableZones.map(zone => <SelectItem key={zone.id} value={zone.id}>{zone.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
