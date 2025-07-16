@@ -4,7 +4,7 @@
 
 import type React from 'react';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { getContentItemById, updateContentItem, getZones, addZone } from '@/services/contentService';
+import { getContentItemById, updateContentItem, getZones, addZone, moveItemToTrash } from '@/services/contentService';
 import type { ContentItem, Zone, Tag } from '@/types';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, X } from 'lucide-react';
@@ -81,8 +81,8 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
             setAllZones(regularZones);
             
             // Find the first ID in zoneIds that is a regular zone
-            const assignedRegularZone = freshItem.zoneIds?.find(id => regularZones.some(z => z.id === id));
-            setEditableZoneId(assignedRegularZone);
+            const assignedRegularZoneId = freshItem.zoneIds?.find(id => regularZones.some(z => z.id === id));
+            setEditableZoneId(assignedRegularZoneId);
           } else {
             setAllZones([]);
           }
@@ -121,6 +121,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
   
   const handleDelete = async () => {
     if (!item || !onItemDelete) return;
+    await moveItemToTrash(item.id);
     onItemDelete(item.id);
     onOpenChange(false);
   };

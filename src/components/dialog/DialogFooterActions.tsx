@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState } from 'react';
@@ -39,15 +40,15 @@ export const DialogFooterActions: React.FC<DialogFooterActionsProps> = ({ item, 
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogTitle>Move to Trash?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will permanently delete "{item.title}" and cannot be undone.
+                  This will move "{item.title}" to the trash. You can restore it later.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={onDelete} className="bg-destructive hover:bg-destructive/90">
-                  Delete
+                  Move to Trash
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

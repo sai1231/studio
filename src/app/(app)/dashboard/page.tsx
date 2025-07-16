@@ -10,7 +10,7 @@ import type { ContentItem, AppZone, Task, SearchFilters, Zone, Tag } from '@/typ
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Loader2, FolderOpen, ListChecks, LayoutGrid, Rows3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { deleteContentItem, subscribeToTaskList, updateTaskList, updateContentItem, getContentItemById, addZone } from '@/services/contentService';
+import { moveItemToTrash, subscribeToTaskList, updateTaskList, updateContentItem, getContentItemById, addZone } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
 import { useSearch } from '@/context/SearchContext';
@@ -177,13 +177,13 @@ function DashboardPageContent() {
   const handleDeleteContent = useCallback(async (itemId: string) => {
     // Optimistic update
     setContentToDisplay(prevItems => prevItems.filter(item => item.id !== itemId));
-    const {id: toastId} = toast({ title: "Deleting Item...", description: "Removing content item."});
+    const {id: toastId} = toast({ title: "Moving to Trash...", description: "Item is being moved."});
     try {
-      await deleteContentItem(itemId);
-      toast({id: toastId, title: "Content Deleted", description: "The item has been removed.", variant: "default"});
+      await moveItemToTrash(itemId);
+      toast({id: toastId, title: "Item Moved to Trash", description: "You can restore it later.", variant: "default"});
     } catch (e) {
-      console.error("Error deleting content:", e);
-      toast({id: toastId, title: "Error Deleting", description: "Could not delete item.", variant: "destructive"});
+      console.error("Error moving item to trash:", e);
+      toast({id: toastId, title: "Error", description: "Could not move item to trash.", variant: "destructive"});
       // Note: A full re-fetch might be warranted here in a real-world scenario
     }
   }, [toast]);
@@ -230,7 +230,7 @@ function DashboardPageContent() {
   const handleAddTodoClick = () => setIsAddTodoDialogOpen(true);
   
   const handleToggleSelection = (itemId: string) => {
-    setSelectedItems(prev => prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]);
+    setSelectedItems(prev => prev.includes(itemId) ? prev.filter(id => id !== item.id) : [...prev, item.id]);
   };
   
   const handleBulkEdit = async (updates: {
@@ -319,17 +319,17 @@ function DashboardPageContent() {
   };
   
   const handleDeleteSelected = async () => {
-    const { id: toastId } = toast({ title: 'Deleting Items...', description: `Removing ${selectedItems.length} items.` });
+    const { id: toastId } = toast({ title: 'Moving Items to Trash...', description: `Moving ${selectedItems.length} items.` });
     const originalItems = [...contentToDisplay];
     
     setContentToDisplay(prev => prev.filter(item => !selectedItems.includes(item.id)));
     
     try {
-        await Promise.all(selectedItems.map(deleteContentItem));
-        toast({ id: toastId, title: 'Items Deleted!', description: `${selectedItems.length} items have been removed.` });
+        await Promise.all(selectedItems.map(moveItemToTrash));
+        toast({ id: toastId, title: 'Items Moved to Trash!', description: `${selectedItems.length} items have been moved.` });
         setSelectedItems([]);
     } catch(error) {
-        toast({ id: toastId, title: 'Delete Failed', description: 'Could not delete all items. Reverting.', variant: 'destructive' });
+        toast({ id: toastId, title: 'Action Failed', description: 'Could not move all items to trash. Reverting.', variant: 'destructive' });
         setContentToDisplay(originalItems);
     }
   };

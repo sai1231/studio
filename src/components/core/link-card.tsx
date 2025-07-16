@@ -201,7 +201,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ item, viewMode = 'grid', onEd
                             <Trash2 className="h-4 w-4" />
                         </Button>
                     </TooltipTrigger>
-                    <TooltipContent><p>Forget</p></TooltipContent>
+                    <TooltipContent><p>Move to Trash</p></TooltipContent>
                 </Tooltip>
             </TooltipProvider>
           </div>

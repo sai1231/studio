@@ -75,7 +75,8 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     
     try {
-      const { hits, total } = await performSearch(user.uid, query, filters, options.limit, options.offset);
+      const searchFilters = { ...filters, isTrashed: filters.isTrashed || false };
+      const { hits, total } = await performSearch(user.uid, query, searchFilters, options.limit, options.offset);
       
       if (options.append) {
         setSearchResults(prev => [...prev, ...hits]);

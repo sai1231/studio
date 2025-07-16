@@ -68,7 +68,8 @@ const formatForIndex = async (item: ContentItem): Promise<any> => {
     contentType: item.contentType,
     createdAt: new Date(item.createdAt).getTime(), // for sorting
     movieDetails: item.movieDetails,
-    colorPalette: item.colorPalette?.map(c => c.name) || [], // Convert array of objects to array of strings (color names)
+    colorPalette: item.colorPalette?.map(c => c.name) || [],
+    isTrashed: item.isTrashed || false,
   };
 };
 
@@ -83,8 +84,12 @@ export const searchContent = async (
   
   try {
     const filterClauses = [`userId = "${userId}"`];
+    
+    // Default to searching non-trashed items unless specified
+    const isTrashedFilter = filters.isTrashed === true ? 'isTrashed = true' : 'isTrashed = false';
+    filterClauses.push(isTrashedFilter);
+
     if (filters.zoneId) {
-      // Updated to search within the zoneIds array
       filterClauses.push(`zoneIds = "${filters.zoneId}"`);
     }
     if (filters.contentType) {
@@ -178,7 +183,7 @@ export const reindexAllContent = async (): Promise<{ count: number }> => {
         
         addLog('INFO', '[MeiliSearch] Updating index settings...');
         const settingsTask = await index.updateSettings({
-            filterableAttributes: ['userId', 'zoneIds', 'contentType', 'tags', 'domain', 'colorPalette'],
+            filterableAttributes: ['userId', 'zoneIds', 'contentType', 'tags', 'domain', 'colorPalette', 'isTrashed'],
             sortableAttributes: ['createdAt'],
             searchableAttributes: ['title', 'description', 'tags', 'url', 'domain', 'zoneNames', 'colorPalette']
         });

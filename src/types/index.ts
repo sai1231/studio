@@ -63,7 +63,9 @@ export interface ContentItem {
   domain?: string;
   contentType?: string;
   movieDetails?: MovieDetails; // Added for movie type
-  status?: 'pending-analysis'; // Status is now only for content enrichment
+  status?: 'pending-analysis' | 'completed' | 'failed-analysis';
+  isTrashed?: boolean; // New field for soft delete
+  trashedAt?: string; // New field for soft delete timestamp
   colorPalette?: { hex: string; name: string }[];
 }
 
@@ -94,6 +96,7 @@ export interface SearchFilters {
   contentType?: string | null;
   tagNames?: string[];
   domain?: string | null;
+  isTrashed?: boolean;
 }
 
 // Specific type for Link items, if needed for type guarding

@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { useState, useEffect, useCallback } from 'react';
-import { getContentItems, deleteContentItem } from '@/services/contentService';
+import { getContentItems, moveItemToTrash } from '@/services/contentService';
 import type { ContentItem, Tag } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -109,12 +109,12 @@ export default function DeclutterPage() {
     setIsProcessing(true);
     const itemTitle = currentItem.title;
     try {
-      await deleteContentItem(currentItem.id);
-      toast({ title: "Item Deleted", description: `"${itemTitle}" has been removed.`, variant: "default" });
+      await moveItemToTrash(currentItem.id);
+      toast({ title: "Item Moved to Trash", description: `"${itemTitle}" has been moved to the trash.`, variant: "default" });
       handleNextItem();
     } catch (error) {
-      console.error("Error deleting item:", error);
-      toast({ title: "Error", description: `Could not delete "${itemTitle}".`, variant: "destructive" });
+      console.error("Error moving item to trash:", error);
+      toast({ title: "Error", description: `Could not move "${itemTitle}" to trash.`, variant: "destructive" });
       setIsProcessing(false);
     }
   };
@@ -134,7 +134,7 @@ export default function DeclutterPage() {
         <Sparkles className="h-8 w-8 mr-3 text-primary" />
         Declutter Old Memories
       </div>
-      <p className="text-muted-foreground mb-4 text-center">Review your oldest items one by one. Decide what to keep or delete.</p>
+      <p className="text-muted-foreground mb-4 text-center">Review your oldest items one by one. Decide what to keep or move to trash.</p>
       
       {initialItemCount > 0 && !isLoading && (
         <div className="mb-4">
@@ -243,7 +243,7 @@ export default function DeclutterPage() {
             className="px-10 py-6 text-lg min-w-[150px] shadow-md hover:shadow-lg transition-shadow"
             disabled={isProcessing}
           >
-            <Trash2 className="mr-2 h-5 w-5" /> Delete
+            <Trash2 className="mr-2 h-5 w-5" /> Move to Trash
           </Button>
         </div>
       )}

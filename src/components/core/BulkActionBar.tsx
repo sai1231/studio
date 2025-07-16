@@ -97,15 +97,15 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogTitle>Move {selectedCount} items to Trash?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will permanently delete the {selectedCount} selected item(s). This action cannot be undone.
+                      This will move the selected item(s) to the trash. You can restore them later.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction onClick={onDelete} className="bg-destructive hover:bg-destructive/90">
-                      Delete
+                      Move to Trash
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>

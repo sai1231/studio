@@ -43,7 +43,7 @@ export async function fetchImageColors(
         distance: 0.22,
         saturation: 0.2,
         lightness: 0.6,
-        colors: 10,
+        colors: 20,
       }
     );
 

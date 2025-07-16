@@ -29,77 +29,6 @@ import { addOrUpdateDocument, deleteDocument } from './meilisearchService';
 
 // --- ContentItem Functions ---
 
-export async function getContentItemsPaginated({
-  userId,
-  pageSize,
-  lastDoc,
-}: {
-  userId: string;
-  pageSize: number;
-  lastDoc?: DocumentSnapshot;
-}): Promise<{ items: ContentItem[]; lastVisibleDoc: DocumentSnapshot | null }> {
-  try {
-    if (!db) {
-      console.warn('getContentItemsPaginated called without db configured.');
-      return { items: [], lastVisibleDoc: null };
-    }
-    if (!userId) {
-      console.warn('getContentItemsPaginated called without a userId.');
-      return { items: [], lastVisibleDoc: null };
-    }
-    
-    const contentCollection = collection(db, 'content');
-    const queryConstraints: any[] = [
-      where('userId', '==', userId),
-      orderBy('createdAt', 'desc'),
-      limit(pageSize),
-    ];
-
-    if (lastDoc) {
-      queryConstraints.push(startAfter(lastDoc));
-    }
-
-    const q = query(contentCollection, ...queryConstraints);
-    const querySnapshot = await getDocs(q);
-
-    const items = querySnapshot.docs.map(doc => {
-      const data = doc.data();
-      const createdAt = data.createdAt;
-      return {
-        id: doc.id,
-        ...data,
-        createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : new Date().toISOString(),
-      } as ContentItem;
-    });
-
-    const lastVisibleDoc = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
-
-    return { items, lastVisibleDoc };
-  } catch (error) {
-    console.error('Failed to get paginated content items from Firestore:', error);
-    throw error;
-  }
-}
-
-export async function getContentCount(userId: string): Promise<number> {
-  try {
-    if (!db) return 0;
-    if (!userId) {
-      console.warn('getContentCount called without a userId.');
-      return 0;
-    }
-    const contentCollection = collection(db, 'content');
-    const q = query(contentCollection, where('userId', '==', userId));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.size;
-  } catch (error) {
-    console.error('Failed to get content count from Firestore:', error);
-    throw error;
-  }
-}
-
-
-// Function to get all content items for a specific user
 export async function getContentItems(userId: string, contentLimit?: number): Promise<ContentItem[]> {
   try {
     if (!db) {
@@ -114,6 +43,7 @@ export async function getContentItems(userId: string, contentLimit?: number): Pr
     const contentCollection = collection(db, 'content');
     const qConstraints: any[] = [
         where("userId", "==", userId),
+        where("isTrashed", "==", false),
         orderBy('createdAt', 'desc')
     ];
 
@@ -160,6 +90,7 @@ export function subscribeToContentItems(
   const contentCollection = collection(db, 'content');
   const qConstraints: any[] = [
       where("userId", "==", userId),
+      where("isTrashed", "==", false),
       orderBy('createdAt', 'desc')
   ];
 
@@ -225,6 +156,7 @@ export async function addContentItem(
     const contentCollection = collection(db, 'content');
     const dataToSave: { [key: string]: any } = { ...itemData };
     dataToSave.createdAt = Timestamp.fromDate(new Date());
+    dataToSave.isTrashed = false; // Ensure new items are not in trash
 
     if (['link', 'image', 'voice', 'note'].includes(dataToSave.type) || (dataToSave.type === 'link' && dataToSave.contentType === 'PDF')) {
       dataToSave.status = 'pending-analysis';
@@ -268,8 +200,46 @@ export async function addContentItem(
   }
 }
 
-// Function to delete a content item
-export async function deleteContentItem(itemId: string): Promise<void> {
+export async function moveItemToTrash(itemId: string): Promise<void> {
+  try {
+    if (!db) throw new Error("Firestore is not initialized.");
+    const docRef = doc(db, 'content', itemId);
+    const updateData = {
+      isTrashed: true,
+      trashedAt: Timestamp.now(),
+    };
+    await updateDoc(docRef, updateData);
+    const updatedDoc = await getContentItemById(itemId);
+    if (updatedDoc) {
+      addOrUpdateDocument(updatedDoc);
+    }
+  } catch(error) {
+    console.error(`Failed to move item ${itemId} to trash:`, error);
+    throw error;
+  }
+}
+
+export async function restoreItemFromTrash(itemId: string): Promise<void> {
+  try {
+    if (!db) throw new Error("Firestore is not initialized.");
+    const docRef = doc(db, 'content', itemId);
+    const updateData = {
+      isTrashed: false,
+      trashedAt: null, // Remove the timestamp
+    };
+    await updateDoc(docRef, updateData);
+    const updatedDoc = await getContentItemById(itemId);
+    if (updatedDoc) {
+      addOrUpdateDocument(updatedDoc);
+    }
+  } catch(error) {
+    console.error(`Failed to restore item ${itemId} from trash:`, error);
+    throw error;
+  }
+}
+
+// Function to permanently delete a content item
+export async function permanentlyDeleteContentItem(itemId: string): Promise<void> {
   try {
     if (!db) throw new Error("Firestore is not initialized.");
     await deleteDoc(doc(db, 'content', itemId));
@@ -502,7 +472,7 @@ export async function deleteExpiredContent(userId: string): Promise<void> {
         
         const contentCollection = collection(db, 'content');
         const now = new Date().toISOString();
-        const q = query(contentCollection, where('userId', '==', userId), where('expiresAt', '<=', now));
+        const q = query(contentCollection, where('userId', '==', userId), where('isTrashed', '==', false), where('expiresAt', '<=', now));
         
         const querySnapshot = await getDocs(q);
         
@@ -510,21 +480,19 @@ export async function deleteExpiredContent(userId: string): Promise<void> {
             return; // No expired items to delete
         }
 
-        const deletePromises: Promise<void>[] = [];
+        const batch = writeBatch(db);
         querySnapshot.forEach((doc) => {
-            console.log(`Deleting expired item: ${doc.id}`);
-            addLog('INFO', `Auto-deleting expired content item: ${doc.id}`);
-            deletePromises.push(deleteDoc(doc.ref));
-            deleteDocument(doc.id); // Also delete from Meilisearch
+            console.log(`Moving expired item to trash: ${doc.id}`);
+            addLog('INFO', `Auto-trashing expired content item: ${doc.id}`);
+            batch.update(doc.ref, { isTrashed: true, trashedAt: Timestamp.now() });
         });
 
-        await Promise.all(deletePromises);
-        console.log(`Successfully deleted ${querySnapshot.size} expired items.`);
+        await batch.commit();
+        console.log(`Successfully moved ${querySnapshot.size} expired items to trash.`);
 
     } catch (error) {
-        console.error('Failed to delete expired content items from Firestore:', error);
+        console.error('Failed to process expired content items:', error);
         addLog('ERROR', 'Failed to run expired content cleanup', { error: (error as Error).message });
-        // We don't throw here as this is a background cleanup task
     }
 }
 
@@ -578,4 +546,41 @@ export function getUniqueTagsFromItems(items: ContentItem[]): Tag[] {
     });
   });
   return Array.from(allTagsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// New function to get only trashed items
+export function subscribeToTrashedItems(
+  userId: string,
+  callback: (items: ContentItem[], error?: any) => void
+): Unsubscribe {
+  if (!db) {
+    callback([], new Error("Firestore is not configured."));
+    return () => {};
+  }
+  const contentCollection = collection(db, 'content');
+  const q = query(
+    contentCollection,
+    where("userId", "==", userId),
+    where("isTrashed", "==", true),
+    orderBy('trashedAt', 'desc')
+  );
+
+  const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const items: ContentItem[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      items.push({
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt.toDate().toISOString(),
+        trashedAt: data.trashedAt?.toDate().toISOString(),
+      } as ContentItem);
+    });
+    callback(items);
+  }, (error) => {
+    console.error("Failed to subscribe to trashed items:", error);
+    callback([], error);
+  });
+
+  return unsubscribe;
 }
