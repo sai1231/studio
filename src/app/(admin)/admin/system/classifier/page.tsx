@@ -14,6 +14,7 @@ import { getClassificationRules, saveClassificationRules, type ClassificationRul
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Loader2, PlusCircle, Trash2, GripVertical, Filter, AlertTriangle } from 'lucide-react';
 import { nanoid } from 'nanoid';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const conditionSchema = z.object({
   id: z.string(),
