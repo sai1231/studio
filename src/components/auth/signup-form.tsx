@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -18,6 +19,7 @@ import {
 } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, updateProfile } from 'firebase/auth';
@@ -36,6 +38,9 @@ const formSchema = z.object({
   displayName: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   email: z.string().email({ message: 'Please enter a valid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  terms: z.boolean().refine(val => val === true, {
+    message: "You must accept the terms and privacy policy.",
+  }),
 });
 
 export function SignupForm() {
@@ -51,6 +56,7 @@ export function SignupForm() {
       displayName: '',
       email: '',
       password: '',
+      terms: false,
     },
   });
 
@@ -166,6 +172,34 @@ export function SignupForm() {
                     <Input type="password" placeholder="••••••••" {...field} />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="terms"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md py-2">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel className="text-sm font-normal">
+                      I agree to the{' '}
+                      <Link href="/terms" target="_blank" className="underline hover:text-primary">
+                        Terms of Service
+                      </Link>{' '}
+                      and{' '}
+                      <Link href="/privacy" target="_blank" className="underline hover:text-primary">
+                        Privacy Policy
+                      </Link>
+                      .
+                    </FormLabel>
+                    <FormMessage />
+                  </div>
                 </FormItem>
               )}
             />
