@@ -133,10 +133,18 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const handleFilesSelected = useCallback(async (files: File[]) => {
     if (!user) return;
     
+    const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+
     setIsUploading(true);
     form.clearErrors('mainContent');
 
     const uploadPromises = files.map(async (file) => {
+      
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        toast({ title: `File Too Large: ${file.name}`, description: "File size cannot exceed 5 MB.", variant: "destructive" });
+        return null;
+      }
+      
       const isImage = file.type.startsWith('image/');
       const isPdf = file.type === 'application/pdf';
 
@@ -422,7 +430,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                     <div className="flex flex-col items-center justify-center text-center">
                     <UploadCloud className="h-8 w-8 text-muted-foreground" />
                     <p className="mt-2 text-sm font-medium">Upload Files</p>
-                    <p className="text-xs text-muted-foreground">Image or PDF</p>
+                    <p className="text-xs text-muted-foreground">Image or PDF (Max 5MB)</p>
                     </div>
                 )}
             </div>
@@ -559,7 +567,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                   <DialogTitle className="font-headline">Add Content</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-1 flex flex-col min-h-0">
-                    <div className="flex-1 px-6 min-h-0 overflow-hidden">
+                    <div className="flex-grow min-h-0 px-6">
                         <ScrollArea className="h-full pr-6 -mr-6">
                             {FormFields}
                         </ScrollArea>
