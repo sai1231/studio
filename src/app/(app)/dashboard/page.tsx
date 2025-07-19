@@ -359,7 +359,7 @@ function DashboardPageContent() {
   if (isPageLoading) {
     const message = isSearching ? "Searching your memories..." : (clientLoadingMessage || pageLoadingMessages[0]);
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] py-2">
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <p className="mt-4 text-muted-foreground">{message}</p>
       </div>
@@ -368,7 +368,7 @@ function DashboardPageContent() {
 
   if (error) {
     return (
-      <div className="py-8 text-center text-destructive">
+      <div className="text-center text-destructive">
         <FolderOpen className="h-16 w-16 mx-auto text-destructive mb-4" />
         <h1 className="text-2xl font-headline font-semibold">Error Loading Content</h1>
         <p className="text-muted-foreground mt-2">{error}</p>
@@ -445,12 +445,18 @@ function DashboardPageContent() {
                 ))}
                 </Masonry>
             </ResponsiveMasonry>
-            <div ref={loaderRef} className="flex justify-center items-center h-16">
-              {isFetchingMore && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
-              {!hasMore && contentToDisplay.length > 0 && (
-                  <p className="text-muted-foreground">You've reached the end!</p>
+            <div ref={loaderRef} className="h-16 w-full">
+              {isFetchingMore && (
+                <div className="flex justify-center items-center h-full">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
               )}
             </div>
+            {!hasMore && !isFetchingMore && contentToDisplay.length > 0 && (
+                <div className="text-center py-8 text-muted-foreground border-t mt-4">
+                  You've reached the end!
+                </div>
+            )}
           </div>
         )}
 
@@ -488,7 +494,7 @@ function DashboardPageContent() {
 export default function DashboardPage() {
   return (
     <Suspense fallback={
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] py-2">
+        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)]">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
     }>
