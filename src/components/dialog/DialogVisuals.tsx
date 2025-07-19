@@ -95,6 +95,9 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
   if (!hasVisual && !isFetchingOembed) {
     return null;
   }
+  
+  // Create a URL for viewing that strips the download token
+  const viewImageUrl = item.imageUrl?.split('&token=')[0];
 
   return (
     <div className="hidden md:flex flex-col bg-muted/50">
@@ -115,7 +118,7 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
                       </a>
                   </Button>
                   <Button asChild variant="secondary">
-                      <a href={item.imageUrl} target="_blank" rel="noopener noreferrer">
+                      <a href={viewImageUrl} target="_blank" rel="noopener noreferrer">
                           <Eye className="mr-2 h-4 w-4" />
                           View Image
                       </a>
