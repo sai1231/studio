@@ -125,7 +125,7 @@ const enrichContentFlow = ai.defineFlow(
                 const imageBuffer = Buffer.from(arrayBuffer);
 
                 const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg'; // Default to jpeg if mime type is not available
-                const colors = await fetchImageColors(imageBuffer, contentId, mimeType);
+                const colors = await fetchImageColors(imageBuffer, contentId);
                 if (colors && colors.length > 0) {
                     updatePayload.colorPalette = colors;
                     await addLog('INFO', `[${contentId}] 🎨✅ Successfully fetched color palette.`);
@@ -133,6 +133,7 @@ const enrichContentFlow = ai.defineFlow(
                     await addLog('WARN', `[${contentId}] 🎨⚠️ No color palette extracted.`);
                 }
             } catch (e: any) {
+                enrichmentFailed = true;
                 await addLog('WARN', `[${contentId}] 🎨❌ Error analyzing image colors:`, { error: e.message });
             }
         }
@@ -183,6 +184,7 @@ const enrichContentFlow = ai.defineFlow(
           }
 
         } catch (e: any) {
+          enrichmentFailed = true;
           await addLog('ERROR', `[${contentId}] 📝❌ Error during keyword extraction:`, { error: e.message });
         }
 
@@ -195,7 +197,8 @@ const enrichContentFlow = ai.defineFlow(
               updatePayload.title = generatedTitle;
             }
         } catch (e: any) {
-            await addLog('ERROR', `[${contentId}] 📝❌ Error during title generation:`, { error: e.message });
+          enrichmentFailed = true;
+          await addLog('ERROR', `[${contentId}] 📝❌ Error during title generation:`, { error: e.message });
         }
       } else {
         await addLog('INFO', `[${contentId}] 📝ℹ️ Skipping keyword extraction: description is empty or not a string.`);
@@ -206,18 +209,23 @@ const enrichContentFlow = ai.defineFlow(
       if (!userId) {
           await addLog('WARN', `[${contentId}] No userId found, skipping role-based enrichment.`);
       } else {
-          const roleId = await getUserRoleId(userId);
-          const role = roleId ? await getRoleById(roleId) : null;
-          await addLog('INFO', `[${contentId}] User role is "${role?.name || 'unknown'}".`);
+          try {
+            const roleId = await getUserRoleId(userId);
+            const role = roleId ? await getRoleById(roleId) : null;
+            await addLog('INFO', `[${contentId}] User role is "${role?.name || 'unknown'}".`);
 
-          const isFreeUser = role?.name === 'free_user';
+            const isFreeUser = role?.name === 'free_user';
 
-          if (isFreeUser && contentData.imageUrl) {
-              const contentItemForCompression: ContentItem = { id: contentId, ...contentData } as ContentItem;
-              const compressedUrl = await compressAndStoreImage(contentItemForCompression);
-              if (compressedUrl) {
-                  updatePayload.imageUrl = compressedUrl;
-              }
+            if (isFreeUser && contentData.imageUrl) {
+                const contentItemForCompression: ContentItem = { id: contentId, ...contentData } as ContentItem;
+                const compressedUrl = await compressAndStoreImage(contentItemForCompression);
+                if (compressedUrl) {
+                    updatePayload.imageUrl = compressedUrl;
+                }
+            }
+          } catch (e: any) {
+            enrichmentFailed = true;
+            await addLog('ERROR', `[${contentId}] compress-image-failed-error:`, { error: e.message });
           }
       }
       // END: Role-Based Image Compression Logic
