@@ -12,7 +12,7 @@ import { generateCaptionFromImage } from '@/ai/moondream';
 import { fetchImageColors } from '@/ai/color-fetcher';
 import { extractTagsFromText } from '@/ai/tag-extraction';
 import { generateTitle } from '@/ai/title-generation';
-import { extractTextFromPdf } from '@/ai/flows/extract-pdf-text';
+import { extractTextFromPdf } from '@/ai/extract-pdf-text';
 import { z } from 'zod';
 import { collection, doc, getDoc, updateDoc, type Firestore, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase'; // Keep using client 'db' for consistency here
