@@ -147,7 +147,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
     return React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) });
   }, [item, specifics, hasImage, faviconError]);
 
-  const timeInTrash = item.trashedAt ? formatDistanceToNow(new Date(item.trashedAt), { addSuffix: true }) : 'a while ago';
+  const timeInTrash = item.trashedAt && typeof item.trashedAt === 'string' ? formatDistanceToNow(new Date(item.trashedAt), { addSuffix: true }) : 'a while ago';
 
   return (
     <motion.div layoutId={`card-animation-${item.id}`} className="break-inside-avoid w-full">
