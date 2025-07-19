@@ -27,7 +27,7 @@ const TodoListCard: React.FC<TodoListCardProps> = ({ tasks, onToggleStatus, onDe
   };
 
   return (
-    <div className="mb-4 break-inside-avoid w-full">
+    <div className="break-inside-avoid w-full">
       <Card 
         draggable="true"
         onDragStart={handleDragStart}
