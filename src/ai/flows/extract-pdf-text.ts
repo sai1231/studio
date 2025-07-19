@@ -5,7 +5,7 @@ import pdf from 'pdf-parse';
 import { addLog } from '@/services/loggingService';
 
 /**
- * Fetches a PDF from a URL and extracts its text content.
+ * Fetches a PDF from a URL and extracts its text content from the first two pages.
  * @param url The public URL of the PDF file.
  * @returns A string containing the extracted text, or null if an error occurs.
  */
@@ -19,14 +19,18 @@ export async function extractTextFromPdf(url: string): Promise<string | null> {
     }
 
     const buffer = await response.arrayBuffer();
-    const data = await pdf(Buffer.from(buffer));
+    // Options object to limit parsing to the first 2 pages
+    const options = {
+        max: 2,
+    };
+    const data = await pdf(Buffer.from(buffer), options);
 
     if (!data || !data.text) {
       await addLog('WARN', '[PDF Extractor] pdf-parse did not return any text content.');
       return null;
     }
     
-    await addLog('INFO', `[PDF Extractor] Successfully extracted ${data.text.length} characters.`);
+    await addLog('INFO', `[PDF Extractor] Successfully extracted ${data.text.length} characters from the first ${data.numpages} pages.`);
     return data.text;
 
   } catch (error: any) {
