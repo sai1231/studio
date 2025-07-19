@@ -150,7 +150,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
   const timeInTrash = item.trashedAt ? formatDistanceToNow(new Date(item.trashedAt), { addSuffix: true }) : 'a while ago';
 
   return (
-    <motion.div layoutId={`card-animation-${item.id}`} className="w-full break-inside-avoid mb-4">
+    <motion.div layoutId={`card-animation-${item.id}`} className="mb-4">
       <Card
         draggable={!isTrashView}
         onDragStart={handleDragStart}

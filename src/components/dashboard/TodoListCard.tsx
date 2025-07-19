@@ -30,7 +30,7 @@ const TodoListCard: React.FC<TodoListCardProps> = ({ tasks, onToggleStatus, onDe
     <Card 
       draggable="true"
       onDragStart={handleDragStart}
-      className="shadow-lg flex flex-col w-full break-inside-avoid mb-4"
+      className="shadow-lg flex flex-col w-full mb-4"
     >
       <CardContent className="p-0 flex-grow">
         <ScrollArea className="max-h-96 p-4">
