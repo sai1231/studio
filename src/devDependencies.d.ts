@@ -5,3 +5,4 @@
 declare module 'bcryptjs';
 declare module 'nanoid';
 declare module 'papaparse';
+declare module 'react-responsive-masonry';

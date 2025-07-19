@@ -19,6 +19,7 @@ import { AnimatePresence } from 'framer-motion';
 import BulkActionBar from '@/components/core/BulkActionBar';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
+import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 
 const pageLoadingMessages = [
   "Organizing your memories...",
@@ -404,48 +405,45 @@ function DashboardPageContent() {
           </div>
         ) : (
           <div>
-            <div className={cn(
-                'gap-4',
-                viewMode === 'grid' 
-                  ? 'columns-1 sm:columns-2 md:columns-2 lg:columns-3 xl:columns-4' 
-                  : 'columns-2 sm:columns-3 md:columns-4 lg:columns-5'
-            )}>
-              {!isSearching && (
-                <>
-                  {tasks.length > 0 ? (
-                    <TodoListCard
-                      tasks={tasks}
-                      onToggleStatus={handleToggleTodoStatus}
-                      onDeleteItem={handleDeleteTask}
-                      isUpdatingStatus={isUpdatingTodoStatus}
-                      onAddTodoClick={handleAddTodoClick}
-                    />
-                  ) : (
-                    // Placeholder for when no tasks exist
-                    <div className="mb-4 break-inside-avoid">
-                      <Button onClick={handleAddTodoClick} variant="outline" className="w-full h-full min-h-[150px] flex flex-col items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/50 transition-all border-dashed">
-                        <ListChecks className="h-8 w-8 mb-2" />
-                        <span className="font-medium">No Tasks Yet</span>
-                        <span className="text-xs">Click to add one</span>
-                      </Button>
-                    </div>
-                  )}
-                </>
-              )}
+            <ResponsiveMasonry columnsCountBreakPoints={{ 350: 1, 750: 2, 900: 3, 1200: 4, 1500: 5 }}>
+                <Masonry gutter="1rem">
+                {!isSearching && (
+                    <>
+                    {tasks.length > 0 ? (
+                        <TodoListCard
+                        tasks={tasks}
+                        onToggleStatus={handleToggleTodoStatus}
+                        onDeleteItem={handleDeleteTask}
+                        isUpdatingStatus={isUpdatingTodoStatus}
+                        onAddTodoClick={handleAddTodoClick}
+                        />
+                    ) : (
+                        // Placeholder for when no tasks exist
+                        <div className="break-inside-avoid">
+                        <Button onClick={handleAddTodoClick} variant="outline" className="w-full h-full min-h-[150px] flex flex-col items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/50 transition-all border-dashed">
+                            <ListChecks className="h-8 w-8 mb-2" />
+                            <span className="font-medium">No Tasks Yet</span>
+                            <span className="text-xs">Click to add one</span>
+                        </Button>
+                        </div>
+                    )}
+                    </>
+                )}
 
-              {contentToDisplay.map(item => (
-                <ContentCard
-                  key={item.id}
-                  item={item}
-                  viewMode={viewMode}
-                  onEdit={handleItemClick}
-                  onDelete={handleDeleteContent}
-                  isSelected={selectedItems.includes(item.id)}
-                  onToggleSelection={handleToggleSelection}
-                  isSelectionActive={selectedItems.length > 0}
-                />
-              ))}
-            </div>
+                {contentToDisplay.map(item => (
+                    <ContentCard
+                    key={item.id}
+                    item={item}
+                    viewMode={viewMode}
+                    onEdit={handleItemClick}
+                    onDelete={handleDeleteContent}
+                    isSelected={selectedItems.includes(item.id)}
+                    onToggleSelection={handleToggleSelection}
+                    isSelectionActive={selectedItems.length > 0}
+                    />
+                ))}
+                </Masonry>
+            </ResponsiveMasonry>
             <div ref={loaderRef} className="flex justify-center items-center h-16">
               {isFetchingMore && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
               {!hasMore && contentToDisplay.length > 0 && (
