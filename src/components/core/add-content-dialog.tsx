@@ -535,36 +535,36 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                 <SheetHeader className="p-4 border-b flex-shrink-0">
                     <SheetTitle className="font-headline">Add Content</SheetTitle>
                 </SheetHeader>
-                <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-mobile" className="flex-grow flex flex-col overflow-hidden px-4">
-                  <ScrollArea className="h-full pr-4 -mr-4">
-                      {FormFields}
-                  </ScrollArea>
+                <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-mobile" className="flex-grow flex flex-col overflow-hidden">
+                    <ScrollArea className="flex-1 px-4">
+                        {FormFields}
+                    </ScrollArea>
+                    <SheetFooter className="p-4 pt-4 border-t flex flex-row sm:justify-end gap-2 flex-shrink-0">
+                      <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
+                      <Button type="submit" form="add-content-form-mobile" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                        {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
+                      </Button>
+                    </SheetFooter>
                 </form>
-                <SheetFooter className="p-4 pt-4 border-t flex flex-row sm:justify-end gap-2 flex-shrink-0">
-                  <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
-                  <Button type="submit" form="add-content-form-mobile" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                    {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
-                  </Button>
-                </SheetFooter>
             </SheetContent>
         </Sheet>
       ) : (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent 
-              className="max-w-[625px] flex flex-col max-h-[90vh] p-0 bg-card"
+              className="max-w-[625px] h-[90vh] flex flex-col p-0 bg-card"
               onOpenAutoFocus={(e) => e.preventDefault()}
             >
                 <DialogHeader className="px-6 pt-6 pb-0 flex-shrink-0">
                   <DialogTitle className="font-headline">Add Content</DialogTitle>
                 </DialogHeader>
-                <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-grow flex flex-col overflow-hidden">
-                    <div className="px-6 flex-grow overflow-hidden">
+                <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-1 flex flex-col min-h-0">
+                    <div className="flex-1 px-6 min-h-0 overflow-hidden">
                         <ScrollArea className="h-full pr-6 -mr-6">
                             {FormFields}
                         </ScrollArea>
                     </div>
-                    <DialogFooter className="px-6 pb-6 pt-4 border-t flex-shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                    <DialogFooter className="px-6 pb-6 pt-4 border-t flex-shrink-0">
                       <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
                       <Button type="submit" form="add-content-form-desktop" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                       {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
