@@ -347,13 +347,17 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                     editableMemoryNote={editableMemoryNote}
                     onMemoryNoteChange={(e) => setEditableMemoryNote(e.target.value)}
                     onMemoryNoteBlur={handleMemoryNoteBlur}
-                    shouldShowRetry={shouldShowRetry}
-                    isRetrying={isRetrying}
-                    handleRetryClick={handleRetryClick}
                 />
               </div>
             </ScrollArea>
-             {item && <DialogFooterActions item={item} onDelete={handleDelete} onOpenChange={onOpenChange} />}
+             {item && <DialogFooterActions 
+                item={item} 
+                onDelete={handleDelete} 
+                onOpenChange={onOpenChange} 
+                shouldShowRetry={shouldShowRetry}
+                isRetrying={isRetrying}
+                handleRetryClick={handleRetryClick}
+             />}
         </div>
       </div>
     </>

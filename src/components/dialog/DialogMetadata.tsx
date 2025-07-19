@@ -11,13 +11,12 @@ import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, Command
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Plus, X, Check, ChevronDown, Ban, Briefcase, Home, Library, Bookmark, Pencil, AlarmClock, AlertCircle } from 'lucide-react';
+import { Plus, X, Check, ChevronDown, Ban, Briefcase, Home, Library, Bookmark, Pencil, AlarmClock } from 'lucide-react';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { Zone, Tag } from '@/types';
 import { DialogMemoryNote } from './DialogMemoryNote';
 import { getIconComponent } from '@/lib/icon-map';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface DialogMetadataProps {
   isSaving: boolean;
@@ -55,11 +54,6 @@ interface DialogMetadataProps {
   editableMemoryNote: string;
   onMemoryNoteChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onMemoryNoteBlur: () => void;
-  
-  // Re-enrich props
-  shouldShowRetry: boolean | null | undefined;
-  isRetrying: boolean;
-  handleRetryClick: () => void;
 }
 
 const NO_ZONE_VALUE = "__NO_ZONE__";
@@ -70,8 +64,7 @@ export const DialogMetadata: React.FC<DialogMetadataProps> = (props) => {
     allZones, editableZoneId, isZoneComboboxOpen, onZoneComboboxOpenChange, zoneComboboxSearchText, onZoneComboboxSearchTextChange, handleZoneSelection, handleCreateZone,
     editableTags, isAddingTag, onIsAddingTagChange, newTagInput, onNewTagInputChange, handleAddNewTag, handleTagInputKeyDown, handleRemoveTag, newTagInputRef,
     isTemporary, onTemporaryToggle, expirySelection, onExpiryChange, customExpiryDays, onCustomExpiryChange,
-    editableMemoryNote, onMemoryNoteChange, onMemoryNoteBlur,
-    shouldShowRetry, isRetrying, handleRetryClick
+    editableMemoryNote, onMemoryNoteChange, onMemoryNoteBlur
   } = props;
 
   const selectedZone = allZones.find(z => z.id === editableZoneId);
@@ -97,20 +90,6 @@ export const DialogMetadata: React.FC<DialogMetadataProps> = (props) => {
   return (
     <>
       <div className="space-y-4 pt-2">
-        {shouldShowRetry && (
-            <Alert variant="destructive" className="bg-amber-500/10 border-amber-500/20 text-amber-900 dark:text-amber-200 [&>svg]:text-amber-500">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle className="font-semibold">Analysis Issue</AlertTitle>
-                <div className="flex items-center justify-between">
-                    <AlertDescription className="text-amber-800 dark:text-amber-300">
-                      AI enrichment failed or is taking too long.
-                    </AlertDescription>
-                    <Button size="sm" onClick={handleRetryClick} disabled={isRetrying} variant="outline" className="text-amber-900 border-amber-500/30 hover:bg-amber-500/20 dark:text-amber-200 dark:border-amber-500/40">
-                        {isRetrying ? 'Retrying...' : 'Retry'}
-                    </Button>
-                </div>
-            </Alert>
-        )}
         <Popover open={isZoneComboboxOpen} onOpenChange={onZoneComboboxOpenChange}>
           <PopoverTrigger asChild>
             <Button variant="outline" role="combobox" aria-expanded={isZoneComboboxOpen} className={cn("w-full justify-between", isSaving ? "opacity-50" : "", !editableZoneId && "text-muted-foreground")} disabled={isSaving}>
