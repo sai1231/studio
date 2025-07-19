@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { JSDOM } from 'jsdom';
 
@@ -116,6 +117,11 @@ export async function GET(request: NextRequest) {
         if (oembedData.html && (urlObj.hostname.includes('twitter.com') || urlObj.hostname.includes('x.com'))) {
             oembedData.html = `<div class="twitter-embed-wrapper">${oembedData.html}</div>`;
         }
+        
+        if (oembedData.html && (urlObj.hostname.includes('instagram.com') || urlObj.hostname.includes('threads.net'))) {
+            oembedData.html = `<div class="instagram-embed-wrapper">${oembedData.html}</div>`;
+        }
+
 
         return NextResponse.json(oembedData);
 
