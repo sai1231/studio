@@ -20,6 +20,7 @@ import {
   type DocumentSnapshot,
   setDoc,
   arrayUnion,
+  writeBatch,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { ContentItem, Zone, Tag, MovieDetails, SearchFilters, TaskList, Task } from '@/types';
@@ -593,7 +594,7 @@ export function subscribeToTrashedItems(
         id: doc.id,
         ...data,
         createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : createdAt,
-        trashedAt: trashedAt?.toDate ? trashedAt.toDate().toISOString() : trashedAt,
+        trashedAt: trashedAt?.toDate ? trashedAt.toDate().toISOString() : undefined,
       } as ContentItem);
     });
     callback(items);
@@ -603,4 +604,36 @@ export function subscribeToTrashedItems(
   });
 
   return unsubscribe;
+}
+
+export async function permanentDeleteAllTrashedItems(userId: string): Promise<{ deletedCount: number }> {
+    if (!db) {
+        throw new Error("Firestore is not configured.");
+    }
+    const contentCollection = collection(db, 'content');
+    const q = query(
+        contentCollection,
+        where("userId", "==", userId),
+        where("isTrashed", "==", true)
+    );
+
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+        return { deletedCount: 0 };
+    }
+
+    const batch = writeBatch(db);
+    snapshot.docs.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+
+    await batch.commit();
+
+    // Optionally, you might want to bulk delete from Meilisearch too
+    const docIds = snapshot.docs.map(doc => doc.id);
+    if (docIds.length > 0) {
+        deleteDocument(docIds.join(',')); // Assuming your service can handle bulk delete by comma-separated string or array
+    }
+    
+    return { deletedCount: snapshot.size };
 }

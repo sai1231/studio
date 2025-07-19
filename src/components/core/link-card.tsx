@@ -147,7 +147,9 @@ const ContentCard: React.FC<ContentCardProps> = ({
     return React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) });
   }, [item, specifics, hasImage, faviconError]);
 
-  const timeInTrash = item.trashedAt && typeof item.trashedAt === 'string' ? formatDistanceToNow(new Date(item.trashedAt), { addSuffix: true }) : 'a while ago';
+  const timeInTrash = (item.trashedAt && typeof item.trashedAt === 'string' && item.trashedAt.length > 0)
+    ? formatDistanceToNow(new Date(item.trashedAt), { addSuffix: true })
+    : 'a while ago';
 
   return (
     <motion.div layoutId={`card-animation-${item.id}`} className="break-inside-avoid w-full">
@@ -302,17 +304,29 @@ const ContentCard: React.FC<ContentCardProps> = ({
           <CardFooter className="p-2 bg-muted/50 border-t">
             <div className="w-full space-y-2">
                 <p className="text-xs text-muted-foreground text-center">Moved to trash {timeInTrash}</p>
-                <div className="grid grid-cols-2 gap-2">
-                    <Button variant="outline" size="sm" onClick={trashActions.onRestore} disabled={trashActions.isProcessing}>
-                        {trashActions.isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo className="h-4 w-4" />}
-                        <span className="ml-2">Restore</span>
-                    </Button>
+                 <div className="flex justify-center gap-2">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="outline" size="icon" onClick={trashActions.onRestore} disabled={trashActions.isProcessing} className="h-9 w-9">
+                                    {trashActions.isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo className="h-4 w-4" />}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Restore Item</p></TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm" disabled={trashActions.isProcessing}>
-                            {trashActions.isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                            <span className="ml-2">Delete</span>
-                        </Button>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="destructive" size="icon" disabled={trashActions.isProcessing} className="h-9 w-9">
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Delete Forever</p></TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>

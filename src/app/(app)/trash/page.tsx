@@ -8,8 +8,7 @@ import { subscribeToTrashedItems, restoreItemFromTrash, permanentlyDeleteContent
 import type { ContentItem } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Loader2, Trash2, Undo } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { Loader2, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import ContentCard from '@/components/core/link-card';
 import Masonry, { ResponsiveMasonry } from 'react-responsive-masonry';
+import { permanentDeleteAllTrashedItems } from '@/services/contentService';
 
 export default function TrashPage() {
   const { user } = useAuth();
@@ -30,6 +30,7 @@ export default function TrashPage() {
   const [trashedItems, setTrashedItems] = useState<ContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -84,6 +85,25 @@ export default function TrashPage() {
     }
   };
 
+  const handlePermanentDeleteAll = async () => {
+    if (!user) return;
+    setIsDeletingAll(true);
+    const originalItems = [...trashedItems];
+    const itemsToDeleteCount = originalItems.length;
+    setTrashedItems([]);
+
+    try {
+      const { deletedCount } = await permanentDeleteAllTrashedItems(user.uid);
+      toast({ title: "Trash Emptied", description: `${deletedCount} item(s) permanently deleted.` });
+    } catch (error) {
+      console.error("Error deleting all items:", error);
+      toast({ title: "Error", description: "Could not empty the trash. Items have been restored.", variant: "destructive" });
+      setTrashedItems(originalItems); // Revert on failure
+    } finally {
+      setIsDeletingAll(false);
+    }
+  };
+
 
   if (isLoading) {
     return (
@@ -96,9 +116,39 @@ export default function TrashPage() {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="flex items-center gap-3 mb-2">
-        <Trash2 className="h-8 w-8 text-primary" />
-        <h1 className="text-3xl font-headline font-semibold">Trash</h1>
+      <div className="flex flex-wrap justify-between items-center gap-4 mb-2">
+        <div className="flex items-center gap-3">
+          <Trash2 className="h-8 w-8 text-primary" />
+          <h1 className="text-3xl font-headline font-semibold">Trash</h1>
+        </div>
+        {trashedItems.length > 0 && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" disabled={isDeletingAll}>
+                {isDeletingAll ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="mr-2 h-4 w-4" />
+                )}
+                Empty Trash
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Permanently delete all items?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete all {trashedItems.length} items in your trash. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handlePermanentDeleteAll} className="bg-destructive hover:bg-destructive/90">
+                  Delete All Forever
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
       <p className="text-muted-foreground mb-6">Items in the trash will be permanently deleted after 10 days.</p>
       
