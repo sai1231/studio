@@ -584,11 +584,15 @@ export function subscribeToTrashedItems(
     const items: ContentItem[] = [];
     querySnapshot.forEach((doc) => {
       const data = doc.data();
+      // Ensure both timestamps are converted to strings
+      const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt;
+      const trashedAt = data.trashedAt instanceof Timestamp ? data.trashedAt.toDate().toISOString() : data.trashedAt;
+      
       items.push({
         id: doc.id,
         ...data,
-        createdAt: data.createdAt.toDate().toISOString(),
-        trashedAt: data.trashedAt?.toDate().toISOString(),
+        createdAt,
+        trashedAt,
       } as ContentItem);
     });
     callback(items);
