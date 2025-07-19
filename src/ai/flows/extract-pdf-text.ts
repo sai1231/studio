@@ -1,7 +1,6 @@
 
 'use server';
 
-import pdf from 'pdf-parse';
 import { addLog } from '@/services/loggingService';
 
 /**
@@ -11,6 +10,9 @@ import { addLog } from '@/services/loggingService';
  */
 export async function extractTextFromPdf(url: string): Promise<string | null> {
   try {
+    // Dynamically import pdf-parse to avoid server runtime issues
+    const pdf = (await import('pdf-parse')).default;
+
     await addLog('INFO', `[PDF Extractor] Fetching PDF from URL: ${url}`);
     
     const response = await fetch(url);
