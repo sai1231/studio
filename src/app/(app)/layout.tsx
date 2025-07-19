@@ -32,7 +32,7 @@ import { getIconComponent } from '@/lib/icon-map';
 const ZoneStackCard: React.FC<{ zone: Zone }> = ({ zone }) => {
     const Icon = getIconComponent(zone.icon);
     return (
-        <Link href={`/zones/${zone.id}`} className="block group focus:outline-none focus:ring-2 focus:ring-primary rounded-lg p-1">
+        <Link href={`/dashboard?zone=${zone.id}`} className="block group focus:outline-none focus:ring-2 focus:ring-primary rounded-lg p-1">
             <div className="relative transition-transform duration-300 ease-in-out group-hover:scale-105 group-focus:scale-105">
                 {/* Background Cards */}
                 <div className="absolute inset-0 top-1 left-1 bg-card rounded-lg shadow-sm"></div>
@@ -447,7 +447,7 @@ export default function AppLayout({
         content: contentTypes.length > 0 ? contentTypes.map(typeKey => {
             const typeDetails = predefinedContentTypes[typeKey] || { icon: StickyNote, name: typeKey };
             const Icon = typeDetails.icon;
-            return <MobileSheetLink key={typeKey} href={`/content-types/${encodeURIComponent(typeKey)}`} icon={Icon}>{typeDetails.name}</MobileSheetLink>
+            return <MobileSheetLink key={typeKey} href={`/dashboard?type=${encodeURIComponent(typeKey)}`} icon={Icon}>{typeDetails.name}</MobileSheetLink>
         }) : <p className="p-4 text-center text-sm text-muted-foreground">No content types found.</p>
     },
     todos: {
