@@ -21,6 +21,7 @@ import { getContentItems, deleteContentItem, getZones, getUniqueContentTypesFrom
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
+import Masonry, { ResponsiveMasonry } from 'react-responsive-masonry';
 
 const pageLoadingMessages = [
   "Gathering tagged items...",
@@ -384,16 +385,18 @@ export default function TagPage() {
           </p>
         </div>
       ) : (
-        <div className={'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4'}>
-          {displayedContentItems.map(item => (
-            <ContentCard
-              key={item.id}
-              item={item}
-              onEdit={handleItemClick}
-              onDelete={handleDeleteItem}
-            />
-          ))}
-        </div>
+        <ResponsiveMasonry columnsCountBreakPoints={{ 350: 1, 750: 2, 900: 3, 1200: 4, 1500: 5 }}>
+            <Masonry gutter="1rem">
+                {displayedContentItems.map(item => (
+                    <ContentCard
+                    key={item.id}
+                    item={item}
+                    onEdit={handleItemClick}
+                    onDelete={handleDeleteItem}
+                    />
+                ))}
+            </Masonry>
+        </ResponsiveMasonry>
       )}
       <ContentDetailDialog
         item={selectedItemForDetail}

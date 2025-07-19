@@ -15,6 +15,7 @@ import { getContentItems, getZoneById, deleteContentItem } from '@/services/cont
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
+import Masonry, { ResponsiveMasonry } from 'react-responsive-masonry';
 
 const pageLoadingMessages = [
   "Organizing your thoughts...",
@@ -170,23 +171,22 @@ export default function ZonePage() {
           </p>
         </div>
       ) : (
-        <div className={cn(
-          'gap-4',
-          viewMode === 'grid' ? 'columns-1 md:columns-2 lg:columns-3 xl:columns-4' : 'columns-2 md:columns-3 lg:columns-4 xl:columns-5'
-        )}>
-          {allContentInZone.map(item => (
-            <ContentCard
-              key={item.id}
-              item={item}
-              viewMode={viewMode}
-              onEdit={handleItemClick} 
-              onDelete={handleDeleteItem}
-              isSelected={false} // Selection not enabled on this page yet
-              onToggleSelection={() => {}} // No-op
-              isSelectionActive={false}
-            />
-          ))}
-        </div>
+        <ResponsiveMasonry columnsCountBreakPoints={{ 350: 1, 750: 2, 900: 3, 1200: 4, 1500: 5 }}>
+            <Masonry gutter="1rem">
+                {allContentInZone.map(item => (
+                    <ContentCard
+                    key={item.id}
+                    item={item}
+                    viewMode={viewMode}
+                    onEdit={handleItemClick}
+                    onDelete={handleDeleteItem}
+                    isSelected={false} // Selection not enabled on this page yet
+                    onToggleSelection={() => {}} // No-op
+                    isSelectionActive={false}
+                    />
+                ))}
+            </Masonry>
+        </ResponsiveMasonry>
       )}
       <ContentDetailDialog
         item={selectedItemForDetail}

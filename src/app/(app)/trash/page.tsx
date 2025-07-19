@@ -22,6 +22,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import ContentCard from '@/components/core/link-card';
+import Masonry, { ResponsiveMasonry } from 'react-responsive-masonry';
 
 export default function TrashPage() {
   const { user } = useAuth();
@@ -102,25 +103,27 @@ export default function TrashPage() {
       <p className="text-muted-foreground mb-6">Items in the trash will be permanently deleted after 10 days.</p>
       
       {trashedItems.length > 0 ? (
-        <div className="columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4">
-          {trashedItems.map(item => (
-            <ContentCard
-              key={item.id}
-              item={item}
-              onEdit={() => {}}
-              onDelete={() => {}}
-              isSelected={false}
-              onToggleSelection={() => {}}
-              isSelectionActive={false}
-              isTrashView={true}
-              trashActions={{
-                onRestore: () => handleRestore(item),
-                onDeletePermanent: () => handlePermanentDelete(item),
-                isProcessing: isProcessing === item.id,
-              }}
-            />
-          ))}
-        </div>
+        <ResponsiveMasonry columnsCountBreakPoints={{ 350: 1, 750: 2, 900: 3, 1200: 4, 1500: 5 }}>
+            <Masonry gutter="1rem">
+                {trashedItems.map(item => (
+                    <ContentCard
+                    key={item.id}
+                    item={item}
+                    onEdit={() => {}}
+                    onDelete={() => {}}
+                    isSelected={false}
+                    onToggleSelection={() => {}}
+                    isSelectionActive={false}
+                    isTrashView={true}
+                    trashActions={{
+                        onRestore: () => handleRestore(item),
+                        onDeletePermanent: () => handlePermanentDelete(item),
+                        isProcessing: isProcessing === item.id,
+                    }}
+                    />
+                ))}
+            </Masonry>
+        </ResponsiveMasonry>
       ) : (
         <div className="text-center py-16 border-2 border-dashed rounded-lg">
           <Trash2 className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
