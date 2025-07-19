@@ -532,17 +532,15 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       {isMobile ? (
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent side="bottom" className="h-[90vh] flex flex-col p-0 bg-background">
-                <SheetHeader className="p-4 border-b">
+                <SheetHeader className="p-4 border-b flex-shrink-0">
                     <SheetTitle className="font-headline">Add Content</SheetTitle>
                 </SheetHeader>
-                <div className="flex-grow overflow-hidden px-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-mobile" className="flex-grow flex flex-col overflow-hidden px-4">
                   <ScrollArea className="h-full pr-4 -mr-4">
-                    <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-mobile" className="flex-grow flex flex-col overflow-hidden">
                       {FormFields}
-                    </form>
                   </ScrollArea>
-                </div>
-                <SheetFooter className="p-4 pt-4 border-t flex flex-row sm:justify-end gap-2">
+                </form>
+                <SheetFooter className="p-4 pt-4 border-t flex flex-row sm:justify-end gap-2 flex-shrink-0">
                   <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
                   <Button type="submit" form="add-content-form-mobile" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                     {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -560,20 +558,20 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                 <DialogHeader className="px-6 pt-6 pb-0 flex-shrink-0">
                   <DialogTitle className="font-headline">Add Content</DialogTitle>
                 </DialogHeader>
-                <div className="flex-grow overflow-hidden px-6">
-                    <ScrollArea className="h-full pr-6 -mr-6">
-                        <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-grow flex flex-col overflow-hidden">
+                <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-grow flex flex-col overflow-hidden">
+                    <div className="px-6 flex-grow overflow-hidden">
+                        <ScrollArea className="h-full pr-6 -mr-6">
                             {FormFields}
-                        </form>
-                    </ScrollArea>
-                </div>
-                <DialogFooter className="px-6 pb-6 pt-4 border-t flex-shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
-                  <Button type="submit" form="add-content-form-desktop" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                  {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
-                  </Button>
-                </DialogFooter>
+                        </ScrollArea>
+                    </div>
+                    <DialogFooter className="px-6 pb-6 pt-4 border-t flex-shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                      <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
+                      <Button type="submit" form="add-content-form-desktop" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                      {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
+                      </Button>
+                    </DialogFooter>
+                </form>
             </DialogContent>
         </Dialog>
       )}
