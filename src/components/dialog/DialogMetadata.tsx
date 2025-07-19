@@ -56,7 +56,7 @@ interface DialogMetadataProps {
   onMemoryNoteBlur: () => void;
   
   // Re-enrich props
-  shouldShowRetry: boolean;
+  shouldShowRetry: boolean | null | undefined;
   isRetrying: boolean;
   handleRetryClick: () => void;
 }
@@ -99,11 +99,11 @@ export const DialogMetadata: React.FC<DialogMetadataProps> = (props) => {
         {shouldShowRetry && (
             <div className="flex items-center justify-between rounded-lg border border-amber-500/50 bg-amber-500/10 p-3">
                 <div className="space-y-1">
-                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Analysis Failed</p>
-                    <p className="text-xs text-amber-700 dark:text-amber-400">AI enrichment for this item failed. You can try again.</p>
+                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Analysis Issue</p>
+                    <p className="text-xs text-amber-700 dark:text-amber-400">AI enrichment has failed or is taking too long.</p>
                 </div>
                 <Button size="sm" onClick={handleRetryClick} disabled={isRetrying}>
-                    {isRetrying ? 'Retrying...' : 'Retry'}
+                    {isRetrying ? 'Retrying...' : 'Retry Now'}
                 </Button>
             </div>
         )}

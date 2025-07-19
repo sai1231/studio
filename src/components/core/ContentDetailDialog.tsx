@@ -292,7 +292,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
     }
   };
 
-  const shouldShowRetry = item?.status === 'failed-analysis' && differenceInMinutes(new Date(), new Date(item.createdAt)) >= 1;
+  const shouldShowRetry = item && (item.status === 'failed-analysis' || (item.status === 'pending-analysis' && differenceInMinutes(new Date(), new Date(item.createdAt)) >= 1));
   const hasVisual = item?.imageUrl || oembedHtml || (item?.contentType === 'PDF' && item?.url);
     
   const DialogBody = (
@@ -339,11 +339,11 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                     handleRemoveTag={handleRemoveTag}
                     newTagInputRef={newTagInputRef}
                     isTemporary={isTemporary}
-                    onTemporaryToggle={handleTemporaryToggle}
+                    onTemporaryToggle={onTemporaryToggle}
                     expirySelection={expirySelection}
                     onExpiryChange={handleExpiryChange}
                     customExpiryDays={customExpiryDays}
-                    onCustomExpiryChange={handleCustomExpiryChange}
+                    onCustomExpiryChange={onCustomExpiryChange}
                     editableMemoryNote={editableMemoryNote}
                     onMemoryNoteChange={(e) => setEditableMemoryNote(e.target.value)}
                     onMemoryNoteBlur={handleMemoryNoteBlur}
