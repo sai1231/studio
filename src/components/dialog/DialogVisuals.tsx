@@ -126,7 +126,7 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
                 </div>
 
                 {item.colorPalette && item.colorPalette.length > 0 && (
-                    <div className="flex w-full mt-4 rounded-md overflow-hidden shadow-md max-w-sm">
+                    <div className="flex w-full justify-center mt-4 gap-2">
                     <TooltipProvider>
                         {item.colorPalette.map((color, index) => (
                         <Tooltip key={index}>
@@ -134,7 +134,7 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
                             <button
                                 onClick={() => handleCopyColor(color.hex)}
                                 style={{ backgroundColor: color.hex }}
-                                className="h-8 flex-grow transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 z-10"
+                                className="h-8 w-8 rounded-full border-2 border-background/50 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 z-10"
                                 aria-label={`Copy color ${color.name} (${color.hex})`}
                                 />
                             </TooltipTrigger>
