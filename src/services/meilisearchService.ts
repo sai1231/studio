@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import MeiliSearch, { MeiliSearchCommunicationError, MeiliSearchApiError } from 'meilisearch';
@@ -50,6 +51,9 @@ const formatForIndex = async (item: ContentItem): Promise<any> => {
       .filter(docSnap => docSnap.exists())
       .map(docSnap => (docSnap.data() as Zone).name);
   }
+  
+  const createdAtTimestamp = typeof item.createdAt === 'string' ? new Date(item.createdAt).getTime() : (item.createdAt as any)?.seconds * 1000 || Date.now();
+  const trashedAtTimestamp = item.trashedAt ? (typeof item.trashedAt === 'string' ? new Date(item.trashedAt).getTime() : (item.trashedAt as any)?.seconds * 1000) : null;
 
   return {
     id: item.id,
@@ -65,7 +69,8 @@ const formatForIndex = async (item: ContentItem): Promise<any> => {
     zoneNames: zoneNames, // Add zone names to the document
     domain: item.domain,
     contentType: item.contentType,
-    createdAt: new Date(item.createdAt).getTime(), // for sorting
+    createdAt: createdAtTimestamp, // Ensure this is a number
+    trashedAt: trashedAtTimestamp, // Ensure this is a number or null
     movieDetails: item.movieDetails,
     colorPalette: item.colorPalette?.map(c => c.name) || [],
     isTrashed: item.isTrashed || false,
@@ -127,7 +132,8 @@ export const searchContent = async (
             contentMap.set(docSnap.id, {
                 id: docSnap.id,
                 ...data,
-                createdAt: data.createdAt.toDate().toISOString(),
+                createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
+                trashedAt: data.trashedAt?.toDate ? data.trashedAt.toDate().toISOString() : undefined,
             } as ContentItem);
         }
     });
@@ -188,7 +194,7 @@ export const reindexAllContent = async (): Promise<{ count: number }> => {
         addLog('INFO', '[MeiliSearch] Updating index settings...');
         const settingsTask = await index.updateSettings({
             filterableAttributes: ['userId', 'zoneIds', 'contentType', 'tags', 'domain', 'colorPalette', 'isTrashed'],
-            sortableAttributes: ['createdAt'],
+            sortableAttributes: ['createdAt', 'trashedAt'],
             searchableAttributes: ['title', 'description', 'tags', 'url', 'domain', 'zoneNames', 'colorPalette']
         });
         await client.waitForTask(settingsTask.taskUid);

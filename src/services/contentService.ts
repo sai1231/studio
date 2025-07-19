@@ -225,7 +225,7 @@ export async function moveItemToTrash(itemId: string): Promise<void> {
         id: docSnap.id,
         ...data,
         createdAt: data.createdAt.toDate().toISOString(),
-        trashedAt: data.trashedAt?.toDate ? data.trashedAt.toDate().toISOString() : new Date().toISOString(),
+        trashedAt: data.trashedAt?.toDate() ? data.trashedAt.toDate().toISOString() : new Date().toISOString(),
       } as ContentItem;
       addOrUpdateDocument(plainItem);
     }
@@ -586,15 +586,14 @@ export function subscribeToTrashedItems(
     const items: ContentItem[] = [];
     querySnapshot.forEach((doc) => {
       const data = doc.data();
-      // Ensure both timestamps are converted to strings
-      const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt;
-      const trashedAt = data.trashedAt instanceof Timestamp ? data.trashedAt.toDate().toISOString() : data.trashedAt;
+      const createdAt = data.createdAt;
+      const trashedAt = data.trashedAt;
       
       items.push({
         id: doc.id,
         ...data,
-        createdAt,
-        trashedAt,
+        createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : createdAt,
+        trashedAt: trashedAt?.toDate ? trashedAt.toDate().toISOString() : trashedAt,
       } as ContentItem);
     });
     callback(items);
