@@ -54,6 +54,11 @@ interface DialogMetadataProps {
   editableMemoryNote: string;
   onMemoryNoteChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onMemoryNoteBlur: () => void;
+  
+  // Re-enrich props
+  shouldShowRetry: boolean;
+  isRetrying: boolean;
+  handleRetryClick: () => void;
 }
 
 const NO_ZONE_VALUE = "__NO_ZONE__";
@@ -65,6 +70,7 @@ export const DialogMetadata: React.FC<DialogMetadataProps> = (props) => {
     editableTags, isAddingTag, onIsAddingTagChange, newTagInput, onNewTagInputChange, handleAddNewTag, handleTagInputKeyDown, handleRemoveTag, newTagInputRef,
     isTemporary, onTemporaryToggle, expirySelection, onExpiryChange, customExpiryDays, onCustomExpiryChange,
     editableMemoryNote, onMemoryNoteChange, onMemoryNoteBlur,
+    shouldShowRetry, isRetrying, handleRetryClick
   } = props;
 
   const selectedZone = allZones.find(z => z.id === editableZoneId);
@@ -90,6 +96,17 @@ export const DialogMetadata: React.FC<DialogMetadataProps> = (props) => {
   return (
     <>
       <div className="space-y-4 pt-2">
+        {shouldShowRetry && (
+            <div className="flex items-center justify-between rounded-lg border border-amber-500/50 bg-amber-500/10 p-3">
+                <div className="space-y-1">
+                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Analysis Failed</p>
+                    <p className="text-xs text-amber-700 dark:text-amber-400">AI enrichment for this item failed. You can try again.</p>
+                </div>
+                <Button size="sm" onClick={handleRetryClick} disabled={isRetrying}>
+                    {isRetrying ? 'Retrying...' : 'Retry'}
+                </Button>
+            </div>
+        )}
         <Popover open={isZoneComboboxOpen} onOpenChange={onZoneComboboxOpenChange}>
           <PopoverTrigger asChild>
             <Button variant="outline" role="combobox" aria-expanded={isZoneComboboxOpen} className={cn("w-full justify-between", isSaving ? "opacity-50" : "", !editableZoneId && "text-muted-foreground")} disabled={isSaving}>
@@ -155,7 +172,7 @@ export const DialogMetadata: React.FC<DialogMetadataProps> = (props) => {
                   <SelectItem value="7">Delete after 7 days</SelectItem>
                   <SelectItem value="30">Delete after 30 days</SelectItem>
                   <SelectItem value="90">Delete after 90 days</SelectItem>
-                  <SelectItem value="custom">Custom...</SelectItem>
+                  <SelectItem value="365">Delete after 1 year</SelectItem>
                 </SelectContent>
               </Select>
               {expirySelection === 'custom' && (

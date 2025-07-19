@@ -11,13 +11,14 @@ import { Loader2, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
-import { add } from 'date-fns';
+import { add, differenceInMinutes } from 'date-fns';
 import { ScrollArea } from '../ui/scroll-area';
 import { DialogVisuals } from '@/components/dialog/DialogVisuals';
 import { DialogHeaderSection } from '@/components/dialog/DialogHeaderSection';
 import { DialogDescription } from '@/components/dialog/DialogDescription';
 import { DialogMetadata } from '@/components/dialog/DialogMetadata';
 import { DialogFooterActions } from '@/components/dialog/DialogFooterActions';
+import { reEnrichContentAction } from '@/app/actions/enrichmentActions';
 
 
 interface ContentDetailDialogProps {
@@ -56,6 +57,31 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
   const [isSaving, setIsSaving] = useState(false);
   
   const [oembedHtml, setOembedHtml] = useState<string | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
+
+  const fetchFullItem = useCallback(async (itemId: string) => {
+    if (!user) return;
+    try {
+      const [freshItem, fetchedZones] = await Promise.all([
+        getContentItemById(itemId),
+        getZones(user.uid)
+      ]);
+      
+      if (freshItem) {
+        setItem(freshItem);
+        const regularZones = fetchedZones.filter(z => !z.isMoodboard);
+        setAllZones(regularZones);
+        const assignedRegularZoneId = freshItem.zoneIds?.find(id => regularZones.some(z => z.id === id));
+        setEditableZoneId(assignedRegularZoneId);
+      } else {
+        setError('Item not found.');
+        onOpenChange(false);
+      }
+    } catch (e) {
+      console.error('Error fetching fresh item details:', e);
+      setError('Failed to load fresh details.');
+    }
+  }, [user, onOpenChange]);
 
   useEffect(() => {
     if (open && initialItem) {
@@ -63,51 +89,19 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
       setIsLoading(false); 
       setError(null);
       setOembedHtml(null); 
-
-      const fetchSupportingData = async () => {
-        if (!initialItem.userId) {
-          setError("Item is missing user information.");
-          return;
-        }
-        try {
-          const [freshItem, fetchedZones] = await Promise.all([
-            getContentItemById(initialItem.id),
-            getZones(initialItem.userId)
-          ]);
-          
-          if (freshItem) {
-            setItem(freshItem);
-            const regularZones = fetchedZones.filter(z => !z.isMoodboard);
-            setAllZones(regularZones);
-            
-            // Find the first ID in zoneIds that is a regular zone
-            const assignedRegularZoneId = freshItem.zoneIds?.find(id => regularZones.some(z => z.id === id));
-            setEditableZoneId(assignedRegularZoneId);
-          } else {
-            setAllZones([]);
-          }
-          
-        } catch (e) {
-          console.error('Error fetching supporting details for dialog:', e);
-          setError('Failed to load fresh details.');
-        }
-      };
-
-      fetchSupportingData();
-
+      fetchFullItem(initialItem.id);
     } else if (!open) {
       setItem(null);
       setIsLoading(true); 
       setError(null);
       setOembedHtml(null);
     }
-  }, [initialItem, open]); 
+  }, [initialItem, open, fetchFullItem]); 
 
   useEffect(() => {
     if (item) {
       setEditableTitle(item.title);
       setEditableMemoryNote(item.memoryNote || '');
-      // editableZoneId is now set in the fetch effect above
       setEditableTags(item.tags || []);
       setIsTemporary(!!item.expiresAt);
     }
@@ -277,6 +271,28 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
     }
   };
   
+  const handleRetryClick = async () => {
+    if (!item) return;
+    setIsRetrying(true);
+    toast({ title: 'Retrying Analysis...', description: 'Please wait a moment.' });
+    try {
+        await reEnrichContentAction(item.id);
+        // After triggering, we need to poll or listen for the status change.
+        // For simplicity, we'll just wait a bit and then refetch.
+        setTimeout(() => {
+            fetchFullItem(item.id).then(() => {
+                toast({ title: 'Success!', description: 'Analysis has been re-triggered.' });
+                setIsRetrying(false);
+                if (onItemUpdate) onItemUpdate({ ...item, status: 'pending-analysis' });
+            });
+        }, 3000); // Wait 3 seconds before refetching.
+    } catch (e) {
+        toast({ title: 'Error', description: 'Could not retry analysis.', variant: 'destructive' });
+        setIsRetrying(false);
+    }
+  };
+
+  const shouldShowRetry = item?.status === 'failed-analysis' && differenceInMinutes(new Date(), new Date(item.createdAt)) >= 1;
   const hasVisual = item?.imageUrl || oembedHtml || (item?.contentType === 'PDF' && item?.url);
     
   const DialogBody = (
@@ -331,6 +347,9 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                     editableMemoryNote={editableMemoryNote}
                     onMemoryNoteChange={(e) => setEditableMemoryNote(e.target.value)}
                     onMemoryNoteBlur={handleMemoryNoteBlur}
+                    shouldShowRetry={shouldShowRetry}
+                    isRetrying={isRetrying}
+                    handleRetryClick={handleRetryClick}
                 />
               </div>
             </ScrollArea>
