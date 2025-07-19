@@ -11,7 +11,7 @@ import type { ContentItem, Zone } from '@/types';
 import { Button } from '@/components/ui/button';
 import { FolderOpen, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getContentItems, getZoneById, deleteContentItem } from '@/services/contentService';
+import { getContentItems, getZoneById, moveItemToTrash } from '@/services/contentService';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
@@ -119,7 +119,7 @@ export default function ZonePage() {
     setAllContentInZone(prev => prev.filter(item => item.id !== itemIdToDelete));
     const { id: toastId } = toast({ title: "Deleting Item...", description: `Removing "${itemTitle}".`});
     try {
-      await deleteContentItem(itemIdToDelete);
+      await moveItemToTrash(itemIdToDelete);
       toast({ id: toastId, title: "Item Deleted", description: `"${itemTitle}" has been removed.`, variant: "default" });
     } catch (e) {
       console.error("Error deleting content:", e);
