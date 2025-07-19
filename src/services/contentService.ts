@@ -131,10 +131,12 @@ export async function getContentItemById(id: string): Promise<ContentItem | unde
     if (docSnap.exists()) {
       const data = docSnap.data();
       const createdAt = data.createdAt;
+      const trashedAt = data.trashedAt;
       return {
         id: docSnap.id,
         ...data,
         createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : (createdAt || new Date().toISOString()),
+        trashedAt: trashedAt?.toDate ? trashedAt.toDate().toISOString() : undefined,
       } as ContentItem;
     }
     return undefined;
