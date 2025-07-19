@@ -229,7 +229,7 @@ function DashboardPageContent() {
   const handleAddTodoClick = () => setIsAddTodoDialogOpen(true);
   
   const handleToggleSelection = (itemId: string) => {
-    setSelectedItems(prev => prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, item.id]);
+    setSelectedItems(prev => prev.includes(itemId) ? prev.filter(id => id !== item.id) : [...prev, item.id]);
   };
   
   const handleBulkEdit = async (updates: {
@@ -405,10 +405,10 @@ function DashboardPageContent() {
         ) : (
           <div>
             <div className={cn(
-                'grid grid-cols-1 gap-4',
+                'gap-4',
                 viewMode === 'grid' 
-                  ? 'sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' 
-                  : 'sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                  ? 'columns-1 sm:columns-2 md:columns-2 lg:columns-3 xl:columns-4' 
+                  : 'columns-2 sm:columns-3 md:columns-4 lg:columns-5'
             )}>
               {!isSearching && (
                 <>
@@ -422,7 +422,7 @@ function DashboardPageContent() {
                     />
                   ) : (
                     // Placeholder for when no tasks exist
-                    <div className="w-full">
+                    <div className="mb-4 break-inside-avoid">
                       <Button onClick={handleAddTodoClick} variant="outline" className="w-full h-full min-h-[150px] flex flex-col items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/50 transition-all border-dashed">
                         <ListChecks className="h-8 w-8 mb-2" />
                         <span className="font-medium">No Tasks Yet</span>
