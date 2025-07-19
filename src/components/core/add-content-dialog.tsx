@@ -352,7 +352,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   }
   
   const FormFields = (
-    <div className="flex-grow overflow-y-auto pr-4 pl-1 space-y-4 py-4">
+    <div className="space-y-4 py-4">
       <div className="relative">
           <Textarea
               id="mainContent"
@@ -536,7 +536,11 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                     <SheetTitle className="font-headline">Add Content</SheetTitle>
                 </SheetHeader>
                 <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-mobile" className="flex-grow flex flex-col overflow-hidden px-4">
-                  {FormFields}
+                  <ScrollArea className="flex-grow -mx-4">
+                    <div className="px-4">
+                      {FormFields}
+                    </div>
+                  </ScrollArea>
                    <SheetFooter className="pt-4 border-t mt-auto flex flex-row sm:justify-end gap-2">
                     <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
                     <Button type="submit" form="add-content-form-mobile" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
@@ -557,17 +561,19 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                   <DialogTitle className="font-headline">Add Content</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-grow flex flex-col overflow-hidden">
-                    <div className="bg-card px-6">
+                    <ScrollArea className="flex-grow">
+                      <div className="px-6">
                         {FormFields}
-                    </div>
+                      </div>
+                    </ScrollArea>
+                    <DialogFooter className="px-6 pb-6 pt-4 border-t mt-auto flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                      <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
+                      <Button type="submit" form="add-content-form-desktop" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                      {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
+                      </Button>
+                    </DialogFooter>
                 </form>
-                <DialogFooter className="px-6 pb-6 pt-4 border-t mt-auto flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
-                    <Button type="submit" form="add-content-form-desktop" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                    {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
-                    </Button>
-                </DialogFooter>
             </DialogContent>
         </Dialog>
       )}
