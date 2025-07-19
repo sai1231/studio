@@ -223,7 +223,7 @@ export async function moveItemToTrash(itemId: string): Promise<void> {
         id: docSnap.id,
         ...data,
         createdAt: data.createdAt.toDate().toISOString(),
-        trashedAt: data.trashedAt?.toDate().toISOString(),
+        trashedAt: data.trashedAt?.toDate ? data.trashedAt.toDate().toISOString() : new Date().toISOString(),
       } as ContentItem;
       addOrUpdateDocument(plainItem);
     }
