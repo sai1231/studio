@@ -471,7 +471,7 @@ export default function AppLayout({
         <div className="flex flex-col flex-1 min-w-0 md:ml-20">
           <AppHeader />
           <main
-            className="flex-1 p-4 md:p-6 lg:p-8 bg-background overflow-auto relative pb-20 md:pb-8"
+            className="flex-1 px-2 py-4 md:px-4 md:py-6 bg-background overflow-auto relative pb-20 md:pb-8"
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
