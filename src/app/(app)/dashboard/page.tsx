@@ -359,7 +359,7 @@ function DashboardPageContent() {
   if (isPageLoading) {
     const message = isSearching ? "Searching your memories..." : (clientLoadingMessage || pageLoadingMessages[0]);
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] py-2">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <p className="mt-4 text-muted-foreground">{message}</p>
       </div>
@@ -368,7 +368,7 @@ function DashboardPageContent() {
 
   if (error) {
     return (
-      <div className="container mx-auto py-8 text-center text-destructive">
+      <div className="py-8 text-center text-destructive">
         <FolderOpen className="h-16 w-16 mx-auto text-destructive mb-4" />
         <h1 className="text-2xl font-headline font-semibold">Error Loading Content</h1>
         <p className="text-muted-foreground mt-2">{error}</p>
@@ -381,7 +381,7 @@ function DashboardPageContent() {
 
   return (
     <>
-      <div className="container mx-auto py-2">
+      <div className="py-2">
 
         {noContentOnDashboard ? (
           <div className="text-center py-12">
@@ -488,7 +488,7 @@ function DashboardPageContent() {
 export default function DashboardPage() {
   return (
     <Suspense fallback={
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] container mx-auto py-2">
+        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] py-2">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
     }>
