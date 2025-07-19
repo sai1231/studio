@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -105,30 +104,46 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
         ) : oembedHtmlRef.current ? (
           <div ref={oembedContainerRef} className="oembed-container w-full" dangerouslySetInnerHTML={{ __html: oembedHtmlRef.current }} />
         ) : item.imageUrl && !imageError ? (
-          <div className="w-full h-full flex flex-col items-center justify-center">
-            <img src={item.imageUrl} alt={item.title || 'Content Image'} data-ai-hint={item.title || "image"} className="w-full h-auto object-contain max-h-[70vh] rounded-md shadow-lg" loading="lazy" onError={() => setImageError(true)}/>
-            {item.colorPalette && item.colorPalette.length > 0 && (
-                <div className="flex w-full mt-4 rounded-md overflow-hidden shadow-md">
-                  <TooltipProvider>
-                    {item.colorPalette.map((color, index) => (
-                      <Tooltip key={index}>
-                        <TooltipTrigger asChild>
-                           <button
-                              onClick={() => handleCopyColor(color.hex)}
-                              style={{ backgroundColor: color.hex }}
-                              className="h-8 flex-grow transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 z-10"
-                              aria-label={`Copy color ${color.name} (${color.hex})`}
-                            />
-                        </TooltipTrigger>
-                         <TooltipContent>
-                          <p>Copy {color.hex}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
-                   </TooltipProvider>
+            <div className="w-full h-full flex flex-col items-center justify-center space-y-4">
+                <img src={item.imageUrl} alt={item.title || 'Content Image'} data-ai-hint={item.title || "image"} className="w-full h-auto object-contain max-h-[60vh] rounded-md shadow-lg" loading="lazy" onError={() => setImageError(true)}/>
+                
+                <div className="flex items-center gap-4">
+                  <Button asChild>
+                      <a href={item.imageUrl} download>
+                          <Download className="mr-2 h-4 w-4" />
+                          Download
+                      </a>
+                  </Button>
+                  <Button asChild variant="secondary">
+                      <a href={item.imageUrl} target="_blank" rel="noopener noreferrer">
+                          <Eye className="mr-2 h-4 w-4" />
+                          View Image
+                      </a>
+                  </Button>
                 </div>
-            )}
-          </div>
+
+                {item.colorPalette && item.colorPalette.length > 0 && (
+                    <div className="flex w-full mt-4 rounded-md overflow-hidden shadow-md max-w-sm">
+                    <TooltipProvider>
+                        {item.colorPalette.map((color, index) => (
+                        <Tooltip key={index}>
+                            <TooltipTrigger asChild>
+                            <button
+                                onClick={() => handleCopyColor(color.hex)}
+                                style={{ backgroundColor: color.hex }}
+                                className="h-8 flex-grow transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 z-10"
+                                aria-label={`Copy color ${color.name} (${color.hex})`}
+                                />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                            <p>Copy {color.hex}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        ))}
+                    </TooltipProvider>
+                    </div>
+                )}
+            </div>
         ) : (item.type === 'link' && item.contentType === 'PDF' && item.url) ? (
             <div className="flex flex-col items-center justify-center text-center">
                 <PdfIcon className="h-24 w-24 mb-6 text-primary/80" />
