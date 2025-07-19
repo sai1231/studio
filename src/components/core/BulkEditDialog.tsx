@@ -123,7 +123,7 @@ export function BulkEditDialog({ open, onOpenChange, availableZones, editMode, o
         
         if (onBulkEdit) {
           onBulkEdit({
-            zoneId: data.zoneId === undefined ? undefined : (data.zoneId === NO_ZONE_VALUE ? null : data.zoneId),
+            zoneId: data.zoneId,
             tagsToAdd: data.tagsToAdd,
             memoryNoteToAppend: data.memoryNoteToAppend,
             expiresAt,

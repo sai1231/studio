@@ -235,7 +235,7 @@ function DashboardPageContent() {
   };
   
   const handleBulkEdit = async (updates: {
-    zoneId?: string | null;
+    zoneId?: string;
     tagsToAdd?: string[];
     memoryNoteToAppend?: string;
     expiresAt?: string | null;
@@ -244,16 +244,20 @@ function DashboardPageContent() {
 
     try {
       const updatePromises = selectedItems.map(async (itemId) => {
-        const itemToUpdate = contentToDisplay.find(item => item.id === itemId) || await getContentItemById(itemId);
-        if (!itemToUpdate) return;
-
-        let finalUpdates: Partial<ContentItem> = {};
-
+        
+        let finalUpdates: Partial<ContentItem> & { zoneIds?: string[] } = {};
+        
+        // This is a special case for moving items, it replaces the main zoneId
         if (updates.zoneId !== undefined) {
-          finalUpdates.zoneIds = updates.zoneId === null ? [] : [updates.zoneId];
+          const itemToUpdate = contentToDisplay.find(item => item.id === itemId) || await getContentItemById(itemId);
+          if (!itemToUpdate) return;
+          const moodboardIds = (itemToUpdate.zoneIds || []).filter(id => availableZones.find(z => z.id === id && z.isMoodboard));
+          finalUpdates.zoneIds = updates.zoneId === null ? moodboardIds : [...moodboardIds, updates.zoneId];
         }
 
         if (updates.tagsToAdd && updates.tagsToAdd.length > 0) {
+          const itemToUpdate = contentToDisplay.find(item => item.id === itemId) || await getContentItemById(itemId);
+          if (!itemToUpdate) return;
           const existingTags = itemToUpdate.tags || [];
           const newTags = updates.tagsToAdd.map(tagName => ({ id: tagName.toLowerCase(), name: tagName }));
           const combined = [...existingTags, ...newTags];
@@ -261,8 +265,7 @@ function DashboardPageContent() {
         }
 
         if (updates.memoryNoteToAppend) {
-          const existingNote = itemToUpdate.memoryNote || '';
-          finalUpdates.memoryNote = existingNote ? `${existingNote}\n\n${updates.memoryNoteToAppend}` : updates.memoryNoteToAppend;
+          finalUpdates.memoryNote = updates.memoryNoteToAppend;
         }
 
         if (updates.expiresAt !== undefined) {
@@ -276,7 +279,6 @@ function DashboardPageContent() {
 
       await Promise.all(updatePromises);
       
-      // Manually trigger a search to refresh the UI with the new data
       const currentParams = new URLSearchParams(searchParams.toString());
       search(currentParams.get('q') || '', {
         zoneId: currentParams.get('zone'),
@@ -298,6 +300,7 @@ function DashboardPageContent() {
     
     try {
        const updatePromises = selectedItems.map(itemId => {
+         // This update will now use arrayUnion to add without removing others
          return updateContentItem(itemId, { zoneIds: [moodboardId] });
        });
        

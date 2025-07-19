@@ -293,14 +293,17 @@ export async function updateContentItem(
 
     // Special handling for adding items to a moodboard (a specific zone)
     if (updates.zoneIds && updates.zoneIds.length > 0) {
+      // Use arrayUnion to add the new zoneId(s) without removing existing ones.
       await updateDoc(docRef, {
         zoneIds: arrayUnion(...updates.zoneIds)
       });
-      delete updateData.zoneIds; // Remove from main update payload
+      // Delete from the main update payload so it's not processed again
+      delete updateData.zoneIds;
     }
 
-
-    await updateDoc(docRef, updateData);
+    if (Object.keys(updateData).length > 0) {
+        await updateDoc(docRef, updateData);
+    }
     
     const updatedDoc = await getContentItemById(itemId);
     if(updatedDoc) {
