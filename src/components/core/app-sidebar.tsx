@@ -56,10 +56,10 @@ const HoverNavButton = ({ icon: Icon, label, children, isEmpty }: { icon: React.
     </HoverCard>
 );
 
-const ZoneHoverCardItem: React.FC<{ zone: Zone }> = ({ zone }) => {
+const ZoneHoverCardItem: React.FC<{ zone: Zone, href: string }> = ({ zone, href }) => {
   const Icon = getIconComponent(zone.icon);
   return (
-    <Link href={`/dashboard?zone=${zone.id}`} className="block group focus:outline-none focus:ring-2 focus:ring-primary rounded-lg p-1">
+    <Link href={href} className="block group focus:outline-none focus:ring-2 focus:ring-primary rounded-lg p-1">
         <div className="relative transition-transform duration-300 ease-in-out group-hover:scale-105 group-focus:scale-105">
             {/* Background Cards */}
             <div className="absolute inset-0 bg-card rounded-lg shadow-md transform-gpu rotate-2"></div>
@@ -138,7 +138,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones: allCollections, tags, do
               <HoverNavButton icon={Bookmark} label="Zones" isEmpty={zones.length === 0}>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-6 p-2">
                     {zones.map(zone => (
-                        <ZoneHoverCardItem key={zone.id} zone={zone} />
+                        <ZoneHoverCardItem key={zone.id} zone={zone} href={`/dashboard?zone=${zone.id}`} />
                     ))}
                 </div>
               </HoverNavButton>
@@ -146,7 +146,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones: allCollections, tags, do
               <HoverNavButton icon={ImageIcon} label="Moodboards" isEmpty={moodboards.length === 0}>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-6 p-2">
                     {moodboards.map(board => (
-                        <ZoneHoverCardItem key={board.id} zone={board} />
+                        <ZoneHoverCardItem key={board.id} zone={board} href={`/zones/${board.id}`} />
                     ))}
                 </div>
               </HoverNavButton>
