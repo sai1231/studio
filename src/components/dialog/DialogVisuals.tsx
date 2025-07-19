@@ -3,10 +3,12 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Download } from 'lucide-react';
 import type { ContentItem } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import PdfIcon from '../core/PdfIcon';
+import { Button } from '../ui/button';
 
 
 interface DialogVisualsProps {
@@ -128,7 +130,15 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
             )}
           </div>
         ) : (item.type === 'link' && item.contentType === 'PDF' && item.url) ? (
-          <iframe src={item.url} className="w-full h-full min-h-[70vh] rounded-xl border-0" title={item.title || 'PDF Preview'}></iframe>
+            <div className="flex flex-col items-center justify-center text-center">
+                <PdfIcon className="h-24 w-24 mb-6 text-primary/80" />
+                <Button asChild>
+                    <a href={item.url} download target="_blank" rel="noopener noreferrer">
+                        <Download className="mr-2 h-4 w-4" />
+                        Download PDF
+                    </a>
+                </Button>
+            </div>
         ) : null}
       </div>
     </div>

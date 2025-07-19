@@ -11,12 +11,13 @@ import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, Command
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Plus, X, Check, ChevronDown, Ban, Briefcase, Home, Library, Bookmark, Pencil, AlarmClock } from 'lucide-react';
+import { Plus, X, Check, ChevronDown, Ban, Briefcase, Home, Library, Bookmark, Pencil, AlarmClock, AlertCircle } from 'lucide-react';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { Zone, Tag } from '@/types';
 import { DialogMemoryNote } from './DialogMemoryNote';
 import { getIconComponent } from '@/lib/icon-map';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface DialogMetadataProps {
   isSaving: boolean;
@@ -97,15 +98,18 @@ export const DialogMetadata: React.FC<DialogMetadataProps> = (props) => {
     <>
       <div className="space-y-4 pt-2">
         {shouldShowRetry && (
-            <div className="flex items-center justify-between rounded-lg border border-amber-500/50 bg-amber-500/10 p-3">
-                <div className="space-y-1">
-                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Analysis Issue</p>
-                    <p className="text-xs text-amber-700 dark:text-amber-400">AI enrichment has failed or is taking too long.</p>
+            <Alert variant="destructive" className="bg-amber-500/10 border-amber-500/20 text-amber-900 dark:text-amber-200 [&>svg]:text-amber-500">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle className="font-semibold">Analysis Issue</AlertTitle>
+                <div className="flex items-center justify-between">
+                    <AlertDescription className="text-amber-800 dark:text-amber-300">
+                      AI enrichment failed or is taking too long.
+                    </AlertDescription>
+                    <Button size="sm" onClick={handleRetryClick} disabled={isRetrying} variant="outline" className="text-amber-900 border-amber-500/30 hover:bg-amber-500/20 dark:text-amber-200 dark:border-amber-500/40">
+                        {isRetrying ? 'Retrying...' : 'Retry'}
+                    </Button>
                 </div>
-                <Button size="sm" onClick={handleRetryClick} disabled={isRetrying}>
-                    {isRetrying ? 'Retrying...' : 'Retry Now'}
-                </Button>
-            </div>
+            </Alert>
         )}
         <Popover open={isZoneComboboxOpen} onOpenChange={onZoneComboboxOpenChange}>
           <PopoverTrigger asChild>
