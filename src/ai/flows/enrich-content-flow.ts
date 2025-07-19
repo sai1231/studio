@@ -12,6 +12,7 @@ import { generateCaptionFromImage } from '@/ai/moondream';
 import { fetchImageColors } from '@/ai/color-fetcher';
 import { extractTagsFromText } from '@/ai/tag-extraction';
 import { generateTitle } from '@/ai/title-generation';
+import { extractTextFromPdf } from '@/ai/flows/extract-pdf-text';
 import { z } from 'zod';
 import { collection, doc, getDoc, updateDoc, type Firestore, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase'; // Keep using client 'db' for consistency here
@@ -93,6 +94,23 @@ const enrichContentFlow = ai.defineFlow(
             }
           }
         }
+        
+        // PDF Text Extraction
+        if (contentData.type === 'link' && contentData.contentType === 'PDF' && contentData.url) {
+            await addLog('INFO', `[${contentId}] 📄 PDF found. Extracting text...`);
+            try {
+                const text = await extractTextFromPdf(contentData.url);
+                if (text) {
+                    updatePayload.description = (contentData.description || '') + (contentData.description ? '\n\n' : '') + text;
+                    await addLog('INFO', `[${contentId}] 📄✅ Successfully extracted text from PDF.`);
+                } else {
+                    await addLog('WARN', `[${contentId}] 📄⚠️ PDF text extraction returned no content.`);
+                }
+            } catch (e: any) {
+                enrichmentFailed = true;
+                await addLog('ERROR', `[${contentId}] 📄❌ Error extracting text from PDF:`, { error: e.message });
+            }
+        }
 
         // Check if the item is an image to enrich with a caption
         if ((contentData.type === 'image' || contentData.type === 'link') && contentData.imageUrl) {
@@ -101,7 +119,7 @@ const enrichContentFlow = ai.defineFlow(
             const caption = await generateCaptionFromImage(contentData.imageUrl);
 
             if (caption) {
-              updatePayload.description = (contentData.description || '') + (contentData.description ? '\\n' : '') + caption;
+              updatePayload.description = (contentData.description || '') + (contentData.description ? '\n\n' : '') + caption;
               await addLog('INFO', `[${contentId}] 🖼️✅ Successfully generated caption.`, { caption });
             } else {
               await addLog('WARN', `[${contentId}] 🖼️⚠️ Moondream returned no caption.`);
@@ -109,7 +127,7 @@ const enrichContentFlow = ai.defineFlow(
 
           } catch (e: any) {
             enrichmentFailed = true;
-            await addLog('WARN', `[${contentId}] 🖼️❌ Error generating caption:`, { error: e.message });
+            await addLog('ERROR', `[${contentId}] 🖼️❌ Error generating caption:`, { error: e.message });
           }
         }
         
@@ -124,7 +142,6 @@ const enrichContentFlow = ai.defineFlow(
                 const arrayBuffer = await imageResponse.arrayBuffer();
                 const imageBuffer = Buffer.from(arrayBuffer);
 
-                const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg'; // Default to jpeg if mime type is not available
                 const colors = await fetchImageColors(imageBuffer, contentId);
                 if (colors && colors.length > 0) {
                     updatePayload.colorPalette = colors;
@@ -134,7 +151,7 @@ const enrichContentFlow = ai.defineFlow(
                 }
             } catch (e: any) {
                 enrichmentFailed = true;
-                await addLog('WARN', `[${contentId}] 🎨❌ Error analyzing image colors:`, { error: e.message });
+                await addLog('ERROR', `[${contentId}] 🎨❌ Error analyzing image colors:`, { error: e.message });
             }
         }
         
