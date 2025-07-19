@@ -120,16 +120,21 @@ export const searchContent = async (
     const contentPromises = hitIds.map(id => getDoc(doc(db, 'content', id)));
     const contentDocs = await Promise.all(contentPromises);
     
-    const hits = contentDocs
-        .filter(docSnap => docSnap.exists())
-        .map(docSnap => {
+    const contentMap = new Map<string, ContentItem>();
+    contentDocs.forEach(docSnap => {
+        if (docSnap.exists()) {
             const data = docSnap.data();
-            return {
+            contentMap.set(docSnap.id, {
                 id: docSnap.id,
                 ...data,
                 createdAt: data.createdAt.toDate().toISOString(),
-            } as ContentItem;
-        });
+            } as ContentItem);
+        }
+    });
+
+    const hits = hitIds
+        .map(id => contentMap.get(id))
+        .filter((item): item is ContentItem => !!item);
 
     return { hits, total: searchResults.estimatedTotalHits };
   } catch (error) {
