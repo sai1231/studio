@@ -3,7 +3,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Loader2, Download } from 'lucide-react';
+import { Loader2, Download, Eye } from 'lucide-react';
 import type { ContentItem } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -132,12 +132,20 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
         ) : (item.type === 'link' && item.contentType === 'PDF' && item.url) ? (
             <div className="flex flex-col items-center justify-center text-center">
                 <PdfIcon className="h-24 w-24 mb-6 text-primary/80" />
-                <Button asChild>
-                    <a href={item.url} download target="_blank" rel="noopener noreferrer">
-                        <Download className="mr-2 h-4 w-4" />
-                        Download PDF
-                    </a>
-                </Button>
+                <div className="flex items-center gap-4">
+                  <Button asChild>
+                      <a href={item.url} download target="_blank" rel="noopener noreferrer">
+                          <Download className="mr-2 h-4 w-4" />
+                          Download PDF
+                      </a>
+                  </Button>
+                   <Button asChild variant="secondary">
+                        <a href={item.url} target="_blank" rel="noopener noreferrer">
+                            <Eye className="mr-2 h-4 w-4" />
+                            View PDF
+                        </a>
+                    </Button>
+                </div>
             </div>
         ) : null}
       </div>
