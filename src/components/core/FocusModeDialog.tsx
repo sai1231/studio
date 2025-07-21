@@ -17,7 +17,11 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Bold, Italic, Underline as UnderlineIcon, Strikethrough, Plus, Check, ChevronDown, Bookmark, ListChecks, Type, Pilcrow, List, ListOrdered, CheckSquare, Quote, GripVertical, PanelRightOpen, PanelRightClose, Pencil } from 'lucide-react';
+import { 
+    Bold, Italic, Underline as UnderlineIcon, Strikethrough, Plus, Check, ChevronDown, Bookmark, ListChecks, 
+    Type, Pilcrow, List, ListOrdered, CheckSquare, Quote, GripVertical, PanelRightOpen, PanelRightClose, 
+    Pencil, Code, Bot, Image as ImageIcon, Minus, Columns, Table
+} from 'lucide-react';
 import type { Zone, ContentItem, Tag } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -66,7 +70,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       Underline,
-      Placeholder.configure({ placeholder: '' }),
+      Placeholder.configure({ placeholder: 'Write, or press \'/\' for commands...' }),
       TaskList,
       TaskItem.configure({ nested: true }),
     ],
@@ -81,7 +85,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
   useEffect(() => {
     if (open && editor) {
       if (!item) {
-        editor.commands.setContent('<h1></h1><p></p>');
+        editor.commands.setContent('<p></p>'); // Start with an empty paragraph
         setSelectedZoneId(undefined);
         setCurrentTags([]);
         setMemoryNote('');
@@ -202,13 +206,20 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
   const showCreateZoneOption = zoneSearchText.trim() !== '' && !zones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase());
   
   const blockMenuItems = [
-    { name: 'Text', icon: Pilcrow, command: () => editor.chain().focus().setParagraph().run(), isActive: () => editor.isActive('paragraph') },
+    { name: 'AI Writer', icon: Bot, command: () => toast({title: "Coming Soon!", description: "AI Writer will be available soon."}), isActive: () => false },
+    { name: 'AI Image', icon: ImageIcon, command: () => toast({title: "Coming Soon!", description: "AI Image will be available soon."}), isActive: () => false },
     { name: 'Heading 1', icon: Type, command: () => editor.chain().focus().toggleHeading({ level: 1 }).run(), isActive: () => editor.isActive('heading', { level: 1 }) },
     { name: 'Heading 2', icon: Type, command: () => editor.chain().focus().toggleHeading({ level: 2 }).run(), isActive: () => editor.isActive('heading', { level: 2 }) },
+    { name: 'Heading 3', icon: Type, command: () => editor.chain().focus().toggleHeading({ level: 3 }).run(), isActive: () => editor.isActive('heading', { level: 3 }) },
     { name: 'Bullet List', icon: List, command: () => editor.chain().focus().toggleBulletList().run(), isActive: () => editor.isActive('bulletList') },
     { name: 'Numbered List', icon: ListOrdered, command: () => editor.chain().focus().toggleOrderedList().run(), isActive: () => editor.isActive('orderedList') },
     { name: 'Task List', icon: CheckSquare, command: () => editor.chain().focus().toggleTaskList().run(), isActive: () => editor.isActive('taskList') },
     { name: 'Blockquote', icon: Quote, command: () => editor.chain().focus().toggleBlockquote().run(), isActive: () => editor.isActive('blockquote') },
+    { name: 'Code Block', icon: Code, command: () => editor.chain().focus().toggleCodeBlock().run(), isActive: () => editor.isActive('codeBlock') },
+    { name: 'Table', icon: Table, command: () => toast({title: "Coming Soon!", description: "Tables will be available soon."}), isActive: () => false },
+    { name: 'Image', icon: ImageIcon, command: () => toast({title: "Coming Soon!", description: "Image upload will be available soon."}), isActive: () => false },
+    { name: 'Columns', icon: Columns, command: () => toast({title: "Coming Soon!", description: "Columns will be available soon."}), isActive: () => false },
+    { name: 'Horizontal Rule', icon: Minus, command: () => editor.chain().focus().setHorizontalRule().run(), isActive: () => false },
   ];
 
   return (
