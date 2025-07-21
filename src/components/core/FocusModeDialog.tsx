@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -8,6 +9,11 @@ import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
+import Link from '@tiptap/extension-link';
+import Highlight from '@tiptap/extension-highlight';
+import TextAlign from '@tiptap/extension-text-align';
+import Typography from '@tiptap/extension-typography';
+import Focus from '@tiptap/extension-focus';
 import {
   Dialog,
   DialogContent,
@@ -20,7 +26,8 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { 
     Bold, Italic, Underline as UnderlineIcon, Strikethrough, Plus, Check, ChevronDown, Bookmark,
     Type, List, ListOrdered, CheckSquare, Quote, GripVertical, PanelRightOpen, PanelRightClose, 
-    Pencil, Code, Bot, Image as ImageIcon, Minus, Columns, Table
+    Pencil, Code, Bot, Image as ImageIcon, Minus, Columns, Table, Link as LinkIcon, Highlight as HighlightIcon,
+    Pilcrow, AlignCenter, AlignRight, AlignLeft
 } from 'lucide-react';
 import type { Zone, ContentItem, Tag } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -70,13 +77,18 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       Underline,
+      Link.configure({ openOnClick: false }),
+      Highlight.configure({ multicolor: true }),
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Typography,
+      Focus.configure({ className: 'has-focus', mode: 'all' }),
       Placeholder.configure({
         placeholder: ({ node }) => {
           if (node.type.name === 'heading') {
             return 'What’s the title?';
           }
           if (node.isFirstChild && node.isEmpty) {
-            return 'Type / or browse to options';
+            return "Type / or browse to options";
           }
           return "Type '/' for commands...";
         },
@@ -207,6 +219,21 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
   };
   const removeTag = (tagToRemove: Tag) => setCurrentTags(currentTags.filter(tag => tag.id !== tagToRemove.id));
 
+  const setLink = useCallback(() => {
+    if (!editor) return;
+    const previousUrl = editor.getAttributes('link').href;
+    const url = window.prompt('URL', previousUrl);
+
+    if (url === null) return;
+    if (url === '') {
+      editor.chain().focus().extendMarkRange('link').unsetLink().run();
+      return;
+    }
+
+    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+  }, [editor]);
+
+
   if (!editor) return null;
 
   const selectedZone = zones.find(z => z.id === selectedZoneId);
@@ -249,7 +276,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
           </DialogHeader>
           
           <div className="flex-grow overflow-y-auto p-8 md:px-16 md:py-8 relative">
-              <div className='h-full'>
+              <div className='h-full pl-12'>
                   <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
                       <ToggleGroup type="multiple" className="bg-background border rounded-md shadow-lg p-1">
                           <ToggleGroupItem value="bold" aria-label="Toggle bold" onClick={() => editor.chain().focus().toggleBold().run()} data-state={editor.isActive('bold') ? 'on' : 'off'}>
@@ -258,18 +285,33 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
                           <ToggleGroupItem value="italic" aria-label="Toggle italic" onClick={() => editor.chain().focus().toggleItalic().run()} data-state={editor.isActive('italic') ? 'on' : 'off'}>
                               <Italic className="h-4 w-4" />
                           </ToggleGroupItem>
-                            <ToggleGroupItem value="underline" aria-label="Toggle underline" onClick={() => editor.chain().focus().toggleUnderline().run()} data-state={editor.isActive('underline') ? 'on' : 'off'}>
+                          <ToggleGroupItem value="underline" aria-label="Toggle underline" onClick={() => editor.chain().focus().toggleUnderline().run()} data-state={editor.isActive('underline') ? 'on' : 'off'}>
                               <UnderlineIcon className="h-4 w-4" />
                           </ToggleGroupItem>
                           <ToggleGroupItem value="strike" aria-label="Toggle strikethrough" onClick={() => editor.chain().focus().toggleStrike().run()} data-state={editor.isActive('strike') ? 'on' : 'off'}>
                               <Strikethrough className="h-4 w-4" />
+                          </ToggleGroupItem>
+                          <ToggleGroupItem value="link" aria-label="Add link" onClick={setLink} data-state={editor.isActive('link') ? 'on' : 'off'}>
+                              <LinkIcon className="h-4 w-4" />
+                          </ToggleGroupItem>
+                          <ToggleGroupItem value="highlight" aria-label="Highlight text" onClick={() => editor.chain().focus().toggleHighlight().run()} data-state={editor.isActive('highlight') ? 'on' : 'off'}>
+                              <HighlightIcon className="h-4 w-4" />
+                          </ToggleGroupItem>
+                          <ToggleGroupItem value="alignLeft" aria-label="Align left" onClick={() => editor.chain().focus().setTextAlign('left').run()} data-state={editor.isActive({ textAlign: 'left' }) ? 'on' : 'off'}>
+                              <AlignLeft className="h-4 w-4" />
+                          </ToggleGroupItem>
+                          <ToggleGroupItem value="alignCenter" aria-label="Align center" onClick={() => editor.chain().focus().setTextAlign('center').run()} data-state={editor.isActive({ textAlign: 'center' }) ? 'on' : 'off'}>
+                              <AlignCenter className="h-4 w-4" />
+                          </ToggleGroupItem>
+                          <ToggleGroupItem value="alignRight" aria-label="Align right" onClick={() => editor.chain().focus().setTextAlign('right').run()} data-state={editor.isActive({ textAlign: 'right' }) ? 'on' : 'off'}>
+                              <AlignRight className="h-4 w-4" />
                           </ToggleGroupItem>
                       </ToggleGroup>
                   </BubbleMenu>
                   
                   {editor && <FloatingMenu
                       editor={editor}
-                      tippyOptions={{ duration: 100, placement: 'left' }}
+                      tippyOptions={{ duration: 100, placement: 'left-start' }}
                       shouldShow={({ state }) => {
                         const { $from } = state.selection
                         const isRoot = $from.depth === 1
