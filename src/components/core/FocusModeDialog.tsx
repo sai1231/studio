@@ -70,13 +70,16 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       Underline,
-      Placeholder.configure({ 
-          placeholder: ({ node }) => {
-            if (node.type.name === 'heading' && node.parent.type.name === 'doc' && node.parent.childCount === 1) {
-              return 'Untitled Page';
-            }
-            return "Type '/' for commands...";
-          },
+      Placeholder.configure({
+        placeholder: ({ node }) => {
+          if (node.type.name === 'heading') {
+            return 'What’s the title?';
+          }
+          if (node.isFirstChild && node.isEmpty) {
+            return 'Type / or browse to options';
+          }
+          return "Type '/' for commands...";
+        },
       }),
       TaskList,
       TaskItem.configure({ nested: true }),
@@ -245,7 +248,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
             </div>
           </DialogHeader>
           
-          <div className="flex-grow overflow-y-auto p-8 md:px-12 md:py-8 relative">
+          <div className="flex-grow overflow-y-auto p-8 md:px-16 md:py-8 relative">
               <div className='h-full'>
                   <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
                       <ToggleGroup type="multiple" className="bg-background border rounded-md shadow-lg p-1">
@@ -324,7 +327,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
           "flex flex-col transition-all duration-300 ease-in-out overflow-hidden",
           isSidebarOpen ? "w-[320px]" : "w-0"
         )}>
-            <aside className="bg-card border-l flex-shrink-0 h-full w-[320px]">
+            <div className="bg-card border-l flex-shrink-0 h-full w-[320px]">
               <ScrollArea className="h-full p-4">
                   <div className="space-y-6">
                       <div className="space-y-2">
@@ -385,7 +388,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
                       </div>
                   </div>
               </ScrollArea>
-            </aside>
+            </div>
         </div>
       </DialogContent>
     </Dialog>
