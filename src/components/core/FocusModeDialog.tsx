@@ -70,7 +70,14 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       Underline,
-      Placeholder.configure({ placeholder: "Write, or press '/' for commands..." }),
+      Placeholder.configure({ 
+          placeholder: ({ node }) => {
+            if (node.type.name === 'heading' && node.parent.type.name === 'doc' && node.parent.childCount === 1) {
+              return 'Untitled Page';
+            }
+            return "Type '/' for commands...";
+          },
+      }),
       TaskList,
       TaskItem.configure({ nested: true }),
     ],
@@ -238,7 +245,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
             </div>
           </DialogHeader>
           
-          <div className="flex-grow overflow-y-auto p-8 md:p-12 relative">
+          <div className="flex-grow overflow-y-auto p-8 md:px-12 md:py-8 relative">
               <div className='h-full'>
                   <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
                       <ToggleGroup type="multiple" className="bg-background border rounded-md shadow-lg p-1">
@@ -256,13 +263,15 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
                           </ToggleGroupItem>
                       </ToggleGroup>
                   </BubbleMenu>
-
-                  <FloatingMenu
+                  
+                  {editor && <FloatingMenu
                       editor={editor}
                       tippyOptions={{ duration: 100, placement: 'left' }}
                       shouldShow={({ state }) => {
-                          const { $from } = state.selection;
-                          return $from.parent.isEmpty;
+                        const { $from } = state.selection
+                        const isRoot = $from.depth === 1
+                        const isEmpty = $from.parent.content.size === 0
+                        return isRoot && isEmpty
                       }}
                       className="block-menu"
                   >
@@ -292,7 +301,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
                       <Button variant="ghost" size="icon" className="rounded-full border bg-background shadow-sm text-muted-foreground h-8 w-8 cursor-grab">
                           <GripVertical className="h-5 w-5" />
                       </Button>
-                  </FloatingMenu>
+                  </FloatingMenu>}
 
                 <EditorContent editor={editor} />
               </div>
@@ -384,5 +393,3 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
 };
 
 export default FocusModeDialog;
-
-    
