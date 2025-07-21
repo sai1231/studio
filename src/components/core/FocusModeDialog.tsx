@@ -18,8 +18,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { 
-    Bold, Italic, Underline as UnderlineIcon, Strikethrough, Plus, Check, ChevronDown, Bookmark, ListChecks, 
-    Type, Pilcrow, List, ListOrdered, CheckSquare, Quote, GripVertical, PanelRightOpen, PanelRightClose, 
+    Bold, Italic, Underline as UnderlineIcon, Strikethrough, Plus, Check, ChevronDown, Bookmark,
+    Type, List, ListOrdered, CheckSquare, Quote, GripVertical, PanelRightOpen, PanelRightClose, 
     Pencil, Code, Bot, Image as ImageIcon, Minus, Columns, Table
 } from 'lucide-react';
 import type { Zone, ContentItem, Tag } from '@/types';
@@ -64,13 +64,13 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
   const [isZonePopoverOpen, setIsZonePopoverOpen] = useState(false);
   const [zoneSearchText, setZoneSearchText] = useState('');
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       Underline,
-      Placeholder.configure({ placeholder: 'Write, or press \'/\' for commands...' }),
+      Placeholder.configure({ placeholder: "Write, or press '/' for commands..." }),
       TaskList,
       TaskItem.configure({ nested: true }),
     ],
@@ -108,7 +108,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
         });
       }
       editor.commands.focus('end');
-      setIsSidebarOpen(true);
+      setIsSidebarOpen(false); // Collapse sidebar by default
     }
   }, [item, open, editor, toast, onOpenChange]);
   
@@ -262,9 +262,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
                       tippyOptions={{ duration: 100, placement: 'left' }}
                       shouldShow={({ state }) => {
                           const { $from } = state.selection;
-                          const ankerNode = $from.parent;
-                          const isAnkerNodeEmpty = ankerNode.isLeaf || !ankerNode.textContent.length;
-                          return isAnkerNodeEmpty && ankerNode.type.name !== 'heading';
+                          return $from.parent.isEmpty;
                       }}
                       className="block-menu"
                   >
@@ -386,3 +384,5 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
 };
 
 export default FocusModeDialog;
+
+    
