@@ -17,9 +17,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Toggle, ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Bold, Italic, Underline as UnderlineIcon, Strikethrough, Plus, Check, ChevronDown, Bookmark, Briefcase, Home, Library, ListChecks, Type, Pilcrow, List, ListOrdered, CheckSquare, Quote } from 'lucide-react';
-import { Separator } from '../ui/separator';
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Bold, Italic, Underline as UnderlineIcon, Strikethrough, Plus, Check, ChevronDown, Bookmark, ListChecks, Type, Pilcrow, List, ListOrdered, CheckSquare, Quote, GripVertical } from 'lucide-react';
 import type { Zone, ContentItem, Tag } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +32,7 @@ import { useAuth } from '@/context/AuthContext';
 import TurndownService from 'turndown';
 import { marked } from 'marked';
 import { Textarea } from '../ui/textarea';
+import { getIconComponent } from '@/lib/icon-map';
 
 
 interface FocusModeDialogProps {
@@ -42,20 +42,6 @@ interface FocusModeDialogProps {
   zones: Zone[];
   onZoneCreate: (zoneName: string) => Promise<Zone | null>;
 }
-
-const iconMap: { [key: string]: React.ElementType } = {
-  Briefcase,
-  Home,
-  Library,
-  Bookmark,
-};
-
-const getIconComponent = (iconName?: string): React.ElementType => {
-  if (iconName && iconMap[iconName]) {
-    return iconMap[iconName];
-  }
-  return Bookmark;
-};
 
 // Instantiate the service once outside the component
 const turndownService = new TurndownService();
@@ -78,10 +64,19 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
   
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3],
+        },
+      }),
       Underline,
       Placeholder.configure({
-        placeholder: 'Write something amazing, or type `/` for commands...',
+        placeholder: ({ node }) => {
+            if (node.type.name === 'heading' && node.nodeSize === 2) {
+                return 'New page';
+            }
+            return "Write, or press '/' for commands...";
+        },
       }),
       TaskList,
       TaskItem.configure({
@@ -102,7 +97,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
   useEffect(() => {
     if (open && editor) {
       if (!item) { // New note mode
-        editor.commands.clearContent();
+        editor.commands.setContent('<h1></h1><p></p>'); // Start with empty h1 and p
         setRawMarkdown('');
         setSelectedZoneId(undefined);
         setCurrentTags([]);
@@ -114,7 +109,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
             const html = marked.parse(freshItem.description || '') as string;
             editor.commands.setContent(html, false);
             setRawMarkdown(freshItem.description || '');
-            setSelectedZoneId(freshItem.zoneId);
+            setSelectedZoneId(freshItem.zoneIds?.[0]);
             setCurrentTags(freshItem.tags || []);
           } else {
             toast({ title: "Note not found", description: "This note may have been deleted.", variant: "destructive" });
@@ -122,9 +117,12 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
           }
         });
       }
+      editor.commands.focus('end');
       setEditorMode('wysiwyg');
     }
-  }, [item, open, editor, onOpenChange, toast]);
+  // We only want to run this effect when the `open` or `item` props change, not when the editor instance itself changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item, open]);
 
   const handleRawMarkdownChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newMarkdown = e.target.value;
@@ -155,16 +153,26 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
   const handleSave = async () => {
     if (!editor || !user) return;
     
-    const htmlContent = editor.getHTML();
-    const markdownContent = turndownService.turndown(htmlContent);
-    const textContent = editor.getText();
+    let htmlContent = editor.getHTML();
+    
+    // Logic to extract title from H1 and use rest as description
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    const h1Element = tempDiv.querySelector('h1');
+    let title = 'Untitled Note';
+    if (h1Element && h1Element.textContent?.trim()) {
+        title = h1Element.textContent.trim();
+        h1Element.remove(); // Remove h1 from the content to be saved as description
+    } else {
+       const firstText = editor.getText().split('\n')[0]?.trim();
+       if(firstText) title = firstText.split(/\s+/).slice(0, 5).join(' ') + (firstText.split(/\s+/).length > 5 ? '...' : '');
+    }
 
-    if (!textContent.trim()) {
-      toast({
-        title: "Content is empty",
-        description: "Please write something before saving.",
-        variant: "destructive"
-      });
+    const descriptionHtml = tempDiv.innerHTML;
+    const markdownContent = turndownService.turndown(descriptionHtml);
+
+    if (!editor.getText().trim()) {
+      toast({ title: "Content is empty", description: "Please write something before saving.", variant: "destructive" });
       return;
     }
     
@@ -173,22 +181,22 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
     try {
         if (internalItem) { // This is an update
             const updatePayload = {
+                title: title,
                 description: markdownContent,
                 tags: currentTags,
-                zoneId: selectedZoneId ?? null,
+                zoneIds: selectedZoneId ? [selectedZoneId] : [],
             };
             await updateContentItem(internalItem.id, updatePayload);
             toast({ title: "Note Updated" });
         } else { // This is a new creation
-            const generatedTitle = textContent.split(/\s+/).slice(0, 5).join(' ') + (textContent.split(/\s+/).length > 5 ? '...' : '');
             const contentData: Omit<ContentItem, 'id' | 'createdAt'> = {
                 type: 'note',
-                title: generatedTitle || 'Untitled Note',
+                title: title,
                 description: markdownContent,
                 contentType: 'Note',
                 status: 'pending-analysis',
                 tags: currentTags,
-                zoneId: selectedZoneId,
+                zoneIds: selectedZoneId ? [selectedZoneId] : [],
                 userId: user.uid,
             };
             await addContentItem(contentData);
@@ -197,11 +205,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
         onOpenChange(false);
     } catch (error) {
         console.error("Error saving from focus mode:", error);
-        toast({
-            title: "Error Saving",
-            description: "Could not save your note.",
-            variant: "destructive"
-        });
+        toast({ title: "Error Saving", description: "Could not save your note.", variant: "destructive" });
     } finally {
         setIsSaving(false);
     }
@@ -270,39 +274,43 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
                     </ToggleGroup>
                 </BubbleMenu>
 
-                <FloatingMenu
+                 <FloatingMenu
                     editor={editor}
-                    tippyOptions={{ duration: 100 }}
+                    tippyOptions={{ duration: 100, placement: 'left' }}
                     shouldShow={({ state }) => {
                         const { $from } = state.selection;
                         const ankerNode = $from.parent;
                         const isAnkerNodeEmpty = ankerNode.isLeaf || !ankerNode.textContent.length;
-                        return isAnkerNodeEmpty;
+                        return isAnkerNodeEmpty && ankerNode.type.name !== 'heading';
                     }}
+                    className="flex items-center gap-1"
                 >
-                  <Popover>
-                    <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" className="rounded-full border bg-background shadow-sm text-muted-foreground h-8 w-8">
-                            <Plus className="h-5 w-5" />
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-60 p-1">
-                        <Command>
-                            <CommandInput placeholder="Search blocks..." />
-                            <CommandList>
-                                <CommandEmpty>No results found.</CommandEmpty>
-                                <CommandGroup heading="Elements">
-                                {blockMenuItems.map((item) => (
-                                    <CommandItem key={item.name} onSelect={item.command} className={cn(item.isActive() && "bg-accent text-accent-foreground")}>
-                                        <item.icon className="mr-2 h-4 w-4" />
-                                        <span>{item.name}</span>
-                                    </CommandItem>
-                                ))}
-                                </CommandGroup>
-                            </CommandList>
-                        </Command>
-                    </PopoverContent>
-                  </Popover>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="ghost" size="icon" className="rounded-full border bg-background shadow-sm text-muted-foreground h-8 w-8">
+                                <Plus className="h-5 w-5" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-60 p-1">
+                            <Command>
+                                <CommandInput placeholder="Search blocks..." />
+                                <CommandList>
+                                    <CommandEmpty>No results found.</CommandEmpty>
+                                    <CommandGroup heading="Elements">
+                                    {blockMenuItems.map((item) => (
+                                        <CommandItem key={item.name} onSelect={item.command} className={cn(item.isActive() && "bg-accent text-accent-foreground")}>
+                                            <item.icon className="mr-2 h-4 w-4" />
+                                            <span>{item.name}</span>
+                                        </CommandItem>
+                                    ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
+                    <Button variant="ghost" size="icon" className="rounded-full border bg-background shadow-sm text-muted-foreground h-8 w-8 cursor-grab">
+                        <GripVertical className="h-5 w-5" />
+                    </Button>
                 </FloatingMenu>
 
               <EditorContent editor={editor} />
@@ -333,7 +341,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
                             <CommandInput placeholder="Search or create zone..." value={zoneSearchText} onValueChange={setZoneSearchText} />
                             <CommandList>
                             <CommandEmpty>
-                                <div className="py-6 text-center text-sm">{zoneSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}</div>
+                                {zoneSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}
                             </CommandEmpty>
                             <CommandGroup>
                                  <CommandItem onSelect={() => { setSelectedZoneId(undefined); setIsZonePopoverOpen(false); }}>
@@ -351,7 +359,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
                                     );
                                 })}
                             </CommandGroup>
-                            {zoneSearchText.trim() !== '' && !filteredZones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase()) && (
+                            {showCreateZoneOption && (
                                 <CommandGroup className="border-t">
                                 <CommandItem onSelect={() => handleCreateZone(zoneSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer justify-start">
                                     <Plus className="mr-2 h-4 w-4" /><span>Create "{zoneSearchText.trim()}"</span>

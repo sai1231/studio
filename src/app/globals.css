@@ -1,4 +1,5 @@
 
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -124,6 +125,7 @@ body {
     @apply outline-none;
   }
 
+  /* Placeholder styles */
   .ProseMirror p.is-editor-empty:first-child::before {
     content: attr(data-placeholder);
     float: left;
@@ -131,8 +133,16 @@ body {
     pointer-events: none;
     height: 0;
   }
+  .ProseMirror h1.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    color: hsl(var(--muted-foreground));
+    pointer-events: none;
+    height: 0;
+  }
+
   .ProseMirror p { @apply my-2; }
-  .ProseMirror h1 { @apply text-3xl font-bold my-3; }
+  .ProseMirror h1 { @apply text-4xl font-bold my-4; }
   .ProseMirror h2 { @apply text-2xl font-semibold my-2; }
   .ProseMirror h3 { @apply text-xl font-semibold my-2; }
   .ProseMirror ul { @apply list-disc list-inside my-2 pl-4; }
@@ -144,23 +154,43 @@ body {
   .ProseMirror em { @apply italic; }
   .ProseMirror u { @apply underline; }
   .ProseMirror s { @apply line-through; }
+  
+  /* Task List specific styles */
   .ProseMirror ul[data-type="taskList"] {
     @apply list-none p-0;
   }
   .ProseMirror li[data-type="taskItem"] {
-    @apply flex items-center gap-2;
+    @apply flex items-start gap-2;
+  }
+  /* More specific selector to remove the bullet point */
+  .ProseMirror ul[data-type="taskList"] > li[data-type="taskItem"] {
+      list-style-type: none;
   }
   .ProseMirror ul[data-type="taskList"] > li[data-type="taskItem"]::before {
     content: none;
   }
   .ProseMirror li[data-type="taskItem"] > label {
-    @apply flex items-center gap-2;
+    @apply inline-flex items-start mt-1;
   }
   .ProseMirror li[data-type="taskItem"] > label > input {
-    @apply h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary;
+    @apply h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary mr-2 mt-1;
+  }
+  .ProseMirror li[data-type="taskItem"] > div {
+    @apply flex-grow;
   }
   .ProseMirror li[data-type="taskItem"][data-checked="true"] > div > p {
     @apply line-through text-muted-foreground;
+  }
+
+  /* Block hover controls */
+  .ProseMirror .has-focus {
+    position: relative;
+  }
+  .ProseMirror .has-focus .block-menu {
+    opacity: 1;
+  }
+  .block-menu {
+    @apply absolute -left-12 top-1 flex items-center gap-1 opacity-0 transition-opacity;
   }
 
 
@@ -168,7 +198,8 @@ body {
   .dark .ProseMirror {
     color: hsl(var(--foreground));
   }
-  .dark .ProseMirror p.is-editor-empty:first-child::before {
+  .dark .ProseMirror p.is-editor-empty:first-child::before,
+  .dark .ProseMirror h1.is-editor-empty:first-child::before {
     color: hsl(var(--muted-foreground));
   }
   .dark .ProseMirror blockquote {
