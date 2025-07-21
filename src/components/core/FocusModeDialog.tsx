@@ -33,6 +33,7 @@ import { marked } from 'marked';
 import { ScrollArea } from '../ui/scroll-area';
 import { Label } from '../ui/label';
 import { getIconComponent } from '@/lib/icon-map';
+import { Textarea } from '@/components/ui/textarea';
 
 
 interface FocusModeDialogProps {
@@ -80,7 +81,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
   useEffect(() => {
     if (open && editor) {
       if (!item) {
-        editor.commands.setContent('<h1>New page</h1><p></p>');
+        editor.commands.setContent('<h1></h1><p></p>');
         setSelectedZoneId(undefined);
         setCurrentTags([]);
         setMemoryNote('');
@@ -305,7 +306,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
           "flex flex-col transition-all duration-300 ease-in-out overflow-hidden",
           isSidebarOpen ? "w-[320px]" : "w-0"
         )}>
-            <div className="bg-card border-l flex-shrink-0 h-full w-[320px]">
+            <aside className="bg-card border-l flex-shrink-0 h-full w-[320px]">
               <ScrollArea className="h-full p-4">
                   <div className="space-y-6">
                       <div className="space-y-2">
@@ -366,7 +367,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
                       </div>
                   </div>
               </ScrollArea>
-            </div>
+            </aside>
         </div>
       </DialogContent>
     </Dialog>
