@@ -84,10 +84,13 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
       Focus.configure({ className: 'has-focus', mode: 'all' }),
       Placeholder.configure({
         placeholder: ({ node }) => {
+          if (node.type.name === 'heading') {
+            return 'What’s the title?';
+          }
           if (node.isFirstChild && node.isEmpty) {
             return "Type / or browse to options";
           }
-          return "Type '/' for commands...";
+          return '';
         },
       }),
       TaskList,
@@ -253,6 +256,8 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
     { name: 'Columns', icon: Columns, command: () => toast({title: "Coming Soon!", description: "Columns will be available soon."}), isActive: () => false },
     { name: 'Horizontal Rule', icon: Minus, command: () => editor.chain().focus().setHorizontalRule().run(), isActive: () => false },
   ];
+  const showCreateZoneOption = zoneSearchText.trim() !== '' && !zones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase());
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -271,7 +276,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
           </DialogHeader>
           
           <div className="flex-grow overflow-y-auto p-8 md:px-16 md:py-8 relative">
-              <div className='h-full pl-12'>
+              <div className='pl-8'>
                   <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
                       <ToggleGroup type="multiple" className="bg-background border rounded-md shadow-lg p-1">
                           <ToggleGroupItem value="bold" aria-label="Toggle bold" onClick={() => editor.chain().focus().toggleBold().run()} data-state={editor.isActive('bold') ? 'on' : 'off'}>
@@ -308,10 +313,10 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
                       editor={editor}
                       tippyOptions={{ duration: 100, placement: 'left-start' }}
                       shouldShow={({ state }) => {
-                        const { $from } = state.selection
-                        const isRoot = $from.depth === 1
-                        const isEmpty = $from.parent.content.size === 0
-                        return isRoot && isEmpty
+                          const { $from } = state.selection;
+                          const node = $from.parent;
+                          // Show on any empty block, not just the very first one
+                          return node.content.size === 0;
                       }}
                       className="block-menu"
                   >
@@ -381,7 +386,16 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
                                   <Command>
                                       <CommandInput placeholder="Search or create zone..." value={zoneSearchText} onValueChange={setZoneSearchText} />
                                       <CommandList>
-                                      <CommandEmpty>No matching zones found.</CommandEmpty>
+                                      <CommandEmpty>
+                                        <div className="p-2">
+                                          <p className="text-sm text-center text-muted-foreground">No matching zones.</p>
+                                          {showCreateZoneOption && (
+                                            <Button variant="link" size="sm" onClick={() => handleCreateZone(zoneSearchText)} className="w-full">
+                                              <Plus className="mr-2 h-4 w-4" /> Create "{zoneSearchText.trim()}"
+                                            </Button>
+                                          )}
+                                        </div>
+                                      </CommandEmpty>
                                       <CommandGroup>
                                           <CommandItem onSelect={() => { setSelectedZoneId(undefined); setIsZonePopoverOpen(false); }}>
                                               <Check className={cn("mr-2 h-4 w-4", selectedZoneId === undefined ? "opacity-100" : "opacity-0")} /> No Zone
