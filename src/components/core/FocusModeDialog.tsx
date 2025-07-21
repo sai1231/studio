@@ -1,8 +1,7 @@
 
-
 'use client';
 
-import React, { useState, useEffect, useCallback, Fragment } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useEditor, EditorContent, BubbleMenu, FloatingMenu } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -18,7 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Bold, Italic, Underline as UnderlineIcon, Strikethrough, Plus, Check, ChevronDown, Bookmark, ListChecks, Type, Pilcrow, List, ListOrdered, CheckSquare, Quote, GripVertical } from 'lucide-react';
+import { Bold, Italic, Underline as UnderlineIcon, Strikethrough, Plus, Check, ChevronDown, Bookmark, ListChecks, Type, Pilcrow, List, ListOrdered, CheckSquare, Quote, GripVertical, PanelRightOpen, PanelRightClose, Pencil } from 'lucide-react';
 import type { Zone, ContentItem, Tag } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +32,8 @@ import TurndownService from 'turndown';
 import { marked } from 'marked';
 import { Textarea } from '../ui/textarea';
 import { getIconComponent } from '@/lib/icon-map';
+import { ScrollArea } from '../ui/scroll-area';
+import { Label } from '../ui/label';
 
 
 interface FocusModeDialogProps {
@@ -43,7 +44,6 @@ interface FocusModeDialogProps {
   onZoneCreate: (zoneName: string) => Promise<Zone | null>;
 }
 
-// Instantiate the service once outside the component
 const turndownService = new TurndownService();
 
 const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenChange, zones, onZoneCreate }) => {
@@ -55,33 +55,22 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
   const [selectedZoneId, setSelectedZoneId] = useState<string | undefined>();
   const [currentTags, setCurrentTags] = useState<Tag[]>([]);
   const [tagInput, setTagInput] = useState('');
+  const [memoryNote, setMemoryNote] = useState('');
   
   const [isZonePopoverOpen, setIsZonePopoverOpen] = useState(false);
   const [zoneSearchText, setZoneSearchText] = useState('');
 
   const [editorMode, setEditorMode] = useState<'wysiwyg' | 'markdown'>('wysiwyg');
   const [rawMarkdown, setRawMarkdown] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3],
-        },
-      }),
+      StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       Underline,
-      Placeholder.configure({
-        placeholder: ({ node }) => {
-            if (node.type.name === 'heading' && node.nodeSize === 2) {
-                return 'New page';
-            }
-            return "Write, or press '/' for commands...";
-        },
-      }),
+      Placeholder.configure({ placeholder: '' }),
       TaskList,
-      TaskItem.configure({
-        nested: true,
-      }),
+      TaskItem.configure({ nested: true }),
     ],
     editorProps: {
       attributes: {
@@ -96,13 +85,14 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
 
   useEffect(() => {
     if (open && editor) {
-      if (!item) { // New note mode
-        editor.commands.setContent('<h1></h1><p></p>'); // Start with empty h1 and p
+      if (!item) {
+        editor.commands.setContent('');
         setRawMarkdown('');
         setSelectedZoneId(undefined);
         setCurrentTags([]);
+        setMemoryNote('');
         setInternalItem(null);
-      } else { // Editing existing note, so fetch fresh data
+      } else {
         getContentItemById(item.id).then(freshItem => {
           if (freshItem) {
             setInternalItem(freshItem);
@@ -111,6 +101,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
             setRawMarkdown(freshItem.description || '');
             setSelectedZoneId(freshItem.zoneIds?.[0]);
             setCurrentTags(freshItem.tags || []);
+            setMemoryNote(freshItem.memoryNote || '');
           } else {
             toast({ title: "Note not found", description: "This note may have been deleted.", variant: "destructive" });
             onOpenChange(false);
@@ -119,10 +110,9 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
       }
       editor.commands.focus('end');
       setEditorMode('wysiwyg');
+      setIsSidebarOpen(true);
     }
-  // We only want to run this effect when the `open` or `item` props change, not when the editor instance itself changes.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [item, open]);
+  }, [item, open, editor, toast, onOpenChange]);
 
   const handleRawMarkdownChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newMarkdown = e.target.value;
@@ -138,9 +128,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
     setIsSaving(true);
     try {
       const newZone = await onZoneCreate(zoneName);
-      if (newZone) {
-        setSelectedZoneId(newZone.id);
-      }
+      if (newZone) setSelectedZoneId(newZone.id);
     } catch(e) {
         toast({ title: "Error", description: "Could not create new zone.", variant: "destructive" });
     } finally {
@@ -155,14 +143,13 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
     
     let htmlContent = editor.getHTML();
     
-    // Logic to extract title from H1 and use rest as description
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = htmlContent;
     const h1Element = tempDiv.querySelector('h1');
     let title = 'Untitled Note';
     if (h1Element && h1Element.textContent?.trim()) {
         title = h1Element.textContent.trim();
-        h1Element.remove(); // Remove h1 from the content to be saved as description
+        h1Element.remove();
     } else {
        const firstText = editor.getText().split('\n')[0]?.trim();
        if(firstText) title = firstText.split(/\s+/).slice(0, 5).join(' ') + (firstText.split(/\s+/).length > 5 ? '...' : '');
@@ -179,25 +166,24 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
     setIsSaving(true);
     
     try {
-        if (internalItem) { // This is an update
-            const updatePayload = {
-                title: title,
-                description: markdownContent,
-                tags: currentTags,
-                zoneIds: selectedZoneId ? [selectedZoneId] : [],
-            };
-            await updateContentItem(internalItem.id, updatePayload);
+        const payload = {
+            title: title,
+            description: markdownContent,
+            tags: currentTags,
+            zoneIds: selectedZoneId ? [selectedZoneId] : [],
+            memoryNote: memoryNote,
+        };
+
+        if (internalItem) {
+            await updateContentItem(internalItem.id, payload);
             toast({ title: "Note Updated" });
-        } else { // This is a new creation
+        } else {
             const contentData: Omit<ContentItem, 'id' | 'createdAt'> = {
                 type: 'note',
-                title: title,
-                description: markdownContent,
                 contentType: 'Note',
                 status: 'pending-analysis',
-                tags: currentTags,
-                zoneIds: selectedZoneId ? [selectedZoneId] : [],
                 userId: user.uid,
+                ...payload
             };
             await addContentItem(contentData);
             toast({ title: "Note Saved" });
@@ -222,9 +208,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
   };
   const removeTag = (tagToRemove: Tag) => setCurrentTags(currentTags.filter(tag => tag.id !== tagToRemove.id));
 
-  if (!editor) {
-    return null;
-  }
+  if (!editor) return null;
 
   const selectedZone = zones.find(z => z.id === selectedZoneId);
   const ZoneDisplayIcon = getIconComponent(selectedZone?.icon);
@@ -245,159 +229,169 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="w-[95vw] max-w-7xl h-[95vh] flex flex-col p-0 bg-card"
+        className="w-[95vw] max-w-7xl h-[95vh] flex p-0 bg-card"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <DialogHeader className="p-4 border-b flex-shrink-0 flex flex-row items-center justify-between">
-          <DialogTitle className="font-headline">Focus Mode</DialogTitle>
-          <div className="flex items-center gap-2">
-            <Button variant={editorMode === 'wysiwyg' ? 'default' : 'outline'} size="sm" onClick={() => setEditorMode('wysiwyg')}>Editor</Button>
-            <Button variant={editorMode === 'markdown' ? 'default' : 'outline'} size="sm" onClick={() => setEditorMode('markdown')}>Markdown</Button>
-          </div>
-        </DialogHeader>
-        
-        <div className="flex-grow overflow-y-auto p-8 md:p-12 relative">
-            <div className={cn('h-full', editorMode === 'wysiwyg' ? 'block' : 'hidden')}>
-                <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
-                    <ToggleGroup type="multiple" className="bg-background border rounded-md shadow-lg p-1">
-                        <ToggleGroupItem value="bold" aria-label="Toggle bold" onClick={() => editor.chain().focus().toggleBold().run()} data-state={editor.isActive('bold') ? 'on' : 'off'}>
-                            <Bold className="h-4 w-4" />
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="italic" aria-label="Toggle italic" onClick={() => editor.chain().focus().toggleItalic().run()} data-state={editor.isActive('italic') ? 'on' : 'off'}>
-                            <Italic className="h-4 w-4" />
-                        </ToggleGroupItem>
-                          <ToggleGroupItem value="underline" aria-label="Toggle underline" onClick={() => editor.chain().focus().toggleUnderline().run()} data-state={editor.isActive('underline') ? 'on' : 'off'}>
-                            <UnderlineIcon className="h-4 w-4" />
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="strike" aria-label="Toggle strikethrough" onClick={() => editor.chain().focus().toggleStrike().run()} data-state={editor.isActive('strike') ? 'on' : 'off'}>
-                            <Strikethrough className="h-4 w-4" />
-                        </ToggleGroupItem>
-                    </ToggleGroup>
-                </BubbleMenu>
-
-                 <FloatingMenu
-                    editor={editor}
-                    tippyOptions={{ duration: 100, placement: 'left' }}
-                    shouldShow={({ state }) => {
-                        const { $from } = state.selection;
-                        const ankerNode = $from.parent;
-                        const isAnkerNodeEmpty = ankerNode.isLeaf || !ankerNode.textContent.length;
-                        return isAnkerNodeEmpty && ankerNode.type.name !== 'heading';
-                    }}
-                    className="flex items-center gap-1"
-                >
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant="ghost" size="icon" className="rounded-full border bg-background shadow-sm text-muted-foreground h-8 w-8">
-                                <Plus className="h-5 w-5" />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-60 p-1">
-                            <Command>
-                                <CommandInput placeholder="Search blocks..." />
-                                <CommandList>
-                                    <CommandEmpty>No results found.</CommandEmpty>
-                                    <CommandGroup heading="Elements">
-                                    {blockMenuItems.map((item) => (
-                                        <CommandItem key={item.name} onSelect={item.command} className={cn(item.isActive() && "bg-accent text-accent-foreground")}>
-                                            <item.icon className="mr-2 h-4 w-4" />
-                                            <span>{item.name}</span>
-                                        </CommandItem>
-                                    ))}
-                                    </CommandGroup>
-                                </CommandList>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
-                    <Button variant="ghost" size="icon" className="rounded-full border bg-background shadow-sm text-muted-foreground h-8 w-8 cursor-grab">
-                        <GripVertical className="h-5 w-5" />
-                    </Button>
-                </FloatingMenu>
-
-              <EditorContent editor={editor} />
+        <div className="flex-1 flex flex-col min-h-0">
+          <DialogHeader className="p-4 border-b flex-shrink-0 flex flex-row items-center justify-between">
+            <DialogTitle className="font-headline">Focus Mode</DialogTitle>
+            <div className="flex items-center gap-2">
+              <Button variant={editorMode === 'wysiwyg' ? 'default' : 'outline'} size="sm" onClick={() => setEditorMode('wysiwyg')}>Editor</Button>
+              <Button variant={editorMode === 'markdown' ? 'default' : 'outline'} size="sm" onClick={() => setEditorMode('markdown')}>Markdown</Button>
+               <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                    {isSidebarOpen ? <PanelRightClose /> : <PanelRightOpen />}
+                </Button>
             </div>
-            <Textarea
-                value={rawMarkdown}
-                onChange={handleRawMarkdownChange}
-                className={cn(
-                  "w-full h-full font-mono text-sm bg-muted/30 resize-none border-0 focus-visible:ring-0 absolute inset-0 p-8 md:p-12",
-                  editorMode === 'markdown' ? 'block' : 'hidden'
-                )}
-                placeholder="Start typing markdown..."
-            />
+          </DialogHeader>
+          
+          <div className="flex-grow overflow-y-auto p-8 md:p-12 relative">
+              <div className={cn('h-full', editorMode === 'wysiwyg' ? 'block' : 'hidden')}>
+                  <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
+                      <ToggleGroup type="multiple" className="bg-background border rounded-md shadow-lg p-1">
+                          <ToggleGroupItem value="bold" aria-label="Toggle bold" onClick={() => editor.chain().focus().toggleBold().run()} data-state={editor.isActive('bold') ? 'on' : 'off'}>
+                              <Bold className="h-4 w-4" />
+                          </ToggleGroupItem>
+                          <ToggleGroupItem value="italic" aria-label="Toggle italic" onClick={() => editor.chain().focus().toggleItalic().run()} data-state={editor.isActive('italic') ? 'on' : 'off'}>
+                              <Italic className="h-4 w-4" />
+                          </ToggleGroupItem>
+                            <ToggleGroupItem value="underline" aria-label="Toggle underline" onClick={() => editor.chain().focus().toggleUnderline().run()} data-state={editor.isActive('underline') ? 'on' : 'off'}>
+                              <UnderlineIcon className="h-4 w-4" />
+                          </ToggleGroupItem>
+                          <ToggleGroupItem value="strike" aria-label="Toggle strikethrough" onClick={() => editor.chain().focus().toggleStrike().run()} data-state={editor.isActive('strike') ? 'on' : 'off'}>
+                              <Strikethrough className="h-4 w-4" />
+                          </ToggleGroupItem>
+                      </ToggleGroup>
+                  </BubbleMenu>
+
+                  <FloatingMenu
+                      editor={editor}
+                      tippyOptions={{ duration: 100, placement: 'left' }}
+                      shouldShow={({ state }) => {
+                          const { $from } = state.selection;
+                          const ankerNode = $from.parent;
+                          const isAnkerNodeEmpty = ankerNode.isLeaf || !ankerNode.textContent.length;
+                          return isAnkerNodeEmpty && ankerNode.type.name !== 'heading';
+                      }}
+                      className="block-menu"
+                  >
+                      <Popover>
+                          <PopoverTrigger asChild>
+                              <Button variant="ghost" size="icon" className="rounded-full border bg-background shadow-sm text-muted-foreground h-8 w-8">
+                                  <Plus className="h-5 w-5" />
+                              </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-60 p-1">
+                              <Command>
+                                  <CommandInput placeholder="Search blocks..." />
+                                  <CommandList>
+                                      <CommandEmpty>No results found.</CommandEmpty>
+                                      <CommandGroup heading="Elements">
+                                      {blockMenuItems.map((item) => (
+                                          <CommandItem key={item.name} onSelect={item.command} className={cn(item.isActive() && "bg-accent text-accent-foreground")}>
+                                              <item.icon className="mr-2 h-4 w-4" />
+                                              <span>{item.name}</span>
+                                          </CommandItem>
+                                      ))}
+                                      </CommandGroup>
+                                  </CommandList>
+                              </Command>
+                          </PopoverContent>
+                      </Popover>
+                      <Button variant="ghost" size="icon" className="rounded-full border bg-background shadow-sm text-muted-foreground h-8 w-8 cursor-grab">
+                          <GripVertical className="h-5 w-5" />
+                      </Button>
+                  </FloatingMenu>
+
+                <EditorContent editor={editor} />
+              </div>
+              <Textarea
+                  value={rawMarkdown}
+                  onChange={handleRawMarkdownChange}
+                  className={cn(
+                    "w-full h-full font-mono text-sm bg-muted/30 resize-none border-0 focus-visible:ring-0 absolute inset-0 p-8 md:p-12",
+                    editorMode === 'markdown' ? 'block' : 'hidden'
+                  )}
+                  placeholder="Start typing markdown..."
+              />
+          </div>
+
+          <DialogFooter className="p-4 border-t flex-shrink-0 flex items-center justify-end w-full">
+              <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
+                      Cancel
+                  </Button>
+                  <Button onClick={handleSave} disabled={isSaving}>
+                      {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Done
+                  </Button>
+              </div>
+          </DialogFooter>
         </div>
 
-        <DialogFooter className="p-4 border-t flex-shrink-0 flex items-center justify-between w-full">
-            <div className="flex items-center gap-2 flex-wrap">
-                <Popover open={isZonePopoverOpen} onOpenChange={setIsZonePopoverOpen}>
-                    <PopoverTrigger asChild>
-                        <Button variant="outline" role="combobox" aria-expanded={isZonePopoverOpen}
-                            className={cn("w-[200px] justify-between", !selectedZoneId && "text-muted-foreground")}>
-                            <div className="flex items-center"><ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" /><span className="truncate">{zoneDisplayName}</span></div>
-                            <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                        <Command>
-                            <CommandInput placeholder="Search or create zone..." value={zoneSearchText} onValueChange={setZoneSearchText} />
-                            <CommandList>
-                            <CommandEmpty>
-                                {zoneSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}
-                            </CommandEmpty>
-                            <CommandGroup>
-                                 <CommandItem onSelect={() => { setSelectedZoneId(undefined); setIsZonePopoverOpen(false); }}>
-                                    <Check className={cn("mr-2 h-4 w-4", selectedZoneId === undefined ? "opacity-100" : "opacity-0")} />
-                                    No Zone
-                                </CommandItem>
-                                {filteredZones.map((z) => {
-                                    const ListItemIcon = getIconComponent(z.icon);
-                                    return (
-                                    <CommandItem key={z.id} value={z.id} onSelect={() => { setSelectedZoneId(z.id); setIsZonePopoverOpen(false); }}>
-                                        <Check className={cn("mr-2 h-4 w-4", selectedZoneId === z.id ? "opacity-100" : "opacity-0")} />
-                                        <ListItemIcon className="mr-2 h-4 w-4 opacity-70" />
-                                        {z.name}
-                                    </CommandItem>
-                                    );
-                                })}
-                            </CommandGroup>
-                            {showCreateZoneOption && (
-                                <CommandGroup className="border-t">
-                                <CommandItem onSelect={() => handleCreateZone(zoneSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer justify-start">
-                                    <Plus className="mr-2 h-4 w-4" /><span>Create "{zoneSearchText.trim()}"</span>
-                                </CommandItem>
-                                </CommandGroup>
-                            )}
-                            </CommandList>
-                        </Command>
-                    </PopoverContent>
-                </Popover>
-                
-                <div className="flex items-center gap-2 border rounded-md pl-3 has-[:focus]:ring-2 has-[:focus]:ring-ring">
-                     {currentTags.map(tag => (
-                        <Badge key={tag.id} variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">
-                            {tag.name}
-                            <button type="button" onClick={() => removeTag(tag)} className="ml-1.5 focus:outline-none rounded-full hover:bg-destructive/20 p-0.5"><X className="h-3 w-3" /></button>
-                        </Badge>
-                     ))}
-                    <Input
-                        value={tagInput}
-                        onChange={(e) => setTagInput(e.target.value)}
-                        onKeyDown={handleTagInputKeyDown}
-                        placeholder="Add tags..."
-                        className="h-8 border-0 shadow-none focus-visible:ring-0 p-0 flex-1 min-w-[100px]"
-                    />
-                </div>
-            </div>
-            <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
-                    Cancel
-                </Button>
-                <Button onClick={handleSave} disabled={isSaving}>
-                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Done
-                </Button>
-            </div>
-        </DialogFooter>
+        {isSidebarOpen && (
+          <aside className="w-[320px] border-l bg-background flex-shrink-0 flex flex-col">
+              <ScrollArea className="flex-grow p-4">
+                  <div className="space-y-6">
+                      <div className="space-y-2">
+                          <Label>Zone</Label>
+                          <Popover open={isZonePopoverOpen} onOpenChange={setIsZonePopoverOpen}>
+                              <PopoverTrigger asChild>
+                                  <Button variant="outline" role="combobox" aria-expanded={isZonePopoverOpen}
+                                      className={cn("w-full justify-between", !selectedZoneId && "text-muted-foreground")}>
+                                      <div className="flex items-center"><ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" /><span className="truncate">{zoneDisplayName}</span></div>
+                                      <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                  <Command>
+                                      <CommandInput placeholder="Search or create zone..." value={zoneSearchText} onValueChange={setZoneSearchText} />
+                                      <CommandList>
+                                      <CommandEmpty>{zoneSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}</CommandEmpty>
+                                      <CommandGroup>
+                                          <CommandItem onSelect={() => { setSelectedZoneId(undefined); setIsZonePopoverOpen(false); }}>
+                                              <Check className={cn("mr-2 h-4 w-4", selectedZoneId === undefined ? "opacity-100" : "opacity-0")} /> No Zone
+                                          </CommandItem>
+                                          {filteredZones.map((z) => {
+                                              const ListItemIcon = getIconComponent(z.icon);
+                                              return (
+                                              <CommandItem key={z.id} value={z.name} onSelect={() => { setSelectedZoneId(z.id); setIsZonePopoverOpen(false); }}>
+                                                  <Check className={cn("mr-2 h-4 w-4", selectedZoneId === z.id ? "opacity-100" : "opacity-0")} />
+                                                  <ListItemIcon className="mr-2 h-4 w-4 opacity-70" />{z.name}
+                                              </CommandItem>);
+                                          })}
+                                      </CommandGroup>
+                                      {showCreateZoneOption && (
+                                          <CommandGroup className="border-t">
+                                          <CommandItem onSelect={() => handleCreateZone(zoneSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer justify-start">
+                                              <Plus className="mr-2 h-4 w-4" /><span>Create "{zoneSearchText.trim()}"</span>
+                                          </CommandItem>
+                                          </CommandGroup>
+                                      )}
+                                      </CommandList>
+                                  </Command>
+                              </PopoverContent>
+                          </Popover>
+                      </div>
+                       <div className="space-y-2">
+                          <Label>Tags</Label>
+                          <div className="flex flex-wrap gap-2">
+                              {currentTags.map(tag => (
+                                  <Badge key={tag.id} variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">
+                                      {tag.name}
+                                      <button type="button" onClick={() => removeTag(tag)} className="ml-1.5 focus:outline-none rounded-full hover:bg-destructive/20 p-0.5"><X className="h-3 w-3" /></button>
+                                  </Badge>
+                              ))}
+                          </div>
+                          <Input value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={handleTagInputKeyDown} placeholder="Add tags..." className="focus-visible:ring-accent" />
+                      </div>
+                      <div className="space-y-2">
+                          <Label className="flex items-center gap-2"><Pencil className="h-4 w-4"/> Memory Note</Label>
+                          <Textarea value={memoryNote} onChange={(e) => setMemoryNote(e.target.value)} placeholder="Add your personal thoughts..." className="min-h-[120px]" />
+                      </div>
+                  </div>
+              </ScrollArea>
+          </aside>
+        )}
       </DialogContent>
     </Dialog>
   );
