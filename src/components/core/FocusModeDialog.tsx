@@ -230,6 +230,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
   const ZoneDisplayIcon = getIconComponent(selectedZone?.icon);
   const zoneDisplayName = selectedZone?.name || 'Select a zone';
   const filteredZones = zoneSearchText ? zones.filter(z => z.name.toLowerCase().includes(zoneSearchText.toLowerCase())) : zones;
+  const showCreateZoneOption = zoneSearchText.trim() !== '' && !zones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase());
   
   const blockMenuItems = [
     { name: 'Text', icon: Pilcrow, command: () => editor.chain().focus().setParagraph().run(), isActive: () => editor.isActive('paragraph') },
