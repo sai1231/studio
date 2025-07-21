@@ -10,7 +10,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import Link from '@tiptap/extension-link';
-import Highlight from '@tiptap/extension-highlight';
+import TiptapHighlight from '@tiptap/extension-highlight';
 import TextAlign from '@tiptap/extension-text-align';
 import Typography from '@tiptap/extension-typography';
 import Focus from '@tiptap/extension-focus';
@@ -26,7 +26,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { 
     Bold, Italic, Underline as UnderlineIcon, Strikethrough, Plus, Check, ChevronDown, Bookmark,
     Type, List, ListOrdered, CheckSquare, Quote, GripVertical, PanelRightOpen, PanelRightClose, 
-    Pencil, Code, Bot, Image as ImageIcon, Minus, Columns, Table, Link as LinkIcon, Highlight as HighlightIcon,
+    Pencil, Code, Bot, Image as ImageIcon, Minus, Columns, Table, Link as LinkIcon, Highlighter as HighlightIcon,
     Pilcrow, AlignCenter, AlignRight, AlignLeft
 } from 'lucide-react';
 import type { Zone, ContentItem, Tag } from '@/types';
@@ -78,15 +78,12 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       Underline,
       Link.configure({ openOnClick: false }),
-      Highlight.configure({ multicolor: true }),
+      TiptapHighlight.configure({ multicolor: true }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Typography,
       Focus.configure({ className: 'has-focus', mode: 'all' }),
       Placeholder.configure({
         placeholder: ({ node }) => {
-          if (node.type.name === 'heading') {
-            return 'What’s the title?';
-          }
           if (node.isFirstChild && node.isEmpty) {
             return "Type / or browse to options";
           }
@@ -130,7 +127,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
         });
       }
       editor.commands.focus('end');
-      setIsSidebarOpen(false); // Collapse sidebar by default
+      setIsSidebarOpen(false);
     }
   }, [item, open, editor, toast, onOpenChange]);
   
@@ -239,8 +236,6 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
   const selectedZone = zones.find(z => z.id === selectedZoneId);
   const ZoneDisplayIcon = getIconComponent(selectedZone?.icon);
   const zoneDisplayName = selectedZone?.name || 'Select a zone';
-  const filteredZones = zoneSearchText ? zones.filter(z => z.name.toLowerCase().includes(zoneSearchText.toLowerCase())) : zones;
-  const showCreateZoneOption = zoneSearchText.trim() !== '' && !zones.some(z => z.name.toLowerCase() === zoneSearchText.trim().toLowerCase());
   
   const blockMenuItems = [
     { name: 'AI Writer', icon: Bot, command: () => toast({title: "Coming Soon!", description: "AI Writer will be available soon."}), isActive: () => false },
@@ -386,12 +381,12 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
                                   <Command>
                                       <CommandInput placeholder="Search or create zone..." value={zoneSearchText} onValueChange={setZoneSearchText} />
                                       <CommandList>
-                                      <CommandEmpty>{zoneSearchText.trim() === '' ? 'No zones found.' : 'No matching zones found.'}</CommandEmpty>
+                                      <CommandEmpty>No matching zones found.</CommandEmpty>
                                       <CommandGroup>
                                           <CommandItem onSelect={() => { setSelectedZoneId(undefined); setIsZonePopoverOpen(false); }}>
                                               <Check className={cn("mr-2 h-4 w-4", selectedZoneId === undefined ? "opacity-100" : "opacity-0")} /> No Zone
                                           </CommandItem>
-                                          {filteredZones.map((z) => {
+                                          {zones.map((z) => {
                                               const ListItemIcon = getIconComponent(z.icon);
                                               return (
                                               <CommandItem key={z.id} value={z.name} onSelect={() => { setSelectedZoneId(z.id); setIsZonePopoverOpen(false); }}>
@@ -400,13 +395,6 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
                                               </CommandItem>);
                                           })}
                                       </CommandGroup>
-                                      {showCreateZoneOption && (
-                                          <CommandGroup className="border-t">
-                                          <CommandItem onSelect={() => handleCreateZone(zoneSearchText)} className="text-primary hover:!bg-primary/10 cursor-pointer justify-start">
-                                              <Plus className="mr-2 h-4 w-4" /><span>Create "{zoneSearchText.trim()}"</span>
-                                          </CommandItem>
-                                          </CommandGroup>
-                                      )}
                                       </CommandList>
                                   </Command>
                               </PopoverContent>
