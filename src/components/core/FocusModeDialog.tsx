@@ -30,10 +30,9 @@ import { addContentItem, updateContentItem, getContentItemById } from '@/service
 import { useAuth } from '@/context/AuthContext';
 import TurndownService from 'turndown';
 import { marked } from 'marked';
-import { Textarea } from '../ui/textarea';
-import { getIconComponent } from '@/lib/icon-map';
 import { ScrollArea } from '../ui/scroll-area';
 import { Label } from '../ui/label';
+import { getIconComponent } from '@/lib/icon-map';
 
 
 interface FocusModeDialogProps {
@@ -60,8 +59,6 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
   const [isZonePopoverOpen, setIsZonePopoverOpen] = useState(false);
   const [zoneSearchText, setZoneSearchText] = useState('');
 
-  const [editorMode, setEditorMode] = useState<'wysiwyg' | 'markdown'>('wysiwyg');
-  const [rawMarkdown, setRawMarkdown] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   
   const editor = useEditor({
@@ -77,17 +74,13 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
         class: 'prose dark:prose-invert prose-lg focus:outline-none max-w-full my-0',
       },
     },
-    onUpdate: ({ editor }) => {
-      setRawMarkdown(turndownService.turndown(editor.getHTML()));
-    },
     autofocus: true,
   });
 
   useEffect(() => {
     if (open && editor) {
       if (!item) {
-        editor.commands.setContent('');
-        setRawMarkdown('');
+        editor.commands.setContent('<h1>New page</h1><p></p>');
         setSelectedZoneId(undefined);
         setCurrentTags([]);
         setMemoryNote('');
@@ -97,8 +90,9 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
           if (freshItem) {
             setInternalItem(freshItem);
             const html = marked.parse(freshItem.description || '') as string;
-            editor.commands.setContent(html, false);
-            setRawMarkdown(freshItem.description || '');
+            // Prepend title if it exists
+            const fullHtml = `<h1>${freshItem.title || 'Untitled'}</h1>${html}`;
+            editor.commands.setContent(fullHtml, false);
             setSelectedZoneId(freshItem.zoneIds?.[0]);
             setCurrentTags(freshItem.tags || []);
             setMemoryNote(freshItem.memoryNote || '');
@@ -109,19 +103,9 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
         });
       }
       editor.commands.focus('end');
-      setEditorMode('wysiwyg');
       setIsSidebarOpen(true);
     }
   }, [item, open, editor, toast, onOpenChange]);
-
-  const handleRawMarkdownChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newMarkdown = e.target.value;
-    setRawMarkdown(newMarkdown);
-    if (editor) {
-      const html = marked.parse(newMarkdown) as string;
-      editor.commands.setContent(html, false);
-    }
-  };
   
   const handleCreateZone = async (zoneName: string) => {
     if (!zoneName.trim() || isSaving) return;
@@ -236,8 +220,6 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
           <DialogHeader className="p-4 border-b flex-shrink-0 flex flex-row items-center justify-between">
             <DialogTitle className="font-headline">Focus Mode</DialogTitle>
             <div className="flex items-center gap-2">
-              <Button variant={editorMode === 'wysiwyg' ? 'default' : 'outline'} size="sm" onClick={() => setEditorMode('wysiwyg')}>Editor</Button>
-              <Button variant={editorMode === 'markdown' ? 'default' : 'outline'} size="sm" onClick={() => setEditorMode('markdown')}>Markdown</Button>
                <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
                     {isSidebarOpen ? <PanelRightClose /> : <PanelRightOpen />}
                 </Button>
@@ -245,7 +227,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
           </DialogHeader>
           
           <div className="flex-grow overflow-y-auto p-8 md:p-12 relative">
-              <div className={cn('h-full', editorMode === 'wysiwyg' ? 'block' : 'hidden')}>
+              <div className='h-full'>
                   <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
                       <ToggleGroup type="multiple" className="bg-background border rounded-md shadow-lg p-1">
                           <ToggleGroupItem value="bold" aria-label="Toggle bold" onClick={() => editor.chain().focus().toggleBold().run()} data-state={editor.isActive('bold') ? 'on' : 'off'}>
@@ -304,15 +286,6 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
 
                 <EditorContent editor={editor} />
               </div>
-              <Textarea
-                  value={rawMarkdown}
-                  onChange={handleRawMarkdownChange}
-                  className={cn(
-                    "w-full h-full font-mono text-sm bg-muted/30 resize-none border-0 focus-visible:ring-0 absolute inset-0 p-8 md:p-12",
-                    editorMode === 'markdown' ? 'block' : 'hidden'
-                  )}
-                  placeholder="Start typing markdown..."
-              />
           </div>
 
           <DialogFooter className="p-4 border-t flex-shrink-0 flex items-center justify-end w-full">
@@ -328,9 +301,12 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
           </DialogFooter>
         </div>
 
-        {isSidebarOpen && (
-          <aside className="w-[320px] border-l bg-background flex-shrink-0 flex flex-col">
-              <ScrollArea className="flex-grow p-4">
+        <div className={cn(
+          "flex flex-col transition-all duration-300 ease-in-out overflow-hidden",
+          isSidebarOpen ? "w-[320px]" : "w-0"
+        )}>
+            <div className="bg-card border-l flex-shrink-0 h-full w-[320px]">
+              <ScrollArea className="h-full p-4">
                   <div className="space-y-6">
                       <div className="space-y-2">
                           <Label>Zone</Label>
@@ -390,8 +366,8 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
                       </div>
                   </div>
               </ScrollArea>
-          </aside>
-        )}
+            </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
