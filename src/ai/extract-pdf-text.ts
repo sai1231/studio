@@ -31,12 +31,12 @@ export async function extractTextFromPdf(url: string): Promise<string | null> {
     await addLog('INFO', `[PDF Extractor] Successfully extracted ${extractedText.length} characters from the first ${data.numpages} pages.`);
 
     // Initialize the summarization pipeline with BART large CNN model
-    const summarizer = await pipeline('summarization', 'Xenova/bart-large-cnn');
+    const summarizer = await pipeline('summarization', 'Xenova/long-t5-tglobal-base');
 
     // Generate the summary
     const result = await summarizer(extractedText, {
-      max_length: 150,       // Target output length in tokens (~4–5 sentences)
-      min_length: 80,        // Prevent ultra-short summaries
+      max_length: 450,       // Target output length in tokens (~4–5 sentences)
+      min_length: 220,        // Prevent ultra-short summaries
       no_repeat_ngram_size: 3,
       do_sample: false,      // Use beam search for coherence
       num_beams: 4,

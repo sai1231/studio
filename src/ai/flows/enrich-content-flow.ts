@@ -94,22 +94,22 @@ const enrichContentFlow = ai.defineFlow(
             }
           }
         }
-        
+
         // PDF Text Extraction
         if (contentData.type === 'link' && contentData.contentType === 'PDF' && contentData.url) {
-            await addLog('INFO', `[${contentId}] 📄 PDF found. Extracting text...`);
-            try {
-                const text = await extractTextFromPdf(contentData.url);
-                if (text) {
-                    updatePayload.description = (contentData.description || '') + (contentData.description ? '\n\n' : '') + text;
-                    await addLog('INFO', `[${contentId}] 📄✅ Successfully extracted text from PDF.`);
-                } else {
-                    await addLog('WARN', `[${contentId}] 📄⚠️ PDF text extraction returned no content.`);
-                }
-            } catch (e: any) {
-                enrichmentFailed = true;
-                await addLog('ERROR', `[${contentId}] 📄❌ Error extracting text from PDF:`, { error: e.message });
+          await addLog('INFO', `[${contentId}] 📄 PDF found. Extracting text...`);
+          try {
+            const text = await extractTextFromPdf(contentData.url);
+            if (text) {
+              updatePayload.description = (contentData.description || '') + (contentData.description ? '\n\n' : '') + text;
+              await addLog('INFO', `[${contentId}] 📄✅ Successfully extracted text from PDF.`);
+            } else {
+              await addLog('WARN', `[${contentId}] 📄⚠️ PDF text extraction returned no content.`);
             }
+          } catch (e: any) {
+            enrichmentFailed = true;
+            await addLog('ERROR', `[${contentId}] 📄❌ Error extracting text from PDF:`, { error: e.message });
+          }
         }
 
         // Check if the item is an image to enrich with a caption
@@ -130,102 +130,104 @@ const enrichContentFlow = ai.defineFlow(
             await addLog('ERROR', `[${contentId}] 🖼️❌ Error generating caption:`, { error: e.message });
           }
         }
-        
+
         // Fetch and save image colors
         if ((contentData.type === 'image' || contentData.type === 'link') && contentData.imageUrl && contentData.contentType !== 'PDF') {
-            await addLog('INFO', `[${contentId}] 🖼️ Image found. Starting color analysis...`);
-            try {
-                const imageResponse = await fetch(contentData.imageUrl);
-                if (!imageResponse.ok) {
-                    throw new Error(`Failed to fetch image for analysis: ${imageResponse.statusText}`);
-                }
-                const arrayBuffer = await imageResponse.arrayBuffer();
-                const imageBuffer = Buffer.from(arrayBuffer);
-
-                const colors = await fetchImageColors(imageBuffer, contentId);
-                if (colors && colors.length > 0) {
-                    updatePayload.colorPalette = colors;
-                    await addLog('INFO', `[${contentId}] 🎨✅ Successfully fetched color palette.`);
-                } else {
-                    await addLog('WARN', `[${contentId}] 🎨⚠️ No color palette extracted.`);
-                }
-            } catch (e: any) {
-                enrichmentFailed = true;
-                await addLog('ERROR', `[${contentId}] 🎨❌ Error analyzing image colors:`, { error: e.message });
+          await addLog('INFO', `[${contentId}] 🖼️ Image found. Starting color analysis...`);
+          try {
+            const imageResponse = await fetch(contentData.imageUrl);
+            if (!imageResponse.ok) {
+              throw new Error(`Failed to fetch image for analysis: ${imageResponse.statusText}`);
             }
+            const arrayBuffer = await imageResponse.arrayBuffer();
+            const imageBuffer = Buffer.from(arrayBuffer);
+
+            const colors = await fetchImageColors(imageBuffer, contentId);
+            if (colors && colors.length > 0) {
+              updatePayload.colorPalette = colors;
+              await addLog('INFO', `[${contentId}] 🎨✅ Successfully fetched color palette.`);
+            } else {
+              await addLog('WARN', `[${contentId}] 🎨⚠️ No color palette extracted.`);
+            }
+          } catch (e: any) {
+            enrichmentFailed = true;
+            await addLog('ERROR', `[${contentId}] 🎨❌ Error analyzing image colors:`, { error: e.message });
+          }
         }
-        
+
         if (contentData.imageUrl && !updatePayload.imageDimensions) {
-            try {
-                const imageResponse = await fetch(contentData.imageUrl);
-                if (imageResponse.ok) {
-                    const buffer = await imageResponse.arrayBuffer();
-                    // This is a placeholder for a real image size calculation library
-                    // For now, we will assume we can't get dimensions server-side easily
-                    // and rely on client-side aspect ratio.
-                }
-            } catch(e) {
-                 await addLog('WARN', `[${contentId}] Could not get image dimensions:`, { error: (e as Error).message });
+          try {
+            const imageResponse = await fetch(contentData.imageUrl);
+            if (imageResponse.ok) {
+              const buffer = await imageResponse.arrayBuffer();
+              // This is a placeholder for a real image size calculation library
+              // For now, we will assume we can't get dimensions server-side easily
+              // and rely on client-side aspect ratio.
             }
+          } catch (e) {
+            await addLog('WARN', `[${contentId}] Could not get image dimensions:`, { error: (e as Error).message });
+          }
         }
 
-      // Keyword and Key Phrase Extraction
-      const descriptionToAnalyze = updatePayload.description || contentData.description;
+        // Keyword and Key Phrase Extraction
+        const descriptionToAnalyze = updatePayload.description || contentData.description;
 
-      if (descriptionToAnalyze && typeof descriptionToAnalyze === 'string') {
-        await addLog('INFO', `[${contentId}] 📝 Extracting keywords and key phrases...`);
+        if (descriptionToAnalyze && typeof descriptionToAnalyze === 'string') {
+          await addLog('INFO', `[${contentId}] 📝 Extracting keywords and key phrases...`);
 
-        try {
-          const formattedTags = await extractTagsFromText(descriptionToAnalyze);          
+          try {
+            const formattedTags = await extractTagsFromText(descriptionToAnalyze);
 
-          if (formattedTags.length > 0) {
-            // Get existing tags from contentData, default to empty array if none
-            const existingTags = contentData.tags || [];
-            // Combine existing and new tags
-            const combinedTags = [...existingTags, ...formattedTags];
-            await addLog('INFO', `[${contentId}] 📝 combinedTags tags:`, { combinedTags });
-            // Remove duplicates based on tag name (assuming name is unique identifier)
-            const uniqueTags = combinedTags.filter((tag, index, self) =>
-              index === self.findIndex((t) => (
-                t.name === tag.name
-              ))
-            );
-            updatePayload = {
-              ...updatePayload,
-              tags: [...(updatePayload.tags || []), ...uniqueTags],
-            };
+            if (formattedTags.length > 0) {
+              // Get existing tags from contentData, default to empty array if none
+              const existingTags = contentData.tags || [];
+              // Combine existing and new tags
+              const combinedTags = [...existingTags, ...formattedTags];
+              await addLog('INFO', `[${contentId}] 📝 combinedTags tags:`, { combinedTags });
+              // Remove duplicates based on tag name (assuming name is unique identifier)
+              const uniqueTags = combinedTags.filter((tag, index, self) =>
+                index === self.findIndex((t) => (
+                  t.name === tag.name
+                ))
+              );
+              updatePayload = {
+                ...updatePayload,
+                tags: [...(updatePayload.tags || []), ...uniqueTags],
+              };
 
-            await addLog('INFO', `[${contentId}] 📝✅ Successfully extracted keywords.`, { formattedTags });
-          } else {
-            await addLog('INFO', `[${contentId}] 📝ℹ️ No keywords extracted.`);
+              await addLog('INFO', `[${contentId}] 📝✅ Successfully extracted keywords.`, { formattedTags });
+            } else {
+              await addLog('INFO', `[${contentId}] 📝ℹ️ No keywords extracted.`);
+            }
+
+          } catch (e: any) {
+            enrichmentFailed = true;
+            await addLog('ERROR', `[${contentId}] 📝❌ Error during keyword extraction:`, { error: e.message });
           }
 
-        } catch (e: any) {
-          enrichmentFailed = true;
-          await addLog('ERROR', `[${contentId}] 📝❌ Error during keyword extraction:`, { error: e.message });
-        }
-
-        // Title Generation (separate try...catch)
-        try {
-            const generatedTitle = generateTitle(descriptionToAnalyze);
-            await addLog('INFO', `[${contentId}] 📝 Generated title:`, { generatedTitle });
-             // If no title exists and a title was generated, use it
-            if (generatedTitle) {
-              updatePayload.title = generatedTitle;
+          // Title Generation (separate try...catch)
+          try {
+            if (updatePayload.contentType != "PDF") {
+              const generatedTitle = generateTitle(descriptionToAnalyze);
+              await addLog('INFO', `[${contentId}] 📝 Generated title:`, { generatedTitle });
+              // If no title exists and a title was generated, use it
+              if (generatedTitle) {
+                updatePayload.title = generatedTitle;
+              }
             }
-        } catch (e: any) {
-          enrichmentFailed = true;
-          await addLog('ERROR', `[${contentId}] 📝❌ Error during title generation:`, { error: e.message });
+          } catch (e: any) {
+            enrichmentFailed = true;
+            await addLog('ERROR', `[${contentId}] 📝❌ Error during title generation:`, { error: e.message });
+          }
+        } else {
+          await addLog('INFO', `[${contentId}] 📝ℹ️ Skipping keyword extraction: description is empty or not a string.`);
         }
-      } else {
-        await addLog('INFO', `[${contentId}] 📝ℹ️ Skipping keyword extraction: description is empty or not a string.`);
-      }
 
-      // START: Role-Based Image Compression Logic
-      const userId = contentData.userId;
-      if (!userId) {
+        // START: Role-Based Image Compression Logic
+        const userId = contentData.userId;
+        if (!userId) {
           await addLog('WARN', `[${contentId}] No userId found, skipping role-based enrichment.`);
-      } else {
+        } else {
           try {
             const roleId = await getUserRoleId(userId);
             const role = roleId ? await getRoleById(roleId) : null;
@@ -234,58 +236,58 @@ const enrichContentFlow = ai.defineFlow(
             const isFreeUser = role?.name === 'free_user';
 
             if (isFreeUser && contentData.imageUrl) {
-                const contentItemForCompression: ContentItem = { id: contentId, ...contentData } as ContentItem;
-                const compressedUrl = await compressAndStoreImage(contentItemForCompression);
-                if (compressedUrl) {
-                    updatePayload.imageUrl = compressedUrl;
-                }
+              const contentItemForCompression: ContentItem = { id: contentId, ...contentData } as ContentItem;
+              const compressedUrl = await compressAndStoreImage(contentItemForCompression);
+              if (compressedUrl) {
+                updatePayload.imageUrl = compressedUrl;
+              }
             }
           } catch (e: any) {
             enrichmentFailed = true;
             await addLog('ERROR', `[${contentId}] compress-image-failed-error:`, { error: e.message });
           }
+        }
+        // END: Role-Based Image Compression Logic
+
+        if (enrichmentFailed) {
+          updatePayload.status = 'failed-analysis';
+          await addLog('WARN', `[${contentId}] ⚠️ Setting status to 'failed-analysis' due to errors.`);
+        }
+
+        await updateDoc(docRef, updatePayload);
+        await addLog('INFO', `[${contentId}] ✅ Successfully updated document with payload:`, { payload: updatePayload });
+
+      } else {
+        await addLog('INFO', `[${contentId}] ⏭️ Skipping enrichment, status is '${contentData.status}', not 'pending-analysis'.`);
       }
-      // END: Role-Based Image Compression Logic
 
-      if (enrichmentFailed) {
-        updatePayload.status = 'failed-analysis';
-        await addLog('WARN', `[${contentId}] ⚠️ Setting status to 'failed-analysis' due to errors.`);
-      }
-
-      await updateDoc(docRef, updatePayload);
-      await addLog('INFO', `[${contentId}] ✅ Successfully updated document with payload:`, { payload: updatePayload });
-
-    } else {
-      await addLog('INFO', `[${contentId}] ⏭️ Skipping enrichment, status is '${contentData.status}', not 'pending-analysis'.`);
+    } catch (error: any) {
+      await addLog('ERROR', `[${contentId}] ❌ CRITICAL ERROR during enrichment flow:`, { error: error.message, details: cleanObjectForFirestore(error) });
+      await updateDoc(docRef, {
+        status: 'failed-analysis'
+      }).catch(e => addLog('ERROR', `[${contentId}] ❌ Failed to update status to 'failed-analysis' after critical error`, { error: (e as Error).message }));
     }
-
-  } catch (error: any) {
-    await addLog('ERROR', `[${contentId}] ❌ CRITICAL ERROR during enrichment flow:`, { error: error.message, details: cleanObjectForFirestore(error) });
-    await updateDoc(docRef, {
-      status: 'failed-analysis'
-    }).catch(e => addLog('ERROR', `[${contentId}] ❌ Failed to update status to 'failed-analysis' after critical error`, { error: (e as Error).message }));
-  }
   }
 );
 
 // Helper to recursively remove undefined values from an object, as Firestore doesn't support them.
 function cleanObjectForFirestore(obj: any): any {
-    if (obj === null || typeof obj !== 'object') {
-        return obj;
-    }
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
 
-    if (Array.isArray(obj)) {
-        return obj.map(item => cleanObjectForFirestore(item));
-    }
+  if (Array.isArray(obj)) {
+    return obj.map(item => cleanObjectForFirestore(item));
+  }
 
-    const newObj: { [key: string]: any } = {};
-    for (const key in obj) {
-        if (Object.prototype.hasOwnProperty.call(obj, key)) {
-            const value = obj[key];
-            if (value !== undefined) {
-                newObj[key] = cleanObjectForFirestore(value);
-            }
-        }
+  const newObj: { [key: string]: any } = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const value = obj[key];
+      if (value !== undefined) {
+        newObj[key] = cleanObjectForFirestore(value);
+      }
     }
-    return newObj;
+  }
+  return newObj;
 }
