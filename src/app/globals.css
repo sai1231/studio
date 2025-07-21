@@ -150,6 +150,9 @@ body {
   .ProseMirror li[data-type="taskItem"] {
     @apply flex items-center gap-2;
   }
+  .ProseMirror ul[data-type="taskList"] > li[data-type="taskItem"]::before {
+    content: none;
+  }
   .ProseMirror li[data-type="taskItem"] > label {
     @apply flex items-center gap-2;
   }
