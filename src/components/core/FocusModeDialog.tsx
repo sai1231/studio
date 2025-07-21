@@ -2,8 +2,8 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
+import React, { useState, useEffect, useCallback, Fragment } from 'react';
+import { useEditor, EditorContent, BubbleMenu, FloatingMenu } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -17,8 +17,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code, Plus, Check, ChevronDown, Bookmark, Briefcase, Home, Library, ListChecks } from 'lucide-react';
+import { Toggle, ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Bold, Italic, Underline as UnderlineIcon, Strikethrough, Plus, Check, ChevronDown, Bookmark, Briefcase, Home, Library, ListChecks, Type, Pilcrow, List, ListOrdered, CheckSquare, Quote } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import type { Zone, ContentItem, Tag } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -81,7 +81,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
       StarterKit,
       Underline,
       Placeholder.configure({
-        placeholder: 'Write something amazing...',
+        placeholder: 'Write something amazing, or type `/` for commands...',
       }),
       TaskList,
       TaskItem.configure({
@@ -90,7 +90,7 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
     ],
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert focus:outline-none max-w-full my-0',
+        class: 'prose dark:prose-invert prose-lg focus:outline-none max-w-full my-0',
       },
     },
     onUpdate: ({ editor }) => {
@@ -226,6 +226,16 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
   const ZoneDisplayIcon = getIconComponent(selectedZone?.icon);
   const zoneDisplayName = selectedZone?.name || 'Select a zone';
   const filteredZones = zoneSearchText ? zones.filter(z => z.name.toLowerCase().includes(zoneSearchText.toLowerCase())) : zones;
+  
+  const blockMenuItems = [
+    { name: 'Text', icon: Pilcrow, command: () => editor.chain().focus().setParagraph().run(), isActive: () => editor.isActive('paragraph') },
+    { name: 'Heading 1', icon: Type, command: () => editor.chain().focus().toggleHeading({ level: 1 }).run(), isActive: () => editor.isActive('heading', { level: 1 }) },
+    { name: 'Heading 2', icon: Type, command: () => editor.chain().focus().toggleHeading({ level: 2 }).run(), isActive: () => editor.isActive('heading', { level: 2 }) },
+    { name: 'Bullet List', icon: List, command: () => editor.chain().focus().toggleBulletList().run(), isActive: () => editor.isActive('bulletList') },
+    { name: 'Numbered List', icon: ListOrdered, command: () => editor.chain().focus().toggleOrderedList().run(), isActive: () => editor.isActive('orderedList') },
+    { name: 'Task List', icon: CheckSquare, command: () => editor.chain().focus().toggleTaskList().run(), isActive: () => editor.isActive('taskList') },
+    { name: 'Blockquote', icon: Quote, command: () => editor.chain().focus().toggleBlockquote().run(), isActive: () => editor.isActive('blockquote') },
+  ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -243,30 +253,59 @@ const FocusModeDialog: React.FC<FocusModeDialogProps> = ({ item, open, onOpenCha
         
         <div className="flex-grow overflow-y-auto p-8 md:p-12 relative">
             <div className={cn('h-full', editorMode === 'wysiwyg' ? 'block' : 'hidden')}>
+                <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
+                    <ToggleGroup type="multiple" className="bg-background border rounded-md shadow-lg p-1">
+                        <ToggleGroupItem value="bold" aria-label="Toggle bold" onClick={() => editor.chain().focus().toggleBold().run()} data-state={editor.isActive('bold') ? 'on' : 'off'}>
+                            <Bold className="h-4 w-4" />
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="italic" aria-label="Toggle italic" onClick={() => editor.chain().focus().toggleItalic().run()} data-state={editor.isActive('italic') ? 'on' : 'off'}>
+                            <Italic className="h-4 w-4" />
+                        </ToggleGroupItem>
+                          <ToggleGroupItem value="underline" aria-label="Toggle underline" onClick={() => editor.chain().focus().toggleUnderline().run()} data-state={editor.isActive('underline') ? 'on' : 'off'}>
+                            <UnderlineIcon className="h-4 w-4" />
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="strike" aria-label="Toggle strikethrough" onClick={() => editor.chain().focus().toggleStrike().run()} data-state={editor.isActive('strike') ? 'on' : 'off'}>
+                            <Strikethrough className="h-4 w-4" />
+                        </ToggleGroupItem>
+                    </ToggleGroup>
+                </BubbleMenu>
+
+                <FloatingMenu
+                    editor={editor}
+                    tippyOptions={{ duration: 100 }}
+                    shouldShow={({ state }) => {
+                        const { $from } = state.selection;
+                        const ankerNode = $from.parent;
+                        const isAnkerNodeEmpty = ankerNode.isLeaf || !ankerNode.textContent.length;
+                        return isAnkerNodeEmpty;
+                    }}
+                >
+                  <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant="ghost" size="icon" className="rounded-full border bg-background shadow-sm text-muted-foreground h-8 w-8">
+                            <Plus className="h-5 w-5" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-60 p-1">
+                        <Command>
+                            <CommandInput placeholder="Search blocks..." />
+                            <CommandList>
+                                <CommandEmpty>No results found.</CommandEmpty>
+                                <CommandGroup heading="Elements">
+                                {blockMenuItems.map((item) => (
+                                    <CommandItem key={item.name} onSelect={item.command} className={cn(item.isActive() && "bg-accent text-accent-foreground")}>
+                                        <item.icon className="mr-2 h-4 w-4" />
+                                        <span>{item.name}</span>
+                                    </CommandItem>
+                                ))}
+                                </CommandGroup>
+                            </CommandList>
+                        </Command>
+                    </PopoverContent>
+                  </Popover>
+                </FloatingMenu>
+
               <EditorContent editor={editor} />
-              <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
-                  <ToggleGroup type="multiple" className="bg-background border rounded-md shadow-lg p-1">
-                      <ToggleGroupItem value="bold" aria-label="Toggle bold" onClick={() => editor.chain().focus().toggleBold().run()} data-active={editor.isActive('bold')}>
-                          <Bold className="h-4 w-4" />
-                      </ToggleGroupItem>
-                      <ToggleGroupItem value="italic" aria-label="Toggle italic" onClick={() => editor.chain().focus().toggleItalic().run()} data-active={editor.isActive('italic')}>
-                          <Italic className="h-4 w-4" />
-                      </ToggleGroupItem>
-                        <ToggleGroupItem value="underline" aria-label="Toggle underline" onClick={() => editor.chain().focus().toggleUnderline().run()} data-active={editor.isActive('underline')}>
-                          <UnderlineIcon className="h-4 w-4" />
-                      </ToggleGroupItem>
-                      <ToggleGroupItem value="strike" aria-label="Toggle strikethrough" onClick={() => editor.chain().focus().toggleStrike().run()} data-active={editor.isActive('strike')}>
-                          <Strikethrough className="h-4 w-4" />
-                      </ToggleGroupItem>
-                      <Separator orientation="vertical" className="h-6 mx-1" />
-                      <ToggleGroupItem value="tasks" aria-label="Toggle Task List" onClick={() => editor.chain().focus().toggleTaskList().run()} data-active={editor.isActive('taskList')}>
-                          <ListChecks className="h-4 w-4" />
-                      </ToggleGroupItem>
-                      <ToggleGroupItem value="code" aria-label="Toggle code" onClick={() => editor.chain().focus().toggleCode().run()} data-active={editor.isActive('code')}>
-                          <Code className="h-4 w-4" />
-                      </ToggleGroupItem>
-                  </ToggleGroup>
-              </BubbleMenu>
             </div>
             <Textarea
                 value={rawMarkdown}
