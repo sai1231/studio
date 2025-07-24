@@ -195,7 +195,15 @@ export const reindexAllContent = async (): Promise<{ count: number }> => {
         const settingsTask = await index.updateSettings({
             filterableAttributes: ['userId', 'zoneIds', 'contentType', 'tags', 'domain', 'colorPalette', 'isTrashed'],
             sortableAttributes: ['createdAt', 'trashedAt'],
-            searchableAttributes: ['title', 'description', 'tags', 'url', 'domain', 'zoneNames', 'colorPalette']
+            searchableAttributes: ['title', 'description', 'tags', 'url', 'domain', 'zoneNames', 'colorPalette'],
+            typoTolerance: {
+                enabled: true,
+                minWordSizeForTypos: {
+                    oneTypo: 3, // Allow 1 typo for words of 3 chars or more
+                    twoTypos: 6  // Allow 2 typos for words of 6 chars or more
+                },
+                disableOnAttributes: ['url', 'tags', 'zoneIds']
+            }
         });
         await client.waitForTask(settingsTask.taskUid);
         addLog('INFO', '[MeiliSearch] Index settings updated.');
