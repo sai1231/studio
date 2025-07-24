@@ -187,10 +187,6 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones: allCollections, tags, do
           </div>
           
           <div className="mt-auto flex flex-col items-center gap-2 p-2">
-            <a href="/admin" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center text-center gap-1 rounded-lg p-2 text-sidebar-foreground transition-all w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
-                <Shield className="h-5 w-5" />
-                <span className="text-[10px] font-medium leading-none">Admin</span>
-            </a>
             <ThemeToggle />
             <Button variant="ghost" onClick={handleLogout} className="flex w-full flex-col items-center justify-center h-auto gap-1 rounded-lg p-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                <LogOut className="h-5 w-5" />
