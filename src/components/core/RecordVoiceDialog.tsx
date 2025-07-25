@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import type React from 'react';
@@ -241,7 +242,7 @@ const RecordVoiceDialog: React.FC<RecordVoiceDialogProps> = ({ open, onOpenChang
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg bg-card">
         <DialogHeader>
           <DialogTitle className="flex items-center text-2xl font-headline">
             <Mic className="h-6 w-6 mr-3 text-primary" />

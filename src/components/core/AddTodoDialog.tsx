@@ -123,7 +123,7 @@ const AddTodoDialog: React.FC<AddTodoDialogProps> = ({ open, onOpenChange }) => 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg md:max-w-xl max-h-[80vh] flex flex-col">
+      <DialogContent className="sm:max-w-lg md:max-w-xl max-h-[80vh] flex flex-col bg-card">
         <DialogHeader>
           <DialogTitle className="flex items-center font-headline">
             <ListChecks className="h-6 w-6 mr-2 text-primary" />
