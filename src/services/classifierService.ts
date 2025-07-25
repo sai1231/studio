@@ -4,6 +4,7 @@
 import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import type { ClassificationRule } from '@/types';
+import { addLog } from './loggingService';
 
 const CLASSIFIER_DOC_PATH = 'settings/classifier';
 
@@ -41,8 +42,11 @@ export async function saveClassificationRules(rules: ClassificationRule[]): Prom
  * @returns The determined contentType string, or 'Article' as a default.
  */
 export async function classifyUrl(url: string): Promise<string> {
+    await addLog('INFO', `[Classifier] Starting classification for URL: ${url}`);
     const rules = await getClassificationRules();
+    
     if (rules.length === 0) {
+        await addLog('INFO', `[Classifier] No rules found. Defaulting to 'Article'.`);
         return 'Article'; // Default if no rules are configured
     }
 
@@ -50,13 +54,16 @@ export async function classifyUrl(url: string): Promise<string> {
         try {
             const regex = new RegExp(rule.regex, 'i'); // Case-insensitive matching
             if (regex.test(url)) {
+                await addLog('INFO', `[Classifier] Matched rule for "${rule.contentType}"`, { regex: rule.regex, url });
                 return rule.contentType; // First matching rule wins
             }
         } catch (error) {
             console.error(`Invalid regex in rule for contentType "${rule.contentType}": ${rule.regex}`, error);
+            await addLog('ERROR', `[Classifier] Invalid regex in rule`, { contentType: rule.contentType, regex: rule.regex, error: (error as Error).message });
             // Skip this rule and continue
         }
     }
 
+    await addLog('INFO', `[Classifier] No rules matched. Defaulting to 'Article'.`);
     return 'Article'; // Default if no rules match
 }

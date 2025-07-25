@@ -171,7 +171,10 @@ export async function addContentItem(
         const url = new URL(dataToSave.url);
         dataToSave.domain = url.hostname.replace(/^www\./, '');
         // Always run the classifier to ensure custom rules take precedence
-        dataToSave.contentType = await classifyUrl(dataToSave.url);
+        const determinedContentType = await classifyUrl(dataToSave.url);
+        if (determinedContentType) {
+          dataToSave.contentType = determinedContentType;
+        }
       } catch (e) {
         console.warn("Could not extract domain from URL:", dataToSave.url);
       }
