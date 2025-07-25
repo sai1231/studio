@@ -242,8 +242,8 @@ const RecordVoiceDialog: React.FC<RecordVoiceDialogProps> = ({ open, onOpenChang
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg bg-card">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-lg bg-card p-0">
+        <DialogHeader className="p-6 pb-4">
           <DialogTitle className="flex items-center text-2xl font-headline">
             <Mic className="h-6 w-6 mr-3 text-primary" />
             Record a Voice Note
@@ -252,13 +252,13 @@ const RecordVoiceDialog: React.FC<RecordVoiceDialogProps> = ({ open, onOpenChang
             Capture your thoughts on the fly. We'll even transcribe it for you.
           </CardDescription>
         </DialogHeader>
-        <div className="flex flex-col items-center justify-center space-y-6 min-h-[250px] py-4">
+        <div className="flex flex-col items-center justify-center space-y-6 min-h-[250px] py-4 px-6">
           {hasPermission === false && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Microphone Access Denied</AlertTitle>
               <AlertDescription>
-                Mäti needs access to your microphone. Please enable it in your browser settings.
+                Mati needs access to your microphone. Please enable it in your browser settings.
               </AlertDescription>
             </Alert>
           )}
@@ -314,7 +314,7 @@ const RecordVoiceDialog: React.FC<RecordVoiceDialogProps> = ({ open, onOpenChang
             </div>
           )}
         </div>
-        <DialogFooter className="pt-4 border-t">
+        <DialogFooter className="p-6 pt-4 border-t">
             {audioUrl && !isSaving ? (
                 <>
                 <Button onClick={resetState} variant="outline">
