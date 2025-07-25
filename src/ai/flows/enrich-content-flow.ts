@@ -207,9 +207,9 @@ const enrichContentFlow = ai.defineFlow(
 
           // Title Generation (separate try...catch)
           try {
-            if (updatePayload.contentType != "PDF") {
+            if (contentData.type === 'image' && descriptionToAnalyze) {
               const generatedTitle = generateTitle(descriptionToAnalyze);
-              await addLog('INFO', `[${contentId}] 📝 Generated title:`, { generatedTitle });
+              await addLog('INFO', `[${contentId}] 📝 Generated title for image:`, { generatedTitle });
               // If no title exists and a title was generated, use it
               if (generatedTitle) {
                 updatePayload.title = generatedTitle;
