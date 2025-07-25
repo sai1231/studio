@@ -36,7 +36,7 @@ const LoginScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Brain size={48} color="#6750A4" />
-        <Text style={styles.title}>Mäti</Text>
+        <Text style={styles.title}>Mati</Text>
       </View>
       <Text style={styles.subtitle}>Welcome back</Text>
 

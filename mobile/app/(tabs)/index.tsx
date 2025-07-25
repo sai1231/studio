@@ -79,7 +79,7 @@ const HomeScreen = () => {
     <SafeAreaView style={styles.container}>
       {items.length === 0 && !searchTerm ? (
         <View style={styles.centered}>
-            <Text style={styles.title}>Welcome to Mäti</Text>
+            <Text style={styles.title}>Welcome to Mati</Text>
             <Text style={styles.emptyText}>You haven't saved any content yet.</Text>
         </View>
       ) : (
