@@ -102,9 +102,13 @@ const ExtensionSaveHandler = () => {
                     };
                 } else if (selection) {
                     const generatedTitle = selection.split(/\s+/).slice(0, 5).join(' ') + (selection.split(/\s+/).length > 5 ? '...' : '');
+                    let description = `> ${selection}`; // Quote the selection
+                    if (source && source.url) {
+                        description += `\n\n_Source: [${source.title || source.url}](${source.url})_`;
+                    }
+
                     contentData = {
-                        type: 'note', title: generatedTitle, description: selection, tags: [],
-                        contentType: 'Note', status: 'pending-analysis'
+                        type: 'note', title: generatedTitle, description: description, contentType: 'Note',
                     };
                 }
 
@@ -181,7 +185,6 @@ export default function AppLayout({
     const unsubscribeZones = subscribeToZones(user.uid, (fetchedZones, error) => {
       if (error) {
         console.error("Error subscribing to zones in layout:", error);
-        toast({ title: "Real-time Error", description: "Could not update zones list.", variant: "destructive" });
         return;
       }
       setAllZones(fetchedZones);
@@ -190,7 +193,6 @@ export default function AppLayout({
     const unsubscribeContent = subscribeToContentItems(user.uid, (items, error) => {
         if (error) {
             console.error("Error subscribing to content items in layout:", error);
-            toast({ title: "Real-time Error", description: "Could not update sidebar content.", variant: "destructive" });
             return;
         }
         setAllContentItems(items);
@@ -203,7 +205,7 @@ export default function AppLayout({
       unsubscribeZones();
       unsubscribeContent();
     };
-  }, [user, toast]);
+  }, [user]);
 
   useEffect(() => {
     const collectionsMap = new Map<string, ContentItem>();
@@ -229,11 +231,7 @@ export default function AppLayout({
   
 
   const handleAddContentAndRefresh = useCallback(async (newContentData: Omit<ContentItem, 'id' | 'createdAt'>) => {
-    if (!user) {
-      // Still show a toast for auth errors, as it's a critical failure.
-      toast({ title: "Not Authenticated", description: "You must be logged in to add content.", variant: "destructive" });
-      return;
-    }
+    if (!user) return;
 
     try {
       const contentWithUser = { ...newContentData, userId: user.uid };
@@ -245,15 +243,8 @@ export default function AppLayout({
 
     } catch (error) {
       console.error("Error saving content from layout:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      // Also show a toast for explicit save failures.
-      toast({
-        title: "Error Saving",
-        description: `Could not save your item: ${errorMessage}.`,
-        variant: "destructive",
-      });
     }
-  }, [user, toast, isAddContentDialogOpen, setIsAddContentDialogOpen, setNewlyAddedItem]);
+  }, [user, isAddContentDialogOpen, setIsAddContentDialogOpen, setNewlyAddedItem]);
 
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault(); e.stopPropagation();
@@ -274,7 +265,6 @@ export default function AppLayout({
 
     if (e.dataTransfer.types.includes('application/x-mati-internal')) return;
     if (isAuthLoading || !user) {
-        toast({ title: "Hold on...", description: "Still getting things ready. Please try again in a moment.", variant: "default" });
         return;
     }
 
@@ -285,28 +275,15 @@ export default function AppLayout({
         const isPdf = file.type === 'application/pdf';
 
         if (!isImage && !isPdf) {
-          toast({ title: `Unsupported File: ${file.name}`, description: "You can only upload images or PDF files.", variant: "destructive" });
           continue; // Skip this file and go to the next
         }
         
         const fileTypeForUpload = isImage ? 'image' : 'pdf';
         
-        // This toast for uploads is okay as it's a longer process
-        const uploadToast = toast({
-          title: `Uploading ${fileTypeForUpload}...`,
-          description: file.name,
-        });
-
         try {
           const folder = isImage ? 'contentImages' : 'contentPdfs';
           const path = `${folder}/${user.uid}/${Date.now()}_${file.name}`;
           const uploadedFileUrl = await uploadFile(file, path);
-
-          uploadToast.update({
-             id: uploadToast.id,
-             title: `Saving ${file.name}...`,
-             description: 'Upload complete, now adding to your collection.',
-          });
 
           const contentData = isImage
             ? {
@@ -320,21 +297,8 @@ export default function AppLayout({
               } as Omit<ContentItem, 'id' | 'createdAt'>;
 
           await handleAddContentAndRefresh(contentData);
-
-          uploadToast.update({
-            id: uploadToast.id,
-            title: `Saved: ${contentData.title}`,
-            description: `Your ${fileTypeForUpload} has been saved.`,
-            variant: 'default',
-          });
-
         } catch (error: any) {
-          uploadToast.update({
-            id: uploadToast.id,
-            title: `Failed to save ${file.name}`,
-            description: error.message || "An unknown error occurred.",
-            variant: 'destructive'
-          });
+          console.error(error);
         }
       }
       return;
@@ -371,21 +335,101 @@ export default function AppLayout({
 
     if (contentData) {
       await handleAddContentAndRefresh(contentData);
-    } else {
-      toast({ title: "Drop Not Processed", description: "Could not handle the dropped content type.", variant: "default" });
     }
   };
+
+  // New handler for paste event
+  const handlePaste = useCallback(async (event: ClipboardEvent) => {
+    // Prevent paste action if a dialog or input is focused
+    const activeElement = document.activeElement;
+    if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA' || activeElement.isContentEditable)) {
+      return;
+    }
+    
+    if (isAuthLoading || !user) return;
+    
+    const items = event.clipboardData?.items;
+    if (!items) return;
+
+    let contentData: Omit<ContentItem, 'id' | 'createdAt'> | null = null;
+    let handled = false;
+
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        event.preventDefault();
+        handled = true;
+        const file = item.getAsFile();
+        if (file) {
+          const { id: toastId } = toast({ title: "Uploading pasted image...", description: "Please wait." });
+          try {
+            const path = `contentImages/${user.uid}/${Date.now()}_pasted_image.png`;
+            const uploadedFileUrl = await uploadFile(file, path);
+            contentData = {
+              type: 'image',
+              title: `Pasted Image - ${new Date().toLocaleString()}`,
+              imageUrl: uploadedFileUrl,
+              tags: [{ id: 'pasted', name: 'pasted' }],
+              status: 'pending-analysis'
+            };
+            await handleAddContentAndRefresh(contentData);
+            toast({ id: toastId, title: "Image Saved", description: "Pasted image has been added to your collection." });
+          } catch(e) {
+            toast({ id: toastId, title: "Upload Failed", description: "Could not save the pasted image.", variant: 'destructive'});
+          }
+        }
+        break; // Handle first image found
+      }
+    }
+
+    if (!handled) {
+      for (const item of Array.from(items)) {
+        if (item.type === 'text/plain') {
+          item.getAsString(async (text) => {
+            if (isValidUrl(text)) {
+              event.preventDefault();
+              const { id: toastId } = toast({ title: "Saving pasted link...", description: text });
+              let metadata = { title: '', description: '', faviconUrl: '', imageUrl: '' };
+              try {
+                const response = await fetch(`/api/scrape-metadata?url=${encodeURIComponent(text)}`);
+                if (response.ok) { metadata = await response.json(); }
+              } catch (e) { console.error("Failed to scrape metadata for pasted link:", e); }
+              
+              if (!metadata.title) {
+                try { metadata.title = new URL(text).hostname.replace(/^www\./, ''); } 
+                catch { metadata.title = "Untitled Link"; }
+              }
+
+              contentData = {
+                  type: 'link', url: text, title: metadata.title, description: metadata.description, 
+                  faviconUrl: metadata.faviconUrl, imageUrl: metadata.imageUrl,
+                  tags: [{ id: 'pasted', name: 'pasted' }], domain: new URL(text).hostname.replace(/^www\./, ''),
+                  status: 'pending-analysis',
+              };
+              await handleAddContentAndRefresh(contentData);
+              toast({ id: toastId, title: "Link Saved", description: `"${metadata.title}" has been added to your collection.` });
+            }
+          });
+          break; // Handle first text item
+        }
+      }
+    }
+  }, [user, isAuthLoading, toast, handleAddContentAndRefresh]);
+  
+  useEffect(() => {
+    document.addEventListener('paste', handlePaste);
+    return () => {
+      document.removeEventListener('paste', handlePaste);
+    };
+  }, [handlePaste]);
   
   const handleAddZoneInLayout = async (zoneName: string, isMoodboard: boolean = false): Promise<Zone | null> => {
     if (!zoneName.trim() || !user) return null;
     try {
       const newZone = await addZone(zoneName.trim(), user.uid, isMoodboard);
       // The `allZones` state will update automatically via the Firestore listener (subscribeToZones)
-      toast({ title: "Collection Created", description: `"${newZone.name}" has been created.` });
       return newZone;
     } catch (e) {
       console.error('Error creating zone:', e);
-      toast({ title: "Error", description: "Could not create new collection.", variant: "destructive" });
       return null;
     }
   };
