@@ -76,7 +76,7 @@ export function SignupForm() {
       await updateProfile(userCredential.user, { displayName: values.displayName });
       toast({
         title: 'Account Created',
-        description: 'Welcome to Mäti! You are now logged in.',
+        description: 'Welcome to Mati! You are now logged in.',
       });
       router.push('/dashboard');
     } catch (error: any) {
@@ -106,7 +106,7 @@ export function SignupForm() {
       await signInWithPopup(auth, provider);
       toast({
         title: 'Sign-Up Successful',
-        description: 'Welcome to Mäti! You are now logged in.',
+        description: 'Welcome to Mati! You are now logged in.',
       });
       router.push('/dashboard');
     } catch (error: any) {
@@ -130,7 +130,7 @@ export function SignupForm() {
   return (
     <Card className="shadow-xl">
       <CardHeader>
-        <CardTitle className="text-2xl font-headline">Create your Mäti Account</CardTitle>
+        <CardTitle className="text-2xl font-headline">Create your Mati Account</CardTitle>
         <CardDescription>Enter your details below or sign up with Google.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

@@ -24,7 +24,7 @@ export default function TermsOfServicePage() {
 
                     <h2>1. Acceptance of Terms</h2>
                     <p>
-                        By creating an account and using the Mäti application ("Service"), you agree to be bound by these Terms of Service. If you do not agree to all of these terms, do not use the Service.
+                        By creating an account and using the Mati application ("Service"), you agree to be bound by these Terms of Service. If you do not agree to all of these terms, do not use the Service.
                     </p>
 
                     <h2>2. User-Generated Content</h2>
@@ -47,7 +47,7 @@ export default function TermsOfServicePage() {
 
                     <h2>5. Limitation of Liability</h2>
                     <p>
-                        The Service is provided on an "AS IS" and "AS AVAILABLE" basis. To the maximum extent permitted by applicable law, in no event shall Mäti or its suppliers be liable for any special, incidental, indirect, or consequential damages whatsoever arising out of or in any way related to the use of or inability to use the Service.
+                        The Service is provided on an "AS IS" and "AS AVAILABLE" basis. To the maximum extent permitted by applicable law, in no event shall Mati or its suppliers be liable for any special, incidental, indirect, or consequential damages whatsoever arising out of or in any way related to the use of or inability to use the Service.
                     </p>
                     
                      <div className="mt-8 p-4 bg-yellow-100/50 dark:bg-yellow-900/20 border-l-4 border-yellow-500 rounded-md">

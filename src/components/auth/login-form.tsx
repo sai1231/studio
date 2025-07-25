@@ -46,7 +46,7 @@ export function LoginForm() {
       await signInWithPopup(auth, provider);
       toast({
         title: 'Login Successful',
-        description: 'Welcome to Mäti!',
+        description: 'Welcome to Mati!',
       });
       router.push('/dashboard');
     } catch (error: any) {
@@ -72,7 +72,7 @@ export function LoginForm() {
   return (
     <Card className="shadow-xl">
       <CardHeader>
-        <CardTitle className="text-2xl font-headline">Welcome to Mäti</CardTitle>
+        <CardTitle className="text-2xl font-headline">Welcome to Mati</CardTitle>
         <CardDescription>Sign in with your Google account to continue.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

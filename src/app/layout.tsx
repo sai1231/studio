@@ -9,7 +9,7 @@ import { DialogProvider } from '@/context/DialogContext';
 import EnvWarningBanner from '@/components/core/EnvWarningBanner';
 
 export const metadata: Metadata = {
-  title: 'Mäti - Save and Organize Your Thoughts',
+  title: 'Mati - Save and Organize Your Thoughts',
   description: 'Your personal space to save, tag, and rediscover web links, notes, and ideas effortlessly.',
 };
 

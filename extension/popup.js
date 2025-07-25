@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 chrome.notifications.create({
                     type: 'basic',
                     iconUrl: 'logo-128.png',
-                    title: 'Sent to Mäti',
+                    title: 'Sent to Mati',
                     message: `"${tab.title || 'Page'}" is being saved.`
                 });
                 

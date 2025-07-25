@@ -1,15 +1,15 @@
-# Mäti: Your Intelligent Clipboard
+# Mati: Your Intelligent Clipboard
 
-Mäti is a modern, cross-platform application designed to be your personal digital memory bank. It goes beyond simple link-saving, offering a rich environment to save, automatically categorize, and rediscover web links, notes, images, PDFs, and voice memos with the power of AI.
+Mati is a modern, cross-platform application designed to be your personal digital memory bank. It goes beyond simple link-saving, offering a rich environment to save, automatically categorize, and rediscover web links, notes, images, PDFs, and voice memos with the power of AI.
 
 This repository is a monorepo containing the main web application, a separate admin portal, and the cross-platform mobile app.
 
 ## Features
 
-Mäti is packed with features to make saving and organizing your digital life seamless and intelligent.
+Mati is packed with features to make saving and organizing your digital life seamless and intelligent.
 
 ### Core Functionality
-- **Multi-Content Support**: Save more than just links. Mäti supports notes, images, PDF documents, and even voice recordings.
+- **Multi-Content Support**: Save more than just links. Mati supports notes, images, PDF documents, and even voice recordings.
 - **Drag & Drop**: Effortlessly save content by dragging files, links, or text directly into the application window.
 - **Zones**: Organize your content into distinct "Zones" (e.g., Work, Personal, Inspiration) for a clean, focused workspace.
 - **Tagging System**: Add custom tags to any item for granular organization and easy filtering.
@@ -141,7 +141,7 @@ cd ..
 
 You can run each part of the application in a separate terminal. Make sure your Meilisearch container is running first.
 
-#### Web Application (Mäti)
+#### Web Application (Mati)
 ```bash
 # From the root directory
 npm run dev
@@ -167,7 +167,7 @@ To use the browser extension for saving content:
 2.  Enable **Developer mode** using the toggle in the top-right corner.
 3.  Click the **Load unpacked** button.
 4.  In the file dialog, select the `extension` folder located in the root of this project.
-5.  The Mäti icon will appear in your browser's toolbar. You can pin it for easy access.
+5.  The Mati icon will appear in your browser's toolbar. You can pin it for easy access.
 
 ## Available Scripts
 

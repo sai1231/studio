@@ -15,7 +15,7 @@ const createSaveTab = (params) => {
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: "add-to-mati",
-    title: "Add selection to Mäti",
+    title: "Add selection to Mati",
     contexts: ["selection"]
   });
 });
@@ -32,7 +32,7 @@ chrome.contextMenus.onClicked.addListener((info) => {
     chrome.notifications.create({
         type: 'basic',
         iconUrl: 'logo-128.png',
-        title: 'Sent to Mäti',
+        title: 'Sent to Mati',
         message: 'Your selected text is being saved.'
     });
   }

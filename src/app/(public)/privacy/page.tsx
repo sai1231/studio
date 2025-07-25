@@ -28,7 +28,7 @@ export default function PrivacyPolicyPage() {
                     </p>
                     <ul>
                         <li><strong>Account Information:</strong> Your name, email address, and password (hashed).</li>
-                        <li><strong>Content:</strong> Links, notes, images, voice recordings, and any other content you save to Mäti.</li>
+                        <li><strong>Content:</strong> Links, notes, images, voice recordings, and any other content you save to Mati.</li>
                         <li><strong>Usage Information:</strong> We collect information about how you use the services, such as the types of content you view or engage with, the features you use, and the time, frequency, and duration of your activities.</li>
                     </ul>
 
@@ -41,7 +41,7 @@ export default function PrivacyPolicyPage() {
                     </ul>
 
                      <h2>3. How We Share Information</h2>
-                    <p>We do not share your personal information with companies, organizations, or individuals outside of Mäti except in the following cases:</p>
+                    <p>We do not share your personal information with companies, organizations, or individuals outside of Mati except in the following cases:</p>
                     <ul>
                         <li><strong>With your consent.</strong></li>
                         <li><strong>For external processing:</strong> We provide personal information to our affiliates or other trusted businesses or persons to process it for us, based on our instructions and in compliance with our Privacy Policy and any other appropriate confidentiality and security measures. This includes AI service providers like Google AI for content analysis.</li>

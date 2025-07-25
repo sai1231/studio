@@ -130,7 +130,7 @@ const ExtensionSaveHandler = () => {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-background">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="ml-4 text-muted-foreground">Saving to Mäti...</p>
+                <p className="ml-4 text-muted-foreground">Saving to Mati...</p>
             </div>
         );
     }
