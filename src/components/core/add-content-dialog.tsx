@@ -236,10 +236,16 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); handleAddTag(); }
   };
   const removeTag = (tagToRemove: Tag) => setCurrentTags(currentTags.filter(tag => tag.id !== tagToRemove.id));
+  
   const extractUrl = (text: string): string | null => {
     const words = text.split(/[\s\n]+/);
     for (const word of words) {
         try {
+            // Check for common image file extensions
+            if (/\.(jpg|jpeg|png|gif|webp)$/i.test(word)) {
+                const url = new URL(word);
+                return url.href;
+            }
             if (word.startsWith('http://') || word.startsWith('https://')) {
                 const url = new URL(word);
                 return url.href;
@@ -248,6 +254,8 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     }
     return null;
   };
+  
+  const isImageUrl = (url: string) => /\.(jpg|jpeg|png|gif|webp)$/i.test(new URL(url).pathname);
 
   async function onSubmit(values: z.infer<typeof mainContentSchema>) {
     setIsSaving(true);
@@ -295,26 +303,57 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
         const extractedUrl = extractUrl(mainContent);
         let contentData: Partial<Omit<ContentItem, 'id' | 'createdAt'>>;
         if (extractedUrl) {
-            let metadata = { title: '', description: '', faviconUrl: '', imageUrl: '' };
-            try {
-                const response = await fetch(`/api/scrape-metadata?url=${encodeURIComponent(extractedUrl)}`);
-                if (response.ok) { metadata = await response.json(); }
-            } catch (e) { console.error("Failed to scrape metadata during content addition:", e); }
-            if (!metadata.title) {
-                try { metadata.title = new URL(extractedUrl).hostname.replace(/^www\./, ''); } 
-                catch { metadata.title = "Untitled Link"; }
-            }
+            // Check if it's an image link
+            if (isImageUrl(extractedUrl)) {
+                 const currentToast = toast({ title: 'Importing Image...', description: 'Please wait while we download the image.' });
+                 try {
+                     const response = await fetch(extractedUrl);
+                     const blob = await response.blob();
+                     const filename = new URL(extractedUrl).pathname.split('/').pop() || `image-${Date.now()}`;
+                     const file = new File([blob], filename, { type: blob.type });
 
-            const determinedContentType = await classifyUrl(extractedUrl);
-            
-            contentData = {
-                type: 'link', url: extractedUrl, memoryNote: mainContent,
-                domain: new URL(extractedUrl).hostname.replace(/^www\./, ''),
-                status: 'pending-analysis', title: metadata.title, description: metadata.description,
-                faviconUrl: metadata.faviconUrl, imageUrl: metadata.imageUrl,
-                contentType: determinedContentType,
-                ...commonData
-            };
+                     if (!user) throw new Error("User not authenticated for image upload.");
+                     
+                     const path = `contentImages/${user.uid}/${Date.now()}_${file.name}`;
+                     const downloadUrl = await uploadFile(file, path);
+                     
+                     contentData = {
+                         type: 'image', title: file.name, imageUrl: downloadUrl,
+                         status: 'pending-analysis',
+                         ...commonData
+                     };
+                     onContentAdd(contentData as Omit<ContentItem, 'id' | 'createdAt'>);
+                     currentToast.update({ id: currentToast.id, title: "Image Imported", description: "The image was successfully saved to your collection." });
+                 } catch (e) {
+                     console.error("Failed to import image from URL:", e);
+                     toast({ title: "Image Import Failed", description: "Could not save the image from the provided URL. Saving as a regular link.", variant: "destructive" });
+                     // Fallback to saving as a regular link
+                     contentData = { type: 'link', url: extractedUrl, status: 'pending-analysis', ...commonData };
+                     onContentAdd(contentData as Omit<ContentItem, 'id' | 'createdAt'>);
+                 }
+            } else {
+                let metadata = { title: '', description: '', faviconUrl: '', imageUrl: '' };
+                try {
+                    const response = await fetch(`/api/scrape-metadata?url=${encodeURIComponent(extractedUrl)}`);
+                    if (response.ok) { metadata = await response.json(); }
+                } catch (e) { console.error("Failed to scrape metadata during content addition:", e); }
+                if (!metadata.title) {
+                    try { metadata.title = new URL(extractedUrl).hostname.replace(/^www\./, ''); } 
+                    catch { metadata.title = "Untitled Link"; }
+                }
+    
+                const determinedContentType = await classifyUrl(extractedUrl);
+                
+                contentData = {
+                    type: 'link', url: extractedUrl, memoryNote: mainContent,
+                    domain: new URL(extractedUrl).hostname.replace(/^www\./, ''),
+                    status: 'pending-analysis', title: metadata.title, description: metadata.description,
+                    faviconUrl: metadata.faviconUrl, imageUrl: metadata.imageUrl,
+                    contentType: determinedContentType,
+                    ...commonData
+                };
+                onContentAdd(contentData as Omit<ContentItem, 'id' | 'createdAt'>);
+            }
         } else {
             const textContent = mainContent.trim();
             const generatedTitle = textContent.split(/\s+/).slice(0, 5).join(' ') + (textContent.split(/\s+/).length > 5 ? '...' : '');
@@ -323,8 +362,8 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                 contentType: 'Note', status: 'pending-analysis',
                 ...commonData
             };
+            onContentAdd(contentData as Omit<ContentItem, 'id' | 'createdAt'>);
         }
-        onContentAdd(contentData as Omit<ContentItem, 'id' | 'createdAt'>);
     }
 
     if (onOpenChange) onOpenChange(false);
