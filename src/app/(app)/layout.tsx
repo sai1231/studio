@@ -66,7 +66,6 @@ const isValidUrl = (s: string) => { try { new URL(s); return true; } catch (_) {
 const ExtensionSaveHandler = () => {
     const searchParams = useSearchParams();
     const { user } = useAuth();
-    const { toast } = useToast();
     const router = useRouter();
     const [isProcessing, setIsProcessing] = useState(false);
 
@@ -128,7 +127,7 @@ const ExtensionSaveHandler = () => {
 
         processSave();
         
-    }, [searchParams, user, isProcessing, router, toast]);
+    }, [searchParams, user, isProcessing, router]);
 
     if (searchParams.get('action') === 'save') {
         return (
@@ -147,7 +146,7 @@ export default function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isLoading: isAuthLoading } = useAuth();
+  const { user, role, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
   const { 
     isAddContentDialogOpen, 
@@ -307,21 +306,45 @@ export default function AppLayout({
     let contentData: Omit<ContentItem, 'id' | 'createdAt'> | null = null;
     const uri = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
     if (uri && isValidUrl(uri)) {
-        let metadata = { title: '', description: '', faviconUrl: '', imageUrl: '' };
-        try {
-            const response = await fetch(`/api/scrape-metadata?url=${encodeURIComponent(uri)}`);
-            if (response.ok) { metadata = await response.json(); }
-        } catch (e) { console.error("Failed to scrape metadata for dropped link:", e); }
-        if (!metadata.title) {
-            try { metadata.title = new URL(uri).hostname.replace(/^www\./, ''); } 
-            catch { metadata.title = "Untitled Link"; }
+      const isImageUrl = /\.(jpg|jpeg|png|gif|webp)$/i.test(new URL(uri).pathname);
+       if (isImageUrl) {
+            try {
+                const response = await fetch(uri);
+                const blob = await response.blob();
+                const filename = new URL(uri).pathname.split('/').pop() || `image-${Date.now()}`;
+                const file = new File([blob], filename, { type: blob.type });
+
+                if (!user) throw new Error("User not authenticated for image upload.");
+                
+                const path = `contentImages/${user.uid}/${Date.now()}_${file.name}`;
+                const downloadUrl = await uploadFile(file, path);
+                
+                contentData = {
+                    type: 'image', title: file.name, imageUrl: downloadUrl,
+                    status: 'pending-analysis', tags: [{ id: 'dragged', name: 'dragged' }],
+                };
+            } catch (e) {
+                console.error("Failed to import image from URL:", e);
+                // Fallback to saving as a regular link
+                contentData = { type: 'link', url: uri, status: 'pending-analysis', tags: [{ id: 'dragged', name: 'dragged' }] };
+            }
+        } else {
+            let metadata = { title: '', description: '', faviconUrl: '', imageUrl: '' };
+            try {
+                const response = await fetch(`/api/scrape-metadata?url=${encodeURIComponent(uri)}`);
+                if (response.ok) { metadata = await response.json(); }
+            } catch (e) { console.error("Failed to scrape metadata for dropped link:", e); }
+            if (!metadata.title) {
+                try { metadata.title = new URL(uri).hostname.replace(/^www\./, ''); } 
+                catch { metadata.title = "Untitled Link"; }
+            }
+            contentData = {
+                type: 'link', url: uri, title: metadata.title, description: metadata.description, 
+                faviconUrl: metadata.faviconUrl, imageUrl: metadata.imageUrl,
+                tags: [{ id: 'dnd-drop', name: 'dropped' }], domain: new URL(uri).hostname.replace(/^www\./, ''),
+                status: 'pending-analysis',
+            };
         }
-        contentData = {
-            type: 'link', url: uri, title: metadata.title, description: metadata.description, 
-            faviconUrl: metadata.faviconUrl, imageUrl: metadata.imageUrl,
-            tags: [{ id: 'dnd-drop', name: 'dropped' }], domain: new URL(uri).hostname.replace(/^www\./, ''),
-            status: 'pending-analysis',
-        };
     } else {
         const text = e.dataTransfer.getData('text/plain');
         if (text) {
@@ -360,7 +383,6 @@ export default function AppLayout({
         handled = true;
         const file = item.getAsFile();
         if (file) {
-          const { id: toastId } = toast({ title: "Uploading pasted image...", description: "Please wait." });
           try {
             const path = `contentImages/${user.uid}/${Date.now()}_pasted_image.png`;
             const uploadedFileUrl = await uploadFile(file, path);
@@ -372,9 +394,8 @@ export default function AppLayout({
               status: 'pending-analysis'
             };
             await handleAddContentAndRefresh(contentData);
-            toast({ id: toastId, title: "Image Saved", description: "Pasted image has been added to your collection." });
           } catch(e) {
-            toast({ id: toastId, title: "Upload Failed", description: "Could not save the pasted image.", variant: 'destructive'});
+             console.error("Failed to upload pasted image:", e);
           }
         }
         break; // Handle first image found
@@ -387,7 +408,6 @@ export default function AppLayout({
           item.getAsString(async (text) => {
             if (isValidUrl(text)) {
               event.preventDefault();
-              const { id: toastId } = toast({ title: "Saving pasted link...", description: text });
               let metadata = { title: '', description: '', faviconUrl: '', imageUrl: '' };
               try {
                 const response = await fetch(`/api/scrape-metadata?url=${encodeURIComponent(text)}`);
@@ -406,14 +426,13 @@ export default function AppLayout({
                   status: 'pending-analysis',
               };
               await handleAddContentAndRefresh(contentData);
-              toast({ id: toastId, title: "Link Saved", description: `"${metadata.title}" has been added to your collection.` });
             }
           });
           break; // Handle first text item
         }
       }
     }
-  }, [user, isAuthLoading, toast, handleAddContentAndRefresh]);
+  }, [user, isAuthLoading, handleAddContentAndRefresh]);
   
   useEffect(() => {
     document.addEventListener('paste', handlePaste);
@@ -489,7 +508,7 @@ export default function AppLayout({
   };
 
   return (
-    <SearchProvider>
+    <SearchProvider userRole={role}>
       <Suspense fallback={null}>
         <ExtensionSaveHandler />
       </Suspense>

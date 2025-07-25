@@ -6,7 +6,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useAuth } from './AuthContext';
 import { subscribeToContentItems, subscribeToZones, getUniqueTagsFromItems, getUniqueContentTypesFromItems, getUniqueDomainsFromItems } from '@/services/contentService';
 import { performSearch } from '@/app/actions/searchActions';
-import type { ContentItem, Tag, SearchFilters, Zone } from '@/types';
+import type { ContentItem, Tag, SearchFilters, Zone, Role } from '@/types';
 import type { Unsubscribe } from 'firebase/firestore';
 
 interface SearchContextType {
@@ -25,8 +25,8 @@ interface SearchContextType {
 
 const SearchContext = createContext<SearchContextType | undefined>(undefined);
 
-export const SearchProvider = ({ children }: { children: ReactNode }) => {
-  const { user, role } = useAuth();
+export const SearchProvider = ({ children, userRole }: { children: ReactNode; userRole: Role | null }) => {
+  const { user } = useAuth();
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<ContentItem[]>([]);
@@ -36,7 +36,7 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
   const [totalHits, setTotalHits] = useState(0);
 
   useEffect(() => {
-    if (!user || !role) return;
+    if (!user || !userRole) return;
 
     let isMounted = true;
     let contentUnsubscribe: Unsubscribe | null = null;
@@ -49,7 +49,7 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
         if (!isInitialized) {
           setIsInitialized(true);
         }
-      }, role.features.contentLimit);
+      }, userRole.features.contentLimit);
 
       zonesUnsubscribe = subscribeToZones(user.uid, (zones) => {
           if (!isMounted) return;
@@ -64,7 +64,7 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
       contentUnsubscribe?.();
       zonesUnsubscribe?.();
     };
-  }, [user, role, isInitialized]);
+  }, [user, userRole, isInitialized]);
 
   const search = useCallback(async (
     query: string, 
