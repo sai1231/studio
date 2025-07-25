@@ -18,6 +18,7 @@ const predefinedContentTypes: Record<string, { icon: LucideIcon, name: string }>
   Post: { icon: Newspaper, name: 'Post' },
   Reel: { icon: Film, name: 'Reel' },
   Note: { icon: StickyNote, name: 'Note' },
+  Image: { icon: ImageIcon, name: 'Image' },
   Repositories: { icon: Github, name: 'Repositories' },
   Tweet: { icon: MessagesSquare, name: 'Tweet' },
   Thread: { icon: MessagesSquare, name: 'Thread' },
@@ -171,8 +172,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones: allCollections, tags, do
 
                <HoverNavButton icon={ClipboardList} label="Types" isEmpty={contentTypes.length === 0}>
                 {contentTypes.map(typeKey => {
-                   const typeDetails = predefinedContentTypes[typeKey];
-                   if (!typeDetails) return null;
+                   const typeDetails = predefinedContentTypes[typeKey] || { icon: ClipboardList, name: typeKey };
                    const Icon = typeDetails.icon;
                    return (
                       <Link key={typeKey} href={`/dashboard?type=${encodeURIComponent(typeKey)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
