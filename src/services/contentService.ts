@@ -166,14 +166,12 @@ export async function addContentItem(
       dataToSave.status = 'pending-analysis';
     }
 
-    if (dataToSave.type === 'link' && dataToSave.url && !dataToSave.domain) {
+    if (dataToSave.type === 'link' && dataToSave.url) {
       try {
         const url = new URL(dataToSave.url);
         dataToSave.domain = url.hostname.replace(/^www\./, '');
-        // Classify the URL to set a smart content type
-        if (!dataToSave.contentType) {
-          dataToSave.contentType = await classifyUrl(dataToSave.url);
-        }
+        // Always run the classifier to ensure custom rules take precedence
+        dataToSave.contentType = await classifyUrl(dataToSave.url);
       } catch (e) {
         console.warn("Could not extract domain from URL:", dataToSave.url);
       }
