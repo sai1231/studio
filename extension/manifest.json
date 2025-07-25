@@ -1,9 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Mati",
-  "version": "1.3.0",
+  "version": "2.0.0",
   "description": "Save links, notes, and ideas directly to your Mati account.",
   "permissions": [
+    "identity",
+    "storage",
     "activeTab",
     "contextMenus",
     "notifications",
