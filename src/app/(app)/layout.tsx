@@ -230,25 +230,15 @@ export default function AppLayout({
 
   const handleAddContentAndRefresh = useCallback(async (newContentData: Omit<ContentItem, 'id' | 'createdAt'>) => {
     if (!user) {
+      // Still show a toast for auth errors, as it's a critical failure.
       toast({ title: "Not Authenticated", description: "You must be logged in to add content.", variant: "destructive" });
       return;
     }
-    
-    const currentToast = toast({
-      title: `Saving ${newContentData.type === 'todo' ? 'TODO' : 'Content'}...`,
-      description: "Please wait...",
-    });
 
     try {
       const contentWithUser = { ...newContentData, userId: user.uid };
       const addedItem = await addContentItem(contentWithUser);
-
-      currentToast.update({
-        id: currentToast.id,
-        title: `${addedItem.type.charAt(0).toUpperCase() + addedItem.type.slice(1)} Saved!`,
-        description: `"${addedItem.title}" has been saved.`,
-      });
-
+      
       if (isAddContentDialogOpen) setIsAddContentDialogOpen(false);
       
       setNewlyAddedItem(addedItem);
@@ -256,8 +246,8 @@ export default function AppLayout({
     } catch (error) {
       console.error("Error saving content from layout:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      currentToast.update({
-        id: currentToast.id,
+      // Also show a toast for explicit save failures.
+      toast({
         title: "Error Saving",
         description: `Could not save your item: ${errorMessage}.`,
         variant: "destructive",
@@ -301,6 +291,7 @@ export default function AppLayout({
         
         const fileTypeForUpload = isImage ? 'image' : 'pdf';
         
+        // This toast for uploads is okay as it's a longer process
         const uploadToast = toast({
           title: `Uploading ${fileTypeForUpload}...`,
           description: file.name,
@@ -328,17 +319,14 @@ export default function AppLayout({
                 status: 'pending-analysis',
               } as Omit<ContentItem, 'id' | 'createdAt'>;
 
-          const contentWithUser = { ...contentData, userId: user.uid };
-          const addedItem = await addContentItem(contentWithUser);
-          
+          await handleAddContentAndRefresh(contentData);
+
           uploadToast.update({
             id: uploadToast.id,
-            title: `Saved: ${addedItem.title}`,
+            title: `Saved: ${contentData.title}`,
             description: `Your ${fileTypeForUpload} has been saved.`,
             variant: 'default',
           });
-
-          setNewlyAddedItem(addedItem);
 
         } catch (error: any) {
           uploadToast.update({
