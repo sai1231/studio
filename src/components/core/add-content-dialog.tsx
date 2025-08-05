@@ -147,7 +147,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
         return null;
       }
 
-      const fileTypeForUpload = isImage ? 'image' : 'pdf';
+      const fileTypeForUpload = isPdf ? 'pdf' : 'image';
       const currentToast = toast({
         title: `Uploading ${file.name}...`,
         description: "Please wait.",
@@ -297,7 +297,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
         const extractedUrl = extractUrl(mainContent);
         let contentData: Partial<Omit<ContentItem, 'id' | 'createdAt'>>;
         if (extractedUrl) {
-            // Check if it's an image link
             if (isImageUrl(extractedUrl)) {
                  const currentToast = toast({ title: 'Importing Image...', description: 'Please wait while we download the image.' });
                  try {
@@ -321,7 +320,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                  } catch (e) {
                      console.error("Failed to import image from URL:", e);
                      toast({ title: "Image Import Failed", description: "Could not save the image from the provided URL. Saving as a regular link.", variant: "destructive" });
-                     // Fallback to saving as a regular link
                      contentData = { type: 'link', url: extractedUrl, status: 'pending-analysis', ...commonData };
                      onContentAdd(contentData as Omit<ContentItem, 'id' | 'createdAt'>);
                  }
@@ -549,33 +547,30 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   );
 
   return (
-    <>
-      {children && <div onClick={(e) => e.stopPropagation()}>{children}</div>}
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent 
-              className="max-w-[625px] h-[90vh] flex flex-col p-0 bg-card"
-              onOpenAutoFocus={(e) => e.preventDefault()}
-            >
-                <DialogHeader className="px-6 pt-6 pb-0 flex-shrink-0">
-                  <DialogTitle className="font-headline">Add Content</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-1 flex flex-col min-h-0">
-                    <div className="flex-grow min-h-0 px-6">
-                        <ScrollArea className="h-full pr-6 -mr-6">
-                            {FormFields}
-                        </ScrollArea>
-                    </div>
-                    <DialogFooter className="px-6 pb-6 pt-4 border-t flex-shrink-0">
-                      <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
-                      <Button type="submit" form="add-content-form-desktop" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                      {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
-                      </Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
-    </>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent 
+          className="max-w-[625px] h-[90vh] flex flex-col p-0 bg-card"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+            <DialogHeader className="px-6 pt-6 pb-0 flex-shrink-0">
+              <DialogTitle className="font-headline">Add Content</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-1 flex flex-col min-h-0">
+                <div className="flex-grow min-h-0 px-6">
+                    <ScrollArea className="h-full pr-6 -mr-6">
+                        {FormFields}
+                    </ScrollArea>
+                </div>
+                <DialogFooter className="px-6 pb-6 pt-4 border-t flex-shrink-0">
+                  <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
+                  <Button type="submit" form="add-content-form-desktop" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                  {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
+                  </Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
+    </Dialog>
   );
 };
 
