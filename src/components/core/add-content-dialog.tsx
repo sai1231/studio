@@ -3,7 +3,6 @@
 
 import type React from 'react';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -15,7 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -33,7 +31,6 @@ import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
 import { add } from 'date-fns';
 import { ScrollArea } from '../ui/scroll-area';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { classifyUrl } from '@/services/classifierService';
 
 const mainContentSchema = z.object({
@@ -90,8 +87,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const [isTemporary, setIsTemporary] = useState(false);
   const [expiryDays, setExpiryDays] = useState('30');
   
-  const isMobile = useIsMobile();
-
   const form = useForm<z.infer<typeof mainContentSchema>>({
     resolver: zodResolver(mainContentSchema),
     defaultValues: {
@@ -174,7 +169,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     });
 
     const results = await Promise.all(uploadPromises);
-    const successfulUploads = results.filter(r => r !== null) as {name: string, type: 'image' | 'pdf', url: string}[];
+    const successfulUploads = results.filter((r): r is {name: string, type: 'image' | 'pdf', url: string} => r !== null);
 
     setUploadedFiles(prev => [...prev, ...successfulUploads]);
     
@@ -392,11 +387,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     }
   };
 
-
-  if (isMobile === undefined) {
-    return null; // Avoid rendering anything until we know the screen size
-  }
-  
   const FormFields = (
     <div className="space-y-4 py-4">
       <div className="relative">
@@ -425,164 +415,142 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
         <div className="flex-grow border-t"></div>
       </div>
       
-      <div className="grid grid-cols-2 gap-4">
-          <div 
-              className={cn("relative flex flex-col items-center justify-center p-4 rounded-lg border-2 border-dashed transition-colors h-full min-h-[110px]", 
-              isDragging ? "border-primary bg-primary/10" : "border-border hover:border-primary/50",
-              isUploading ? "cursor-default" : "cursor-pointer"
-              )}
-              onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}
-              onClick={handleUploadAreaClick}
-          >
-              {isUploading ? (
-                  <div className="flex flex-col items-center justify-center text-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <p className="mt-2 text-sm text-muted-foreground">Uploading...</p>
-                  </div>
-              ) : uploadedFiles.length > 0 ? (
-                  <ScrollArea className="w-full max-h-32">
-                  <div className="space-y-2 p-1">
-                      {uploadedFiles.map(file => (
-                      <div key={file.url} className="flex items-center gap-3 w-full bg-background p-2 rounded-md border">
-                          <FileUp className="h-6 w-6 text-primary shrink-0" />
-                          <div className="text-left flex-grow truncate">
-                              <p className="font-medium truncate text-sm">{file.name}</p>
-                              <p className="text-xs text-muted-foreground">{file.type === 'image' ? 'Image ready' : 'PDF ready'}</p>
-                          </div>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={(e) => { e.stopPropagation(); clearUploadedFile(file.url); }}><X className="h-4 w-4" /></Button>
-                      </div>
-                      ))}
-                  </div>
-                  </ScrollArea>
-              ) : (
-                  <div className="flex flex-col items-center justify-center text-center">
-                  <UploadCloud className="h-8 w-8 text-muted-foreground" />
-                  <p className="mt-2 text-sm font-medium">Upload Files</p>
-                  <p className="text-xs text-muted-foreground">Image or PDF (Max 5MB)</p>
-                  </div>
-              )}
-          </div>
-          <Button type="button" variant="secondary" className="h-full min-h-[110px] text-lg flex-col" onClick={handleRecordVoiceClick}>
-              <Mic className="h-8 w-8 mb-2" />
-              <span>Record Voice</span>
-          </Button>
-      </div>
+        <div className="grid grid-cols-2 gap-4">
+            <div 
+                className={cn("relative flex flex-col items-center justify-center p-4 rounded-lg border-2 border-dashed transition-colors h-full min-h-[110px]", 
+                isDragging ? "border-primary bg-primary/10" : "border-border hover:border-primary/50",
+                isUploading ? "cursor-default" : "cursor-pointer"
+                )}
+                onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}
+                onClick={handleUploadAreaClick}
+            >
+                {isUploading ? (
+                    <div className="flex flex-col items-center justify-center text-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="mt-2 text-sm text-muted-foreground">Uploading...</p>
+                    </div>
+                ) : uploadedFiles.length > 0 ? (
+                    <ScrollArea className="w-full max-h-32">
+                    <div className="space-y-2 p-1">
+                        {uploadedFiles.map(file => (
+                        <div key={file.url} className="flex items-center gap-3 w-full bg-background p-2 rounded-md border">
+                            <FileUp className="h-6 w-6 text-primary shrink-0" />
+                            <div className="text-left flex-grow truncate">
+                                <p className="font-medium truncate text-sm">{file.name}</p>
+                                <p className="text-xs text-muted-foreground">{file.type === 'image' ? 'Image ready' : 'PDF ready'}</p>
+                            </div>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={(e) => { e.stopPropagation(); clearUploadedFile(file.url); }}><X className="h-4 w-4" /></Button>
+                        </div>
+                        ))}
+                    </div>
+                    </ScrollArea>
+                ) : (
+                    <div className="flex flex-col items-center justify-center text-center">
+                    <UploadCloud className="h-8 w-8 text-muted-foreground" />
+                    <p className="mt-2 text-sm font-medium">Upload Files</p>
+                    <p className="text-xs text-muted-foreground">Image or PDF (Max 5MB)</p>
+                    </div>
+                )}
+            </div>
+            <Button type="button" variant="secondary" className="h-full min-h-[110px] text-lg flex-col" onClick={handleRecordVoiceClick}>
+                <Mic className="h-8 w-8 mb-2" />
+                <span>Record Voice</span>
+            </Button>
+        </div>
       <input type="file" ref={fileInputRef} onChange={handleFileInputChange} accept="image/*,application/pdf" className="hidden" multiple />
 
-      <div className="space-y-4 rounded-lg border p-4">
-          <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                  <Label htmlFor="temporary" className="flex items-center gap-2 font-medium">
-                      <AlarmClock className="h-4 w-4" />
-                      Temporary Content
-                  </Label>
-                  <Switch id="temporary" checked={isTemporary} onCheckedChange={setIsTemporary} />
-              </div>
-              {isTemporary && (
-                  <Select value={expiryDays} onValueChange={setExpiryDays}>
-                      <SelectTrigger className="w-full bg-background focus:ring-accent">
-                          <SelectValue placeholder="Select expiration period" />
-                      </SelectTrigger>
-                      <SelectContent>
-                          <SelectItem value="7">Delete after 7 days</SelectItem>
-                          <SelectItem value="30">Delete after 30 days</SelectItem>
-                          <SelectItem value="90">Delete after 90 days</SelectItem>
-                          <SelectItem value="365">Delete after 1 year</SelectItem>
-                      </SelectContent>
-                  </Select>
-              )}
-          </div>
+        <div className="space-y-4 rounded-lg border p-4">
+            <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                    <Label htmlFor="temporary" className="flex items-center gap-2 font-medium">
+                        <AlarmClock className="h-4 w-4" />
+                        Temporary Content
+                    </Label>
+                    <Switch id="temporary" checked={isTemporary} onCheckedChange={setIsTemporary} />
+                </div>
+                {isTemporary && (
+                    <Select value={expiryDays} onValueChange={setExpiryDays}>
+                        <SelectTrigger className="w-full bg-background focus:ring-accent">
+                            <SelectValue placeholder="Select expiration period" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="7">Delete after 7 days</SelectItem>
+                            <SelectItem value="30">Delete after 30 days</SelectItem>
+                            <SelectItem value="90">Delete after 90 days</SelectItem>
+                            <SelectItem value="365">Delete after 1 year</SelectItem>
+                        </SelectContent>
+                    </Select>
+                )}
+            </div>
 
-          <div className="space-y-2">
-          <Label htmlFor="zoneId">Zone</Label>
-            <Popover open={isZonePopoverOpen} onOpenChange={setIsZonePopoverOpen}>
-            <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" aria-expanded={isZonePopoverOpen}
-                    className={cn("w-full justify-between bg-background", !watchedZoneId && "text-muted-foreground", form.formState.errors.zoneId && "border-destructive")}>
-                    <div className="flex items-center"><ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" /><span className="truncate">{zoneDisplayName}</span></div>
-                    <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                <Command>
-                  <div className="flex items-center border-b px-3">
-                      <Input
-                          placeholder="Search or create zone..."
-                          value={zoneSearchText}
-                          onChange={(e) => setZoneSearchText(e.target.value)}
-                          onKeyDown={handleZoneInputKeyDown}
-                          className="h-9 w-full border-0 bg-transparent pl-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                      />
-                      <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className={cn("ml-2", !showCreateZoneOption && "hidden")}
-                          onClick={() => handleCreateZone(zoneSearchText)}
-                      >
-                          Create
-                      </Button>
-                  </div>
-                    <CommandList>
-                         <CommandEmpty>No matching zones found.</CommandEmpty>
-                         <CommandGroup>
-                            {filteredZones.map((z) => {
-                              const ListItemIcon = getIconComponent(z.icon);
-                              return (
-                                <CommandItem key={z.id} value={z.name} onSelect={() => { form.setValue('zoneId', z.id, { shouldTouch: true, shouldValidate: true }); setIsZonePopoverOpen(false); }}>
-                                    <Check className={cn("mr-2 h-4 w-4", watchedZoneId === z.id ? "opacity-100" : "opacity-0")} />
-                                    <ListItemIcon className="mr-2 h-4 w-4 opacity-70" />
-                                    {z.name}
-                                </CommandItem>
-                              );
-                            })}
-                         </CommandGroup>
-                    </CommandList>
-                </Command>
-            </PopoverContent>
-          </Popover>
-          {form.formState.errors.zoneId && <p className="text-sm text-destructive">{form.formState.errors.zoneId.message}</p>}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="tags">Tags</Label>
-          <div className="flex flex-wrap gap-2">
-            {currentTags.map(tag => (
-              <Badge key={tag.id} variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">
-                {tag.name}
-                <button type="button" onClick={() => removeTag(tag)} className="ml-1.5 focus:outline-none rounded-full hover:bg-destructive/20 p-0.5"><X className="h-3 w-3" /></button>
-              </Badge>
-            ))}
+            <div className="space-y-2">
+            <Label htmlFor="zoneId">Zone</Label>
+             <Popover open={isZonePopoverOpen} onOpenChange={setIsZonePopoverOpen}>
+              <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" aria-expanded={isZonePopoverOpen}
+                      className={cn("w-full justify-between bg-background", !watchedZoneId && "text-muted-foreground", form.formState.errors.zoneId && "border-destructive")}>
+                      <div className="flex items-center"><ZoneDisplayIcon className="mr-2 h-4 w-4 opacity-80 shrink-0" /><span className="truncate">{zoneDisplayName}</span></div>
+                      <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                  <Command>
+                    <div className="flex items-center border-b px-3">
+                        <Input
+                            placeholder="Search or create zone..."
+                            value={zoneSearchText}
+                            onChange={(e) => setZoneSearchText(e.target.value)}
+                            onKeyDown={handleZoneInputKeyDown}
+                            className="h-9 w-full border-0 bg-transparent pl-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        />
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className={cn("ml-2", !showCreateZoneOption && "hidden")}
+                            onClick={() => handleCreateZone(zoneSearchText)}
+                        >
+                            Create
+                        </Button>
+                    </div>
+                      <CommandList>
+                           <CommandEmpty>No matching zones found.</CommandEmpty>
+                           <CommandGroup>
+                              {filteredZones.map((z) => {
+                                const ListItemIcon = getIconComponent(z.icon);
+                                return (
+                                  <CommandItem key={z.id} value={z.name} onSelect={() => { form.setValue('zoneId', z.id, { shouldTouch: true, shouldValidate: true }); setIsZonePopoverOpen(false); }}>
+                                      <Check className={cn("mr-2 h-4 w-4", watchedZoneId === z.id ? "opacity-100" : "opacity-0")} />
+                                      <ListItemIcon className="mr-2 h-4 w-4 opacity-70" />
+                                      {z.name}
+                                  </CommandItem>
+                                );
+                              })}
+                           </CommandGroup>
+                      </CommandList>
+                  </Command>
+              </PopoverContent>
+            </Popover>
+            {form.formState.errors.zoneId && <p className="text-sm text-destructive">{form.formState.errors.zoneId.message}</p>}
           </div>
-          <Input id="tags" value={tagInput} onChange={handleTagInputChange} onKeyDown={handleTagInputKeyDown} placeholder="Add tags (press Enter or ,)" className="focus-visible:ring-accent bg-background" />
+          <div className="space-y-2">
+            <Label htmlFor="tags">Tags</Label>
+            <div className="flex flex-wrap gap-2">
+              {currentTags.map(tag => (
+                <Badge key={tag.id} variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">
+                  {tag.name}
+                  <button type="button" onClick={() => removeTag(tag)} className="ml-1.5 focus:outline-none rounded-full hover:bg-destructive/20 p-0.5"><X className="h-3 w-3" /></button>
+                </Badge>
+              ))}
+            </div>
+            <Input id="tags" value={tagInput} onChange={handleTagInputChange} onKeyDown={handleTagInputKeyDown} placeholder="Add tags (press Enter or ,)" className="focus-visible:ring-accent bg-background" />
+          </div>
         </div>
-      </div>
     </div>
   );
 
   return (
     <>
       {children && <div onClick={(e) => e.stopPropagation()}>{children}</div>}
-      
-      {isMobile ? (
-        <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent side="bottom" className="h-[90vh] flex flex-col p-0 bg-background">
-                <SheetHeader className="p-4 border-b flex-shrink-0">
-                    <SheetTitle className="font-headline">Add Content</SheetTitle>
-                </SheetHeader>
-                <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-mobile" className="flex-grow flex flex-col overflow-hidden">
-                    <ScrollArea className="flex-1 px-4">
-                        {FormFields}
-                    </ScrollArea>
-                    <SheetFooter className="p-4 pt-4 border-t flex flex-row sm:justify-end gap-2 flex-shrink-0">
-                      <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
-                      <Button type="submit" form="add-content-form-mobile" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                        {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
-                      </Button>
-                    </SheetFooter>
-                </form>
-            </SheetContent>
-        </Sheet>
-      ) : (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent 
               className="max-w-[625px] h-[90vh] flex flex-col p-0 bg-card"
@@ -607,7 +575,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                 </form>
             </DialogContent>
         </Dialog>
-      )}
     </>
   );
 };
