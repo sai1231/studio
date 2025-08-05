@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import type React from 'react';
@@ -82,15 +81,15 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const [isZonePopoverOpen, setIsZonePopoverOpen] = useState(false);
   const [zoneSearchText, setZoneSearchText] = useState('');
 
-  const [uploadedFiles, setUploadedFiles] = useState<{ name: string, type: 'image' | 'pdf', url: string }[]>([]);
-
+  const [uploadedFiles, setUploadedFiles] = useState<{name: string, type: 'image' | 'pdf', url: string}[]>([]);
+  
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  
   const [isTemporary, setIsTemporary] = useState(false);
   const [expiryDays, setExpiryDays] = useState('30');
-
+  
   const isMobile = useIsMobile();
 
   const form = useForm<z.infer<typeof mainContentSchema>>({
@@ -129,22 +128,22 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     }
     setIsRecordVoiceDialogOpen(true);
   };
-
+  
   const handleFilesSelected = useCallback(async (files: File[]) => {
     if (!user) return;
-
+    
     const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 
     setIsUploading(true);
     form.clearErrors('mainContent');
 
     const uploadPromises = files.map(async (file) => {
-
+      
       if (file.size > MAX_FILE_SIZE_BYTES) {
         toast({ title: `File Too Large: ${file.name}`, description: "File size cannot exceed 5 MB.", variant: "destructive" });
         return null;
       }
-
+      
       const isImage = file.type.startsWith('image/');
       const isPdf = file.type === 'application/pdf';
 
@@ -163,7 +162,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
         const folder = isImage ? 'contentImages' : 'contentPdfs';
         const path = `${folder}/${user.uid}/${Date.now()}_${file.name}`;
         const downloadUrl = await uploadFile(file, path);
-
+        
         currentToast.update({ id: currentToast.id, title: "Upload Complete", description: `"${file.name}" is ready to be saved.` });
 
         return { name: file.name, type: fileTypeForUpload, url: downloadUrl };
@@ -175,9 +174,10 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     });
 
     const results = await Promise.all(uploadPromises);
-    const successfulUploads = results.filter((r): r is { name: string, type: 'image' | 'pdf', url: string } => r !== null);
-    
+    const successfulUploads = results.filter(r => r !== null) as {name: string, type: 'image' | 'pdf', url: string}[];
+
     setUploadedFiles(prev => [...prev, ...successfulUploads]);
+    
     setIsUploading(false);
   }, [user, toast, form]);
 
@@ -189,11 +189,11 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     setIsDragging(false);
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      handleFilesSelected(Array.from(files));
+        handleFilesSelected(Array.from(files));
     }
   };
   const handleUploadAreaClick = () => { if (!isUploading) fileInputRef.current?.click(); };
-
+  
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
@@ -202,7 +202,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     }
   };
 
-  const clearUploadedFile = (urlToRemove: string) => {
+  const clearUploadedFile = (urlToRemove: string) => { 
     setUploadedFiles(prev => prev.filter(f => f.url !== urlToRemove));
   };
 
@@ -212,9 +212,9 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     try {
       const newZone = await onZoneCreate(zoneName);
       if (newZone) {
-        form.setValue('zoneId', newZone.id, { shouldTouch: true, shouldValidate: true });
+          form.setValue('zoneId', newZone.id, { shouldTouch: true, shouldValidate: true });
       }
-    } catch (e) {
+    } catch(e) {
       console.error('Error creating zone:', e);
       toast({ title: "Error", description: "Could not create new zone.", variant: "destructive" });
     } finally {
@@ -235,25 +235,25 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); handleAddTag(); }
   };
   const removeTag = (tagToRemove: Tag) => setCurrentTags(currentTags.filter(tag => tag.id !== tagToRemove.id));
-
+  
   const extractUrl = (text: string): string | null => {
     const words = text.split(/[\s\n]+/);
     for (const word of words) {
-      try {
-        // Check for common image file extensions
-        if (/\.(jpg|jpeg|png|gif|webp)$/i.test(word)) {
-          const url = new URL(word);
-          return url.href;
-        }
-        if (word.startsWith('http://') || word.startsWith('https://')) {
-          const url = new URL(word);
-          return url.href;
-        }
-      } catch (_) { /* continue */ }
+        try {
+            // Check for common image file extensions
+            if (/\.(jpg|jpeg|png|gif|webp)$/i.test(word)) {
+                const url = new URL(word);
+                return url.href;
+            }
+            if (word.startsWith('http://') || word.startsWith('https://')) {
+                const url = new URL(word);
+                return url.href;
+            }
+        } catch (_) { /* continue */ }
     }
     return null;
   };
-
+  
   const isImageUrl = (url: string) => /\.(jpg|jpeg|png|gif|webp)$/i.test(new URL(url).pathname);
 
   async function onSubmit(values: z.infer<typeof mainContentSchema>) {
@@ -261,11 +261,11 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     const { mainContent, zoneId } = values;
 
     if (uploadedFiles.length === 0 && !mainContent.trim()) {
-      form.setError("mainContent", { type: "manual", message: "Please drop a file or enter a link/note." });
-      setIsSaving(false);
-      return;
+        form.setError("mainContent", { type: "manual", message: "Please drop a file or enter a link/note." });
+        setIsSaving(false);
+        return;
     }
-
+    
     form.clearErrors('mainContent');
 
     let expiresAtDate: Date | undefined = undefined;
@@ -280,95 +280,95 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     };
 
     if (uploadedFiles.length > 0) {
-      const memoryNoteFromInput = mainContent.trim() ? mainContent.trim() : undefined;
-
-      for (const uploadedFile of uploadedFiles) {
-        const contentData = uploadedFile.type === 'image'
-          ? {
-            type: 'image' as const, title: uploadedFile.name, imageUrl: uploadedFile.url,
-            memoryNote: memoryNoteFromInput, status: 'pending-analysis' as const,
-            ...commonData
-          }
-          : {
-            type: 'link' as const, title: uploadedFile.name, url: uploadedFile.url, contentType: 'PDF',
-            memoryNote: memoryNoteFromInput, domain: 'mati.internal.storage',
-            status: 'pending-analysis' as const,
-            ...commonData
-          };
-
-        onContentAdd(contentData); // Let layout handle toast and async logic
-      }
+        const memoryNoteFromInput = mainContent.trim() ? mainContent.trim() : undefined;
+        
+        for (const uploadedFile of uploadedFiles) {
+            const contentData = uploadedFile.type === 'image'
+            ? {
+                type: 'image' as const, title: uploadedFile.name, imageUrl: uploadedFile.url,
+                memoryNote: memoryNoteFromInput, status: 'pending-analysis' as const,
+                ...commonData
+              }
+            : {
+                type: 'link' as const, title: uploadedFile.name, url: uploadedFile.url, contentType: 'PDF',
+                memoryNote: memoryNoteFromInput, domain: 'mati.internal.storage',
+                status: 'pending-analysis' as const,
+                ...commonData
+              };
+            
+            onContentAdd(contentData); // Let layout handle toast and async logic
+        }
     } else {
-      const extractedUrl = extractUrl(mainContent);
-      let contentData: Partial<Omit<ContentItem, 'id' | 'createdAt'>>;
-      if (extractedUrl) {
-        // Check if it's an image link
-        if (isImageUrl(extractedUrl)) {
-          const currentToast = toast({ title: 'Importing Image...', description: 'Please wait while we download the image.' });
-          try {
-            const response = await fetch(extractedUrl);
-            const blob = await response.blob();
-            const filename = new URL(extractedUrl).pathname.split('/').pop() || `image-${Date.now()}`;
-            const file = new File([blob], filename, { type: blob.type });
+        const extractedUrl = extractUrl(mainContent);
+        let contentData: Partial<Omit<ContentItem, 'id' | 'createdAt'>>;
+        if (extractedUrl) {
+            // Check if it's an image link
+            if (isImageUrl(extractedUrl)) {
+                 const currentToast = toast({ title: 'Importing Image...', description: 'Please wait while we download the image.' });
+                 try {
+                     const response = await fetch(extractedUrl);
+                     const blob = await response.blob();
+                     const filename = new URL(extractedUrl).pathname.split('/').pop() || `image-${Date.now()}`;
+                     const file = new File([blob], filename, { type: blob.type });
 
-            if (!user) throw new Error("User not authenticated for image upload.");
-
-            const path = `contentImages/${user.uid}/${Date.now()}_${file.name}`;
-            const downloadUrl = await uploadFile(file, path);
-
+                     if (!user) throw new Error("User not authenticated for image upload.");
+                     
+                     const path = `contentImages/${user.uid}/${Date.now()}_${file.name}`;
+                     const downloadUrl = await uploadFile(file, path);
+                     
+                     contentData = {
+                         type: 'image', title: file.name, imageUrl: downloadUrl,
+                         status: 'pending-analysis',
+                         ...commonData
+                     };
+                     onContentAdd(contentData as Omit<ContentItem, 'id' | 'createdAt'>);
+                     currentToast.update({ id: currentToast.id, title: "Image Imported", description: "The image was successfully saved to your collection." });
+                 } catch (e) {
+                     console.error("Failed to import image from URL:", e);
+                     toast({ title: "Image Import Failed", description: "Could not save the image from the provided URL. Saving as a regular link.", variant: "destructive" });
+                     // Fallback to saving as a regular link
+                     contentData = { type: 'link', url: extractedUrl, status: 'pending-analysis', ...commonData };
+                     onContentAdd(contentData as Omit<ContentItem, 'id' | 'createdAt'>);
+                 }
+            } else {
+                let metadata = { title: '', description: '', faviconUrl: '', imageUrl: '' };
+                try {
+                    const response = await fetch(`/api/scrape-metadata?url=${encodeURIComponent(extractedUrl)}`);
+                    if (response.ok) { metadata = await response.json(); }
+                } catch (e) { console.error("Failed to scrape metadata during content addition:", e); }
+                if (!metadata.title) {
+                    try { metadata.title = new URL(extractedUrl).hostname.replace(/^www\./, ''); } 
+                    catch { metadata.title = "Untitled Link"; }
+                }
+    
+                const determinedContentType = await classifyUrl(extractedUrl);
+                
+                contentData = {
+                    type: 'link', url: extractedUrl, memoryNote: mainContent,
+                    domain: new URL(extractedUrl).hostname.replace(/^www\./, ''),
+                    status: 'pending-analysis', title: metadata.title, description: metadata.description,
+                    faviconUrl: metadata.faviconUrl, imageUrl: metadata.imageUrl,
+                    contentType: determinedContentType,
+                    ...commonData
+                };
+                onContentAdd(contentData as Omit<ContentItem, 'id' | 'createdAt'>);
+            }
+        } else {
+            const textContent = mainContent.trim();
+            const generatedTitle = textContent.split(/\s+/).slice(0, 5).join(' ') + (textContent.split(/\s+/).length > 5 ? '...' : '');
             contentData = {
-              type: 'image', title: file.name, imageUrl: downloadUrl,
-              status: 'pending-analysis',
-              ...commonData
+                type: 'note', title: generatedTitle || 'Untitled Note', description: textContent,
+                contentType: 'Note', status: 'pending-analysis',
+                ...commonData
             };
             onContentAdd(contentData as Omit<ContentItem, 'id' | 'createdAt'>);
-            currentToast.update({ id: currentToast.id, title: "Image Imported", description: "The image was successfully saved to your collection." });
-          } catch (e) {
-            console.error("Failed to import image from URL:", e);
-            toast({ title: "Image Import Failed", description: "Could not save the image from the provided URL. Saving as a regular link.", variant: "destructive" });
-            // Fallback to saving as a regular link
-            contentData = { type: 'link', url: extractedUrl, status: 'pending-analysis', ...commonData };
-            onContentAdd(contentData as Omit<ContentItem, 'id' | 'createdAt'>);
-          }
-        } else {
-          let metadata = { title: '', description: '', faviconUrl: '', imageUrl: '' };
-          try {
-            const response = await fetch(`/api/scrape-metadata?url=${encodeURIComponent(extractedUrl)}`);
-            if (response.ok) { metadata = await response.json(); }
-          } catch (e) { console.error("Failed to scrape metadata during content addition:", e); }
-          if (!metadata.title) {
-            try { metadata.title = new URL(extractedUrl).hostname.replace(/^www\./, ''); }
-            catch { metadata.title = "Untitled Link"; }
-          }
-
-          const determinedContentType = await classifyUrl(extractedUrl);
-
-          contentData = {
-            type: 'link', url: extractedUrl, memoryNote: mainContent,
-            domain: new URL(extractedUrl).hostname.replace(/^www\./, ''),
-            status: 'pending-analysis', title: metadata.title, description: metadata.description,
-            faviconUrl: metadata.faviconUrl, imageUrl: metadata.imageUrl,
-            contentType: determinedContentType,
-            ...commonData
-          };
-          onContentAdd(contentData as Omit<ContentItem, 'id' | 'createdAt'>);
         }
-      } else {
-        const textContent = mainContent.trim();
-        const generatedTitle = textContent.split(/\s+/).slice(0, 5).join(' ') + (textContent.split(/\s+/).length > 5 ? '...' : '');
-        contentData = {
-          type: 'note', title: generatedTitle || 'Untitled Note', description: textContent,
-          contentType: 'Note', status: 'pending-analysis',
-          ...commonData
-        };
-        onContentAdd(contentData as Omit<ContentItem, 'id' | 'createdAt'>);
-      }
     }
 
     if (onOpenChange) onOpenChange(false);
     setIsSaving(false);
   }
-
+  
   const handleFocusModeClick = () => {
     setIsAddContentDialogOpen(false);
     openFocusMode(null);
@@ -377,7 +377,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const selectedZone = internalZones.find(z => z.id === watchedZoneId);
   const ZoneDisplayIcon = getIconComponent(selectedZone?.icon);
   const zoneDisplayName = selectedZone?.name || 'Select a zone';
-
+  
   const isSubmitDisabled = isSaving || isUploading || (uploadedFiles.length === 0 && !watchedMainContent.trim());
 
   const filteredZones = zoneSearchText ? internalZones.filter(z => z.name.toLowerCase().includes(zoneSearchText.toLowerCase())) : internalZones;
@@ -385,10 +385,10 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
 
   const handleZoneInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      e.preventDefault();
-      if (showCreateZoneOption) {
-        handleCreateZone(zoneSearchText);
-      }
+        e.preventDefault(); 
+        if (showCreateZoneOption) {
+            handleCreateZone(zoneSearchText);
+        }
     }
   };
 
@@ -396,26 +396,26 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   if (isMobile === undefined) {
     return null; // Avoid rendering anything until we know the screen size
   }
-
+  
   const FormFields = (
     <div className="space-y-4 py-4">
       <div className="relative">
-        <Textarea
-          id="mainContent"
-          {...form.register('mainContent')}
-          placeholder="Paste a link, type a note, or add a thought for your uploads..."
-          className={cn("min-h-[100px] text-base focus-visible:ring-accent bg-muted/50", form.formState.errors.mainContent && "border-destructive focus-visible:ring-destructive")}
-        />
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="absolute bottom-2 right-2 text-muted-foreground hover:text-foreground"
-          onClick={handleFocusModeClick}
-        >
-          <Maximize className="h-4 w-4 mr-2" />
-          Focus
-        </Button>
+          <Textarea
+              id="mainContent"
+              {...form.register('mainContent')}
+              placeholder="Paste a link, type a note, or add a thought for your uploads..."
+              className={cn("min-h-[100px] text-base focus-visible:ring-accent bg-muted/50", form.formState.errors.mainContent && "border-destructive focus-visible:ring-destructive")}
+          />
+          <Button 
+            type="button" 
+            variant="ghost" 
+            size="sm"
+            className="absolute bottom-2 right-2 text-muted-foreground hover:text-foreground"
+            onClick={handleFocusModeClick}
+          >
+            <Maximize className="h-4 w-4 mr-2" />
+            Focus
+          </Button>
       </div>
       {form.formState.errors.mainContent && <p className="text-sm text-destructive">{form.formState.errors.mainContent.message}</p>}
 
@@ -426,47 +426,47 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       </div>
       
       <div className="grid grid-cols-2 gap-4">
-          <div
-            className={cn("relative flex flex-col items-center justify-center p-4 rounded-lg border-2 border-dashed transition-colors h-full min-h-[110px]",
+          <div 
+              className={cn("relative flex flex-col items-center justify-center p-4 rounded-lg border-2 border-dashed transition-colors h-full min-h-[110px]", 
               isDragging ? "border-primary bg-primary/10" : "border-border hover:border-primary/50",
               isUploading ? "cursor-default" : "cursor-pointer"
-            )}
-            onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}
-            onClick={handleUploadAreaClick}
+              )}
+              onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}
+              onClick={handleUploadAreaClick}
           >
-            {isUploading ? (
-              <div className="flex flex-col items-center justify-center text-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="mt-2 text-sm text-muted-foreground">Uploading...</p>
-              </div>
-            ) : uploadedFiles.length > 0 ? (
-              <ScrollArea className="w-full max-h-32">
-                <div className="space-y-2 p-1">
-                  {uploadedFiles.map(file => (
-                    <div key={file.url} className="flex items-center gap-3 w-full bg-background p-2 rounded-md border">
-                      <FileUp className="h-6 w-6 text-primary shrink-0" />
-                      <div className="text-left flex-grow truncate">
-                        <p className="font-medium truncate text-sm">{file.name}</p>
-                        <p className="text-xs text-muted-foreground">{file.type === 'image' ? 'Image ready' : 'PDF ready'}</p>
+              {isUploading ? (
+                  <div className="flex flex-col items-center justify-center text-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="mt-2 text-sm text-muted-foreground">Uploading...</p>
+                  </div>
+              ) : uploadedFiles.length > 0 ? (
+                  <ScrollArea className="w-full max-h-32">
+                  <div className="space-y-2 p-1">
+                      {uploadedFiles.map(file => (
+                      <div key={file.url} className="flex items-center gap-3 w-full bg-background p-2 rounded-md border">
+                          <FileUp className="h-6 w-6 text-primary shrink-0" />
+                          <div className="text-left flex-grow truncate">
+                              <p className="font-medium truncate text-sm">{file.name}</p>
+                              <p className="text-xs text-muted-foreground">{file.type === 'image' ? 'Image ready' : 'PDF ready'}</p>
+                          </div>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={(e) => { e.stopPropagation(); clearUploadedFile(file.url); }}><X className="h-4 w-4" /></Button>
                       </div>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={(e) => { e.stopPropagation(); clearUploadedFile(file.url); }}><X className="h-4 w-4" /></Button>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            ) : (
-              <div className="flex flex-col items-center justify-center text-center">
-                <UploadCloud className="h-8 w-8 text-muted-foreground" />
-                <p className="mt-2 text-sm font-medium">Upload Files</p>
-                <p className="text-xs text-muted-foreground">Image or PDF (Max 5MB)</p>
-              </div>
-            )}
+                      ))}
+                  </div>
+                  </ScrollArea>
+              ) : (
+                  <div className="flex flex-col items-center justify-center text-center">
+                  <UploadCloud className="h-8 w-8 text-muted-foreground" />
+                  <p className="mt-2 text-sm font-medium">Upload Files</p>
+                  <p className="text-xs text-muted-foreground">Image or PDF (Max 5MB)</p>
+                  </div>
+              )}
           </div>
           <Button type="button" variant="secondary" className="h-full min-h-[110px] text-lg flex-col" onClick={handleRecordVoiceClick}>
-            <Mic className="h-8 w-8 mb-2" />
-            <span>Record Voice</span>
+              <Mic className="h-8 w-8 mb-2" />
+              <span>Record Voice</span>
           </Button>
-        </div>
+      </div>
       <input type="file" ref={fileInputRef} onChange={handleFileInputChange} accept="image/*,application/pdf" className="hidden" multiple />
 
       <div className="space-y-4 rounded-lg border p-4">
@@ -523,8 +523,8 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                       </Button>
                   </div>
                     <CommandList>
-                        <CommandEmpty>No matching zones found.</CommandEmpty>
-                        <CommandGroup>
+                         <CommandEmpty>No matching zones found.</CommandEmpty>
+                         <CommandGroup>
                             {filteredZones.map((z) => {
                               const ListItemIcon = getIconComponent(z.icon);
                               return (
@@ -535,7 +535,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                                 </CommandItem>
                               );
                             })}
-                        </CommandGroup>
+                         </CommandGroup>
                     </CommandList>
                 </Command>
             </PopoverContent>
