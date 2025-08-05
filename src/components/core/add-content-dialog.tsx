@@ -175,10 +175,9 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     });
 
     const results = await Promise.all(uploadPromises);
-    const successfulUploads = results.filter(r => r !== null) as {name: string, type: 'image' | 'pdf', url: string}[];
-
-    setUploadedFiles(prev => [...prev, ...successfulUploads]);
+    const successfulUploads = results.filter((r): r is {name: string, type: 'image' | 'pdf', url: string} => r !== null);
     
+    setUploadedFiles(prev => [...prev, ...successfulUploads]);
     setIsUploading(false);
   }, [user, toast, form]);
 
