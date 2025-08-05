@@ -177,7 +177,10 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     const results = await Promise.all(uploadPromises);
     const successfulUploads = results.filter((r): r is {name: string, type: 'image' | 'pdf', url: string} => r !== null);
     
-    setUploadedFiles(prev => [...prev, ...successfulUploads]);
+    if (successfulUploads.length > 0) {
+        setUploadedFiles(prev => [...prev, ...successfulUploads]);
+    }
+    
     setIsUploading(false);
   }, [user, toast, form]);
 
@@ -484,7 +487,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
           </ScrollArea>
         </div>
       )}
-
+        
       {!isMobile && (
         <div className="space-y-4 rounded-lg border p-4">
              <div className="space-y-2">
