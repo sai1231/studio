@@ -102,6 +102,7 @@ const ExtensionSaveHandler = () => {
                 } else if (selection) {
                     const generatedTitle = selection.split(/\s+/).slice(0, 5).join(' ') + (selection.split(/\s+/).length > 5 ? '...' : '');
                     let description = `> ${selection}`; // Quote the selection
+                    const source = {url: searchParams.get('sourceUrl'), title: searchParams.get('sourceTitle')};
                     if (source && source.url) {
                         description += `\n\n_Source: [${source.title || source.url}](${source.url})_`;
                     }
@@ -211,7 +212,7 @@ export default function AppLayout({
     
     // Create a map of the most recent item for each zone/moodboard
     allContentItems.forEach(item => {
-        item.zoneIds?.forEach(zoneId => {
+        (item.zoneIds || []).forEach(zoneId => {
             const existingLatest = collectionsMap.get(zoneId);
             if (!existingLatest || new Date(item.createdAt) > new Date(existingLatest.createdAt)) {
                 collectionsMap.set(zoneId, item);
@@ -276,8 +277,6 @@ export default function AppLayout({
         if (!isImage && !isPdf) {
           continue; // Skip this file and go to the next
         }
-        
-        const fileTypeForUpload = isImage ? 'image' : 'pdf';
         
         try {
           const folder = isImage ? 'contentImages' : 'contentPdfs';
