@@ -78,28 +78,6 @@ const getPlainTextDescription = (htmlString: string | undefined): string => {
     return htmlString.replace(/<[^>]+>/g, ''); 
 };
 
-// **Dedicated PDF Card Component**
-const PdfCard: React.FC<{ item: ContentItem; }> = ({ item }) => {
-  const plainDescription = getPlainTextDescription(item.description);
-  return (
-    <div className="p-4 flex flex-col flex-grow items-start text-left h-full">
-      <div className="flex items-start gap-4 mb-3 w-full">
-        <PdfIcon className="h-12 w-12 shrink-0 text-primary" />
-        <div className="flex-grow">
-            <h3 className="font-semibold text-foreground break-words leading-tight line-clamp-2">{item.title}</h3>
-            {item.domain && <p className="text-xs text-muted-foreground">{item.domain}</p>}
-        </div>
-      </div>
-      {plainDescription && (
-        <p className="text-sm text-muted-foreground break-words line-clamp-4 mt-1">
-          {plainDescription}
-        </p>
-      )}
-    </div>
-  );
-};
-
-
 const ContentCard: React.FC<ContentCardProps> = ({ 
   item, 
   viewMode = 'grid', 
@@ -150,7 +128,9 @@ const ContentCard: React.FC<ContentCardProps> = ({
   const hasImage = !!item.imageUrl && !imageError;
 
   const TitleIcon = React.useMemo(() => {
-    // PDF content type is now handled by the PdfCard component, so we don't need a specific icon check here.
+    if (item.contentType === 'PDF') {
+        return <PdfIcon className="h-5 w-5 shrink-0 mt-0.5 text-primary" />;
+    }
     if (item.type !== 'link') {
         if (hasImage) return null;
         return React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) });
@@ -174,46 +154,6 @@ const ContentCard: React.FC<ContentCardProps> = ({
     ? formatDistanceToNow(new Date(item.trashedAt), { addSuffix: true })
     : 'a while ago';
 
-  // ** MAIN RENDER LOGIC **
-  // Check for PDF content type first and render the dedicated component.
-  if (viewMode === 'grid' && item.contentType === 'PDF') {
-    return (
-        <motion.div layoutId={`card-animation-${item.id}`} className="break-inside-avoid w-full">
-            <Card
-                draggable={!isTrashView}
-                onDragStart={handleDragStart}
-                className={cn(
-                    "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex w-full flex-col group rounded-xl relative h-full",
-                    isSelected ? "ring-2 ring-primary shadow-2xl" : "cursor-pointer",
-                    isTrashView && "opacity-90 hover:opacity-100"
-                )}
-                onClick={() => !isTrashView && onEdit(item)}
-            >
-                <div className="flex-grow min-h-0">
-                    <PdfCard item={item} />
-                </div>
-                 {isTrashView && trashActions && (
-                    <CardFooter className="p-2 bg-muted/50 border-t">
-                        <div className="w-full space-y-2">
-                            <p className="text-xs text-muted-foreground text-center">Moved to trash {timeInTrash}</p>
-                            <div className="flex justify-center gap-2">
-                                <TooltipProvider>
-                                    <Tooltip><TooltipTrigger asChild><Button variant="outline" size="icon" onClick={trashActions.onRestore} disabled={trashActions.isProcessing} className="h-9 w-9">{trashActions.isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo className="h-4 w-4" />}</Button></TooltipTrigger><TooltipContent><p>Restore Item</p></TooltipContent></Tooltip>
-                                </TooltipProvider>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild><TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="destructive" size="icon" disabled={trashActions.isProcessing} className="h-9 w-9"><Trash2 className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Delete Forever</p></TooltipContent></Tooltip></TooltipProvider></AlertDialogTrigger>
-                                    <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{item.title}". This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={trashActions.onDeletePermanent} className="bg-destructive hover:bg-destructive/90">Delete Forever</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
-                                </AlertDialog>
-                            </div>
-                        </div>
-                    </CardFooter>
-                )}
-            </Card>
-        </motion.div>
-    );
-  }
-
-  // Fallback to the default card for all other types
   return (
     <motion.div layoutId={`card-animation-${item.id}`} className="break-inside-avoid w-full">
       <Card
@@ -241,7 +181,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
               </div>
           )}
 
-          {!isTrashView && viewMode === 'grid' && item.domain && item.domain !== 'mati.internal.storage' && (
+          {!isTrashView && viewMode === 'grid' && item.domain && item.domain !== 'mati.internal.storage' && item.contentType !== 'PDF' && (
             <div className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <div className="flex items-center gap-1.5 rounded-full bg-background/70 backdrop-blur-sm px-2 py-1 text-xs text-muted-foreground">
                 <Landmark className="h-3.5 w-3.5 opacity-80 shrink-0" />
@@ -410,5 +350,3 @@ const ContentCard: React.FC<ContentCardProps> = ({
 };
 
 export default React.memo(ContentCard);
-
-    
