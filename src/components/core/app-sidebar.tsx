@@ -9,10 +9,10 @@ import { Button } from '@/components/ui/button';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import type { Zone, Tag as TagType } from '@/types';
 import { ThemeToggle } from './theme-toggle';
-import { useToast } from '@/hooks/use-toast';
 import { getAuth, signOut } from 'firebase/auth';
 import { cn } from '@/lib/utils';
 import { getIconComponent } from '@/lib/icon-map';
+import MatiLogo from './mati-logo';
 
 const predefinedContentTypes: Record<string, { icon: LucideIcon, name: string }> = {
   Post: { icon: Newspaper, name: 'Post' },
@@ -98,7 +98,6 @@ interface AppSidebarProps {
 }
 
 const AppSidebar: React.FC<AppSidebarProps> = ({ zones: allCollections, tags, domains, contentTypes }) => {
-  const { toast } = useToast();
   const router = useRouter();
   const auth = getAuth();
 
@@ -108,11 +107,9 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones: allCollections, tags, do
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
       router.push('/login');
     } catch (error) {
       console.error("Logout error:", error);
-      toast({ title: 'Logout Failed', description: 'Could not log you out. Please try again.', variant: 'destructive' });
     }
   };
 
@@ -127,7 +124,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones: allCollections, tags, do
         <div className="flex h-full max-h-screen flex-col">
           <div className="flex h-16 items-center justify-center border-b border-sidebar-border px-2">
             <Link href="/dashboard" aria-label="Home">
-                <Brain size={28} className="text-primary" />
+                <MatiLogo iconSize={28} />
             </Link>
           </div>
 
