@@ -68,6 +68,28 @@ const domainIconMap: { [key: string]: React.ElementType } = {
   'spotify.com': SpotifyIcon,
 };
 
+const PdfCard: React.FC<{ item: ContentItem; }> = ({ item }) => (
+    <div className="p-4 flex flex-col flex-grow items-center text-center">
+        <PdfIcon className="h-16 w-16 text-primary mb-3" />
+        <h3 className="font-semibold text-foreground break-words leading-tight line-clamp-2">{item.title}</h3>
+        {item.description && (
+            <p className="text-sm text-muted-foreground break-words line-clamp-3 mt-2">
+                {getPlainTextDescription(item.description)}
+            </p>
+        )}
+    </div>
+);
+
+const getPlainTextDescription = (htmlString: string | undefined): string => {
+    if (!htmlString) return '';
+    if (typeof document !== 'undefined') {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = htmlString;
+      return tempDiv.textContent || tempDiv.innerText || '';
+    }
+    return htmlString.replace(/<[^>]+>/g, ''); 
+};
+
 const ContentCard: React.FC<ContentCardProps> = ({ 
   item, 
   viewMode = 'grid', 
@@ -95,16 +117,6 @@ const ContentCard: React.FC<ContentCardProps> = ({
   
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('application/x-mati-internal', 'true');
-  };
-
-  const getPlainTextDescription = (htmlString: string | undefined): string => {
-    if (!htmlString) return '';
-    if (typeof document !== 'undefined') {
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = htmlString;
-      return tempDiv.textContent || tempDiv.innerText || '';
-    }
-    return htmlString.replace(/<[^>]+>/g, ''); 
   };
 
   const plainDescription = getPlainTextDescription(item.description);
@@ -153,6 +165,44 @@ const ContentCard: React.FC<ContentCardProps> = ({
   const timeInTrash = (item.trashedAt && typeof item.trashedAt === 'string' && item.trashedAt.length > 0)
     ? formatDistanceToNow(new Date(item.trashedAt), { addSuffix: true })
     : 'a while ago';
+
+  // Specific check for PDF type for a custom card layout
+  if (viewMode === 'grid' && item.contentType === 'PDF' && item.type === 'link') {
+    return (
+        <motion.div layoutId={`card-animation-${item.id}`} className="break-inside-avoid w-full">
+            <Card
+                draggable={!isTrashView}
+                onDragStart={handleDragStart}
+                className={cn(
+                    "bg-card text-card-foreground overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 flex w-full flex-col group rounded-xl relative h-full",
+                    isSelected ? "ring-2 ring-primary shadow-2xl" : "cursor-pointer",
+                    isTrashView && "opacity-90 hover:opacity-100"
+                )}
+                onClick={() => !isTrashView && onEdit(item)}
+            >
+                <div className="flex-grow min-h-0">
+                    <PdfCard item={item} />
+                </div>
+                 {isTrashView && trashActions && (
+                    <CardFooter className="p-2 bg-muted/50 border-t">
+                        <div className="w-full space-y-2">
+                            <p className="text-xs text-muted-foreground text-center">Moved to trash {timeInTrash}</p>
+                            <div className="flex justify-center gap-2">
+                                <TooltipProvider>
+                                    <Tooltip><TooltipTrigger asChild><Button variant="outline" size="icon" onClick={trashActions.onRestore} disabled={trashActions.isProcessing} className="h-9 w-9">{trashActions.isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo className="h-4 w-4" />}</Button></TooltipTrigger><TooltipContent><p>Restore Item</p></TooltipContent></Tooltip>
+                                </TooltipProvider>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild><TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="destructive" size="icon" disabled={trashActions.isProcessing} className="h-9 w-9"><Trash2 className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Delete Forever</p></TooltipContent></Tooltip></TooltipProvider></AlertDialogTrigger>
+                                    <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{item.title}". This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={trashActions.onDeletePermanent} className="bg-destructive hover:bg-destructive/90">Delete Forever</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+                                </AlertDialog>
+                            </div>
+                        </div>
+                    </CardFooter>
+                )}
+            </Card>
+        </motion.div>
+    );
+  }
 
   return (
     <motion.div layoutId={`card-animation-${item.id}`} className="break-inside-avoid w-full">
@@ -270,18 +320,6 @@ const ContentCard: React.FC<ContentCardProps> = ({
                 </p>
               </div>
               <span className="absolute bottom-2 right-2 text-6xl text-muted-foreground/20 font-serif">”</span>
-            </div>
-          ) : item.contentType === 'PDF' && item.type === 'link' ? (
-            <div className="p-4 flex flex-col flex-grow">
-                <div className="flex items-center gap-3">
-                    <PdfIcon className="h-10 w-10 shrink-0 text-primary" />
-                    <h3 className="font-semibold text-foreground break-all leading-tight">{item.title}</h3>
-                </div>
-                {plainDescription && (
-                    <p className="text-sm text-muted-foreground break-words line-clamp-3 mt-3 border-l-2 border-border pl-3">
-                        {plainDescription}
-                    </p>
-                )}
             </div>
           ) : item.type === 'image' ? (
               null
