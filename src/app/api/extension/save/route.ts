@@ -1,8 +1,9 @@
 
+
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminAuth } from '@/lib/firebase-admin';
 import { addContentItem } from '@/services/contentService';
 import type { ContentItem } from '@/types';
+import { getAdminAuth } from '@/lib/firebase-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,10 +16,22 @@ export async function POST(request: NextRequest) {
 
     const token = authorization.split('Bearer ')[1];
 
+    let userId: string;
     try {
         const decodedToken = await getAdminAuth().verifyIdToken(token);
-        const userId = decodedToken.uid;
+        userId = decodedToken.uid;
+    } catch (error: any) {
+         console.error('Token verification failed:', error);
+        if (error.code === 'auth/id-token-expired') {
+            return NextResponse.json({ error: 'Unauthorized: Token expired' }, { status: 401 });
+        }
+        if (error.code === 'auth/argument-error') {
+            return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
+        }
+        return NextResponse.json({ error: 'Internal Server Error during auth' }, { status: 500 });
+    }
         
+    try {
         const body = await request.json();
         const { url, title, selection, source } = body;
         
@@ -71,13 +84,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, itemId: newItem.id });
 
     } catch (error: any) {
-        console.error('Extension API Error:', error);
-        if (error.code === 'auth/id-token-expired') {
-            return NextResponse.json({ error: 'Unauthorized: Token expired' }, { status: 401 });
-        }
-        if (error.code === 'auth/argument-error') {
-            return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
-        }
+        console.error('Extension content creation error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

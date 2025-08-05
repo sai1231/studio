@@ -151,8 +151,10 @@ export async function getContentItemById(id: string): Promise<ContentItem | unde
 export async function addContentItem(
   itemData: Omit<ContentItem, 'id' | 'createdAt'>
 ): Promise<ContentItem> {
+  if (!db) {
+    throw new Error("Firestore is not initialized. Cannot add content item.");
+  }
   try {
-    if (!db) throw new Error("Firestore is not initialized.");
     if (!itemData.userId) {
       throw new Error("User ID is required to add a content item.");
     }
@@ -211,8 +213,10 @@ export async function addContentItem(
 }
 
 export async function moveItemToTrash(itemId: string): Promise<void> {
+  if (!db) {
+    throw new Error("Firestore is not initialized. Cannot move item to trash.");
+  }
   try {
-    if (!db) throw new Error("Firestore is not initialized.");
     const docRef = doc(db, 'content', itemId);
     const updateData = {
       isTrashed: true,
@@ -239,8 +243,10 @@ export async function moveItemToTrash(itemId: string): Promise<void> {
 }
 
 export async function restoreItemFromTrash(itemId: string): Promise<void> {
+  if (!db) {
+    throw new Error("Firestore is not initialized. Cannot restore item from trash.");
+  }
   try {
-    if (!db) throw new Error("Firestore is not initialized.");
     const docRef = doc(db, 'content', itemId);
     const updateData = {
       isTrashed: false,
@@ -259,8 +265,10 @@ export async function restoreItemFromTrash(itemId: string): Promise<void> {
 
 // Function to permanently delete a content item
 export async function permanentlyDeleteContentItem(itemId: string): Promise<void> {
+  if (!db) {
+    throw new Error("Firestore is not initialized. Cannot permanently delete item.");
+  }
   try {
-    if (!db) throw new Error("Firestore is not initialized.");
     await deleteDoc(doc(db, 'content', itemId));
     deleteDocument(itemId);
   } catch(error) {
@@ -274,8 +282,10 @@ export async function updateContentItem(
   itemId: string,
   updates: Partial<Omit<ContentItem, 'id' | 'createdAt' | 'userId'>>
 ): Promise<void> {
+  if (!db) {
+    throw new Error("Firestore is not initialized. Cannot update item.");
+  }
   try {
-    if (!db) throw new Error("Firestore is not initialized.");
     const docRef = doc(db, 'content', itemId);
     const updateData: { [key: string]: any } = { ...updates };
     
@@ -461,8 +471,8 @@ export async function getZoneById(id: string): Promise<Zone | undefined> {
 }
 
 export async function addZone(name: string, userId: string, isMoodboard: boolean = false): Promise<Zone> {
+  if (!db) throw new Error("Firestore is not initialized.");
   try {
-    if (!db) throw new Error("Firestore is not initialized.");
     if (!userId) {
         throw new Error("User ID is required to add a zone.");
     }
@@ -485,8 +495,8 @@ export async function addZone(name: string, userId: string, isMoodboard: boolean
 
 // New function to delete expired content
 export async function deleteExpiredContent(userId: string): Promise<void> {
+    if (!db) return;
     try {
-        if (!db) return;
         if (!userId) {
             console.warn('deleteExpiredContent called without a userId.');
             return;
@@ -521,8 +531,8 @@ export async function deleteExpiredContent(userId: string): Promise<void> {
 
 // Function for file upload to Firebase Storage, returns the public download URL
 export async function uploadFile(file: File, path: string): Promise<string> {
+  if (!storage) throw new Error("Firebase Storage is not configured.");
   try {
-    if (!storage) throw new Error("Firebase Storage is not configured.");
     if (!storage.app.options.storageBucket) {
       throw new Error("Firebase Storage bucket is not configured. Please check NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET in your .env file.");
     }
