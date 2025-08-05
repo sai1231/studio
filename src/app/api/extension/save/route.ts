@@ -1,7 +1,10 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth } from '@/lib/firebase-admin';
 import { addContentItem } from '@/services/contentService';
 import type { ContentItem } from '@/types';
+
+export const dynamic = 'force-dynamic';
 
 // This is the new, secure endpoint for the browser extension.
 export async function POST(request: NextRequest) {
