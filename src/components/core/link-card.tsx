@@ -68,18 +68,6 @@ const domainIconMap: { [key: string]: React.ElementType } = {
   'spotify.com': SpotifyIcon,
 };
 
-const PdfCard: React.FC<{ item: ContentItem; }> = ({ item }) => (
-    <div className="p-4 flex flex-col flex-grow items-center text-center">
-        <PdfIcon className="h-16 w-16 text-primary mb-3" />
-        <h3 className="font-semibold text-foreground break-words leading-tight line-clamp-2">{item.title}</h3>
-        {item.description && (
-            <p className="text-sm text-muted-foreground break-words line-clamp-3 mt-2">
-                {getPlainTextDescription(item.description)}
-            </p>
-        )}
-    </div>
-);
-
 const getPlainTextDescription = (htmlString: string | undefined): string => {
     if (!htmlString) return '';
     if (typeof document !== 'undefined') {
@@ -89,6 +77,28 @@ const getPlainTextDescription = (htmlString: string | undefined): string => {
     }
     return htmlString.replace(/<[^>]+>/g, ''); 
 };
+
+// **Dedicated PDF Card Component**
+const PdfCard: React.FC<{ item: ContentItem; }> = ({ item }) => {
+  const plainDescription = getPlainTextDescription(item.description);
+  return (
+    <div className="p-4 flex flex-col flex-grow items-start text-left h-full">
+      <div className="flex items-start gap-4 mb-3 w-full">
+        <PdfIcon className="h-12 w-12 shrink-0 text-primary" />
+        <div className="flex-grow">
+            <h3 className="font-semibold text-foreground break-words leading-tight line-clamp-2">{item.title}</h3>
+            {item.domain && <p className="text-xs text-muted-foreground">{item.domain}</p>}
+        </div>
+      </div>
+      {plainDescription && (
+        <p className="text-sm text-muted-foreground break-words line-clamp-4 mt-1">
+          {plainDescription}
+        </p>
+      )}
+    </div>
+  );
+};
+
 
 const ContentCard: React.FC<ContentCardProps> = ({ 
   item, 
@@ -140,9 +150,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
   const hasImage = !!item.imageUrl && !imageError;
 
   const TitleIcon = React.useMemo(() => {
-    if (item.contentType === 'PDF') {
-        return <PdfIcon className="h-5 w-5 shrink-0 mt-0.5 text-primary" />;
-    }
+    // PDF content type is now handled by the PdfCard component, so we don't need a specific icon check here.
     if (item.type !== 'link') {
         if (hasImage) return null;
         return React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) });
@@ -166,8 +174,9 @@ const ContentCard: React.FC<ContentCardProps> = ({
     ? formatDistanceToNow(new Date(item.trashedAt), { addSuffix: true })
     : 'a while ago';
 
-  // Specific check for PDF type for a custom card layout
-  if (viewMode === 'grid' && item.contentType === 'PDF' && item.type === 'link') {
+  // ** MAIN RENDER LOGIC **
+  // Check for PDF content type first and render the dedicated component.
+  if (viewMode === 'grid' && item.contentType === 'PDF') {
     return (
         <motion.div layoutId={`card-animation-${item.id}`} className="break-inside-avoid w-full">
             <Card
@@ -204,6 +213,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
     );
   }
 
+  // Fallback to the default card for all other types
   return (
     <motion.div layoutId={`card-animation-${item.id}`} className="break-inside-avoid w-full">
       <Card
