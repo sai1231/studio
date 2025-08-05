@@ -1,3 +1,4 @@
+
 'use client';
 
 import type React from 'react';
@@ -83,7 +84,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
   const [uploadedFiles, setUploadedFiles] = useState<{name: string, type: 'image' | 'pdf', url: string}[]>([]);
   
   const [isUploading, setIsUploading] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isTemporary, setIsTemporary] = useState(false);
@@ -109,7 +109,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       setInternalZones(zones);
       setUploadedFiles([]);
       setIsUploading(false);
-      setIsDragging(false);
       setIsTemporary(false);
       setExpiryDays('30');
     }
@@ -180,17 +179,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     setIsUploading(false);
   }, [user, toast, form]);
 
-  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); };
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); };
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); e.stopPropagation(); };
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault(); e.stopPropagation();
-    setIsDragging(false);
-    const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
-        handleFilesSelected(Array.from(files));
-    }
-  };
   const handleUploadAreaClick = () => { if (!isUploading) fileInputRef.current?.click(); };
   
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -453,28 +441,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
           </ScrollArea>
       )}
 
-      <div 
-        className={cn("relative flex flex-col items-center justify-center p-4 rounded-lg border-2 border-dashed transition-colors", 
-        isDragging ? "border-primary bg-primary/10" : "border-border hover:border-primary/50",
-        isUploading ? "cursor-default" : "cursor-pointer"
-        )}
-        onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}
-        onClick={handleUploadAreaClick}
-      >
-        {isUploading ? (
-            <div className="flex flex-col items-center justify-center text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="mt-2 text-sm text-muted-foreground">Uploading...</p>
-            </div>
-        ) : (
-            <div className="flex flex-col items-center justify-center text-center">
-              <UploadCloud className="h-8 w-8 text-muted-foreground" />
-              <p className="mt-2 text-sm font-medium">Drag & Drop Files</p>
-              <p className="text-xs text-muted-foreground">Image or PDF (Max 5MB)</p>
-            </div>
-        )}
-      </div>
-
       <div className="space-y-4 rounded-lg border p-4">
           <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -564,39 +530,34 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     </div>
   );
 
-  const Container = isMobile ? Sheet : Dialog;
-  const ContainerContent = isMobile ? SheetContent : DialogContent;
-  const ContainerHeader = isMobile ? SheetHeader : DialogHeader;
-  const ContainerTitle = isMobile ? SheetTitle : DialogTitle;
-  const ContainerFooter = isMobile ? SheetFooter : DialogFooter;
-
   return (
     <>
       {children && <div onClick={(e) => e.stopPropagation()}>{children}</div>}
       
-      <Container open={open} onOpenChange={onOpenChange}>
-          <ContainerContent 
-            className={cn(isMobile ? "h-[90vh] flex flex-col p-0 bg-background" : "max-w-[625px] h-[90vh] flex flex-col p-0 bg-card")}
-            onOpenAutoFocus={!isMobile ? (e) => e.preventDefault() : undefined}
-            side={isMobile ? "bottom" : undefined}
+      <Dialog open={open} onOpenChange={onOpenChange}>
+          <DialogContent 
+            className="max-w-[625px] h-[90vh] flex flex-col p-0 bg-card"
+            onOpenAutoFocus={(e) => e.preventDefault()}
           >
-              <ContainerHeader className="p-4 sm:p-6 sm:pb-0 border-b sm:border-0 flex-shrink-0">
-                  <ContainerTitle className="font-headline">Add Content</ContainerTitle>
-              </ContainerHeader>
-              <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form" className="flex-grow flex flex-col overflow-hidden">
-                  <ScrollArea className="flex-1 px-4 sm:px-6">
-                      {FormFields}
-                  </ScrollArea>
-                  <ContainerFooter className={cn("p-4 sm:px-6 sm:pb-6 border-t", isMobile && "flex-row sm:justify-end gap-2")}>
+              <DialogHeader className="px-6 pt-6 pb-0 flex-shrink-0">
+                <DialogTitle className="font-headline">Add Content</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-1 flex flex-col min-h-0">
+                  <div className="flex-grow min-h-0 px-6">
+                      <ScrollArea className="h-full pr-6 -mr-6">
+                          {FormFields}
+                      </ScrollArea>
+                  </div>
+                  <DialogFooter className="px-6 pb-6 pt-4 border-t flex-shrink-0">
                     <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
-                    <Button type="submit" form="add-content-form" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                      {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
+                    <Button type="submit" form="add-content-form-desktop" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                    {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
                     </Button>
-                  </ContainerFooter>
+                  </DialogFooter>
               </form>
-          </ContainerContent>
-      </Container>
+          </DialogContent>
+      </Dialog>
     </>
   );
 };
