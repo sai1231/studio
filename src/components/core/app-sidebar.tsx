@@ -124,7 +124,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones: allCollections, tags, do
         <div className="flex h-full max-h-screen flex-col">
           <div className="flex h-16 items-center justify-center border-b border-sidebar-border px-2">
             <Link href="/dashboard" aria-label="Home">
-                <MatiLogo iconSize={28} showName={false} />
+                <MatiLogo iconSize={32} showName={false} />
             </Link>
           </div>
 
