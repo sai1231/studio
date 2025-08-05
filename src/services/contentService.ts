@@ -172,10 +172,13 @@ export async function addContentItem(
       try {
         const url = new URL(dataToSave.url);
         dataToSave.domain = url.hostname.replace(/^www\./, '');
-        // Always run the classifier to ensure custom rules take precedence
-        const determinedContentType = await classifyUrl(dataToSave.url);
-        if (determinedContentType) {
-          dataToSave.contentType = determinedContentType;
+        
+        // ** FIX: Prevent classifier from overriding PDF content type **
+        if (dataToSave.contentType !== 'PDF') {
+          const determinedContentType = await classifyUrl(dataToSave.url);
+          if (determinedContentType) {
+            dataToSave.contentType = determinedContentType;
+          }
         }
       } catch (e) {
         console.warn("Could not extract domain from URL:", dataToSave.url);
