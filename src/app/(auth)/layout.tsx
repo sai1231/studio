@@ -40,7 +40,7 @@ export default function AuthLayout({
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-background to-secondary p-4">
       <div className="mb-8">
-        <MatiLogo iconSize={32} textSize="text-3xl" />
+        <MatiLogo iconSize={32} textSize="text-3xl" showName={true} />
       </div>
       <div className="w-full max-w-md">
         {children}

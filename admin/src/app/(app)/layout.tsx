@@ -10,6 +10,7 @@ import type React from 'react';
 import { getAuth, signOut } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/core/theme-toggle";
+import MatiLogo from "@/components/core/mati-logo";
 
 const adminNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -40,7 +41,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="container mx-auto py-2">
         <div className="flex items-center gap-4 border-b pb-4 mb-8">
-            <Shield className="h-10 w-10 text-primary" />
+            <MatiLogo iconSize={32} textSize="text-3xl" />
             <div>
                 <h1 className="text-3xl font-headline font-semibold">Admin Portal</h1>
                 <p className="text-muted-foreground">Manage users, application settings, and monitor system health.</p>

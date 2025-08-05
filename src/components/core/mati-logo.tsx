@@ -4,9 +4,10 @@ interface MatiLogoProps {
   className?: string;
   iconSize?: number;
   textSize?: string;
+  showName?: boolean;
 }
 
-const MatiLogo: React.FC<MatiLogoProps> = ({ className, iconSize = 24, textSize = "text-2xl" }) => {
+const MatiLogo: React.FC<MatiLogoProps> = ({ className, iconSize = 24, textSize = "text-2xl", showName = true }) => {
   return (
     <div className={`flex items-center space-x-2 ${className}`}>
       <svg
@@ -25,7 +26,7 @@ const MatiLogo: React.FC<MatiLogoProps> = ({ className, iconSize = 24, textSize 
           />
         </g>
       </svg>
-      <h1 className={`font-headline font-semibold text-primary ${textSize}`}>Mati</h1>
+      {showName && <h1 className={`font-headline font-semibold text-primary ${textSize}`}>Mati</h1>}
     </div>
   );
 };
