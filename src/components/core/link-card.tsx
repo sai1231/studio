@@ -128,6 +128,9 @@ const ContentCard: React.FC<ContentCardProps> = ({
   const hasImage = !!item.imageUrl && !imageError;
 
   const TitleIcon = React.useMemo(() => {
+    if (item.contentType === 'PDF') {
+        return <PdfIcon className="h-5 w-5 shrink-0 mt-0.5 text-primary" />;
+    }
     if (item.type !== 'link') {
         if (hasImage) return null;
         return React.createElement(specifics.icon, { className: cn("h-5 w-5 shrink-0 mt-0.5", specifics.iconText) });
@@ -269,10 +272,16 @@ const ContentCard: React.FC<ContentCardProps> = ({
               <span className="absolute bottom-2 right-2 text-6xl text-muted-foreground/20 font-serif">”</span>
             </div>
           ) : item.contentType === 'PDF' && item.type === 'link' ? (
-            <div className="p-6 flex flex-col flex-grow items-center justify-center text-center">
-                <PdfIcon className="h-12 w-12 mb-3" />
-                <h3 className="font-semibold text-foreground break-all leading-tight">{item.title}</h3>
-                <p className="text-sm text-muted-foreground mt-1">PDF Document</p>
+            <div className="p-4 flex flex-col flex-grow">
+                <div className="flex items-center gap-3">
+                    <PdfIcon className="h-10 w-10 shrink-0 text-primary" />
+                    <h3 className="font-semibold text-foreground break-all leading-tight">{item.title}</h3>
+                </div>
+                {plainDescription && (
+                    <p className="text-sm text-muted-foreground break-words line-clamp-3 mt-3 border-l-2 border-border pl-3">
+                        {plainDescription}
+                    </p>
+                )}
             </div>
           ) : item.type === 'image' ? (
               null
@@ -353,3 +362,5 @@ const ContentCard: React.FC<ContentCardProps> = ({
 };
 
 export default React.memo(ContentCard);
+
+    
