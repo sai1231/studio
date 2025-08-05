@@ -172,7 +172,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
     const successfulUploads = results.filter((r): r is {name: string, type: 'image' | 'pdf', url: string} => r !== null);
 
     setUploadedFiles(prev => [...prev, ...successfulUploads]);
-    
     setIsUploading(false);
   }, [user, toast, form]);
 
@@ -386,7 +385,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
         }
     }
   };
-
+  
   const FormFields = (
     <div className="space-y-4 py-4">
       <div className="relative">
@@ -415,48 +414,48 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
         <div className="flex-grow border-t"></div>
       </div>
       
-        <div className="grid grid-cols-2 gap-4">
-            <div 
-                className={cn("relative flex flex-col items-center justify-center p-4 rounded-lg border-2 border-dashed transition-colors h-full min-h-[110px]", 
-                isDragging ? "border-primary bg-primary/10" : "border-border hover:border-primary/50",
-                isUploading ? "cursor-default" : "cursor-pointer"
-                )}
-                onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}
-                onClick={handleUploadAreaClick}
-            >
-                {isUploading ? (
-                    <div className="flex flex-col items-center justify-center text-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="mt-2 text-sm text-muted-foreground">Uploading...</p>
-                    </div>
-                ) : uploadedFiles.length > 0 ? (
-                    <ScrollArea className="w-full max-h-32">
-                    <div className="space-y-2 p-1">
-                        {uploadedFiles.map(file => (
-                        <div key={file.url} className="flex items-center gap-3 w-full bg-background p-2 rounded-md border">
-                            <FileUp className="h-6 w-6 text-primary shrink-0" />
-                            <div className="text-left flex-grow truncate">
-                                <p className="font-medium truncate text-sm">{file.name}</p>
-                                <p className="text-xs text-muted-foreground">{file.type === 'image' ? 'Image ready' : 'PDF ready'}</p>
-                            </div>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={(e) => { e.stopPropagation(); clearUploadedFile(file.url); }}><X className="h-4 w-4" /></Button>
-                        </div>
-                        ))}
-                    </div>
-                    </ScrollArea>
-                ) : (
-                    <div className="flex flex-col items-center justify-center text-center">
-                    <UploadCloud className="h-8 w-8 text-muted-foreground" />
-                    <p className="mt-2 text-sm font-medium">Upload Files</p>
-                    <p className="text-xs text-muted-foreground">Image or PDF (Max 5MB)</p>
-                    </div>
-                )}
-            </div>
-            <Button type="button" variant="secondary" className="h-full min-h-[110px] text-lg flex-col" onClick={handleRecordVoiceClick}>
-                <Mic className="h-8 w-8 mb-2" />
-                <span>Record Voice</span>
-            </Button>
-        </div>
+      <div className="grid grid-cols-2 gap-4">
+          <div 
+              className={cn("relative flex flex-col items-center justify-center p-4 rounded-lg border-2 border-dashed transition-colors h-full min-h-[110px]", 
+              isDragging ? "border-primary bg-primary/10" : "border-border hover:border-primary/50",
+              isUploading ? "cursor-default" : "cursor-pointer"
+              )}
+              onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}
+              onClick={handleUploadAreaClick}
+          >
+              {isUploading ? (
+                  <div className="flex flex-col items-center justify-center text-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="mt-2 text-sm text-muted-foreground">Uploading...</p>
+                  </div>
+              ) : uploadedFiles.length > 0 ? (
+                  <ScrollArea className="w-full max-h-32">
+                  <div className="space-y-2 p-1">
+                      {uploadedFiles.map(file => (
+                      <div key={file.url} className="flex items-center gap-3 w-full bg-background p-2 rounded-md border">
+                          <FileUp className="h-6 w-6 text-primary shrink-0" />
+                          <div className="text-left flex-grow truncate">
+                              <p className="font-medium truncate text-sm">{file.name}</p>
+                              <p className="text-xs text-muted-foreground">{file.type === 'image' ? 'Image ready' : 'PDF ready'}</p>
+                          </div>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={(e) => { e.stopPropagation(); clearUploadedFile(file.url); }}><X className="h-4 w-4" /></Button>
+                      </div>
+                      ))}
+                  </div>
+                  </ScrollArea>
+              ) : (
+                  <div className="flex flex-col items-center justify-center text-center">
+                  <UploadCloud className="h-8 w-8 text-muted-foreground" />
+                  <p className="mt-2 text-sm font-medium">Upload Files</p>
+                  <p className="text-xs text-muted-foreground">Image or PDF (Max 5MB)</p>
+                  </div>
+              )}
+          </div>
+          <Button type="button" variant="secondary" className="h-full min-h-[110px] text-lg flex-col" onClick={handleRecordVoiceClick}>
+              <Mic className="h-8 w-8 mb-2" />
+              <span>Record Voice</span>
+          </Button>
+      </div>
       <input type="file" ref={fileInputRef} onChange={handleFileInputChange} accept="image/*,application/pdf" className="hidden" multiple />
 
         <div className="space-y-4 rounded-lg border p-4">
