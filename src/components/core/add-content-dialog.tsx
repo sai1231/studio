@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import type React from 'react';
@@ -277,7 +278,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                 ...commonData
               }
             : {
-                type: 'link' as const, title: uploadedFile.name, url: uploadedFile.url, contentType: 'PDF',
+                type: 'pdf' as const, title: uploadedFile.name, url: uploadedFile.url, contentType: 'PDF',
                 memoryNote: memoryNoteFromInput, domain: 'mati.internal.storage',
                 status: 'pending-analysis' as const,
                 ...commonData
@@ -395,7 +396,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
             <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8" onClick={handleUploadAreaClick} disabled={isUploading}>
+                    <Button type="button" variant="ghost" size="icon" className="text-muted-foreground hover:bg-primary hover:text-primary-foreground h-8 w-8" onClick={handleUploadAreaClick} disabled={isUploading}>
                         <ImageIcon className="h-5 w-5" />
                     </Button>
                   </TooltipTrigger>
@@ -403,7 +404,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8" onClick={handleRecordVoiceClick}>
+                    <Button type="button" variant="ghost" size="icon" className="text-muted-foreground hover:bg-primary hover:text-primary-foreground h-8 w-8" onClick={handleRecordVoiceClick}>
                         <Mic className="h-5 w-5" />
                     </Button>
                   </TooltipTrigger>
@@ -411,7 +412,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8" onClick={handleFocusModeClick}>
+                    <Button type="button" variant="ghost" size="icon" className="text-muted-foreground hover:bg-primary hover:text-primary-foreground h-8 w-8" onClick={handleFocusModeClick}>
                       <Maximize className="h-5 w-5" />
                     </Button>
                   </TooltipTrigger>
@@ -494,70 +495,92 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                           Create
                       </Button>
                   </div>
-                    <CommandList>
-                         <CommandEmpty>No matching zones found.</CommandEmpty>
-                         <CommandGroup>
-                            {filteredZones.map((z) => {
-                              const ListItemIcon = getIconComponent(z.icon);
-                              return (
-                                <CommandItem key={z.id} value={z.name} onSelect={() => { form.setValue('zoneId', z.id, { shouldTouch: true, shouldValidate: true }); setIsZonePopoverOpen(false); }}>
-                                    <Check className={cn("mr-2 h-4 w-4", watchedZoneId === z.id ? "opacity-100" : "opacity-0")} />
-                                    <ListItemIcon className="mr-2 h-4 w-4 opacity-70" />
-                                    {z.name}
-                                </CommandItem>
-                              );
-                            })}
-                         </CommandGroup>
-                    </CommandList>
-                </Command>
-            </PopoverContent>
-          </Popover>
-          {form.formState.errors.zoneId && <p className="text-sm text-destructive">{form.formState.errors.zoneId.message}</p>}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="tags">Tags</Label>
-          <div className="flex flex-wrap gap-2">
-            {currentTags.map(tag => (
-              <Badge key={tag.id} variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">
-                {tag.name}
-                <button type="button" onClick={() => removeTag(tag)} className="ml-1.5 focus:outline-none rounded-full hover:bg-destructive/20 p-0.5"><X className="h-3 w-3" /></button>
-              </Badge>
-            ))}
+                      <CommandList>
+                           <CommandEmpty>No matching zones found.</CommandEmpty>
+                           <CommandGroup>
+                              {filteredZones.map((z) => {
+                                const ListItemIcon = getIconComponent(z.icon);
+                                return (
+                                  <CommandItem key={z.id} value={z.name} onSelect={() => { form.setValue('zoneId', z.id, { shouldTouch: true, shouldValidate: true }); setIsZonePopoverOpen(false); }}>
+                                      <Check className={cn("mr-2 h-4 w-4", watchedZoneId === z.id ? "opacity-100" : "opacity-0")} />
+                                      <ListItemIcon className="mr-2 h-4 w-4 opacity-70" />
+                                      {z.name}
+                                  </CommandItem>
+                                );
+                              })}
+                           </CommandGroup>
+                      </CommandList>
+                  </Command>
+              </PopoverContent>
+            </Popover>
+            {form.formState.errors.zoneId && <p className="text-sm text-destructive">{form.formState.errors.zoneId.message}</p>}
           </div>
-          <Input id="tags" value={tagInput} onChange={handleTagInputChange} onKeyDown={handleTagInputKeyDown} placeholder="Add tags (press Enter or ,)" className="focus-visible:ring-accent bg-background" />
+          <div className="space-y-2">
+            <Label htmlFor="tags">Tags</Label>
+            <div className="flex flex-wrap gap-2">
+              {currentTags.map(tag => (
+                <Badge key={tag.id} variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">
+                  {tag.name}
+                  <button type="button" onClick={() => removeTag(tag)} className="ml-1.5 focus:outline-none rounded-full hover:bg-destructive/20 p-0.5"><X className="h-3 w-3" /></button>
+                </Badge>
+              ))}
+            </div>
+            <Input id="tags" value={tagInput} onChange={handleTagInputChange} onKeyDown={handleTagInputKeyDown} placeholder="Add tags (press Enter or ,)" className="focus-visible:ring-accent bg-background" />
+          </div>
         </div>
       </div>
-    </div>
   );
 
   return (
     <>
       {children && <div onClick={(e) => e.stopPropagation()}>{children}</div>}
       
-      <Dialog open={open} onOpenChange={onOpenChange}>
-          <DialogContent 
-            className="max-w-[625px] h-[90vh] flex flex-col p-0 bg-card"
-            onOpenAutoFocus={(e) => e.preventDefault()}
-          >
-              <DialogHeader className="px-6 pt-6 pb-0 flex-shrink-0">
-                <DialogTitle className="font-headline">Add Content</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-1 flex flex-col min-h-0">
-                  <div className="flex-grow min-h-0 px-6">
-                      <ScrollArea className="h-full pr-6 -mr-6">
-                          {FormFields}
-                      </ScrollArea>
-                  </div>
-                  <DialogFooter className="px-6 pb-6 pt-4 border-t flex-shrink-0">
-                    <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
-                    <Button type="submit" form="add-content-form-desktop" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                    {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
-                    </Button>
-                  </DialogFooter>
-              </form>
-          </DialogContent>
-      </Dialog>
+      {isMobile ? (
+        <Sheet open={open} onOpenChange={onOpenChange}>
+            <SheetContent side="bottom" className="h-[90vh] flex flex-col p-0 bg-background">
+                <SheetHeader className="p-4 border-b flex-shrink-0">
+                    <SheetTitle className="font-headline">Add Content</SheetTitle>
+                </SheetHeader>
+                <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-mobile" className="flex-grow flex flex-col overflow-hidden">
+                    <ScrollArea className="flex-1 px-4">
+                        {FormFields}
+                    </ScrollArea>
+                    <SheetFooter className="p-4 pt-4 border-t flex flex-row sm:justify-end gap-2 flex-shrink-0">
+                      <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
+                      <Button type="submit" form="add-content-form-mobile" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                        {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
+                      </Button>
+                    </SheetFooter>
+                </form>
+            </SheetContent>
+        </Sheet>
+      ) : (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent 
+              className="max-w-[625px] h-[90vh] flex flex-col p-0 bg-card"
+              onOpenAutoFocus={(e) => e.preventDefault()}
+            >
+                <DialogHeader className="px-6 pt-6 pb-0 flex-shrink-0">
+                  <DialogTitle className="font-headline">Add Content</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-1 flex flex-col min-h-0">
+                    <div className="flex-grow min-h-0 px-6">
+                        <ScrollArea className="h-full pr-6 -mr-6">
+                            {FormFields}
+                        </ScrollArea>
+                    </div>
+                    <DialogFooter className="px-6 pb-6 pt-4 border-t flex-shrink-0">
+                      <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
+                      <Button type="submit" form="add-content-form-desktop" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                      {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
+                      </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 };
