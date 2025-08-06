@@ -36,6 +36,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { classifyUrl } from '@/services/classifierService';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import PdfIcon from './PdfIcon';
 
 const mainContentSchema = z.object({
   mainContent: z.string(), // This will be optional if a file is uploaded
@@ -113,7 +114,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       setIsTemporary(false);
       setExpiryDays('30');
     }
-  }, [open, form]);
+  }, [open, form, zones]);
 
   useEffect(() => {
     setInternalZones(zones);
@@ -392,10 +393,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
               placeholder="Paste a link, type a note, or add a thought for your uploads..."
               className={cn("min-h-[120px] text-base focus-visible:ring-accent bg-muted/50 pb-12", form.formState.errors.mainContent && "border-destructive focus-visible:ring-destructive")}
           />
-
-
-
-
           <div className="absolute bottom-2 right-2 flex items-center gap-1">
             <TooltipProvider>
                 <Tooltip>
@@ -425,13 +422,13 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
             </TooltipProvider>
           </div>
       </div>
-
-      {uploadedFiles.length > 0 && (
+      
+       {uploadedFiles.length > 0 && (
           <ScrollArea className="w-full max-h-32">
           <div className="space-y-2 p-1">
               {uploadedFiles.map(file => (
               <div key={file.url} className="flex items-center gap-3 w-full bg-muted/50 p-2 rounded-md border">
-                  <FileUp className="h-6 w-6 text-primary shrink-0" />
+                  {file.type === 'image' ? <ImageIcon className="h-6 w-6 text-primary shrink-0" /> : <PdfIcon className="h-6 w-6 shrink-0" />}
                   <div className="text-left flex-grow truncate">
                       <p className="font-medium truncate text-sm">{file.name}</p>
                       <p className="text-xs text-muted-foreground">{file.type === 'image' ? 'Image ready' : 'PDF ready'}</p>
@@ -539,42 +536,25 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       </div>
   );
 
+  const DialogContainer = isMobile ? Sheet : Dialog;
+  const DialogContentContainer = isMobile ? SheetContent : DialogContent;
+
   return (
     <>
       {children && <div onClick={(e) => e.stopPropagation()}>{children}</div>}
       
-      {isMobile ? (
-        <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent side="bottom" className="flex flex-col p-0 bg-background">
+      <DialogContainer open={open} onOpenChange={onOpenChange}>
+            <DialogContentContainer 
+              className={cn(isMobile ? "flex flex-col p-0 bg-background" : "max-w-[625px] flex flex-col p-0 bg-card")}
+              {...(isMobile ? { side: 'bottom' } : {})}
+              onOpenAutoFocus={(e) => e.preventDefault()}
+            >
                 <SheetHeader className="p-4 border-b flex-shrink-0">
                     <SheetTitle className="font-headline">Add Content</SheetTitle>
                 </SheetHeader>
-                <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-mobile" className="flex-grow flex flex-col overflow-hidden">
-                    <ScrollArea className="flex-1 px-4">
-                        {FormFields}
-                    </ScrollArea>
-                    <SheetFooter className="p-4 pt-4 border-t flex flex-row sm:justify-end gap-2 flex-shrink-0">
-                      <Button type="button" variant="outline" onClick={() => { if (onOpenChange) onOpenChange(false); }}>Cancel</Button>
-                      <Button type="submit" form="add-content-form-mobile" disabled={isSubmitDisabled} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                        {(isSaving || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {isUploading ? 'Uploading...' : isSaving ? 'Saving...' : 'Save'}
-                      </Button>
-                    </SheetFooter>
-                </form>
-            </SheetContent>
-        </Sheet>
-      ) : (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent 
-              className="max-w-[625px] flex flex-col p-0 bg-card"
-              onOpenAutoFocus={(e) => e.preventDefault()}
-            >
-                <DialogHeader className="px-6 pt-6 pb-0 flex-shrink-0">
-                  <DialogTitle className="font-headline">Add Content</DialogTitle>
-                </DialogHeader>
                 <form onSubmit={form.handleSubmit(onSubmit)} id="add-content-form-desktop" className="flex-1 flex flex-col min-h-0">
                     <div className="flex-grow min-h-0 px-6">
-                        <ScrollArea className="h-full pr-6 -mr-6">
+                        <ScrollArea className={cn(isMobile ? "h-[65vh]" : "h-full pr-6 -mr-6")}>
                             {FormFields}
                         </ScrollArea>
                     </div>
@@ -586,9 +566,8 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                       </Button>
                     </DialogFooter>
                 </form>
-            </DialogContent>
-        </Dialog>
-      )}
+            </DialogContentContainer>
+        </DialogContainer>
     </>
   );
 };
