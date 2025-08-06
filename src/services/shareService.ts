@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -12,8 +13,6 @@ import {
 import type { Share } from '@/types';
 import { randomBytes } from 'crypto';
 import bcrypt from 'bcryptjs';
-
-const sharesCollection = collection(db, 'shares');
 
 /**
  * Creates a secure, unique, and unguessable share link configuration in Firestore.
@@ -32,6 +31,7 @@ export async function createShareLink(shareData: {
   if (!shareData.userId) throw new Error('User ID is required to create a share link.');
   if (!shareData.contentId && !shareData.zoneId) throw new Error('Either contentId or zoneId must be provided.');
 
+  const sharesCollection = collection(db, 'shares');
   const uniqueId = randomBytes(8).toString('hex'); // Generates a 16-character hex string
   const docRef = doc(sharesCollection, uniqueId);
   
@@ -76,6 +76,7 @@ export async function createShareLink(shareData: {
  */
 export async function getShareData(shareId: string): Promise<Share | null> {
     if (!db) throw new Error("Firestore is not configured.");
+    const sharesCollection = collection(db, 'shares');
     const docRef = doc(sharesCollection, shareId);
     const docSnap = await getDoc(docRef);
 
