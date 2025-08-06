@@ -1,5 +1,6 @@
 
-import { initializeApp, getApps, getApp, type FirebaseOptions } from 'firebase/app';
+
+import { initializeApp, getApps, getApp, type FirebaseOptions, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
@@ -13,13 +14,18 @@ const firebaseConfig: FirebaseOptions = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+// This flag is now exported to be used across the app
+export const isFirebaseConfigured = !!(
+  firebaseConfig.apiKey &&
+  firebaseConfig.projectId &&
+  firebaseConfig.apiKey !== 'YOUR_API_KEY_HERE' // Add a check against placeholder values
+);
+
+
 let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
 let auth: Auth | null = null;
 let storage: FirebaseStorage | null = null;
-
-// This flag is now exported to be used across the app
-export const isFirebaseConfigured = !!(firebaseConfig.apiKey && firebaseConfig.projectId);
 
 if (isFirebaseConfigured) {
   try {
