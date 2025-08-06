@@ -278,7 +278,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
                 ...commonData
               }
             : {
-                type: 'pdf' as const, title: uploadedFile.name, url: uploadedFile.url, contentType: 'PDF',
+                type: 'link' as const, title: uploadedFile.name, url: uploadedFile.url, contentType: 'PDF',
                 memoryNote: memoryNoteFromInput, domain: 'mati.internal.storage',
                 status: 'pending-analysis' as const,
                 ...commonData
@@ -537,7 +537,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       
       {isMobile ? (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent side="bottom" className="h-[90vh] flex flex-col p-0 bg-background">
+            <SheetContent side="bottom" className="flex flex-col p-0 bg-background">
                 <SheetHeader className="p-4 border-b flex-shrink-0">
                     <SheetTitle className="font-headline">Add Content</SheetTitle>
                 </SheetHeader>
@@ -558,7 +558,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       ) : (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent 
-              className="max-w-[625px] h-[90vh] flex flex-col p-0 bg-card"
+              className="max-w-[625px] flex flex-col p-0 bg-card"
               onOpenAutoFocus={(e) => e.preventDefault()}
             >
                 <DialogHeader className="px-6 pt-6 pb-0 flex-shrink-0">
