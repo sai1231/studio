@@ -11,10 +11,10 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, CalendarDays, User, Loader2, Edit3, ImageUp, Lock } from 'lucide-react';
+import { Mail, CalendarDays, User, Loader2, Edit3, ImageUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '@/context/AuthContext';
-import { updateProfile, updatePassword } from 'firebase/auth';
+import { updateProfile } from 'firebase/auth';
 
 export default function ProfilePage() {
   const { toast } = useToast();
@@ -24,11 +24,6 @@ export default function ProfilePage() {
   const [bio, setBio] = useState(''); // This would need to be stored in Firestore, not on the auth object.
   const [isSaving, setIsSaving] = useState(false);
   
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [isPasswordSaving, setIsPasswordSaving] = useState(false);
-
-
   useEffect(() => {
     if (user) {
       setDisplayName(user.displayName || '');
@@ -65,49 +60,6 @@ export default function ProfilePage() {
       });
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const handleChangePassword = async () => {
-    if (!user) {
-      toast({ title: 'Not Authenticated', description: 'You must be logged in.', variant: 'destructive'});
-      return;
-    }
-    if (!newPassword || !confirmPassword) {
-      toast({ title: 'Error', description: 'Please fill out both password fields.', variant: 'destructive'});
-      return;
-    }
-    if (newPassword.length < 6) {
-      toast({ title: 'Error', description: 'Password must be at least 6 characters long.', variant: 'destructive'});
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast({ title: 'Error', description: 'Passwords do not match.', variant: 'destructive'});
-      return;
-    }
-
-    setIsPasswordSaving(true);
-    try {
-      await updatePassword(user, newPassword);
-      toast({
-        title: 'Password Updated',
-        description: 'Your password has been successfully changed.',
-      });
-      setNewPassword('');
-      setConfirmPassword('');
-    } catch (error: any) {
-      console.error("Error updating password:", error);
-      let description = 'Could not update your password. Please try again.';
-      if (error.code === 'auth/requires-recent-login') {
-        description = 'This operation is sensitive and requires recent authentication. Please log out and sign back in to change your password.';
-      }
-      toast({
-        title: 'Error',
-        description: description,
-        variant: 'destructive'
-      });
-    } finally {
-      setIsPasswordSaving(false);
     }
   };
 
@@ -221,54 +173,6 @@ export default function ProfilePage() {
               </>
             ) : (
               'Save Changes'
-            )}
-          </Button>
-        </CardFooter>
-      </Card>
-
-      <Card className="shadow-xl overflow-hidden mt-8">
-        <CardHeader>
-          <CardTitle className="text-xl font-headline flex items-center">
-            <Lock className="h-5 w-5 mr-2 text-primary" />
-            Security
-          </CardTitle>
-          <CardDescription>
-            Change your password here.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="new-password">New Password</Label>
-            <Input
-              id="new-password"
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="••••••••"
-              disabled={isPasswordSaving}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="confirm-password">Confirm New Password</Label>
-            <Input
-              id="confirm-password"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="••••••••"
-              disabled={isPasswordSaving}
-            />
-          </div>
-        </CardContent>
-        <CardFooter className="border-t p-6">
-          <Button onClick={handleChangePassword} disabled={isPasswordSaving} className="ml-auto bg-primary hover:bg-primary/90 text-primary-foreground">
-            {isPasswordSaving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Changing Password...
-              </>
-            ) : (
-              'Change Password'
             )}
           </Button>
         </CardFooter>
