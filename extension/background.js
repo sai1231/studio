@@ -1,6 +1,6 @@
 import { MATI_BASE_URL } from './config.js';
 import { getCurrentUserToken } from './auth.js';
-
+export const dynamic = 'force-dynamic';
 // Function to send data to the backend API
 const saveToMatiAPI = async (payload) => {
   try {

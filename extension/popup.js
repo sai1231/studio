@@ -1,7 +1,7 @@
 import { MATI_BASE_URL } from './config.js';
 import { onUserChanged, signIn, signOut, getCurrentUserToken } from './auth.js';
 import { isFirebaseConfigured } from './firebase-config.js';
-
+export const dynamic = 'force-dynamic';
 const loadingView = document.getElementById('loading-view');
 const loginView = document.getElementById('login-view');
 const saveView = document.getElementById('save-view');
