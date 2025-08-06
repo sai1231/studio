@@ -113,7 +113,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       setIsTemporary(false);
       setExpiryDays('30');
     }
-  }, [open, form, zones]);
+  }, [open, form]);
 
   useEffect(() => {
     setInternalZones(zones);
@@ -392,6 +392,10 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
               placeholder="Paste a link, type a note, or add a thought for your uploads..."
               className={cn("min-h-[120px] text-base focus-visible:ring-accent bg-muted/50 pb-12", form.formState.errors.mainContent && "border-destructive focus-visible:ring-destructive")}
           />
+
+
+
+
           <div className="absolute bottom-2 right-2 flex items-center gap-1">
             <TooltipProvider>
                 <Tooltip>
@@ -421,9 +425,6 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
             </TooltipProvider>
           </div>
       </div>
-      {form.formState.errors.mainContent && <p className="text-sm text-destructive">{form.formState.errors.mainContent.message}</p>}
-
-      <input type="file" ref={fileInputRef} onChange={handleFileInputChange} accept="image/*,application/pdf" className="hidden" multiple />
 
       {uploadedFiles.length > 0 && (
           <ScrollArea className="w-full max-h-32">
@@ -441,6 +442,13 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
           </div>
           </ScrollArea>
       )}
+
+
+      {form.formState.errors.mainContent && <p className="text-sm text-destructive">{form.formState.errors.mainContent.message}</p>}
+
+      <input type="file" ref={fileInputRef} onChange={handleFileInputChange} accept="image/*,application/pdf" className="hidden" multiple />
+
+
 
       <div className="space-y-4 rounded-lg border p-4">
           <div className="space-y-2">
