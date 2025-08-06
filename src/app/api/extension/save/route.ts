@@ -9,6 +9,8 @@ export const dynamic = 'force-dynamic';
 
 // This is the new, secure endpoint for the browser extension.
 export async function POST(request: NextRequest) {
+    return NextResponse.json({ error: 'This feature is temporarily disabled.' }, { status: 503 });
+    /*
     const authorization = request.headers.get('Authorization');
     if (!authorization?.startsWith('Bearer ')) {
         return NextResponse.json({ error: 'Unauthorized: No token provided' }, { status: 401 });
@@ -87,4 +89,5 @@ export async function POST(request: NextRequest) {
         console.error('Extension content creation error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
+    */
 }
