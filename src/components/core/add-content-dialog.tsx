@@ -114,7 +114,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({ open, onOpenChange,
       setIsTemporary(false);
       setExpiryDays('30');
     }
-  }, [open, form, zones]);
+  }, [open, form]);
 
   useEffect(() => {
     setInternalZones(zones);

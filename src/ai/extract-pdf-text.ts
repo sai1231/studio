@@ -2,6 +2,12 @@
 
 import { addLog } from '@/services/loggingService';
 import { pipeline } from '@xenova/transformers';
+import type { PDFData } from 'pdf-parse';
+
+// Use a dynamic import that is more robust in different module environments.
+const pdf = (buffer: Buffer, options: any): Promise<PDFData> => 
+    import('pdf-parse').then(mod => mod.default(buffer, options));
+
 
 /**
  * Fetches a PDF from a URL, extracts its text content, and generates a summary.
@@ -18,7 +24,8 @@ export async function extractTextFromPdf(url: string): Promise<string | null> {
     }
 
     const buffer = await response.arrayBuffer();
-    const pdf = (await import('pdf-parse')).default;
+    await addLog('INFO', `[PDF Extractor] PDF buffer downloaded, size: ${buffer.byteLength}. Parsing text...`);
+    
     const options = { max: 2 }; // Limit parsing to the first 2 pages
     const data = await pdf(Buffer.from(buffer), options);
 
@@ -43,7 +50,12 @@ export async function extractTextFromPdf(url: string): Promise<string | null> {
       early_stopping: true
     });
 
-    const summary = result[0].summary_text; // Note: BART returns summary_text
+    if (!result || !Array.isArray(result) || result.length === 0 || !result[0].summary_text) {
+        await addLog('WARN', '[PDF Extractor] Summarization pipeline did not return a valid summary.');
+        return null;
+    }
+
+    const summary = result[0].summary_text; 
 
     await addLog('INFO', `[PDF Extractor] Successfully generated summary of length ${summary.length}.`);
 
