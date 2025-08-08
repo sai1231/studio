@@ -293,7 +293,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
   };
 
   const shouldShowRetry = item && (item.status === 'failed-analysis' || (item.status === 'pending-analysis' && differenceInMinutes(new Date(), new Date(item.createdAt)) >= 1));
-  const hasVisual = item?.imageUrl || oembedHtml || (item?.contentType === 'PDF' && item?.url) || (item?.type === 'voice' && item.audioUrl);
+  const hasVisual = item?.type === 'link' || item?.imageUrl || (item?.type === 'voice' && item.audioUrl);
     
   const DialogBody = (
     <>
