@@ -98,7 +98,7 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
   const viewImageUrl = item.imageUrl?.split('&token=')[0];
 
   return (
-    <div className="hidden md:flex flex-col bg-muted/50">
+    <div className="md:flex flex-col bg-muted/50 hidden">
       <div className="relative w-full flex-grow min-h-0 flex justify-center items-center rounded-lg overflow-hidden p-6">
         {isFetchingOembed ? (
           <div className="w-full aspect-video flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
