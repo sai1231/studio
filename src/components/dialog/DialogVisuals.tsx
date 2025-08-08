@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import PdfIcon from '../core/PdfIcon';
 import { Button } from '../ui/button';
-
+import { cn } from '@/lib/utils';
 
 interface DialogVisualsProps {
   item: ContentItem;
@@ -34,41 +34,52 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
     setImageError(false);
     onOembedLoad(null);
     setOembedHtml(null);
+    console.log(`[DialogVisuals] useEffect triggered for item ID: ${item.id}`);
 
     if (item.type === 'link' && item.url && item.contentType !== 'PDF') {
       setIsFetchingOembed(true);
+      console.log(`[DialogVisuals] Fetching oEmbed for URL: ${item.url}`);
       fetch(`/api/oembed?url=${encodeURIComponent(item.url)}`)
-        .then(res => {
+        .then(async res => {
+            console.log(`[DialogVisuals] oEmbed API response status: ${res.status}`);
             if (!res.ok) {
-                return Promise.reject(res);
+                const errorBody = await res.text();
+                console.error(`[DialogVisuals] oEmbed API request failed. Status: ${res.status}, Body: ${errorBody}`);
+                return Promise.reject(new Error(`API responded with ${res.status}`));
             }
             return res.json();
         })
         .then(data => {
+          console.log('[DialogVisuals] Received oEmbed data from API:', data);
           if (data.html) {
+            console.log('[DialogVisuals] HTML found in oEmbed data. Setting state.');
             setOembedHtml(data.html);
             onOembedLoad(data.html);
+          } else {
+             console.log('[DialogVisuals] No HTML found in oEmbed data.');
           }
         })
-        .catch(async (error) => {
-            if (error instanceof Response) {
-                const errorBody = await error.text();
-                console.warn(`Could not fetch oEmbed data. Status: ${error.status}. Body: ${errorBody}`);
-            } else {
-                console.error("Failed to fetch oEmbed data with a non-response error", error);
-            }
+        .catch(error => {
+            console.error("[DialogVisuals] Failed to fetch or process oEmbed data:", error);
         })
-        .finally(() => setIsFetchingOembed(false));
+        .finally(() => {
+          console.log('[DialogVisuals] Finished fetching oEmbed.');
+          setIsFetchingOembed(false)
+        });
     }
   }, [item.id, item.type, item.url, item.contentType, onOembedLoad]);
 
   useEffect(() => {
     if (oembedHtml && oembedContainerRef.current) {
+        console.log('[DialogVisuals] oEmbed HTML is present. Processing scripts...');
         if (oembedHtml.includes('instagram-media') && window.instgrm) {
+            console.log('[DialogVisuals] Instagram embed detected. Calling window.instgrm.Embeds.process().');
             window.instgrm.Embeds.process();
         } else if (oembedHtml.includes('twitter-tweet') && window.twttr) {
+            console.log('[DialogVisuals] Twitter embed detected. Calling window.twttr.widgets.load().');
             window.twttr.widgets.load(oembedContainerRef.current);
         } else {
+            console.log('[DialogVisuals] Other embed type detected. Manually loading scripts.');
             const scripts = Array.from(oembedContainerRef.current.querySelectorAll('script'));
             scripts.forEach(oldScript => {
                 const newScript = document.createElement('script');
@@ -91,11 +102,10 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
 
   const hasVisual = !imageError && (item.imageUrl || oembedHtml || (item.contentType === 'PDF' && item.url) || item.audioUrl);
   
-  // Create a URL for viewing that strips the download token
   const viewImageUrl = item.imageUrl?.split('&token=')[0];
 
   return (
-    <div className="md:flex flex-col bg-muted/50 hidden">
+    <div className="md:flex flex-col bg-muted/50 hidden md:flex-col">
       <div className="relative w-full flex-grow min-h-0 flex justify-center items-center rounded-lg overflow-hidden p-6">
         {isFetchingOembed ? (
           <div className="w-full aspect-video flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
