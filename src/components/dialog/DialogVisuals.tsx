@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Loader2, Download, Eye } from 'lucide-react';
+import { Loader2, Download, Eye, Mic } from 'lucide-react';
 import type { ContentItem } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -90,7 +90,7 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
     });
   };
 
-  const hasVisual = !imageError && (item.imageUrl || oembedHtmlRef.current || (item.contentType === 'PDF' && item.url));
+  const hasVisual = !imageError && (item.imageUrl || oembedHtmlRef.current || (item.contentType === 'PDF' && item.url) || item.audioUrl);
 
   if (!hasVisual && !isFetchingOembed) {
     return null;
@@ -146,6 +146,11 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
                     </TooltipProvider>
                     </div>
                 )}
+            </div>
+        ) : item.type === 'voice' && item.audioUrl ? (
+            <div className="flex flex-col items-center justify-center w-full space-y-4">
+                <Mic className="h-16 w-16 text-primary/80" />
+                <audio controls src={item.audioUrl} className="w-full rounded-lg" />
             </div>
         ) : (item.type === 'link' && item.contentType === 'PDF' && item.url) ? (
             <div className="flex flex-col items-center justify-center text-center">
