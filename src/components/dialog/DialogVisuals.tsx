@@ -34,52 +34,35 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
     setImageError(false);
     onOembedLoad(null);
     setOembedHtml(null);
-    console.log(`[DialogVisuals] useEffect triggered for item ID: ${item.id}`);
 
     if (item.type === 'link' && item.url && item.contentType !== 'PDF') {
       setIsFetchingOembed(true);
-      console.log(`[DialogVisuals] Fetching oEmbed for URL: ${item.url}`);
       fetch(`/api/oembed?url=${encodeURIComponent(item.url)}`)
         .then(async res => {
-            console.log(`[DialogVisuals] oEmbed API response status: ${res.status}`);
             if (!res.ok) {
                 const errorBody = await res.text();
-                console.error(`[DialogVisuals] oEmbed API request failed. Status: ${res.status}, Body: ${errorBody}`);
                 return Promise.reject(new Error(`API responded with ${res.status}`));
             }
             return res.json();
         })
         .then(data => {
-          console.log('[DialogVisuals] Received oEmbed data from API:', data);
           if (data.html) {
-            console.log('[DialogVisuals] HTML found in oEmbed data. Setting state.');
             setOembedHtml(data.html);
             onOembedLoad(data.html);
-          } else {
-             console.log('[DialogVisuals] No HTML found in oEmbed data.');
           }
         })
         .catch(error => {
             console.error("[DialogVisuals] Failed to fetch or process oEmbed data:", error);
         })
-        .finally(() => {
-          console.log('[DialogVisuals] Finished fetching oEmbed.');
-          setIsFetchingOembed(false)
-        });
+        .finally(() => setIsFetchingOembed(false));
     }
   }, [item.id, item.type, item.url, item.contentType, onOembedLoad]);
 
   useEffect(() => {
     if (oembedHtml && oembedContainerRef.current) {
-        console.log('[DialogVisuals] oEmbed HTML is present. Processing scripts...');
-        if (oembedHtml.includes('instagram-media') && window.instgrm) {
-            console.log('[DialogVisuals] Instagram embed detected. Calling window.instgrm.Embeds.process().');
-            window.instgrm.Embeds.process();
-        } else if (oembedHtml.includes('twitter-tweet') && window.twttr) {
-            console.log('[DialogVisuals] Twitter embed detected. Calling window.twttr.widgets.load().');
+        if (oembedHtml.includes('twitter-tweet') && window.twttr) {
             window.twttr.widgets.load(oembedContainerRef.current);
         } else {
-            console.log('[DialogVisuals] Other embed type detected. Manually loading scripts.');
             const scripts = Array.from(oembedContainerRef.current.querySelectorAll('script'));
             scripts.forEach(oldScript => {
                 const newScript = document.createElement('script');

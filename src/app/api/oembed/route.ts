@@ -56,7 +56,6 @@ const knownProviders: { [domain: string]: string } = {
     'flickr.com': 'https://www.flickr.com/services/oembed/',
     'open.spotify.com': 'https://open.spotify.com/oembed',
     'spotify.com': 'https://open.spotify.com/oembed',
-    'instagram.com': 'https://graph.facebook.com/v19.0/instagram_oembed',
     'threads.net': 'https://graph.facebook.com/v19.0/threads_oembed',
     'tiktok.com': 'https://www.tiktok.com/oembed',
     'reddit.com': 'https://www.reddit.com/oembed',
@@ -82,10 +81,7 @@ export async function GET(request: NextRequest) {
     try {
         const urlObj = new URL(url);
         let endpointUrl: string | null = null;
-        const isMetaProvider = urlObj.hostname.includes('instagram.com') || urlObj.hostname.includes('threads.net');
         
-        console.log(`[oEmbed API] Request received for URL: ${url}. Is Meta Provider: ${isMetaProvider}`);
-
         // Check known providers first
         for (const domain in knownProviders) {
             if (urlObj.hostname.includes(domain)) {
@@ -96,61 +92,33 @@ export async function GET(request: NextRequest) {
         
         // If not a known provider, try to discover the endpoint
         if (!endpointUrl) {
-            console.log(`[oEmbed API] No known provider found for ${urlObj.hostname}. Discovering endpoint...`);
             endpointUrl = await findOembedEndpoint(url);
         }
 
         if (!endpointUrl) {
-            console.error(`[oEmbed API] No endpoint found for ${url}.`);
             return NextResponse.json({ error: 'oEmbed endpoint not found for this URL.' }, { status: 404 });
         }
         
-        console.log(`[oEmbed API] Using endpoint: ${endpointUrl}`);
-        
         const oembedRequestUrl = new URL(endpointUrl);
         oembedRequestUrl.searchParams.set('url', url);
-        
-        // Meta providers require an access token
-        if (isMetaProvider) {
-            const accessToken = `${process.env.META_APP_ID}|${process.env.META_APP_SECRET}`;
-            oembedRequestUrl.searchParams.set('access_token', accessToken);
-            console.log(`[oEmbed API] Meta provider detected. Using access token.`);
-        } else {
-            oembedRequestUrl.searchParams.set('format', 'json');
-            oembedRequestUrl.searchParams.set('maxwidth', '600'); 
-        }
+        oembedRequestUrl.searchParams.set('format', 'json');
+        oembedRequestUrl.searchParams.set('maxwidth', '600'); 
 
-        console.log(`[oEmbed API] Fetching from: ${oembedRequestUrl.toString()}`);
-        
         const oembedResponse = await fetch(oembedRequestUrl.toString(), {
             signal: AbortSignal.timeout(8000),
         });
 
-        console.log(`[oEmbed API] Response status from provider: ${oembedResponse.status}`);
-
         if (!oembedResponse.ok) {
             const errorText = await oembedResponse.text();
-            console.error(`[oEmbed API] Provider error: ${errorText}`);
             throw new Error(`oEmbed provider responded with ${oembedResponse.status}: ${errorText}`);
         }
 
         const oembedData = await oembedResponse.json();
-        console.log('[oEmbed API] Received data from provider:', oembedData);
         
-        if (oembedData.html) {
-            console.log('[oEmbed API] HTML found in oEmbed data.');
-            if (urlObj.hostname.includes('twitter.com') || urlObj.hostname.includes('x.com')) {
-                oembedData.html = `<div class="twitter-embed-wrapper">${oembedData.html}</div>`;
-                console.log('[oEmbed API] Wrapped Twitter embed.');
-            }
-            if (isMetaProvider) {
-                // IMPORTANT FIX: Wrap the Meta embed HTML in a div to assist with centering and processing.
-                oembedData.html = `<div class="instagram-embed-wrapper">${oembedData.html}</div>`;
-                console.log('[oEmbed API] Wrapped Instagram embed.');
-            }
+        if (oembedData.html && (urlObj.hostname.includes('twitter.com') || urlObj.hostname.includes('x.com'))) {
+            oembedData.html = `<div class="twitter-embed-wrapper">${oembedData.html}</div>`;
         }
 
-        console.log('[oEmbed API] Sending final JSON response to client.');
         return NextResponse.json(oembedData);
 
     } catch (error) {
