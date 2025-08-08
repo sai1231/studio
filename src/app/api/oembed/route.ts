@@ -56,6 +56,7 @@ const knownProviders: { [domain: string]: string } = {
     'open.spotify.com': 'https://open.spotify.com/oembed',
     'spotify.com': 'https://open.spotify.com/oembed',
     'instagram.com': 'https://graph.facebook.com/v19.0/instagram_oembed', // Note: Needs special handling
+    'threads.net': 'https://graph.facebook.com/v19.0/threads_oembed', // Threads endpoint
     'tiktok.com': 'https://www.tiktok.com/oembed',
     'reddit.com': 'https://www.reddit.com/oembed',
     'twitch.tv': 'https://api.twitch.tv/v5/oembed',
@@ -80,6 +81,7 @@ export async function GET(request: NextRequest) {
     try {
         const urlObj = new URL(url);
         let endpointUrl: string | null = null;
+        const isMetaProvider = urlObj.hostname.includes('instagram.com') || urlObj.hostname.includes('threads.net');
         
         // Check known providers first
         for (const domain in knownProviders) {
@@ -100,11 +102,19 @@ export async function GET(request: NextRequest) {
         
         const oembedRequestUrl = new URL(endpointUrl);
         oembedRequestUrl.searchParams.set('url', url);
-        oembedRequestUrl.searchParams.set('format', 'json');
-        oembedRequestUrl.searchParams.set('maxwidth', '600'); 
+        
+        // Meta providers require an access token
+        if (isMetaProvider) {
+            const accessToken = `${process.env.META_APP_ID}|${process.env.META_APP_SECRET}`;
+            oembedRequestUrl.searchParams.set('access_token', accessToken);
+        } else {
+            oembedRequestUrl.searchParams.set('format', 'json');
+            oembedRequestUrl.searchParams.set('maxwidth', '600'); 
+        }
+
         
         const oembedResponse = await fetch(oembedRequestUrl.toString(), {
-            signal: AbortSignal.timeout(5000),
+            signal: AbortSignal.timeout(8000),
         });
 
         if (!oembedResponse.ok) {
@@ -114,14 +124,14 @@ export async function GET(request: NextRequest) {
 
         const oembedData = await oembedResponse.json();
         
-        if (oembedData.html && (urlObj.hostname.includes('twitter.com') || urlObj.hostname.includes('x.com'))) {
-            oembedData.html = `<div class="twitter-embed-wrapper">${oembedData.html}</div>`;
+        if (oembedData.html) {
+            if (urlObj.hostname.includes('twitter.com') || urlObj.hostname.includes('x.com')) {
+                oembedData.html = `<div class="twitter-embed-wrapper">${oembedData.html}</div>`;
+            }
+            if (isMetaProvider) {
+                oembedData.html = `<div class="instagram-embed-wrapper">${oembedData.html}</div>`;
+            }
         }
-        
-        if (oembedData.html && (urlObj.hostname.includes('instagram.com') || urlObj.hostname.includes('threads.net'))) {
-            oembedData.html = `<div class="instagram-embed-wrapper">${oembedData.html}</div>`;
-        }
-
 
         return NextResponse.json(oembedData);
 

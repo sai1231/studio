@@ -27,12 +27,12 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
   const [isFetchingOembed, setIsFetchingOembed] = useState(false);
   const [imageError, setImageError] = useState(false);
   const oembedContainerRef = useRef<HTMLDivElement>(null);
-  const oembedHtmlRef = useRef<string | null>(null);
+  const [oembedHtml, setOembedHtml] = useState<string | null>(null);
 
   useEffect(() => {
     setImageError(false);
     onOembedLoad(null);
-    oembedHtmlRef.current = null;
+    setOembedHtml(null);
 
     if (item.type === 'link' && item.url && item.contentType !== 'PDF') {
       setIsFetchingOembed(true);
@@ -45,7 +45,7 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
         })
         .then(data => {
           if (data.html) {
-            oembedHtmlRef.current = data.html;
+            setOembedHtml(data.html);
             onOembedLoad(data.html);
           }
         })
@@ -62,25 +62,23 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
   }, [item.id, item.type, item.url, item.contentType, onOembedLoad]);
 
   useEffect(() => {
-    if (oembedHtmlRef.current && oembedContainerRef.current) {
-      if (oembedHtmlRef.current.includes('twitter-tweet') && window.twttr) {
-        window.twttr.widgets.load(oembedContainerRef.current);
-        return;
-      }
-      if (oembedHtmlRef.current.includes('instagram-media') && window.instgrm) {
-        window.instgrm.Embeds.process();
-        return;
-      }
-
-      const scripts = Array.from(oembedContainerRef.current.querySelectorAll('script'));
-      scripts.forEach(oldScript => {
-          const newScript = document.createElement('script');
-          newScript.src = oldScript.src;
-          newScript.async = false;
-          document.body.appendChild(newScript);
-      });
+    if (oembedHtml && oembedContainerRef.current) {
+        if (oembedHtml.includes('instagram-media') && window.instgrm) {
+            window.instgrm.Embeds.process();
+        } else if (oembedHtml.includes('twitter-tweet') && window.twttr) {
+            window.twttr.widgets.load(oembedContainerRef.current);
+        } else {
+            const scripts = Array.from(oembedContainerRef.current.querySelectorAll('script'));
+            scripts.forEach(oldScript => {
+                const newScript = document.createElement('script');
+                newScript.src = oldScript.src;
+                newScript.async = false;
+                document.body.appendChild(newScript);
+            });
+        }
     }
-  }, [oembedHtmlRef.current]);
+  }, [oembedHtml]);
+
 
   const handleCopyColor = (color: string) => {
     navigator.clipboard.writeText(color);
@@ -90,7 +88,7 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
     });
   };
 
-  const hasVisual = !imageError && (item.imageUrl || oembedHtmlRef.current || (item.contentType === 'PDF' && item.url) || item.audioUrl);
+  const hasVisual = !imageError && (item.imageUrl || oembedHtml || (item.contentType === 'PDF' && item.url) || item.audioUrl);
 
   if (!hasVisual && !isFetchingOembed) {
     return null;
@@ -104,8 +102,8 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
       <div className="relative w-full flex-grow min-h-0 flex justify-center items-center rounded-lg overflow-hidden p-6">
         {isFetchingOembed ? (
           <div className="w-full aspect-video flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
-        ) : oembedHtmlRef.current ? (
-          <div ref={oembedContainerRef} className="oembed-container w-full" dangerouslySetInnerHTML={{ __html: oembedHtmlRef.current }} />
+        ) : oembedHtml ? (
+          <div ref={oembedContainerRef} className="oembed-container w-full" dangerouslySetInnerHTML={{ __html: oembedHtml }} />
         ) : item.imageUrl && !imageError ? (
             <div className="w-full h-full flex flex-col items-center justify-center space-y-4">
                 <img src={item.imageUrl} alt={item.title || 'Content Image'} data-ai-hint={item.title || "image"} className="w-full h-auto object-contain max-h-[60vh] rounded-md shadow-lg" loading="lazy" onError={() => setImageError(true)}/>
