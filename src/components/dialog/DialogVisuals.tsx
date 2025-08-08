@@ -89,10 +89,6 @@ export const DialogVisuals: React.FC<DialogVisualsProps> = ({ item, onOembedLoad
   };
 
   const hasVisual = !imageError && (item.imageUrl || oembedHtml || (item.contentType === 'PDF' && item.url) || item.audioUrl);
-
-  if (!hasVisual && !isFetchingOembed) {
-    return null;
-  }
   
   // Create a URL for viewing that strips the download token
   const viewImageUrl = item.imageUrl?.split('&token=')[0];
