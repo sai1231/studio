@@ -1,4 +1,5 @@
 
+
 import { NextRequest, NextResponse } from 'next/server';
 import { JSDOM } from 'jsdom';
 
@@ -129,6 +130,7 @@ export async function GET(request: NextRequest) {
                 oembedData.html = `<div class="twitter-embed-wrapper">${oembedData.html}</div>`;
             }
             if (isMetaProvider) {
+                // IMPORTANT FIX: Wrap the Meta embed HTML in a div to assist with centering and processing.
                 oembedData.html = `<div class="instagram-embed-wrapper">${oembedData.html}</div>`;
             }
         }
