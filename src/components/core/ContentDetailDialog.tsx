@@ -168,20 +168,26 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
   const handleZoneSelection = async (selectedZoneValue?: string) => {
     setIsZoneComboboxOpen(false);
     setZoneComboboxSearchText('');
+  
+    if (!item) return;
+  
+    const newZoneId = selectedZoneValue || undefined;
+  
+    // Find the current regular zone directly from the item's zoneIds
+    const currentRegularZoneId = item.zoneIds?.find(
+      id => allZones.some(z => z.id === id && !z.isMoodboard)
+    );
     
-    const newZoneId = selectedZoneValue === undefined ? undefined : selectedZoneValue;
-    if (item && editableZoneId !== newZoneId) {
-        // Correctly filter out the old regular zone, keeping any moodboards
-        const currentRegularZoneId = editableZoneId;
-        const otherZoneIds = item.zoneIds?.filter(id => id !== currentRegularZoneId) || [];
-
-        // Construct the new list of zone IDs
-        const newZoneIds = newZoneId ? [newZoneId, ...otherZoneIds] : otherZoneIds;
-
-        await handleFieldUpdate('zoneIds', newZoneIds);
-    }
+    // Start with all zones, then filter out the old regular zone
+    const moodboardAndOtherZoneIds = item.zoneIds?.filter(id => id !== currentRegularZoneId) || [];
+  
+    // Add the new regular zone if one was selected
+    const newZoneIds = newZoneId ? [newZoneId, ...moodboardAndOtherZoneIds] : moodboardAndOtherZoneIds;
+  
+    await handleFieldUpdate('zoneIds', newZoneIds);
     setEditableZoneId(newZoneId);
   };
+  
 
   const handleCreateZone = async (zoneName: string) => {
     if (!zoneName.trim() || !user) return;
@@ -351,7 +357,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                     onCustomExpiryChange={handleCustomExpiryChange}
                     editableMemoryNote={editableMemoryNote}
                     onMemoryNoteChange={(e) => setEditableMemoryNote(e.target.value)}
-                    onMemoryNoteBlur={onMemoryNoteBlur}
+                    onMemoryNoteBlur={handleMemoryNoteBlur}
                 />
               </div>
             </ScrollArea>
@@ -383,3 +389,4 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
     </Dialog>
   );
 }
+
