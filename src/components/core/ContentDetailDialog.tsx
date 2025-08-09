@@ -173,16 +173,13 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
   
     const newZoneId = selectedZoneValue || undefined;
   
-    // Find the current regular zone directly from the item's zoneIds
-    const currentRegularZoneId = item.zoneIds?.find(
-      id => allZones.some(z => z.id === id && !z.isMoodboard)
-    );
-    
-    // Start with all zones, then filter out the old regular zone
-    const moodboardAndOtherZoneIds = item.zoneIds?.filter(id => id !== currentRegularZoneId) || [];
-  
-    // Add the new regular zone if one was selected
-    const newZoneIds = newZoneId ? [newZoneId, ...moodboardAndOtherZoneIds] : moodboardAndOtherZoneIds;
+    // Keep only moodboard zones from existing list. A zone is a moodboard if it's NOT in allZones.
+    const moodboardIds = item.zoneIds?.filter(
+      id => !allZones.some(z => z.id === id)
+    ) || [];
+
+    // Replace the regular zone completely, keep any moodboard zones
+    const newZoneIds = newZoneId ? [newZoneId, ...moodboardIds] : moodboardIds;
   
     await handleFieldUpdate('zoneIds', newZoneIds);
     setEditableZoneId(newZoneId);
@@ -196,8 +193,9 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
       const newZone = await addZone(zoneName.trim(), user.uid);
       setAllZones(prev => [...prev, newZone]); 
       
-      const otherMoodboardIds = item?.zoneIds?.filter(id => !allZones.some(z => z.id === id)) || [];
-      const newZoneIds = [newZone.id, ...otherMoodboardIds];
+      const moodboardIds = item?.zoneIds?.filter(id => !allZones.some(z => z.id === id)) || [];
+      const newZoneIds = [newZone.id, ...moodboardIds];
+
       await handleFieldUpdate('zoneIds', newZoneIds);
 
       setEditableZoneId(newZone.id);
@@ -389,4 +387,5 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
     </Dialog>
   );
 }
+
 
