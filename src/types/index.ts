@@ -1,4 +1,5 @@
 
+
 export interface Tag {
   id: string;
   name: string;
@@ -9,6 +10,7 @@ export interface Zone {
   name: string;
   icon?: string; 
   isMoodboard?: boolean;
+  itemCount?: number;
   latestItem?: ContentItem;
 }
 

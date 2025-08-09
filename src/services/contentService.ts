@@ -26,7 +26,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { ContentItem, Zone, Tag, MovieDetails, SearchFilters, TaskList, Task } from '@/types';
 import { enrichContent } from '@/ai/flows/enrich-content-flow';
 import { addLog } from '@/services/loggingService';
-import { addOrUpdateDocument, deleteDocument } from './meilisearchService';
+import { addOrUpdateDocument, deleteDocument, deleteDocuments } from './meilisearchService';
 import { classifyUrl } from './classifierService';
 
 // --- ContentItem Functions ---
@@ -442,23 +442,59 @@ export function subscribeToZones(
   if (!userId) {
     console.warn("subscribeToZones called without a userId.");
     callback([]);
-    return () => {}; // Return a no-op unsubscribe function
+    return () => {};
   }
-  const zonesCollection = collection(db, 'zones');
-  const q = query(zonesCollection, where("userId", "==", userId), orderBy("name", "asc"));
   
-  const unsubscribe = onSnapshot(q, (querySnapshot) => {
-    const zones: Zone[] = [];
-    querySnapshot.forEach((doc) => {
-      zones.push({ id: doc.id, ...doc.data() } as Zone);
-    });
-    callback(zones);
-  }, (error) => {
-    console.error("Failed to subscribe to zones from Firestore:", error);
-    callback([], error);
-  });
+  const contentQuery = query(collection(db, 'content'), where("userId", "==", userId));
 
-  return unsubscribe;
+  // First, set up a listener for all of the user's content to get counts and latest items.
+  const contentUnsubscribe = onSnapshot(contentQuery, (contentSnapshot) => {
+    const itemsByZone: { [key: string]: ContentItem[] } = {};
+    
+    contentSnapshot.docs.forEach(doc => {
+        const item = { id: doc.id, ...doc.data() } as ContentItem;
+        if (item.zoneIds) {
+            item.zoneIds.forEach(zoneId => {
+                if (!itemsByZone[zoneId]) itemsByZone[zoneId] = [];
+                itemsByZone[zoneId].push(item);
+            });
+        }
+    });
+
+    // Now listen to the zones collection itself.
+    const zonesCollection = collection(db, 'zones');
+    const zonesQuery = query(zonesCollection, where("userId", "==", userId), orderBy("name", "asc"));
+    
+    const zonesUnsubscribe = onSnapshot(zonesQuery, (querySnapshot) => {
+      const zones: Zone[] = [];
+      querySnapshot.forEach((doc) => {
+        const zoneData = doc.data() as Omit<Zone, 'id'>;
+        const zoneItems = itemsByZone[doc.id] || [];
+        // Sort items by date to find the most recent one for the preview
+        zoneItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        zones.push({ 
+            id: doc.id, 
+            ...zoneData,
+            itemCount: zoneItems.length,
+            latestItem: zoneItems[0] || undefined
+        });
+      });
+      callback(zones);
+    }, (error) => {
+      console.error("Failed to subscribe to zones from Firestore:", error);
+      callback([], error);
+    });
+
+    // Return a function to unsubscribe from the zones listener. The content listener is encapsulated.
+    return () => zonesUnsubscribe();
+
+  }, (error) => {
+      console.error("Failed to subscribe to content for zones:", error);
+      callback([], error);
+  });
+  
+  // Return the initial content listener's unsubscribe function.
+  return contentUnsubscribe;
 }
 
 export async function getZoneById(id: string): Promise<Zone | undefined> {
@@ -493,6 +529,30 @@ export async function addZone(name: string, userId: string, isMoodboard: boolean
     throw error;
   }
 }
+
+export async function deleteZone(zoneId: string): Promise<void> {
+  if (!db) throw new Error("Firestore is not configured.");
+  const batch = writeBatch(db);
+  const zoneRef = doc(db, 'zones', zoneId);
+
+  const contentRef = collection(db, 'content');
+  const q = query(contentRef, where('zoneIds', 'array-contains', zoneId));
+  const contentSnapshot = await getDocs(q);
+  
+  const contentIdsToDelete: string[] = [];
+  contentSnapshot.forEach(doc => {
+    batch.delete(doc.ref);
+    contentIdsToDelete.push(doc.id);
+  });
+  
+  if (contentIdsToDelete.length > 0) {
+    await deleteDocuments(contentIdsToDelete);
+  }
+
+  batch.delete(zoneRef);
+  await batch.commit();
+}
+
 
 // --- Utility & File Functions ---
 
@@ -649,7 +709,7 @@ export async function permanentDeleteAllTrashedItems(userId: string): Promise<{ 
     // Optionally, you might want to bulk delete from Meilisearch too
     const docIds = snapshot.docs.map(doc => doc.id);
     if (docIds.length > 0) {
-        deleteDocument(docIds.join(',')); // Assuming your service can handle bulk delete by comma-separated string or array
+        deleteDocuments(docIds);
     }
     
     return { deletedCount: snapshot.size };

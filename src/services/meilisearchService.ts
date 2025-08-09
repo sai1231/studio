@@ -170,6 +170,16 @@ export const deleteDocument = async (itemId: string) => {
   }
 };
 
+export const deleteDocuments = async (itemIds: string[]) => {
+  if (!index) return;
+  try {
+    await index.deleteDocuments(itemIds);
+    addLog('INFO', `[MeiliSearch] Deleted ${itemIds.length} documents.`);
+  } catch (error) {
+    handleMeiliError(error, `deleting multiple documents`);
+  }
+};
+
 export const getIndexStats = async () => {
     if (!index) {
         throw new Error("Meilisearch not configured. Please check your .env file and ensure MEILISEARCH_HOST and MEILISEARCH_MASTER_KEY are set.");

@@ -2,7 +2,8 @@
 
 'use client';
 import type React from 'react';
-import { Home, Tag, LogOut, Globe, ClipboardList, Bookmark, Newspaper, Film, Github, MessagesSquare, BookOpen, LucideIcon, StickyNote, Sparkles, Shield, Brain, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Home, Tag, LogOut, Globe, ClipboardList, Bookmark, Newspaper, Film, Github, MessagesSquare, BookOpen, LucideIcon, StickyNote, Sparkles, Shield, Brain, Image as ImageIcon, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,10 @@ import { getAuth, signOut } from 'firebase/auth';
 import { cn } from '@/lib/utils';
 import { getIconComponent } from '@/lib/icon-map';
 import MatiLogo from './mati-logo';
+import { deleteZone } from '@/services/contentService';
+import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Loader2 } from 'lucide-react';
 
 const predefinedContentTypes: Record<string, { icon: LucideIcon, name: string }> = {
   Post: { icon: Newspaper, name: 'Post' },
@@ -57,35 +62,48 @@ const HoverNavButton = ({ icon: Icon, label, children, isEmpty }: { icon: React.
     </HoverCard>
 );
 
-const ZoneHoverCardItem: React.FC<{ zone: Zone, href: string }> = ({ zone, href }) => {
+const ZoneHoverCardItem: React.FC<{ zone: Zone; href: string; onDelete: (zoneId: string, zoneName: string, itemCount: number) => void; isDeleting: boolean; }> = ({ zone, href, onDelete, isDeleting }) => {
   const Icon = getIconComponent(zone.icon);
+  const itemCount = zone.itemCount || 0;
+
   return (
-    <Link href={href} className="block group focus:outline-none focus:ring-2 focus:ring-primary rounded-lg p-1">
-        <div className="relative transition-transform duration-300 ease-in-out group-hover:scale-105 group-focus:scale-105">
-            {/* Background Cards */}
-            <div className="absolute inset-0 bg-card rounded-lg shadow-md transform-gpu rotate-2"></div>
-            <div className="absolute inset-0 bg-card rounded-lg shadow-md transform-gpu -rotate-2"></div>
-            
-            {/* Front Card */}
-            <div className="relative bg-card rounded-lg shadow-lg overflow-hidden w-full aspect-[4/3]">
-                {zone.latestItem?.imageUrl ? (
-                    <img
-                        src={zone.latestItem.imageUrl}
-                        alt={zone.latestItem?.title || 'Zone Preview'}
-                        data-ai-hint="zone preview"
-                        className="h-full w-full object-cover"
-                    />
-                ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-muted">
-                        <Icon className="h-1/3 w-1/3 text-muted-foreground/30" />
-                    </div>
-                )}
+    <div className="relative group p-1">
+        <Link href={href} className="block group/link focus:outline-none focus:ring-2 focus:ring-primary rounded-lg">
+            <div className="relative transition-transform duration-300 ease-in-out group-hover/link:scale-105 group-focus/link:scale-105">
+                {/* Background Cards */}
+                <div className="absolute inset-0 bg-card rounded-lg shadow-md transform-gpu rotate-2"></div>
+                <div className="absolute inset-0 bg-card rounded-lg shadow-md transform-gpu -rotate-2"></div>
+                
+                {/* Front Card */}
+                <div className="relative bg-card rounded-lg shadow-lg overflow-hidden w-full aspect-[4/3]">
+                    {zone.latestItem?.imageUrl ? (
+                        <img
+                            src={zone.latestItem.imageUrl}
+                            alt={zone.latestItem?.title || 'Zone Preview'}
+                            data-ai-hint="zone preview"
+                            className="h-full w-full object-cover"
+                        />
+                    ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-muted">
+                            <Icon className="h-1/3 w-1/3 text-muted-foreground/30" />
+                        </div>
+                    )}
+                </div>
             </div>
-        </div>
+        </Link>
+        <Button
+            size="icon"
+            variant="ghost"
+            className="absolute top-0 right-0 z-10 h-6 w-6 rounded-full bg-background/50 text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-destructive hover:text-destructive-foreground"
+            onClick={() => onDelete(zone.id, zone.name, itemCount)}
+            disabled={isDeleting}
+        >
+            <Trash2 className="h-3 w-3" />
+        </Button>
         <div className="mt-2 text-center">
-            <p className="text-sm font-semibold text-foreground truncate transition-colors group-hover:text-primary">{zone.name}</p>
+            <p className="text-sm font-semibold text-foreground truncate transition-colors group-hover/link:text-primary">{zone.name}</p>
         </div>
-    </Link>
+    </div>
   );
 };
 
@@ -99,7 +117,11 @@ interface AppSidebarProps {
 
 const AppSidebar: React.FC<AppSidebarProps> = ({ zones: allCollections, tags, domains, contentTypes }) => {
   const router = useRouter();
+  const { toast } = useToast();
   const auth = getAuth();
+  
+  const [zoneToDelete, setZoneToDelete] = useState<{id: string, name: string, itemCount: number} | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const zones = allCollections.filter(c => !c.isMoodboard);
   const moodboards = allCollections.filter(c => c.isMoodboard);
@@ -110,6 +132,36 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones: allCollections, tags, do
       router.push('/login');
     } catch (error) {
       console.error("Logout error:", error);
+    }
+  };
+
+  const handleDeleteClick = (zoneId: string, zoneName: string, itemCount: number) => {
+    if (itemCount > 0) {
+      setZoneToDelete({ id: zoneId, name: zoneName, itemCount });
+    } else {
+      // If there are no items, delete immediately without confirmation
+      confirmDelete(zoneId, zoneName);
+    }
+  };
+
+  const confirmDelete = async (zoneId: string, zoneName: string) => {
+    setIsDeleting(true);
+    setZoneToDelete(null);
+    try {
+      await deleteZone(zoneId);
+      toast({
+        title: "Zone Deleted",
+        description: `The zone "${zoneName}" and all its content have been deleted.`,
+      });
+    } catch (e) {
+      console.error("Error deleting zone:", e);
+      toast({
+        title: "Error",
+        description: `Could not delete the zone "${zoneName}".`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -136,7 +188,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones: allCollections, tags, do
               <HoverNavButton icon={Bookmark} label="Zones" isEmpty={zones.length === 0}>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-6 p-2">
                     {zones.map(zone => (
-                        <ZoneHoverCardItem key={zone.id} zone={zone} href={`/dashboard?zone=${zone.id}`} />
+                        <ZoneHoverCardItem key={zone.id} zone={zone} href={`/zones/${zone.id}`} onDelete={handleDeleteClick} isDeleting={isDeleting} />
                     ))}
                 </div>
               </HoverNavButton>
@@ -144,7 +196,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones: allCollections, tags, do
               <HoverNavButton icon={ImageIcon} label="Moodboards" isEmpty={moodboards.length === 0}>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-6 p-2">
                     {moodboards.map(board => (
-                        <ZoneHoverCardItem key={board.id} zone={board} href={`/zones/${board.id}`} />
+                        <ZoneHoverCardItem key={board.id} zone={board} href={`/zones/${board.id}`} onDelete={handleDeleteClick} isDeleting={isDeleting}/>
                     ))}
                 </div>
               </HoverNavButton>
@@ -192,6 +244,27 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones: allCollections, tags, do
           </div>
         </div>
       </aside>
+       <AlertDialog open={!!zoneToDelete} onOpenChange={(isOpen) => !isOpen && setZoneToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the zone <strong className="text-foreground">"{zoneToDelete?.name}"</strong> and all <strong className="text-foreground">{zoneToDelete?.itemCount}</strong> items within it. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => zoneToDelete && confirmDelete(zoneToDelete.id, zoneToDelete.name)}
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={isDeleting}
+            >
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Delete Everything
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
