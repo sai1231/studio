@@ -171,8 +171,13 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
     
     const newZoneId = selectedZoneValue === undefined ? undefined : selectedZoneValue;
     if (item && editableZoneId !== newZoneId) {
-        const otherMoodboardIds = item.zoneIds?.filter(id => !allZones.some(z => z.id === id)) || [];
-        const newZoneIds = newZoneId ? [newZoneId, ...otherMoodboardIds] : otherMoodboardIds;
+        // Correctly filter out the old regular zone, keeping any moodboards
+        const currentRegularZoneId = editableZoneId;
+        const otherZoneIds = item.zoneIds?.filter(id => id !== currentRegularZoneId) || [];
+
+        // Construct the new list of zone IDs
+        const newZoneIds = newZoneId ? [newZoneId, ...otherZoneIds] : otherZoneIds;
+
         await handleFieldUpdate('zoneIds', newZoneIds);
     }
     setEditableZoneId(newZoneId);
@@ -346,7 +351,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
                     onCustomExpiryChange={handleCustomExpiryChange}
                     editableMemoryNote={editableMemoryNote}
                     onMemoryNoteChange={(e) => setEditableMemoryNote(e.target.value)}
-                    onMemoryNoteBlur={handleMemoryNoteBlur}
+                    onMemoryNoteBlur={onMemoryNoteBlur}
                 />
               </div>
             </ScrollArea>
