@@ -55,7 +55,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
   const [expirySelection, setExpirySelection] = useState<string>('30');
   const [customExpiryDays, setCustomExpiryDays] = useState<string>('30');
   const [isSaving, setIsSaving] = useState(false);
-  
+
   const [oembedHtml, setOembedHtml] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
 
@@ -66,7 +66,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
         getContentItemById(itemId),
         getZones(user.uid)
       ]);
-      
+
       if (freshItem) {
         setItem(freshItem);
         const regularZones = fetchedZones.filter(z => !z.isMoodboard);
@@ -85,18 +85,18 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
 
   useEffect(() => {
     if (open && initialItem) {
-      setItem(initialItem); 
-      setIsLoading(false); 
+      setItem(initialItem);
+      setIsLoading(false);
       setError(null);
-      setOembedHtml(null); 
+      setOembedHtml(null);
       fetchFullItem(initialItem.id);
     } else if (!open) {
       setItem(null);
-      setIsLoading(true); 
+      setIsLoading(true);
       setError(null);
       setOembedHtml(null);
     }
-  }, [initialItem, open, fetchFullItem]); 
+  }, [initialItem, open, fetchFullItem]);
 
   useEffect(() => {
     if (item) {
@@ -112,7 +112,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
       newTagInputRef.current.focus();
     }
   }, [isAddingTag]);
-  
+
   const handleDelete = async () => {
     if (!item || !onItemDelete) return;
     await moveItemToTrash(item.id);
@@ -124,32 +124,33 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
     fieldName: keyof Pick<ContentItem, 'title' | 'memoryNote' | 'zoneIds' | 'expiresAt' | 'tags'>,
     value: any
   ) => {
+    console.log(`Updating field: ${fieldName} with value:`, value);
     if (!item) return;
     setIsSaving(true);
     const previousValue = item[fieldName];
-    
+
     const updatedItem = { ...item, [fieldName]: value };
     setItem(updatedItem);
     if (onItemUpdate) {
-        onItemUpdate(updatedItem);
+      onItemUpdate(updatedItem);
     }
-    
+
     try {
-        await updateContentItem(item.id, { [fieldName]: value });
+      await updateContentItem(item.id, { [fieldName]: value });
     } catch (e) {
-        console.error(`Error updating ${fieldName}:`, e);
-        const revertedItem = { ...item, [fieldName]: previousValue };
-        setItem(revertedItem);
-        if (onItemUpdate) {
-            onItemUpdate(revertedItem);
-        }
-        toast({
-            title: 'Update Failed',
-            description: `Could not save your changes for ${fieldName}.`,
-            variant: 'destructive',
-        });
+      console.error(`Error updating ${fieldName}:`, e);
+      const revertedItem = { ...item, [fieldName]: previousValue };
+      setItem(revertedItem);
+      if (onItemUpdate) {
+        onItemUpdate(revertedItem);
+      }
+      toast({
+        title: 'Update Failed',
+        description: `Could not save your changes for ${fieldName}.`,
+        variant: 'destructive',
+      });
     } finally {
-        setIsSaving(false);
+      setIsSaving(false);
     }
   }, [item, onItemUpdate, toast]);
 
@@ -166,33 +167,47 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
   };
 
   const handleZoneSelection = async (selectedZoneValue?: string) => {
+    console.log('handleZoneSelection called');
+    console.log('selectedZoneValue:', selectedZoneValue);
+    console.log('item.zoneIds (before):', item?.zoneIds);
+    console.log('allZones:', allZones);
     setIsZoneComboboxOpen(false);
     setZoneComboboxSearchText('');
-  
+
     if (!item) return;
-  
+
     const newZoneId = selectedZoneValue || undefined;
-  
+    console.log('newZoneId:', newZoneId);
+
     // Keep only moodboard zones from existing list. A zone is a moodboard if it's NOT in allZones.
     const moodboardIds = item.zoneIds?.filter(
       id => !allZones.some(z => z.id === id)
     ) || [];
+    console.log('moodboardIds:', moodboardIds);
 
-    // Replace the regular zone completely, keep any moodboard zones
-    const newZoneIds = newZoneId ? [newZoneId, ...moodboardIds] : moodboardIds;
-  
+    // Filter out the previously assigned regular zone ID from moodboardIds if it exists there unexpectedly
+    const previousRegularZoneId = item.zoneIds?.find(id => allZones.some(z => z.id === id));
+    console.log('previousRegularZoneId:', previousRegularZoneId);
+    const filteredMoodboardIds = moodboardIds.filter(id => id !== previousRegularZoneId);
+    console.log('filteredMoodboardIds:', filteredMoodboardIds);
+
+    // Construct the new zoneIds array: newZoneId (if any) followed by filtered moodboardIds
+    console.log('Constructing newZoneIds...');
+    const newZoneIds = newZoneId ? [newZoneId, ...filteredMoodboardIds] : filteredMoodboardIds;
+    console.log('newZoneIds:', newZoneIds);
+    console.log('About to call handleFieldUpdate');
     await handleFieldUpdate('zoneIds', newZoneIds);
     setEditableZoneId(newZoneId);
   };
-  
+
 
   const handleCreateZone = async (zoneName: string) => {
     if (!zoneName.trim() || !user) return;
     setIsSaving(true);
     try {
       const newZone = await addZone(zoneName.trim(), user.uid);
-      setAllZones(prev => [...prev, newZone]); 
-      
+      setAllZones(prev => [...prev, newZone]);
+
       const moodboardIds = item?.zoneIds?.filter(id => !allZones.some(z => z.id === id)) || [];
       const newZoneIds = [newZone.id, ...moodboardIds];
 
@@ -216,7 +231,7 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
 
   const handleRemoveTag = (tagIdToRemove: string) => {
     const newTags = editableTags.filter(tag => tag.id !== tagIdToRemove);
-    setEditableTags(newTags); 
+    setEditableTags(newTags);
     saveTags(newTags);
   };
 
@@ -227,13 +242,13 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
     }
     if (editableTags.find(tag => tag.name.toLowerCase() === newTagInput.trim().toLowerCase())) {
       toast({ title: "Duplicate Tag", description: `Tag "${newTagInput.trim()}" already exists.`, variant: "destructive" });
-      setNewTagInput(''); 
+      setNewTagInput('');
       return;
     }
-    const newTag: Tag = { id: newTagInput.trim().toLowerCase(), name: newTagInput.trim() }; 
+    const newTag: Tag = { id: newTagInput.trim().toLowerCase(), name: newTagInput.trim() };
     const newTags = [...editableTags, newTag];
-    
-    setEditableTags(newTags); 
+
+    setEditableTags(newTags);
     setNewTagInput('');
     setIsAddingTag(false);
     saveTags(newTags);
@@ -250,18 +265,18 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
       setIsAddingTag(false);
     }
   };
-  
+
   const handleTemporaryToggle = (checked: boolean) => {
-      setIsTemporary(checked);
-      if (checked) {
-          const days = parseInt(expirySelection === 'custom' ? customExpiryDays : expirySelection, 10);
-          const newExpiryDate = add(new Date(), { days: isNaN(days) ? 30 : days });
-          handleFieldUpdate('expiresAt', newExpiryDate.toISOString());
-      } else {
-          handleFieldUpdate('expiresAt', undefined);
-      }
+    setIsTemporary(checked);
+    if (checked) {
+      const days = parseInt(expirySelection === 'custom' ? customExpiryDays : expirySelection, 10);
+      const newExpiryDate = add(new Date(), { days: isNaN(days) ? 30 : days });
+      handleFieldUpdate('expiresAt', newExpiryDate.toISOString());
+    } else {
+      handleFieldUpdate('expiresAt', undefined);
+    }
   };
-  
+
   const handleExpiryChange = (value: string) => {
     setExpirySelection(value);
     if (value !== 'custom') {
@@ -279,31 +294,31 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
       handleFieldUpdate('expiresAt', newExpiryDate.toISOString());
     }
   };
-  
+
   const handleRetryClick = async () => {
     if (!item) return;
     setIsRetrying(true);
     toast({ title: 'Retrying Analysis...', description: 'Please wait a moment.' });
     try {
-        await reEnrichContentAction(item.id);
-        // After triggering, we need to poll or listen for the status change.
-        // For simplicity, we'll just wait a bit and then refetch.
-        setTimeout(() => {
-            fetchFullItem(item.id).then(() => {
-                toast({ title: 'Success!', description: 'Analysis has been re-triggered.' });
-                setIsRetrying(false);
-                if (onItemUpdate) onItemUpdate({ ...item, status: 'pending-analysis' });
-            });
-        }, 3000); // Wait 3 seconds before refetching.
+      await reEnrichContentAction(item.id);
+      // After triggering, we need to poll or listen for the status change.
+      // For simplicity, we'll just wait a bit and then refetch.
+      setTimeout(() => {
+        fetchFullItem(item.id).then(() => {
+          toast({ title: 'Success!', description: 'Analysis has been re-triggered.' });
+          setIsRetrying(false);
+          if (onItemUpdate) onItemUpdate({ ...item, status: 'pending-analysis' });
+        });
+      }, 3000); // Wait 3 seconds before refetching.
     } catch (e) {
-        toast({ title: 'Error', description: 'Could not retry analysis.', variant: 'destructive' });
-        setIsRetrying(false);
+      toast({ title: 'Error', description: 'Could not retry analysis.', variant: 'destructive' });
+      setIsRetrying(false);
     }
   };
 
   const shouldShowRetry = item && (item.status === 'failed-analysis' || (item.status === 'pending-analysis' && differenceInMinutes(new Date(), new Date(item.createdAt)) >= 1));
   const hasVisual = item?.imageUrl || (item?.type === 'link' || (item?.type === 'voice' && item.audioUrl));
-    
+
   const DialogBody = (
     <>
       <DialogTitle className="sr-only">Details for {item?.title || 'content item'}</DialogTitle>
@@ -317,56 +332,56 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
           "flex flex-col bg-card text-card-foreground shadow-lg overflow-hidden relative",
           !hasVisual && "md:col-span-2"
         )}>
-            <ScrollArea className="flex-grow">
-              <div className="p-6 space-y-4">
-                {item && <DialogHeaderSection 
-                    item={item} 
-                    editableTitle={editableTitle}
-                    onTitleChange={(e) => setEditableTitle(e.target.value)}
-                    onTitleBlur={handleTitleBlur}
-                />}
+          <ScrollArea className="flex-grow">
+            <div className="p-6 space-y-4">
+              {item && <DialogHeaderSection
+                item={item}
+                editableTitle={editableTitle}
+                onTitleChange={(e) => setEditableTitle(e.target.value)}
+                onTitleBlur={handleTitleBlur}
+              />}
 
-                {item && item.description && <DialogDescription description={item.description} />}
-                
-                <DialogMetadata 
-                    isSaving={isSaving}
-                    allZones={allZones}
-                    editableZoneId={editableZoneId}
-                    isZoneComboboxOpen={isZoneComboboxOpen}
-                    onZoneComboboxOpenChange={setIsZoneComboboxOpen}
-                    zoneComboboxSearchText={zoneComboboxSearchText}
-                    onZoneComboboxSearchTextChange={setZoneComboboxSearchText}
-                    handleZoneSelection={handleZoneSelection}
-                    handleCreateZone={handleCreateZone}
-                    editableTags={editableTags}
-                    isAddingTag={isAddingTag}
-                    onIsAddingTagChange={setIsAddingTag}
-                    newTagInput={newTagInput}
-                    onNewTagInputChange={setNewTagInput}
-                    handleAddNewTag={handleAddNewTag}
-                    handleTagInputKeyDown={handleTagInputKeyDown}
-                    handleRemoveTag={handleRemoveTag}
-                    newTagInputRef={newTagInputRef}
-                    isTemporary={isTemporary}
-                    onTemporaryToggle={handleTemporaryToggle}
-                    expirySelection={expirySelection}
-                    onExpiryChange={handleExpiryChange}
-                    customExpiryDays={customExpiryDays}
-                    onCustomExpiryChange={handleCustomExpiryChange}
-                    editableMemoryNote={editableMemoryNote}
-                    onMemoryNoteChange={(e) => setEditableMemoryNote(e.target.value)}
-                    onMemoryNoteBlur={handleMemoryNoteBlur}
-                />
-              </div>
-            </ScrollArea>
-             {item && <DialogFooterActions 
-                item={item} 
-                onDelete={handleDelete} 
-                onOpenChange={onOpenChange} 
-                shouldShowRetry={shouldShowRetry}
-                isRetrying={isRetrying}
-                handleRetryClick={handleRetryClick}
-             />}
+              {item && item.description && <DialogDescription description={item.description} />}
+
+              <DialogMetadata
+                isSaving={isSaving}
+                allZones={allZones}
+                editableZoneId={editableZoneId}
+                isZoneComboboxOpen={isZoneComboboxOpen}
+                onZoneComboboxOpenChange={setIsZoneComboboxOpen}
+                zoneComboboxSearchText={zoneComboboxSearchText}
+                onZoneComboboxSearchTextChange={setZoneComboboxSearchText}
+                handleZoneSelection={handleZoneSelection}
+                handleCreateZone={handleCreateZone}
+                editableTags={editableTags}
+                isAddingTag={isAddingTag}
+                onIsAddingTagChange={setIsAddingTag}
+                newTagInput={newTagInput}
+                onNewTagInputChange={setNewTagInput}
+                handleAddNewTag={handleAddNewTag}
+                handleTagInputKeyDown={handleTagInputKeyDown}
+                handleRemoveTag={handleRemoveTag}
+                newTagInputRef={newTagInputRef}
+                isTemporary={isTemporary}
+                onTemporaryToggle={handleTemporaryToggle}
+                expirySelection={expirySelection}
+                onExpiryChange={handleExpiryChange}
+                customExpiryDays={customExpiryDays}
+                onCustomExpiryChange={handleCustomExpiryChange}
+                editableMemoryNote={editableMemoryNote}
+                onMemoryNoteChange={(e) => setEditableMemoryNote(e.target.value)}
+                onMemoryNoteBlur={handleMemoryNoteBlur}
+              />
+            </div>
+          </ScrollArea>
+          {item && <DialogFooterActions
+            item={item}
+            onDelete={handleDelete}
+            onOpenChange={onOpenChange}
+            shouldShowRetry={shouldShowRetry}
+            isRetrying={isRetrying}
+            handleRetryClick={handleRetryClick}
+          />}
         </div>
       </div>
     </>
@@ -374,12 +389,12 @@ export default function ContentDetailDialog({ item: initialItem, open, onOpenCha
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-       <DialogContent className={cn(
+      <DialogContent className={cn(
         "p-0 border-0 shadow-2xl flex flex-col max-h-[90vh] bg-background rounded-lg",
         hasVisual ? "max-w-6xl w-[95vw]" : "max-w-2xl w-[95vw]"
       )}>
         {isLoading ? (
-          <div className="flex items-center justify-center h-full col-span-2 p-10 bg-card rounded-lg"><Loader2 className="h-8 w-8 animate-spin text-primary"/></div>
+          <div className="flex items-center justify-center h-full col-span-2 p-10 bg-card rounded-lg"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
         ) : error || !item ? (
           <div className="flex-grow flex items-center justify-center py-8 text-center h-full col-span-2 p-10 bg-card rounded-lg"><div><X className="h-12 w-12 mx-auto text-destructive mb-3" /><h2 className="text-xl font-semibold text-destructive">{error || 'Content Item Not Found'}</h2><p className="text-muted-foreground mt-1">Please try again or select another item.</p></div></div>
         ) : DialogBody}

@@ -305,16 +305,6 @@ export async function updateContentItem(
         }
     }
 
-    // Special handling for adding items to a moodboard (a specific zone)
-    if (updates.zoneIds && updates.zoneIds.length > 0) {
-      // Use arrayUnion to add the new zoneId(s) without removing existing ones.
-      await updateDoc(docRef, {
-        zoneIds: arrayUnion(...updates.zoneIds)
-      });
-      // Delete from the main update payload so it's not processed again
-      delete updateData.zoneIds;
-    }
-
     if (Object.keys(updateData).length > 0) {
         await updateDoc(docRef, updateData);
     }
@@ -328,6 +318,28 @@ export async function updateContentItem(
     console.error(`Failed to update content item with ID ${itemId}:`, error);
     throw error;
   }
+}
+
+/**
+ * Specifically appends a moodboard ID to an item's zoneIds array.
+ * @param itemId The ID of the item to update.
+ * @param moodboardId The ID of the moodboard to add.
+ */
+export async function addItemToMoodboard(itemId: string, moodboardId: string): Promise<void> {
+    if (!db) throw new Error("Firestore is not configured.");
+    try {
+        const docRef = doc(db, 'content', itemId);
+        await updateDoc(docRef, {
+            zoneIds: arrayUnion(moodboardId)
+        });
+        const updatedDoc = await getContentItemById(itemId);
+        if (updatedDoc) {
+            addOrUpdateDocument(updatedDoc);
+        }
+    } catch (error) {
+        console.error(`Failed to add item ${itemId} to moodboard ${moodboardId}:`, error);
+        throw error;
+    }
 }
 
 

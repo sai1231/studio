@@ -10,7 +10,7 @@ import type { ContentItem, AppZone, Task, SearchFilters, Zone, Tag } from '@/typ
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Loader2, FolderOpen, ListChecks, LayoutGrid, Rows3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { moveItemToTrash, subscribeToTaskList, updateTaskList, updateContentItem, getContentItemById, addZone } from '@/services/contentService';
+import { moveItemToTrash, subscribeToTaskList, updateTaskList, updateContentItem, getContentItemById, addZone, addItemToMoodboard } from '@/services/contentService';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
 import { useSearch } from '@/context/SearchContext';
@@ -231,7 +231,7 @@ function DashboardPageContent() {
   const handleAddTodoClick = () => setIsAddTodoDialogOpen(true);
   
   const handleToggleSelection = (itemId: string) => {
-    setSelectedItems(prev => prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]);
+    setSelectedItems(prev => prev.includes(itemId) ? prev.filter(id => id !== item.id) : [...prev, item.id]);
   };
   
   const handleBulkEdit = async (updates: {
@@ -244,20 +244,19 @@ function DashboardPageContent() {
 
     try {
       const updatePromises = selectedItems.map(async (itemId) => {
+        const itemToUpdate = contentToDisplay.find(item => item.id === itemId) || await getContentItemById(itemId);
+        if (!itemToUpdate) return;
         
-        let finalUpdates: Partial<ContentItem> & { zoneIds?: string[] } = {};
+        let finalUpdates: Partial<ContentItem> = {};
         
-        // This is a special case for moving items, it replaces the main zoneId
+        // This is the new logic for replacing a regular zone
         if (updates.zoneId !== undefined) {
-          const itemToUpdate = contentToDisplay.find(item => item.id === itemId) || await getContentItemById(itemId);
-          if (!itemToUpdate) return;
-          const moodboardIds = (itemToUpdate.zoneIds || []).filter(id => availableZones.find(z => z.id === id && z.isMoodboard));
-          finalUpdates.zoneIds = updates.zoneId === null ? moodboardIds : [...moodboardIds, updates.zoneId];
+          const currentRegularZoneId = itemToUpdate.zoneIds?.find(id => regularZones.some(z => z.id === id));
+          const moodboardIds = itemToUpdate.zoneIds?.filter(id => id !== currentRegularZoneId) || [];
+          finalUpdates.zoneIds = updates.zoneId === null ? moodboardIds : [updates.zoneId, ...moodboardIds];
         }
 
         if (updates.tagsToAdd && updates.tagsToAdd.length > 0) {
-          const itemToUpdate = contentToDisplay.find(item => item.id === itemId) || await getContentItemById(itemId);
-          if (!itemToUpdate) return;
           const existingTags = itemToUpdate.tags || [];
           const newTags = updates.tagsToAdd.map(tagName => ({ id: tagName.toLowerCase(), name: tagName }));
           const combined = [...existingTags, ...newTags];
@@ -300,8 +299,7 @@ function DashboardPageContent() {
     
     try {
        const updatePromises = selectedItems.map(itemId => {
-         // This update will now use arrayUnion to add without removing others
-         return updateContentItem(itemId, { zoneIds: [moodboardId] });
+         return addItemToMoodboard(itemId, moodboardId);
        });
        
        await Promise.all(updatePromises);
