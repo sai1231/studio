@@ -4,9 +4,9 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { subscribeToContentItems, subscribeToZones, getUniqueTagsFromItems, getUniqueContentTypesFromItems, getUniqueDomainsFromItems } from '@/services/contentService';
+import { subscribeToContentItems, subscribeToZones, getUniqueTagsFromItems, getUniqueContentTypesFromItems, getUniqueDomainsWithFavicons } from '@/services/contentService';
 import { performSearch } from '@/app/actions/searchActions';
-import type { ContentItem, Tag, SearchFilters, Zone, Role } from '@/types';
+import type { ContentItem, Tag, SearchFilters, Zone, Role, DomainWithFavicon } from '@/types';
 import type { Unsubscribe } from 'firebase/firestore';
 
 interface SearchContextType {
@@ -17,7 +17,7 @@ interface SearchContextType {
   availableZones: Zone[];
   availableTags: Tag[];
   availableContentTypes: string[];
-  availableDomains: string[];
+  availableDomains: DomainWithFavicon[];
   search: (query: string, filters: SearchFilters, options: { limit?: number; offset?: number; append?: boolean }) => Promise<void>;
   hasMore: boolean;
   totalHits: number;
@@ -96,7 +96,7 @@ export const SearchProvider = ({ children, userRole }: { children: ReactNode; us
   
   const availableTags = useMemo(() => getUniqueTagsFromItems(allItems), [allItems]);
   const availableContentTypes = useMemo(() => getUniqueContentTypesFromItems(allItems), [allItems]);
-  const availableDomains = useMemo(() => getUniqueDomainsFromItems(allItems), [allItems]);
+  const availableDomains = useMemo(() => getUniqueDomainsWithFavicons(allItems), [allItems]);
 
   const value = {
     isInitialized,
