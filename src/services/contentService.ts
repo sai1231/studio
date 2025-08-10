@@ -23,7 +23,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { ContentItem, Zone, Tag, MovieDetails, SearchFilters, TaskList, Task } from '@/types';
+import type { ContentItem, Zone, Tag, MovieDetails, SearchFilters, TaskList, Task, DomainWithFavicon } from '@/types';
 import { enrichContent } from '@/ai/flows/enrich-content-flow';
 import { addLog } from '@/services/loggingService';
 import { addOrUpdateDocument, deleteDocument, deleteDocuments } from './meilisearchService';
@@ -611,15 +611,25 @@ export async function uploadFile(file: File, path: string): Promise<string> {
 
 // --- Efficient Data Extraction Functions ---
 
-export function getUniqueDomainsFromItems(items: ContentItem[]): string[] {
-  const domains = new Set<string>();
+export function getUniqueDomainsWithFavicons(items: ContentItem[]): DomainWithFavicon[] {
+  const domains = new Map<string, { name: string, faviconUrl: string | null }>();
+  
   items.forEach(item => {
-    if (item.domain) {
-      domains.add(item.domain);
+    if (item.domain && !item.domain.includes('firebasestorage.googleapis.com')) {
+      if (!domains.has(item.domain)) {
+        domains.set(item.domain, { name: item.domain, faviconUrl: item.faviconUrl || null });
+      } else {
+        const existing = domains.get(item.domain)!;
+        if (!existing.faviconUrl && item.faviconUrl) {
+          existing.faviconUrl = item.faviconUrl;
+        }
+      }
     }
   });
-  return Array.from(domains).sort();
+
+  return Array.from(domains.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
+
 
 export function getUniqueContentTypesFromItems(items: ContentItem[]): string[] {
   const contentTypes = new Set<string>();

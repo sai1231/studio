@@ -26,8 +26,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { getUniqueContentTypesFromItems, getUniqueTagsFromItems, getUniqueDomainsFromItems } from '@/services/contentService';
-import type { Zone as AppZone, Tag as AppTag } from '@/types';
+import { getUniqueContentTypesFromItems, getUniqueTagsFromItems, getUniqueDomainsWithFavicons } from '@/services/contentService';
+import type { Zone as AppZone, Tag as AppTag, DomainWithFavicon } from '@/types';
 
 
 const AppHeader: React.FC = () => {
@@ -73,7 +73,7 @@ const AppHeader: React.FC = () => {
     if (pendingDomain) filteredItems = filteredItems.filter(item => item.domain === pendingDomain);
 
     const contentTypesInFiltered = getUniqueContentTypesFromItems(filteredItems);
-    const domainsInFiltered = getUniqueDomainsFromItems(filteredItems);
+    const domainsInFiltered = getUniqueDomainsWithFavicons(filteredItems);
     const tagsInFiltered = getUniqueTagsFromItems(filteredItems);
     const zoneIdsInFiltered = new Set(filteredItems.map(item => item.zoneId).filter(Boolean));
     const zonesInFiltered = availableZones.filter(zone => zoneIdsInFiltered.has(zone.id));
@@ -202,12 +202,12 @@ const AppHeader: React.FC = () => {
                   ))}
                 </CommandGroup>
                )}
-                {popoverDomains.filter(d => d.toLowerCase().includes(inputValue.toLowerCase())).length > 0 && (
+                {popoverDomains.filter(d => d.name.toLowerCase().includes(inputValue.toLowerCase())).length > 0 && (
                  <CommandGroup heading="Domains">
-                    {popoverDomains.filter(d => d.toLowerCase().includes(inputValue.toLowerCase())).map(domain => (
-                         <CommandItem key={domain} onSelect={() => handleFilterSelect('domain', domain)}>
+                    {popoverDomains.filter(d => d.name.toLowerCase().includes(inputValue.toLowerCase())).map(domain => (
+                         <CommandItem key={domain.name} onSelect={() => handleFilterSelect('domain', domain.name)}>
                            <Globe className="mr-2 h-4 w-4" />
-                           <span>{domain}</span>
+                           <span>{domain.name}</span>
                          </CommandItem>
                        ))}
                  </CommandGroup>

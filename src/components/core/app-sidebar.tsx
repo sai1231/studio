@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
-import type { Zone, Tag as TagType } from '@/types';
+import type { Zone, Tag as TagType, DomainWithFavicon } from '@/types';
 import { ThemeToggle } from './theme-toggle';
 import { getAuth, signOut } from 'firebase/auth';
 import { cn } from '@/lib/utils';
@@ -111,7 +111,7 @@ const ZoneHoverCardItem: React.FC<{ zone: Zone; href: string; onDelete: (zoneId:
 interface AppSidebarProps {
     zones: Zone[];
     tags: TagType[];
-    domains: string[];
+    domains: DomainWithFavicon[];
     contentTypes: string[];
 }
 
@@ -212,9 +212,13 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones: allCollections, tags, do
               
                <HoverNavButton icon={Globe} label="Domains" isEmpty={domains.length === 0}>
                 {domains.map(domain => (
-                  <Link key={domain} href={`/dashboard?domain=${encodeURIComponent(domain)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
-                      <Globe className="h-4 w-4 opacity-70" />
-                      <span className="truncate">{formatDomainName(domain)}</span>
+                  <Link key={domain.name} href={`/dashboard?domain=${encodeURIComponent(domain.name)}`} className="flex items-center gap-3 rounded-md p-2 text-popover-foreground transition-all hover:bg-accent/50">
+                      {domain.faviconUrl ? (
+                          <img src={domain.faviconUrl} alt={`${domain.name} favicon`} className="h-4 w-4" />
+                      ) : (
+                          <Globe className="h-4 w-4 opacity-70" />
+                      )}
+                      <span className="truncate">{formatDomainName(domain.name)}</span>
                   </Link>
                 ))}
               </HoverNavButton>

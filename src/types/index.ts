@@ -128,3 +128,8 @@ export interface ClassificationRule {
   contentType: string;
   priority: number;
 }
+
+export interface DomainWithFavicon {
+    name: string;
+    faviconUrl: string | null;
+}

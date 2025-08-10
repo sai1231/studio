@@ -12,7 +12,7 @@ import RecordVoiceDialog from '@/components/core/RecordVoiceDialog';
 import FocusModeDialog from '@/components/core/FocusModeDialog';
 import type { Zone, ContentItem, Tag as TagType, DomainWithFavicon } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { addContentItem, getUniqueDomainsWithFavicons, getUniqueContentTypesFromItems, getUniqueTagsFromItems, uploadFile, subscribeToZones, subscribeToContentItems, addZone } from '@/services/contentService';
+import { addContentItem, getUniqueContentTypesFromItems, getUniqueTagsFromItems, uploadFile, subscribeToZones, subscribeToContentItems, addZone, getUniqueDomainsWithFavicons } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
 import { Plus, UploadCloud, Home, Bookmark as BookmarkIcon, Tag, ClipboardList, Globe, Newspaper, Film, Github, MessagesSquare, BookOpen, StickyNote, FileImage, Mic, ListChecks, View } from 'lucide-react';
 import { cn } from '@/lib/utils';
