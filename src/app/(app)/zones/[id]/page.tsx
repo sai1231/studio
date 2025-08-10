@@ -58,17 +58,22 @@ export default function ZonePage() {
       return;
     }
     setIsLoading(true);
+    console.log(`Fetching data for zone: ${zoneId}`);
     setError(null);
     try {
       const [zoneDetails, allItems] = await Promise.all([
-        getZoneById(zoneId),
+          getZoneById(zoneId), // Fetch the specific zone details
         getContentItems(user.uid, role.features.contentLimit),
       ]);
 
+      console.log('Fetched allContent:', allItems);
+
       if (zoneDetails) {
         setCurrentZone(zoneDetails);
+        console.log('Filtering content for zoneId:', zoneId);
         const itemsInThisZone = allItems.filter(item => item.zoneIds?.includes(zoneId));
         setAllContentInZone(itemsInThisZone);
+
       } else {
         setCurrentZone(null);
         setAllContentInZone([]);

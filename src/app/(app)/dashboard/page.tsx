@@ -416,7 +416,7 @@ function DashboardPageContent() {
                         tasks={tasks}
                         onToggleStatus={handleToggleTodoStatus}
                         onDeleteItem={handleDeleteTask}
-                        isUpdatingStatus={isUpdatingStatus}
+                        isUpdatingStatus={isUpdatingTodoStatus}
                         onAddTodoClick={handleAddTodoClick}
                         />
                     ) : (
