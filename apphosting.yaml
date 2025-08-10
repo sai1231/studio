@@ -43,7 +43,3 @@ env:
     secret: GOOGLE_CLIENT_SECRET
   - variable: NEXTAUTH_URL
     secret: NEXTAUTH_URL
-  - variable: META_APP_ID
-    secret: META_APP_ID
-  - variable: META_APP_SECRET
-    secret: META_APP_SECRET
