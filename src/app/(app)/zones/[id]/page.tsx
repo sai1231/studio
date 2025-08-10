@@ -11,7 +11,7 @@ import type { ContentItem, Zone } from '@/types';
 import { Button } from '@/components/ui/button';
 import { FolderOpen, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getContentItems, getZoneById, moveItemToTrash } from '@/services/contentService';
+import { getContentItemsByZone, getZoneById, moveItemToTrash } from '@/services/contentService';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useDialog } from '@/context/DialogContext';
@@ -58,22 +58,16 @@ export default function ZonePage() {
       return;
     }
     setIsLoading(true);
-    console.log(`Fetching data for zone: ${zoneId}`);
     setError(null);
     try {
-      const [zoneDetails, allItems] = await Promise.all([
-          getZoneById(zoneId), // Fetch the specific zone details
-        getContentItems(user.uid, role.features.contentLimit),
+      const [zoneDetails, itemsInThisZone] = await Promise.all([
+        getZoneById(zoneId),
+        getContentItemsByZone(user.uid, zoneId)
       ]);
-
-      console.log('Fetched allContent:', allItems);
 
       if (zoneDetails) {
         setCurrentZone(zoneDetails);
-        console.log('Filtering content for zoneId:', zoneId);
-        const itemsInThisZone = allItems.filter(item => item.zoneIds?.includes(zoneId));
         setAllContentInZone(itemsInThisZone);
-
       } else {
         setCurrentZone(null);
         setAllContentInZone([]);

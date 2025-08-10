@@ -148,6 +148,45 @@ export async function getContentItemById(id: string): Promise<ContentItem | unde
   }
 }
 
+// New function to get content items for a specific zone
+export async function getContentItemsByZone(userId: string, zoneId: string): Promise<ContentItem[]> {
+  try {
+    if (!db) {
+        console.warn("Firestore is not configured. Returning empty array.");
+        return [];
+    }
+    if (!userId || !zoneId) {
+        console.warn("getContentItemsByZone called without a userId or zoneId. Returning empty array.");
+        return [];
+    }
+    
+    const contentCollection = collection(db, 'content');
+    const q = query(
+        contentCollection, 
+        where("userId", "==", userId),
+        where("zoneIds", "array-contains", zoneId),
+        where("isTrashed", "==", false),
+        orderBy('createdAt', 'desc')
+    );
+
+    const querySnapshot = await getDocs(q);
+    const items: ContentItem[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const createdAt = data.createdAt; // Firestore Timestamp
+      items.push({
+        id: doc.id,
+        ...data,
+        createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : (createdAt || new Date().toISOString()),
+      } as ContentItem);
+    });
+    return items;
+  } catch (error) {
+    console.error(`Failed to get content items for zone ${zoneId} from Firestore:`, error);
+    throw error;
+  }
+}
+
 // Function to add a new content item
 export async function addContentItem(
   itemData: Omit<ContentItem, 'id' | 'createdAt'>
