@@ -196,7 +196,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones: allCollections, tags, do
               <HoverNavButton icon={ImageIcon} label="Moodboards" isEmpty={moodboards.length === 0}>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-6 p-2">
                     {moodboards.map(board => (
-                        <ZoneHoverCardItem key={board.id} zone={board} href={`/dashboard?zone=${board.id}`} onDelete={handleDeleteClick} isDeleting={isDeleting}/>
+                        <ZoneHoverCardItem key={board.id} zone={board} href={`/zones/${board.id}`} onDelete={handleDeleteClick} isDeleting={isDeleting}/>
                     ))}
                 </div>
               </HoverNavButton>
