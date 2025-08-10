@@ -21,6 +21,7 @@ import {
   setDoc,
   arrayUnion,
   writeBatch,
+  arrayRemove,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { ContentItem, Zone, Tag, MovieDetails, SearchFilters, TaskList, Task, DomainWithFavicon } from '@/types';
@@ -544,24 +545,47 @@ export async function addZone(name: string, userId: string, isMoodboard: boolean
 
 export async function deleteZone(zoneId: string): Promise<void> {
   if (!db) throw new Error("Firestore is not configured.");
-  const batch = writeBatch(db);
+  
   const zoneRef = doc(db, 'zones', zoneId);
+  const zoneSnap = await getDoc(zoneRef);
 
+  if (!zoneSnap.exists()) {
+    console.warn(`Zone with ID ${zoneId} does not exist. Cannot delete.`);
+    return;
+  }
+
+  const isMoodboard = zoneSnap.data()?.isMoodboard === true;
   const contentRef = collection(db, 'content');
   const q = query(contentRef, where('zoneIds', 'array-contains', zoneId));
   const contentSnapshot = await getDocs(q);
-  
-  const contentIdsToDelete: string[] = [];
-  contentSnapshot.forEach(doc => {
-    batch.delete(doc.ref);
-    contentIdsToDelete.push(doc.id);
-  });
-  
-  if (contentIdsToDelete.length > 0) {
-    await deleteDocuments(contentIdsToDelete);
+  const batch = writeBatch(db);
+
+  if (isMoodboard) {
+    // If it's a moodboard, just remove the ID from the items' zoneIds array
+    addLog('INFO', `[Delete Moodboard] Unlinking ${contentSnapshot.size} items from moodboard ${zoneId}`);
+    contentSnapshot.forEach(doc => {
+      batch.update(doc.ref, { zoneIds: arrayRemove(zoneId) });
+    });
+    // And then delete the moodboard itself
+    batch.delete(zoneRef);
+  } else {
+    // If it's a regular zone, delete all associated content
+    addLog('INFO', `[Delete Zone] Deleting ${contentSnapshot.size} items from zone ${zoneId}`);
+    const contentIdsToDelete: string[] = [];
+    contentSnapshot.forEach(doc => {
+      batch.delete(doc.ref);
+      contentIdsToDelete.push(doc.id);
+    });
+    
+    // Also delete the zone document
+    batch.delete(zoneRef);
+
+    // Bulk delete from Meilisearch
+    if (contentIdsToDelete.length > 0) {
+      await deleteDocuments(contentIdsToDelete);
+    }
   }
 
-  batch.delete(zoneRef);
   await batch.commit();
 }
 
@@ -736,3 +760,4 @@ export async function permanentDeleteAllTrashedItems(userId: string): Promise<{ 
     
     return { deletedCount: snapshot.size };
 }
+

@@ -62,9 +62,8 @@ const HoverNavButton = ({ icon: Icon, label, children, isEmpty }: { icon: React.
     </HoverCard>
 );
 
-const ZoneHoverCardItem: React.FC<{ zone: Zone; href: string; onDelete: (zoneId: string, zoneName: string, itemCount: number) => void; isDeleting: boolean; }> = ({ zone, href, onDelete, isDeleting }) => {
+const ZoneHoverCardItem: React.FC<{ zone: Zone; href: string; onDelete: (zoneId: string, zoneName: string, isMoodboard: boolean) => void; isDeleting: boolean; }> = ({ zone, href, onDelete, isDeleting }) => {
   const Icon = getIconComponent(zone.icon);
-  const itemCount = zone.itemCount || 0;
 
   return (
     <div className="relative group p-1">
@@ -95,7 +94,7 @@ const ZoneHoverCardItem: React.FC<{ zone: Zone; href: string; onDelete: (zoneId:
             size="icon"
             variant="ghost"
             className="absolute top-0 right-0 z-10 h-6 w-6 rounded-full bg-background/50 text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-destructive hover:text-destructive-foreground"
-            onClick={() => onDelete(zone.id, zone.name, itemCount)}
+            onClick={() => onDelete(zone.id, zone.name, zone.isMoodboard || false)}
             disabled={isDeleting}
         >
             <Trash2 className="h-3 w-3" />
@@ -120,7 +119,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones: allCollections, tags, do
   const { toast } = useToast();
   const auth = getAuth();
   
-  const [zoneToDelete, setZoneToDelete] = useState<{id: string, name: string, itemCount: number} | null>(null);
+  const [zoneToDelete, setZoneToDelete] = useState<{id: string, name: string, isMoodboard: boolean} | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const zones = allCollections.filter(c => !c.isMoodboard);
@@ -135,33 +134,32 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones: allCollections, tags, do
     }
   };
 
-  const handleDeleteClick = (zoneId: string, zoneName: string, itemCount: number) => {
-    if (itemCount > 0) {
-      setZoneToDelete({ id: zoneId, name: zoneName, itemCount });
-    } else {
-      // If there are no items, delete immediately without confirmation
-      confirmDelete(zoneId, zoneName);
-    }
+  const handleDeleteClick = (zoneId: string, zoneName: string, isMoodboard: boolean) => {
+    setZoneToDelete({ id: zoneId, name: zoneName, isMoodboard });
   };
 
-  const confirmDelete = async (zoneId: string, zoneName: string) => {
+  const confirmDelete = async () => {
+    if (!zoneToDelete) return;
+
     setIsDeleting(true);
-    setZoneToDelete(null);
+    const { id, name, isMoodboard } = zoneToDelete;
+    
     try {
-      await deleteZone(zoneId);
+      await deleteZone(id);
       toast({
-        title: "Zone Deleted",
-        description: `The zone "${zoneName}" and all its content have been deleted.`,
+        title: isMoodboard ? "Moodboard Deleted" : "Zone Deleted",
+        description: `"${name}" has been successfully deleted.`,
       });
     } catch (e) {
       console.error("Error deleting zone:", e);
       toast({
         title: "Error",
-        description: `Could not delete the zone "${zoneName}".`,
+        description: `Could not delete "${name}".`,
         variant: "destructive",
       });
     } finally {
       setIsDeleting(false);
+      setZoneToDelete(null);
     }
   };
 
@@ -253,18 +251,28 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ zones: allCollections, tags, do
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the zone <strong className="text-foreground">"{zoneToDelete?.name}"</strong> and all <strong className="text-foreground">{zoneToDelete?.itemCount}</strong> items within it. This action cannot be undone.
+              {zoneToDelete?.isMoodboard ? (
+                <>
+                  This will delete the moodboard <strong className="text-foreground">"{zoneToDelete.name}"</strong>. 
+                  The content items will not be deleted, only unlinked from this moodboard.
+                </>
+              ) : (
+                <>
+                  This will permanently delete the zone <strong className="text-foreground">"{zoneToDelete?.name}"</strong> and all its content. 
+                  This action cannot be undone.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => zoneToDelete && confirmDelete(zoneToDelete.id, zoneToDelete.name)}
-              className="bg-destructive hover:bg-destructive/90"
+              onClick={confirmDelete}
+              className={cn(!zoneToDelete?.isMoodboard && "bg-destructive hover:bg-destructive/90")}
               disabled={isDeleting}
             >
               {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Delete Everything
+              {zoneToDelete?.isMoodboard ? 'Delete Moodboard' : 'Delete Zone'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
